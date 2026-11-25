@@ -4166,19 +4166,20 @@ namespace CapriDesktop
 
         internal void UseServer(string typed) { UseServer(typed, null); }
 
-        internal void UseServer(string typed, string key)
+        internal void UseServer(string typed, string key, Action<string> report = null)
         {
+            Action<string> say = report ?? (text => Talk.Answer("(brain server)", text));
             string server = Brain.ServerAddress(typed);
-            if (server == null) { Talk.Answer("(brain server)", "That address doesn't work. Try http://localhost:8080."); return; }
+            if (server == null) { say("That address doesn't work. Try https://... or http://localhost:8080."); return; }
             key = (key ?? "").Trim();
             if (key.Length == 0) key = null;
             if (key != null && !Brain.ServerKeySafe(server))
             {
-                Talk.Answer("(brain provider)", "Use https:// for a provider elsewhere. A key over plain http isn't safe.");
+                say("Use https:// for a provider elsewhere. A key over plain http isn't safe.");
                 return;
             }
             int ticket = ++asking;
-            Talk.Thinking("(brain server)");
+            if (report == null) Talk.Thinking("(brain server)");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
@@ -4186,15 +4187,19 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (ticket != asking) return;
+                    if (ticket != asking)
+                    {
+                        report?.Invoke("Provider check cancelled.");
+                        return;
+                    }
                     if (found == null || found.Length == 0)
                     {
-                        if (ticket == asking) Talk.Answer("(brain server)", found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
+                        say(found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
                         return;
                     }
                     if (!WriteServerPair(ServerPairFile, server, key))
                     {
-                        Talk.Answer("(brain provider)", "Couldn't save the provider address and key.");
+                        say("Couldn't save the provider address and key.");
                         return;
                     }
                     ComputerJobs.Stop();
@@ -4210,7 +4215,9 @@ namespace CapriDesktop
                     Saved.ServerModel = model;
                     Save();
                     if (MainframeTier == 0) ShowServer(found);
-                    if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+                    if (report != null)
+                        report(Brain.Remote == null ? "Provider connected." : "Provider saved. Your cloud key is still in use.");
+                    else if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
         }
@@ -4230,12 +4237,13 @@ namespace CapriDesktop
             Save();
         }
 
-        internal void LeaveServer()
+        internal void LeaveServer(Action<string> report = null)
         {
             ++asking;
             if (!WriteServerPair(ServerPairFile, null, null))
             {
-                Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                if (report == null) Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                else report("Couldn't remove the saved provider.");
                 return;
             }
             ComputerJobs.Stop();
@@ -4251,6 +4259,7 @@ namespace CapriDesktop
             Save();
             FindBrain();
             RefreshBrains();
+            report?.Invoke("Provider forgotten.");
         }
 
         // On a cloud key the Brain menu lists that key's chat models, and can go back to Ollama.

@@ -7057,7 +7057,38 @@ namespace CapriDesktop
                     if (pet.Saved.ServerModel != "server-other") throw new Exception("The Mainframe did not save its server model.");
                     MainframeEnter(frame, "Local server address", ""); MainframeWait(() => pet.Brain.Server == null && pet.Brain.Model != null && Array.IndexOf(pet.MainframeModels, Pet.Starter) >= 0, "returning to Ollama");
                     if (!server.Requests.Exists(line => line.Contains("/api/pull") && line.Contains(Pet.Starter))) throw new Exception("Set up did not use the existing model download.");
-                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, and her own brain server use loopback fakes");
+                    // A custom OpenAI-compatible provider, set up from the Mainframe with any address and a key, not just a preset provider's key.
+                    frame.ShowSettings(false);
+                    if (frame.Button("Provider") == null) throw new Exception("The Mainframe BRAIN panel has no Provider button.");
+                    var provider = new MainframeSheet(pet, "BRAIN PROVIDER", "provider"); provider.Show(frame);
+                    try
+                    {
+                        var address = ((NeonEntry)provider.Rows["Address"]).Box;
+                        var key = ((NeonEntry)provider.Rows["API key"]).Box;
+                        var connect = (NeonButton)provider.Rows["Connect"];
+                        var forget = (NeonButton)provider.Rows["Forget"];
+                        var note = (NeonCaption)provider.Rows["Note"];
+                        if (key.PasswordChar == '\0' || forget.IsEnabled) throw new Exception("The provider key should be masked and there is no provider to forget yet.");
+
+                        address.Text = "http://example.invalid/v1";
+                        key.Text = "provider-key-test";
+                        connect.Press();
+                        if (pet.Brain.Server != null || !note.Text.Contains("Use https://") || !string.IsNullOrEmpty(key.Text))
+                            throw new Exception("The sheet did not reject an insecure keyed endpoint and clear the key.");
+
+                        address.Text = server.Address + "/v1";
+                        key.Text = "provider-key-test";
+                        connect.Press();
+                        MainframeWait(() => note.Text == "Provider connected.", "the custom provider from its panel");
+                        if (pet.Saved.BrainServer != server.Address || pet.Brain.Server != server.Address || pet.Brain.ServerKey != "provider-key-test")
+                            throw new Exception("The custom provider address and key did not save together.");
+                        forget.Press();
+                        MainframeWait(() => note.Text == "Provider forgotten.", "forgetting the custom provider");
+                        if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainServer != null || forget.IsEnabled)
+                            throw new Exception("The sheet did not remove the custom provider pair.");
+                    }
+                    finally { provider.Close(); }
+                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, her own brain server and any OpenAI-compatible provider address with a key use loopback fakes");
                 }
                 finally
                 {

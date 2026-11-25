@@ -891,7 +891,7 @@ namespace CapriDesktop
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = caption ?? title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : kind == "spend" ? Spent() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "provider" ? Provider() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : kind == "spend" ? Spent() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -942,6 +942,47 @@ namespace CapriDesktop
             Button("Save", 120, 224, 150, 28, () => save()).Accent = MainframeTheme.Cyan;
             Button("Cancel", 278, 224, 78, 28, Close);
             foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
+            return 300;
+        }
+        private double Provider()
+        {
+            Caption("Use an OpenAI-compatible chat endpoint.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var address = Input("Address", "https://api.example.com/v1", 28, 84, 328, () => pet.Brain.Server ?? "");
+            var key = Input("API key", "Optional", 28, 140, 328, () => null);
+            key.Box.PasswordChar = '•';
+            Caption("A key needs HTTPS unless the server is on this PC.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 264, 328, 20);
+            Rows["Note"] = note;
+            Action<string> say = text => { note.Text = text; ToolTip.SetTip(note, text); note.InvalidateVisual(); };
+            int request = 0;
+            NeonButton connectButton = null;
+            Action connect = () =>
+            {
+                if (!connectButton.IsEnabled) return;
+                int ticket = ++request;
+                string secret = key.Box.Text;
+                key.Box.Text = "";
+                connectButton.IsEnabled = false;
+                say("Checking the provider...");
+                pet.UseServer(address.Box.Text, secret, result =>
+                {
+                    if (closed || ticket != request) return;
+                    connectButton.IsEnabled = true;
+                    say(result);
+                });
+            };
+            connectButton = Button("Connect", 28, 224, 104, 28, () => connect());
+            connectButton.Accent = MainframeTheme.Cyan;
+            var forget = Button("Forget", 140, 224, 104, 28, () =>
+            {
+                ++request;
+                key.Box.Text = "";
+                connectButton.IsEnabled = true;
+                pet.LeaveServer(say);
+            });
+            readers.Add(() => forget.IsEnabled = pet.Brain.Server != null);
+            Button("Close", 252, 224, 104, 28, Close);
+            foreach (var entry in new[] { address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => connect()); } };
             return 300;
         }
         // Extra request JSON for the brain she's on, merged into each request it sends.
