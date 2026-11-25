@@ -11081,18 +11081,42 @@ namespace CapriDesktop
                         if (started == null || first == null || !first.Is("done", false) || (double)first["n"] != 1 || runs != before + 1) throw new Exception("A permitted job lost its running state or first step.");
                         string id = started.Text("id");
                         release.Set(); rows.Clear();
-                        RemoteBridgeWait(delegate
+                        Func<string> stepFrames = () => string.Join(", ", rows.Where(row => row.Text("id") == id && (row.Text("type") == "job.step" || row.Text("type") == "job.state"))
+                            .Select(row => row.Text("device") + ":" + row.Text("type") + ":" + (row.ContainsKey("n") ? Convert.ToString(row["n"], System.Globalization.CultureInfo.InvariantCulture) : row.Text("state")) + ":done=" + row.Is("done", true) + ":failed=" + row.Is("failed", true)));
+                        Func<bool> finishedSteps = delegate
                         {
-                            rows.AddRange(bridge.DrainJobs());
-                            return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == id && row.Text("state") == "done")
-                                && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
-                        }, "the permitted job completion");
-                        all.AddRange(rows);
-                        foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            bool finished = true;
+                            foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            {
+                                int last = 0;
+                                bool[] done = new bool[3];
+                                foreach (RemoteJson.Map step in rows.Where(row => row.Text("type") == "job.step" && row.Text("id") == id && row.Text("device") == device))
+                                {
+                                    double number;
+                                    if (!step.Number("n", out number) || (number != 1 && number != 2) || number < last || step.Is("failed", true)
+                                        || (done[(int)number] && !step.Is("done", true)) || (number == 2 && !done[1]))
+                                        throw new Exception("A successful job had invalid, failed or regressing step replacements for " + id + ": " + stepFrames());
+                                    last = (int)number;
+                                    done[last] = step.Is("done", true);
+                                }
+                                if (!done[1] || !done[2]) finished = false;
+                            }
+                            return finished;
+                        };
+                        try
                         {
-                            List<RemoteJson.Map> steps = rows.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
-                            if (steps.Count != 2 || (double)steps[0]["n"] != 1 || (double)steps[1]["n"] != 2 || steps.Any(row => !row.Is("done", true) || row.Is("failed", true))) throw new Exception("A successful job lost its ordered finished step replacements.");
+                            RemoteBridgeWait(delegate
+                            {
+                                rows.AddRange(bridge.DrainJobs());
+                                bool finished = finishedSteps();
+                                if (rows.Any(row => row.Text("type") == "job.state" && row.Text("id") == id && (row.Text("state") == "failed" || row.Text("state") == "stopped")))
+                                    throw new Exception("The permitted successful job " + id + " failed or stopped: " + stepFrames());
+                                return finished && !SelfJobs.Active && bridge.Phones.All(phone => rows.Exists(row => row.Text("type") == "job.state" && row.Text("device") == phone.Id && row.Text("id") == id && row.Text("state") == "done"))
+                                    && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
+                            }, "the permitted job completion and both phones' finished steps");
                         }
+                        catch (Exception error) { throw new Exception(error.Message + " Job " + id + " frames: " + stepFrames(), error); }
+                        all.AddRange(rows);
                         bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
                         rows = bridge.DrainJobs(); all.AddRange(rows);
                         RemoteJson.Map recent = rows.Find(row => row.Text("type") == "job.recent");
