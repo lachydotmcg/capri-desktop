@@ -51,6 +51,9 @@ namespace CapriDesktop
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
+        // Lite mode stops her brain on this PC and pauses Watch my screen; LiteWatch remembers whether Watch was on, so Off puts it back.
+        [DataMember] internal bool Lite;
+        [DataMember] internal bool LiteWatch;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
         [DataMember] internal int? SleepAfter;
@@ -905,6 +908,7 @@ namespace CapriDesktop
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
+            Brain.Lite = Saved.Lite;
             StartCare();
             StartCompanion();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
@@ -7238,6 +7242,8 @@ namespace CapriDesktop
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
             [DataMember] internal int MusicApp;
+            [DataMember] internal bool Lite;
+            [DataMember] internal bool LiteWatch;
             [DataMember] internal bool RemoteOn;
             [DataMember] internal string RemoteHost;
         }
@@ -7313,6 +7319,8 @@ namespace CapriDesktop
             saved.ThinkingPicks = newer.ThinkingPicks;
             saved.NoHuskVerbosity = newer.NoHuskVerbosity;
             saved.MusicApp = newer.MusicApp;
+            saved.Lite = newer.Lite;
+            saved.LiteWatch = newer.LiteWatch;
             return saved;
         }
 
@@ -7320,7 +7328,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         internal static string ProviderKind(Settings saved, string inferred)

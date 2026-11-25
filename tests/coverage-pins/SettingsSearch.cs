@@ -41,6 +41,7 @@ internal static class SettingsSearch
         new[] { "Language", "language" },
         new[] { "Listen for Hey Capri", "listen", "wake word", "hey capri" },
         new[] { "Start at login", "startup", "start up", "start with windows", "login" },
+        new[] { "Lite mode", "lite mode", "slow", "lag", "laggy" },
         new[] { "Brain API key", "api key", "key" },
         new[] { "Free key", "api key", "key" },
         new[] { "ChatGPT plan", "api key", "key" },
@@ -61,7 +62,7 @@ internal static class SettingsSearch
         new Contract { App = "volume", Setting = "Volume", Cross = "Volume" },
         new Contract { App = "startup", Setting = "Start with Windows", Cross = "Start at login" },
         new Contract { App = "languages", Setting = "I speak", Cross = "Language" },
-        new Contract { App = "liteMode", Setting = "Lite mode", Cross = null },
+        new Contract { App = "liteMode", Setting = "Lite mode", Cross = "Lite mode" },
         new Contract { App = "PlugTile", Setting = "Plug-ins", Cross = "Plug-ins" }
     };
 

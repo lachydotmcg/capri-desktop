@@ -415,13 +415,13 @@ namespace CapriDesktop
         private static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 1006, 2028 } };
         // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
         private static readonly int[] EarsBand = { 428, 488 };
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 978, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 1006, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -680,8 +680,11 @@ namespace CapriDesktop
             Named("Music app", 380, 876);
             var musicApp = Picker("Music app", 564, 879, 172, () => OperatingSystem.IsLinux() ? Pet.LinuxMusicPick(pet.MusicApp) : pet.MusicApp, pick => pet.SetMusicApp(OperatingSystem.IsLinux() ? Pet.LinuxMusicApp(pick) : pick)); musicApp.Height = 22; musicApp.Options(OperatingSystem.IsLinux() ? Pet.LinuxMusicSteps : Hands.MusicSteps());
             Toggle("Remember our chats", 380, 904, () => !pet.Saved.NoMemories, pet.SetRemembering);
-            var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
-            var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
+            var lite = Toggle("Lite mode", 380, 932, () => pet.LiteOn, pet.SetLite);
+            lite.Width = 224; lite.Switch = 68;
+            Key("Why slow?", 640, 935, 96, 22, pet.CheckWhySlow);
+            var security = Key("Security: " + Security.PresetName, 408, 963, 328, 22, OpenSecurity);
+            var securityNote = Caption(Security.Short, 408, 987, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
             for (int i = 0; i < Care.Names.Length; i++)
             {

@@ -3399,6 +3399,7 @@ namespace CapriDesktop
                 checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
                 KeyChecks(frame);
                 SearchChecks();
+                LiteChecks(frame);
             }
             finally
             {
@@ -3870,6 +3871,153 @@ namespace CapriDesktop
                 frame.Unspot();
                 pet.SetAdvancedSettings(advancedWas);
                 frame.ShowSettings(pagedWas);
+            }
+        }
+
+        // Lite mode and Why slow? on Mac and Linux: the switch and its saved copies, the words its search answers to, and the check's line.
+        private void LiteChecks(Mainframe frame)
+        {
+            pet.OpenMainframe();
+            frame = pet.Frame;
+            bool settingsWas = frame.SettingsShown;
+            frame.ShowSettings(true);
+            Control lite = null;
+            try { lite = frame.Row("Lite mode"); } catch (KeyNotFoundException) { }
+            NeonButton why = frame.Button("Why slow?");
+            if (lite == null || !(lite is NeonSwitch) || Avalonia.Automation.AutomationProperties.GetName(lite) != "Lite mode" || !lite.IsVisible)
+                throw new Exception("Her Settings have no visible Lite mode switch named Lite mode: found " + (lite == null ? "nothing" : lite.GetType().Name + " visible " + lite.IsVisible + " at " + Avalonia.Controls.Canvas.GetTop(lite) + " named " + Avalonia.Automation.AutomationProperties.GetName(lite)) + ", settings " + frame.SettingsShown + ", advanced " + pet.Saved.AdvancedSettings + ", frame visible " + frame.IsVisible);
+            if (why == null || Avalonia.Automation.AutomationProperties.GetName(why) != "Why slow?")
+                throw new Exception("Her Settings have no Why slow? key beside Lite mode.");
+            bool watchWas = pet.Saved.Watch, liteWas = Brain.Lite;
+            Engine localWas = pet.Brain.Local;
+            Pick pickWas = pet.Brain.LocalPick;
+            string modelWas = pet.Brain.Model;
+            try
+            {
+                frame.Strike(Avalonia.Input.Key.F, KeyModifiers.Control);
+                foreach (string key in new[] { "lite mode", "slow", "lag", "laggy" })
+                {
+                    frame.SearchBox.Box.Text = key;
+                    if (!frame.SearchOpen || !frame.SearchListed.Contains("Lite mode · HABITS"))
+                        throw new Exception("Searching \"" + key + "\" didn't list Lite mode under HABITS: " + string.Join(", ", frame.SearchListed.ToArray()));
+                }
+                frame.SearchBox.Box.Text = "";
+                frame.Strike(Avalonia.Input.Key.Escape);
+
+                pet.SetWatch(true, false);
+                Settings oldCopy = SettingsCopy();
+                frame.Change("Lite mode", 1);
+                string on = SettingsJson(pet.Saved);
+                if (!on.Contains("\"Lite\":true") || !on.Contains("\"LiteWatch\":true") || !on.Contains("\"Watch\":false") || !Brain.Lite || frame.Value("Lite mode") != "On")
+                    throw new Exception("Lite mode didn't save on, remember Watch my screen, pause it or stop her brain: " + on + " / brain " + Brain.Lite);
+                string newer = SettingsJson(Pet.Newest(SettingsCopy()));
+                if (!newer.Contains("\"Lite\":true") || !newer.Contains("\"LiteWatch\":true"))
+                    throw new Exception("Her newer settings copy lost Lite mode: " + newer);
+                oldCopy.VoiceProvider = null;
+                string kept = SettingsJson(Pet.Kept(oldCopy, Pet.Newest(SettingsCopy())));
+                if (!kept.Contains("\"Lite\":true") || !kept.Contains("\"LiteWatch\":true"))
+                    throw new Exception("An older copy coming back lost Lite mode: " + kept);
+                string liteFolder = Path.Combine(folder, "lite-settings");
+                Directory.CreateDirectory(liteFolder);
+                string path = Path.Combine(liteFolder, "cross.json");
+                File.WriteAllText(path, on);
+                string notice;
+                string back = SettingsJson(Pet.ReadSettings(path, out notice));
+                if (notice != null || !back.Contains("\"Lite\":true") || !back.Contains("\"LiteWatch\":true"))
+                    throw new Exception("A saved Lite mode didn't read back: " + notice + " / " + back);
+
+                frame.Change("Lite mode", 0);
+                string off = SettingsJson(pet.Saved);
+                if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
+                    throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
+
+                SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns resting = new SlowSigns { Kind = "built-in", Read = true, Running = false, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns fewThreads = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 4, Processor = "Intel Core i3-2100", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns fewThreadsCloud = new SlowSigns { Kind = "cloud", Read = true, Threads = 2, RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns lowRam = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 900L << 20, RamTotal = 8L << 30, Busy = 12 };
+                SlowSigns busy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 96.2 };
+                SlowSigns watching = new SlowSigns { Kind = "built-in", Read = true, Running = true, Watch = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteOn = new SlowSigns { Kind = "built-in", Read = true, Running = false, CpuOnly = true, Lite = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns cloud = new SlowSigns { Kind = "cloud", Read = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns unreadable = new SlowSigns { Kind = "built-in", Read = false, Running = true, Threads = 16 };
+                string[] wanted = {
+                    "I checked your PC and nothing is slowing me down right now.",
+                    "My brain is set to run on your processor, so it's slower than on a graphics card. Turn on Lite mode to stop my brain on your PC, or press Free key under BRAIN for a free cloud brain.",
+                    "My brain on your PC rests after 15 minutes unused, so my next reply waits while it loads again. Only that first reply is slow. Press Free key under BRAIN in Capri Mainframe for a free cloud brain.",
+                    "Your processor, Intel Core i3-2100, has only 4 threads, which is small for running a brain. Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.",
+                    "Your processor has only 2 threads, which is small for everything I do. Close apps you're not using to give me room.",
+                    "Only 900 MB of your 8.0 GB of RAM is free. Close apps or browser tabs you're not using, or turn on Lite mode.",
+                    "Your processor is 96% busy. Close what you're not using to give me room.",
+                    "Watch my screen is on, and it keeps working in the background. Turn on Lite mode to pause it, or turn it off under WATCH.",
+                    "Lite mode is on, so my brain on your PC is switched off. Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off.",
+                    "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.",
+                    "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now."
+                };
+                SlowSigns[] signs = { healthy, cpuOnly, resting, fewThreads, fewThreadsCloud, lowRam, busy, watching, liteOn, cloud, unreadable };
+                for (int i = 0; i < signs.Length; i++)
+                {
+                    string said = Pet.SlowLine(signs[i]);
+                    if (said != wanted[i]) throw new Exception("Why slow said the wrong thing: " + said + " (wanted: " + wanted[i] + ")");
+                }
+                if (Pet.SlowLine(new SlowSigns { Kind = "off" }) != "Nothing on your PC is slowing me down right now. No AI is on, so I'm not thinking at all."
+                    || Pet.SlowLine(new SlowSigns { Kind = "server" }) != "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server."
+                    || Pet.SlowLine(new SlowSigns { Kind = "none" }) != "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.")
+                    throw new Exception("Why slow lost its off, server or no-brain words.");
+                string foundOff = "From a check of your PC just now: Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help. Lite mode is off.";
+                string foundOn = "From a check of your PC just now: Lite mode is on, so my brain on your PC is switched off. What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off. Lite mode is on.";
+                if (Pet.SlowFound(cloud) != foundOff || Pet.SlowFound(liteOn) != foundOn)
+                    throw new Exception("Why slow's found line lost its Lite mode note: " + Pet.SlowFound(cloud) + " / " + Pet.SlowFound(liteOn));
+                SlowSigns here = pet.ReadSlowSigns();
+                if (here.Threads != Environment.ProcessorCount || here.RamTotal <= 0 || here.RamFree < -1 || here.RamFree > here.RamTotal || here.Busy > 100 || here.Lite != pet.Saved.Lite || here.Watch != pet.Saved.Watch)
+                    throw new Exception("Why slow couldn't read this PC: " + here.RamFree + " of " + here.RamTotal + ", " + here.Threads + " threads, CPU " + here.Busy);
+                checks.Add("PASS why slow words: from faked signs she names Lite mode first, her brain on the processor or resting, few threads, little free RAM, a busy processor and Watch my screen, each with a fix, says nothing when nothing's wrong, and can't read on a Mac yet; on this PC she read " + here.Threads + " threads, " + Pet.Bytes(here.RamFree) + " of " + Pet.Bytes(here.RamTotal) + " RAM free and CPU " + (here.Busy < 0 ? "unread" : Math.Round(here.Busy) + "%"));
+
+                Pet.FakedSigns = delegate { return cloud; };
+                pet.Talk.Dismiss();
+                why.Press();
+                Stopwatch waited = Stopwatch.StartNew();
+                string reply = null;
+                while (waited.ElapsedMilliseconds < 8000)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    reply = pet.Talk.Reply;
+                    if (reply != null) break;
+                    Thread.Sleep(10);
+                }
+                if (reply != foundOff) throw new Exception("Why slow? didn't say what it found: " + reply);
+                pet.Talk.Dismiss();
+                string liteHelp = SelfKnow.Matching("what is lite mode?") ?? "", slowHelp = SelfKnow.Matching("what does the Why slow? button do?") ?? "";
+                if (!liteHelp.StartsWith("Lite mode: Mainframe > Settings > HABITS > Lite mode", StringComparison.Ordinal) || liteHelp.IndexOf("brain on this PC stays off", StringComparison.Ordinal) < 0 || liteHelp.IndexOf("Watch my screen", StringComparison.Ordinal) < 0
+                    || liteHelp.IndexOf("draws herself", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("HD voice", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("game comments", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("Windows only", StringComparison.Ordinal) >= 0
+                    || !slowHelp.StartsWith("Why slow?: Mainframe > Settings > HABITS > Why slow?", StringComparison.Ordinal) || slowHelp.IndexOf("few threads", StringComparison.Ordinal) < 0 || slowHelp.IndexOf("free RAM", StringComparison.Ordinal) < 0 || slowHelp.IndexOf("busy processor", StringComparison.Ordinal) < 0
+                    || slowHelp.IndexOf("chat", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("settings tool", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("Windows only", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("graphics card", StringComparison.Ordinal) >= 0)
+                    throw new Exception("Her help on Mac and Linux doesn't explain Lite mode and Why slow? truthfully: " + liteHelp + " / " + slowHelp);
+                checks.Add("PASS her help on Mac and Linux explains Lite mode and Why slow? without Windows-only claims");
+                checks.Add("PASS Lite mode and Why slow? on Mac and Linux: the switch saves both copies, pauses Watch my screen and restores it, answers lite mode, slow, lag and laggy in search, and the Why slow? key says what it found: " + reply);
+            }
+            finally
+            {
+                if (lite != null && lite.IsVisible && frame.Value("Lite mode") == "On") frame.Change("Lite mode", 0);
+                pet.SetWatch(watchWas, false);
+                Brain.Lite = liteWas;
+                pet.Brain.Local = localWas;
+                pet.Brain.LocalPick = pickWas;
+                pet.Brain.Model = modelWas;
+                Pet.FakedSigns = null;
+                pet.Talk.Dismiss();
+                frame.SearchBox.Box.Text = "";
+                frame.ShowSettings(settingsWas);
+            }
+        }
+
+        private static string SettingsJson(object settings)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                new System.Runtime.Serialization.Json.DataContractJsonSerializer(settings.GetType()).WriteObject(stream, settings);
+                return Encoding.UTF8.GetString(stream.ToArray());
             }
         }
 
