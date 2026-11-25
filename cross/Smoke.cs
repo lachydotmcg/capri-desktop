@@ -7262,7 +7262,7 @@ namespace CapriDesktop
                 if (Favourites.Best("browser") != null || Favourites.Best("music") != null) throw new Exception("Favourites had a best app after ninety days of fade.");
 
                 // A Windows-written file's pick: and notthat: rows stay out of the counts.
-                File.WriteAllText(file, "faded\t2026-11-24\npick:browser\tfirefox\nnotthat:browser\tchromium\nfirefox\t3\n");
+                File.WriteAllText(file, "faded\t2026-11-24\npick:browser\tfirefox\nnotthat:browser\tchromium\n \t  \nfirefox\t3\n");
                 Favourites.Reload();
                 if (Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't keep a Windows apps-used.txt's counts, or counted a pick: " + (Favourites.Best("browser") ?? "null"));
                 string portable = File.ReadAllText(file).ReplaceLineEndings("\n");

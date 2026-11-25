@@ -212,7 +212,8 @@ namespace CapriDesktop
                         counts[line.Substring(0, tab)] = count;
                         continue;
                     }
-                    if (line.Trim().Length > 0) others.Add(line);
+                    // Only a truly empty row is blank: every other row is kept exactly as it was read.
+                    if (line.Length > 0) others.Add(line);
                 }
             }
             catch (Exception) { }
