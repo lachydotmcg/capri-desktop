@@ -272,6 +272,7 @@ internal static class Program
         FishChecks();
         OpenAiChecks();
         KeyChecks();
+        failures += VoiceErrorChecks.Run();
         Console.WriteLine(failures == 0 ? "TOTAL PASS" : "TOTAL FAIL " + failures);
         return failures == 0 ? 0 : 1;
     }

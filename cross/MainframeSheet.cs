@@ -883,12 +883,13 @@ namespace CapriDesktop
         private readonly double wide;
         internal readonly Dictionary<string, Control> Rows = new Dictionary<string, Control>();
 
-        internal MainframeSheet(Pet owner, string title, string kind) : base(title)
+        // Windows names a sheet's window and its neon heading separately ("Capri spend" / "SPEND >"); most cross sheets pass one, Spend both.
+        internal MainframeSheet(Pet owner, string title, string kind, string caption = null) : base(title)
         {
             pet = owner;
             wide = kind == "layers" ? 760 : kind == "vault" ? 520 : 380;
             ShowInTaskbar = false;
-            Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
+            Put(Page, new NeonCaption { Text = caption ?? title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
             double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : kind == "spend" ? Spent() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
