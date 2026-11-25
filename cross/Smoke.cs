@@ -3927,6 +3927,19 @@ namespace CapriDesktop
                     pet.CheckLiteRest(restAt + 5);
                     pet.CheckLiteRest(restAt + 10);
                     if (tried != 14) throw new Exception("Lite mode kept asking a rested brain to stop: " + tried + " tries.");
+
+                    Queue<Action> deferred = new Queue<Action>();
+                    pet.LiteRestQueue = deferred.Enqueue;
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    pet.CheckLiteRest(pet.Now);
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    deferred.Dequeue()();
+                    if (tried != 14) throw new Exception("A stale Lite mode request stopped the brain after a toggle.");
+                    pet.CheckLiteRest(pet.Now);
+                    deferred.Dequeue()();
+                    if (tried != 15) throw new Exception("A stale Lite mode request interfered with the latest request.");
                     checks.Add("PASS Lite mode's brain rest: a brain busy with a reply or a load is asked again on later ticks, up to 12 tries, stops once it's free, and a brain that never frees leaves Why slow? saying it's still winding down");
                 }
                 finally

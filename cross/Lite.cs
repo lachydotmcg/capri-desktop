@@ -37,6 +37,7 @@ namespace CapriDesktop
         private bool slowChecking;
         private readonly object liteRestGate = new object();
         private int liteRestTries;
+        private int liteVersion;
         private double liteRestAt = -1;
         private bool liteResting, liteRestDone;
         private volatile bool liteRestGaveUp;
@@ -51,6 +52,7 @@ namespace CapriDesktop
         internal void SetLite(bool on)
         {
             if (Saved.Lite == on) return;
+            Interlocked.Increment(ref liteVersion);
             if (on)
             {
                 Saved.LiteWatch = Saved.Watch;
@@ -78,6 +80,7 @@ namespace CapriDesktop
 
         private void RestForLite()
         {
+            int version = Volatile.Read(ref liteVersion);
             lock (liteRestGate)
             {
                 liteRestTries = 0;
@@ -88,9 +91,14 @@ namespace CapriDesktop
             if (Brain.OllamaLoaded.Length > 0)
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    try { Brain.UnloadOllama(); }
+                    try { if (CurrentLite(version)) Brain.UnloadOllama(); }
                     catch (Exception) { }
                 });
+        }
+
+        private bool CurrentLite(int version)
+        {
+            return Brain.Lite && Volatile.Read(ref liteVersion) == version;
         }
 
         // Lite mode keeps her brain on this PC off. Its rest waits while it's finishing a reply or loading, so she asks
@@ -105,11 +113,18 @@ namespace CapriDesktop
             Func<bool> rest = LiteRestTry;
             Engine engine = rest == null ? ownEngine : null;
             bool nothingToStop = rest == null && (engine == null || !engine.Running);
+            int version = Volatile.Read(ref liteVersion);
             int attempt;
             lock (liteRestGate)
             {
                 if (nothingToStop)
                 {
+                    // A setup that is still finishing may have started warming the engine just before Lite was turned on.
+                    if (pulling || (engine != null && engine.Loading))
+                    {
+                        liteRestAt = now + LiteRestGap;
+                        return;
+                    }
                     liteRestTries = 0;
                     liteRestDone = true;
                     liteRestGaveUp = false;
@@ -123,25 +138,32 @@ namespace CapriDesktop
             LiteRestQueue(delegate
             {
                 bool stopped = false;
-                try { stopped = rest != null ? rest() : engine.Rest(0); }
+                try
+                {
+                    if (CurrentLite(version)) stopped = rest != null ? rest() : engine.Rest(0, () => CurrentLite(version));
+                }
+                catch (Exception error) { Brain.Log("lite rest", -1, Brain.Redacted(error.Message)); }
                 finally
                 {
                     lock (liteRestGate)
                     {
                         liteResting = false;
-                        if (stopped || !Saved.Lite)
+                        if (CurrentLite(version))
                         {
-                            liteRestTries = 0;
-                            liteRestDone = true;
-                            liteRestGaveUp = false;
-                            liteRestAt = -1;
+                            if (stopped)
+                            {
+                                liteRestTries = 0;
+                                liteRestDone = true;
+                                liteRestGaveUp = false;
+                                liteRestAt = -1;
+                            }
+                            else if (attempt >= LiteRestTries)
+                            {
+                                liteRestGaveUp = true;
+                                liteRestAt = -1;
+                            }
+                            else liteRestAt = now + LiteRestGap;
                         }
-                        else if (attempt >= LiteRestTries)
-                        {
-                            liteRestGaveUp = true;
-                            liteRestAt = -1;
-                        }
-                        else liteRestAt = now + LiteRestGap;
                     }
                 }
             });
