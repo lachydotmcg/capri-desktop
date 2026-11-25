@@ -158,7 +158,7 @@ namespace CapriDesktop
         internal static readonly Color Rose = Color.FromArgb(248, 14, 64);
         internal static readonly Color Green = Color.FromArgb(5, 248, 103);
         internal static readonly Color Chalk = Color.FromArgb(238, 241, 246);
-        internal static readonly Color Quiet = Color.FromArgb(150, 160, 178);
+        internal static readonly Color Quiet = Color.FromArgb(178, 188, 204);
         internal static readonly Color Glass = Color.FromArgb(70, 8, 10, 18);
         internal static readonly Color Stage = Color.FromArgb(11, 12, 20);
 
@@ -281,6 +281,9 @@ namespace CapriDesktop
 
                 float right = (Width - 12) * scale;
                 RectangleF exit = ActionBox(HoloAction.Exit, scale, false, Size.Empty);
+                RectangleF under = exit;
+                under.Offset(Math.Max(1, scale), Math.Max(1, scale));
+                DrawGlyph(graphics, HoloAction.Exit, under, Color.FromArgb(170, 4, 5, 10), scale, view, false);
                 DrawGlyph(graphics, HoloAction.Exit, exit, scene.Hover == HoloAction.Exit ? Chalk : Quiet, scale, view, scene.Hover == HoloAction.Exit);
                 right = exit.Left - 6 * scale;
                 if (view.InCall)
@@ -461,8 +464,12 @@ namespace CapriDesktop
         {
             if (string.IsNullOrEmpty(text)) return SizeF.Empty;
             SizeF size = graphics.MeasureString(text, font, PointF.Empty, StringFormat.GenericTypographic);
+            PointF spot = new PointF(at.X, at.Y + (rowHeight - size.Height) / 2);
+            float lift = Math.Max(1, font.Size / 12);
+            using (SolidBrush shade = new SolidBrush(Color.FromArgb(170, 4, 5, 10)))
+                graphics.DrawString(text, font, shade, new PointF(spot.X + lift, spot.Y + lift), StringFormat.GenericTypographic);
             using (SolidBrush brush = new SolidBrush(ink))
-                graphics.DrawString(text, font, brush, new PointF(at.X, at.Y + (rowHeight - size.Height) / 2), StringFormat.GenericTypographic);
+                graphics.DrawString(text, font, brush, spot, StringFormat.GenericTypographic);
             return size;
         }
 
@@ -471,7 +478,12 @@ namespace CapriDesktop
             if (box.Width <= 4) return;
             using (SolidBrush brush = new SolidBrush(ink))
             using (StringFormat format = new StringFormat(StringFormat.GenericTypographic) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+            {
+                float lift = Math.Max(1, font.Size / 12);
+                using (SolidBrush shade = new SolidBrush(Color.FromArgb(170, 4, 5, 10)))
+                    graphics.DrawString(text, font, shade, new RectangleF(box.X + lift, box.Y + lift, box.Width, box.Height), format);
                 graphics.DrawString(text, font, brush, box, format);
+            }
         }
 
         internal static string Clock(TimeSpan elapsed)
