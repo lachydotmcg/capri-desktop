@@ -3384,6 +3384,7 @@ namespace CapriDesktop
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
+                Chimes.Checks(pet, frame, checks);
                 HuskChecks(frame);
                 MusicAppChecks(frame);
                 CareChecks(frame);
@@ -4761,6 +4762,7 @@ namespace CapriDesktop
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" },
+                { "Message sent", "", "NoChimeSent" }, { "Heard you", "", "NoChimeHeard" }, { "Listening", "", "NoChimeListening" },
                 { "Weather", "", "Weather" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
@@ -4776,13 +4778,13 @@ namespace CapriDesktop
                 }
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
-                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
+                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Chime volume", i => (i + 1) * 10 }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
                 { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Replies", i => Math.Min(2, i) }, { "Memory", i => new[] { 8, 16, 32 }[i] },
                 { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
-                { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
+                { "Sounds", "Sounds", "sounds" }, { "Chime volume", "ChimeVolume", "" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
                 { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
                 { "Bubble", "Bubble", "bubble" }
             };
@@ -7607,7 +7609,7 @@ namespace CapriDesktop
                 pet.Brain.Attachments.Clear();
                 string heard = null;
                 pet.Talk.Dismiss();
-                MacFiles.Drop(new[] { path }, words => { heard = words; pet.Hear(words); });
+                MacFiles.Drop(new[] { path }, words => { heard = words; pet.HearNotTyped(words); });
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop without a brain");
                 if (heard != Files.Dropped || pet.Talk.Reply != listed || pet.Brain.Attachments.Waiting || !pet.Brain.Attachments.Message("").Contains("made up")) throw new Exception("A drop without a brain wasn't read and listed like Windows: " + pet.Talk.Reply);
                 string opened = null; Hands.Run = value => opened = value;
@@ -11513,18 +11515,42 @@ namespace CapriDesktop
                         if (started == null || first == null || !first.Is("done", false) || (double)first["n"] != 1 || runs != before + 1) throw new Exception("A permitted job lost its running state or first step.");
                         string id = started.Text("id");
                         release.Set(); rows.Clear();
-                        RemoteBridgeWait(delegate
+                        Func<string> stepFrames = () => string.Join(", ", rows.Where(row => row.Text("id") == id && (row.Text("type") == "job.step" || row.Text("type") == "job.state"))
+                            .Select(row => row.Text("device") + ":" + row.Text("type") + ":" + (row.ContainsKey("n") ? Convert.ToString(row["n"], System.Globalization.CultureInfo.InvariantCulture) : row.Text("state")) + ":done=" + row.Is("done", true) + ":failed=" + row.Is("failed", true)));
+                        Func<bool> finishedSteps = delegate
                         {
-                            rows.AddRange(bridge.DrainJobs());
-                            return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == id && row.Text("state") == "done")
-                                && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
-                        }, "the permitted job completion");
-                        all.AddRange(rows);
-                        foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            bool finished = true;
+                            foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            {
+                                int last = 0;
+                                bool[] done = new bool[3];
+                                foreach (RemoteJson.Map step in rows.Where(row => row.Text("type") == "job.step" && row.Text("id") == id && row.Text("device") == device))
+                                {
+                                    double number;
+                                    if (!step.Number("n", out number) || (number != 1 && number != 2) || number < last || step.Is("failed", true)
+                                        || (done[(int)number] && !step.Is("done", true)) || (number == 2 && !done[1]))
+                                        throw new Exception("A successful job had invalid, failed or regressing step replacements for " + id + ": " + stepFrames());
+                                    last = (int)number;
+                                    done[last] = step.Is("done", true);
+                                }
+                                if (!done[1] || !done[2]) finished = false;
+                            }
+                            return finished;
+                        };
+                        try
                         {
-                            List<RemoteJson.Map> steps = rows.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
-                            if (steps.Count != 2 || (double)steps[0]["n"] != 1 || (double)steps[1]["n"] != 2 || steps.Any(row => !row.Is("done", true) || row.Is("failed", true))) throw new Exception("A successful job lost its ordered finished step replacements.");
+                            RemoteBridgeWait(delegate
+                            {
+                                rows.AddRange(bridge.DrainJobs());
+                                bool finished = finishedSteps();
+                                if (rows.Any(row => row.Text("type") == "job.state" && row.Text("id") == id && (row.Text("state") == "failed" || row.Text("state") == "stopped")))
+                                    throw new Exception("The permitted successful job " + id + " failed or stopped: " + stepFrames());
+                                return finished && !SelfJobs.Active && bridge.Phones.All(phone => rows.Exists(row => row.Text("type") == "job.state" && row.Text("device") == phone.Id && row.Text("id") == id && row.Text("state") == "done"))
+                                    && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
+                            }, "the permitted job completion and both phones' finished steps");
                         }
+                        catch (Exception error) { throw new Exception(error.Message + " Job " + id + " frames: " + stepFrames(), error); }
+                        all.AddRange(rows);
                         bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
                         rows = bridge.DrainJobs(); all.AddRange(rows);
                         RemoteJson.Map recent = rows.Find(row => row.Text("type") == "job.recent");
