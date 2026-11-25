@@ -36,9 +36,16 @@ sed -i '/Also(index, volume,/s/, "loud"/, "noisy"/' "$d/app/MainframeSearch.cs"
 reject_pin "the key 'noisy'"
 cp app/MainframeSearch.cs "$d/app/"
 
-# A key only the cross side gains still has to be recorded in the shipped snapshot.
+# Dropping a shared key on the Windows side fails too, so the pin rejects reverse drift, not only a cross-side loss.
+sed -i '/Also(index, liteMode,/s/, "laggy"//' "$d/app/MainframeSearch.cs"
+reject_pin "the key 'laggy'"
+cp app/MainframeSearch.cs "$d/app/"
+
+# A key both sides gain still has to be recorded in the shipped snapshot, so it cannot vanish later.
+sed -i '/Also(index, volume,/s/, "quieter"/, "quieter", "noisy"/' "$d/app/MainframeSearch.cs"
 sed -i '/Also(index, "Volume",/s/, "quieter"/, "quieter", "noisy"/' "$d/cross/MainframeSearch.cs"
 reject_pin "the search key 'noisy' for 'Volume' is new"
+cp app/MainframeSearch.cs "$d/app/"
 cp cross/MainframeSearch.cs "$d/cross/"
 
 rc=0
