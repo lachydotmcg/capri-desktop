@@ -241,7 +241,12 @@ namespace CapriDesktop
         }
         internal static int NextStep
         {
-            get { int next = 0; while (stepsDone.ContainsKey(next)) next++; return next; }
+            get
+            {
+                int next = options != null && options.Step >= 0 ? StartStep(options.Step) : 0;
+                while (stepsDone.ContainsKey(next)) next++;
+                return next;
+            }
         }
 
         internal static void Start(string output, SmokeOptions settings)
@@ -486,7 +491,7 @@ namespace CapriDesktop
 
         internal static int LastStep { get { return options != null && options.Step >= 0 ? options.Step : MaxStep; } }
 
-        internal static int StartStep(int target)
+        private static int StartStep(int target)
         {
             int at = target;
             while (at > 0)

@@ -52074,8 +52074,7 @@ namespace CapriDesktop
                 });
                 System.Windows.Forms.Timer test = new System.Windows.Forms.Timer();
                 test.Interval = 500;
-                int startStep = options.Step >= 0 ? SmokeRun.StartStep(options.Step) : 0;
-                int step = SmokeRun.NextStep < startStep ? startStep : SmokeRun.NextStep;
+                int step = SmokeRun.NextStep;
                 int thoughts = 0;
                 byte[] tone = null;
                 string voiced = null;
