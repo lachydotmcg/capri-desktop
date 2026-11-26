@@ -1,0 +1,2 @@
+ALTER TABLE crashes ADD COLUMN rid TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS crashes_rid ON crashes (rid);

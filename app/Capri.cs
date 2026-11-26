@@ -47597,6 +47597,13 @@ namespace CapriDesktop
             Section(checks, "SmokeFileEditor", delegate { SmokeFileEditor(checks, output); });
             Section(checks, "SmokePopTimes", delegate { SmokePopTimes(checks); });
             Section(checks, "SmokeCalendarReminders", delegate { SmokeCalendarReminders(checks); });
+            Section(checks, "SmokeCrashReports", delegate
+            {
+                string crashOut = Path.Combine(output, "crash-reports-check");
+                string crashWaiting = CrashReports.CheckWaiting(crashOut);
+                if (crashWaiting != null) throw new Exception(crashWaiting);
+                checks.Add("PASS crash reports wait on disk until her server takes or refuses them: sent on the next start after the network was down, a lost reply resends the same id so she stores it once, two Capris at once send it once, 400 and 413 drop it, 429 or no answer keeps it without using a try, and it gives up after " + CrashReports.MostTries + " tries or " + CrashReports.Oldest.TotalDays + " days, keeps " + CrashReports.MostWaiting + " at most, and turning them off takes away what waits");
+            });
             Section(checks, "SmokeGameControls", delegate { SmokeGameControls(checks); });
             Section(checks, "SmokePausedExplore", delegate { SmokePausedExplore(checks); });
             Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });
