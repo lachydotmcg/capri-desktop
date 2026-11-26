@@ -96,7 +96,7 @@ namespace CapriDesktop
             new KeyValuePair<string, string[]>("Brain", new[]
             {
                 "SmokeReportedLogic", "SmokeRepeats", "SmokeOwnDelivery", "SmokeJealous", "SmokeCommentDelivery",
-                "SmokeTypingRepeats", "SmokeComments", "SmokeAppMemory", "SmokeOpening", "SmokeLineChanges",
+                "SmokeTypingRepeats", "SmokeComments", "SmokeAppMemory", "SmokeOpening", "SmokeBrowserNamed", "SmokeBrowserJob", "SmokeBrowserDefault", "SmokeLineChanges",
                 "SmokeAdminKeys", "SmokeLanguages", "SmokeLanguagePair", "SmokeAutoReply", "SmokeReplyLine",
                 "SmokeLanguageTool", "SmokeLocalBrains", "SmokeBrainLooks", "SmokeCloudBrains", "SmokeCloudPicker",
                 "SmokeProviders", "SmokeLogTimeouts", "SmokeFreeKeys", "SmokeMedium", "SmokeBrainBodies", "SmokeSaid",

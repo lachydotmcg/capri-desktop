@@ -163,6 +163,7 @@ namespace CapriDesktop
                 NiriDesktop.Checks(checks);
                 Labwc.Checks(checks);
                 Resources.Checks(checks);
+                ModHookContractChecks.Checks(checks);
                 NameListeningChecks.Checks(pet, checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
@@ -558,6 +559,8 @@ namespace CapriDesktop
                 BrainServerChecks();
                 ProviderRegression.Run(pet, folder);
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, the unkeyed server message is unchanged, and OpenCode Go models and chats carry one stable session header");
+                ProviderRegression.Named(pet);
+                checks.Add("PASS named providers: validated connection, failed active-edit rollback, isolated credentials and models, and late one-off cancellation");
                 ChoresChecks();
                 LinuxInputChecks();
                 PlasmaHandsChecks();
@@ -3427,6 +3430,7 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 checks.Add("PASS Mainframe opens from her tool and a direct request, her tool opens her Mods page for mods and plug-ins, and her help knows plug-ins; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);
+                HearingChecks(frame);
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
@@ -6775,6 +6779,241 @@ namespace CapriDesktop
             frame.ShowSettings(false);
         }
 
+        private void HearingChecks(Mainframe frame)
+        {
+            Func<bool> installedWas = pet.HearingInstalled;
+            Func<Action<double>, CancellationToken, Task> tapWas = pet.HearingTapRun;
+            Func<Action, CancellationToken, Task<string>> listenWas = pet.Listen;
+            bool listenCapriWas = pet.Saved.ListenCapri;
+            try
+            {
+                var line = new HearingLine();
+                Action<HearingStatus, string, string> expect = delegate(HearingStatus status, string buttons, string what)
+                {
+                    string shown = string.Join(" | ", Array.ConvertAll(status.Actions, action => HearingStatus.Name(action)));
+                    if (shown != buttons) throw new Exception("The hearing line's " + what + " offered " + shown + " instead of " + buttons + ".");
+                };
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · ready" || line.Read(true).Problem) throw new Exception("A ready mic didn't say how she hears you: " + line.Read(true).Text);
+                expect(line.Read(true), "", "ready state");
+                if (line.Read(false).Text != HearingStatus.NoEars || !line.Read(false).Problem) throw new Exception("A missing ears folder didn't say her ears aren't installed: " + line.Read(false).Text);
+                expect(line.Read(false), "Open ears folder", "missing ears");
+                line.Listening(true);
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · starting") throw new Exception("A TALK that hadn't reached her mic didn't say starting: " + line.Read(true).Text);
+                line.Level(0);
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · working") throw new Exception("A TALK that reached her mic didn't say working: " + line.Read(true).Text);
+                line.Listening(false);
+                line.Heard();
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · ready") throw new Exception("Words coming back didn't put the hearing line back to ready: " + line.Read(true).Text);
+                line.Listening(true);
+                line.Level(0.002);
+                line.Missed();
+                line.Listening(false);
+                if (line.Read(true).Text != HearingStatus.Quiet || !line.Read(true).Problem) throw new Exception("A TALK that only heard a faint mic didn't say it's too quiet: " + line.Read(true).Text);
+                expect(line.Read(true), "Test mic | Type instead", "quiet mic");
+                line.Listening(true);
+                line.Level(0.006);
+                line.Missed();
+                line.Listening(false);
+                if (line.Read(true).Text != HearingStatus.NoWords || !line.Read(true).Problem) throw new Exception("A loud mic with no words didn't say no words came back: " + line.Read(true).Text);
+                expect(line.Read(true), "Test mic | Type instead", "no words");
+                line.StartTest(10);
+                line.Level(0.03);
+                line.TestDone();
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · ready" || line.Read(true).Problem) throw new Exception("A mic test that heard sound didn't clear the line: " + line.Read(true).Text);
+                line.StartTest(20);
+                line.TestDone();
+                if (line.Read(true).Text != HearingStatus.TestSilent || !line.Read(true).Problem) throw new Exception("A silent mic test didn't say no sound reached it: " + line.Read(true).Text);
+                expect(line.Read(true), "Test mic | Type instead", "silent mic test");
+                line.StartTest(30);
+                line.Level(0.002);
+                line.TestDone();
+                if (line.Read(true).Text != HearingStatus.Quiet) throw new Exception("A quiet mic test didn't say it's too quiet: " + line.Read(true).Text);
+                line.Failed("Install parec (PulseAudio tools) so I can hear your mic.");
+                if (line.Read(true).Text != "Mic failed: Install parec (PulseAudio tools) so I can hear your mic" || !line.Read(true).Problem) throw new Exception("A missing parec didn't say her mic failed with its reason: " + line.Read(true).Text);
+                expect(line.Read(true), "Type instead", "mic failure");
+                line.Listening(true); line.Level(0.03); line.Missed(); line.Listening(false);
+                if (line.Read(true).Text != HearingStatus.NoWords) throw new Exception("A loud capture after her mic failed kept the old failure: " + line.Read(true).Text);
+                line.Heard();
+                if (line.Read(true).Text != "Hearing: her own ears · default mic · ready") throw new Exception("Her mic working again didn't clear its failure: " + line.Read(true).Text);
+                line.Failed("My offline ears couldn't read that. Check the sherpa-onnx and Parakeet setup.");
+                if (line.Read(true).Text != "Her ears failed: My offline ears couldn't read that" || !line.Read(true).Problem) throw new Exception("Her offline ears failing to read didn't say so: " + line.Read(true).Text);
+                expect(line.Read(true), "Test mic | Type instead", "ears failure");
+                line.Failed("Put my English Parakeet model in /tmp/ears, or a sherpa-onnx model that hears French.");
+                if (line.Read(true).Text != HearingStatus.NoEars || line.Read(false).Text != HearingStatus.NoEars) throw new Exception("A missing speech model didn't send them to her ears folder: " + line.Read(true).Text);
+                line.StartTest(40);
+                if (!line.Testing || line.TestDue(49.9) || !line.TestDue(50)) throw new Exception("The mic test doesn't run for ten seconds.");
+                line.TestDone();
+
+                pet.HearingInstalled = delegate { return true; };
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != "Hearing: her own ears · default mic · ready" || frame.HearingWarning || frame.HearingButtons != "" || !frame.HearingActionsFit)
+                    throw new Exception("Her Mainframe's hearing line didn't start ready on VOICE: " + frame.HearingText + " / " + frame.HearingButtons);
+                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.03); return Task.CompletedTask; };
+                pet.Listen = delegate(Action decoding, CancellationToken stop) { return Task.FromResult(""); };
+                pet.Saved.ListenCapri = false;
+                pet.Talk.Dismiss();
+                pet.VoiceTurn();
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's TALK");
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit)
+                    throw new Exception("A TALK with sound and no words didn't reach her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
+                if (pet.Talk.Reply == frame.HearingText || pet.Talk.ThinkingNow) throw new Exception("Her hearing line was said out loud instead of staying on VOICE.");
+                {
+                    var restoreTap = pet.HearingTapRun;
+                    CancellationToken tap = default;
+                    try
+                    {
+                        pet.HearingTapRun = (_, token) => { tap = token; return Task.CompletedTask; };
+                        frame.PressHearing(0);
+                        frame.Sync();
+                        if (frame.HearingButtons != "Stop") throw new Exception("Mic test did not start.");
+                        frame.PressHearing(0);
+                        frame.Sync();
+                        if (!tap.IsCancellationRequested || frame.HearingText != "No words came back")
+                            throw new Exception("Stop did not cancel the tap and restore the prior hearing line.");
+                    }
+                    finally { pet.HearingTapRun = restoreTap; }
+                }
+                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.04); return Task.CompletedTask; };
+                frame.PressHearing(0);
+                frame.Sync(); frame.UpdateLayout();
+                if (!pet.HearingTesting || frame.HearingButtons != "Stop" || frame.HearingText != "Hearing: her own ears · default mic · working") throw new Exception("Test mic didn't listen with Stop beside it: " + frame.HearingText + " / " + frame.HearingButtons);
+                pet.StopHearingTest();
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("Stopping a mic test didn't restore the hearing line it started from: " + frame.HearingText + " / " + frame.HearingButtons);
+                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.03); return Task.CompletedTask; };
+                pet.Talk.Dismiss();
+                pet.VoiceTurn();
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's second TALK");
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.NoWords || frame.HearingButtons != "Test mic | Type instead") throw new Exception("A second TALK with sound and no words didn't offer Test mic again: " + frame.HearingText + " / " + frame.HearingButtons);
+                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(16.0 / 32768); return Task.CompletedTask; };
+                pet.Talk.Dismiss();
+                pet.VoiceTurn();
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's quiet TALK");
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("A TALK that only heard sound under her 0.0005 threshold didn't say the mic is too quiet: " + frame.HearingText + " / " + frame.HearingButtons);
+                if (pet.Talk.Reply == frame.HearingText) throw new Exception("The hearing line's quiet result was said out loud.");
+                frame.PressHearing(0);
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingButtons != "Stop") throw new Exception("Test mic didn't start from her quiet line: " + frame.HearingText + " / " + frame.HearingButtons);
+                pet.StopHearingTest();
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("Stopping a test started from her quiet line didn't bring it back: " + frame.HearingText + " / " + frame.HearingButtons);
+                frame.SavePicture(Path.Combine(folder, "hearing-quiet-100.png"));
+                foreach (int scale in new[] { 100, 150, 200 })
+                {
+                    pet.SetMainframeSize(scale); frame.Sync(); frame.UpdateLayout();
+                    string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                    if (wrong != null || !frame.HearingActionsFit) throw new Exception("The hearing line's two fixes don't fit at " + scale + "%: " + wrong);
+                }
+                pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
+                frame.PressHearing(1);
+                if (!pet.Talk.Typing) throw new Exception("Type instead didn't open her type box.");
+                pet.Talk.Typer.Hide();
+
+                var firstTurn = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var secondTurn = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                int calls = 0;
+                var tokens = new List<CancellationToken>();
+                pet.HearingTapRun = (level, token) => { tokens.Add(token); level(0.03); return Task.CompletedTask; };
+                pet.Listen = (_, _) => Interlocked.Increment(ref calls) == 1 ? firstTurn.Task : secondTurn.Task;
+                frame.PressHearing(0);
+                if (!pet.HearingTesting || tokens.Count != 1) throw new Exception("The race fixture did not start Test mic.");
+                Task oldTalk = pet.RunVoiceTurn();
+                MainframeWait(() => calls == 1, "the first TALK in the microphone ownership check");
+                if (pet.HearingTesting || tokens.Count != 2 || !tokens[0].IsCancellationRequested)
+                    throw new Exception("TALK did not stop Test mic before starting the recorder.");
+                pet.VoiceTurn();
+                Task newTalk = pet.RunVoiceTurn();
+                MainframeWait(() => calls == 2, "the restarted TALK");
+                firstTurn.SetResult("");
+                MainframeWait(() => oldTalk.IsCompleted, "the cancelled TALK's cleanup");
+                if (tokens.Count != 3 || !tokens[1].IsCancellationRequested || tokens[2].IsCancellationRequested || !pet.Listening)
+                    throw new Exception("The cancelled TALK stopped a newer recorder.");
+                pet.StopListening();
+                secondTurn.SetResult("");
+                MainframeWait(() => newTalk.IsCompleted, "the restarted TALK's cleanup");
+                pet.Listen = (_, _) => Task.FromResult("");
+                void QuietMic()
+                {
+                    pet.HearingReset();
+                    pet.HearingTapRun = (level, _) => { level(16.0 / 32768); return Task.CompletedTask; };
+                    pet.VoiceTurn();
+                    MainframeWait(() => pet.HearingNow.Text == HearingStatus.Quiet, "restoring the quiet mic fixture");
+                }
+                QuietMic();
+                pet.HearingTapRun = (_, token) => HearingTap.RunRecorder(null, _ => { }, token);
+                frame.PressHearing(0);
+                MainframeWait(() => !pet.HearingTesting && pet.HearingNow.Text == HearingStatus.MicFailed + HearingTap.Missing, "the missing mic recorder error");
+                QuietMic();
+
+                if (OperatingSystem.IsLinux())
+                {
+                    string fake = Path.Combine(folder, "hearing-tap");
+                    Directory.CreateDirectory(fake);
+                    string script = Path.Combine(fake, "parec");
+                    File.WriteAllText(script, "#!/usr/bin/env python3\nimport math, struct, sys, time\nframe = b\"\".join(struct.pack(\"<h\", int(12000 * math.sin(2 * math.pi * 440 * i / 16000))) for i in range(320))\nwhile True:\n    sys.stdout.buffer.write(frame)\n    sys.stdout.buffer.flush()\n    time.sleep(0.02)\n");
+                    File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                    string pathWas = Environment.GetEnvironmentVariable("PATH") ?? "";
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("PATH", fake + Path.PathSeparator + pathWas);
+                        pet.HearingTapRun = HearingTap.Run;
+                        frame.PressHearing(0);
+                        MainframeWait(delegate { return frame.HearingText == HearingStatus.Working; }, "her real level tap");
+                        pet.StopHearingTest();
+                        frame.Sync(); frame.UpdateLayout();
+                        if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning) throw new Exception("A stand-in parec's sound didn't clear her level tap, or stopping it didn't restore her quiet line: " + frame.HearingText);
+                        File.WriteAllText(script, "#!/bin/sh\nexit 1\n");
+                        frame.PressHearing(0);
+                        MainframeWait(() => !pet.HearingTesting && pet.HearingNow.Text == HearingStatus.MicFailed + HearingTap.Stopped, "the crashed recorder error");
+                    }
+                    finally
+                    {
+                        Environment.SetEnvironmentVariable("PATH", pathWas);
+                        pet.HearingTapRun = tapWas;
+                    }
+                }
+                pet.HearingInstalled = delegate { return false; };
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.NoEars || !frame.HearingWarning || frame.HearingButtons != "Open ears folder" || !frame.HearingActionsFit) throw new Exception("Missing ears didn't show the ears folder fix: " + frame.HearingText + " / " + frame.HearingButtons);
+                frame.SavePicture(Path.Combine(folder, "hearing-no-ears-100.png"));
+                foreach (int scale in new[] { 100, 150, 200 })
+                {
+                    pet.SetMainframeSize(scale); frame.Sync(); frame.UpdateLayout();
+                    string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                    if (wrong != null || !frame.HearingActionsFit) throw new Exception("The hearing line's ears folder fix doesn't fit at " + scale + "%: " + wrong);
+                }
+                pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
+                pet.SetAdvancedSettings(true); frame.ShowSettings(true); frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingRow.IsVisible || frame.HearingButtons != "") throw new Exception("The hearing line or its fix showed over Settings: " + frame.HearingButtons);
+                pet.SetAdvancedSettings(false); frame.ShowSettings(false); frame.Sync(); frame.UpdateLayout();
+                TextBlock tip = ToolTip.GetTip(frame.HearingRow) as TextBlock;
+                if (tip == null || tip.Text.IndexOf("TALK", StringComparison.Ordinal) < 0 || tip.Text.IndexOf("default mic", StringComparison.Ordinal) < 0 || tip.Text.IndexOf("10 seconds", StringComparison.Ordinal) < 0 || tip.Text.IndexOf("Pick another mic", StringComparison.Ordinal) >= 0)
+                    throw new Exception("The hearing line's tip doesn't say what Mac and Linux do: " + (tip == null ? "none" : tip.Text));
+                foreach (string ask in new[] { "why can't you hear me", "how do I change how you hear me" })
+                {
+                    string facts = SelfKnow.Matching(ask);
+                    if (facts == null || facts.IndexOf("Hearing", StringComparison.Ordinal) < 0 || facts.IndexOf("hearing line", StringComparison.Ordinal) < 0 || facts.IndexOf('\u2014') >= 0) throw new Exception("Hearing help didn't match " + ask + ": " + facts);
+                }
+                checks.Add("PASS hearing: the line under VOICE says ready, starting, working, her ears aren't installed, a mic failure with its reason, no words came back, a quiet mic down to sound under 0.0005, and no sound reached the mic test, with Windows' exact words; the tap she runs reads a stand-in parec's frames end to end on Linux, choosing parec there and capri-mic on a Mac, keeping Windows' 0.0005 and 0.006 thresholds; Test mic runs for ten seconds with Stop, which restores the line the test started from instead of reporting it, Type instead opens her type box and Open ears folder points at her ears, every state recovers, and none is ever said out loud; hearing-quiet-100.png and hearing-no-ears-100.png");
+            }
+            finally
+            {
+                pet.StopHearingTest();
+                pet.HearingReset();
+                pet.HearingInstalled = installedWas;
+                pet.HearingTapRun = tapWas;
+                pet.Listen = listenWas;
+                pet.Saved.ListenCapri = listenCapriWas;
+                pet.Talk.Typer.Hide();
+                pet.Talk.Dismiss();
+                pet.Talk.Update(pet.Now);
+                frame.Sync(); frame.UpdateLayout();
+            }
+        }
+
         private void MainframeLayout(Mainframe frame, Voice voice)
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
@@ -7158,6 +7397,27 @@ namespace CapriDesktop
                         MainframeWait(() => note.Text == "Provider forgotten.", "forgetting the custom provider");
                         if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainServer != null || forget.IsEnabled)
                             throw new Exception("The sheet did not remove the custom provider pair.");
+
+                        var saved = (NeonPicker)provider.Rows["Saved providers"];
+                        var name = ((NeonEntry)provider.Rows["Provider name"]).Box;
+                        var model = (NeonPicker)provider.Rows["Model"];
+                        var add = (NeonButton)provider.Rows["Add"];
+                        name.Text = "Local test provider";
+                        address.Text = server.Address + "/v1";
+                        key.Text = "named-provider-key";
+                        add.Press();
+                        if (saved.Selected != 1 || pet.Brain.Server != null || note.Text != "Added Local test provider.")
+                            throw new Exception("The provider sheet did not save and select a new provider.");
+                        connect.Press();
+                        MainframeWait(() => note.Text == "Connected to Local test provider.", "the saved provider from its panel");
+                        if (pet.Brain.ServerKey != "named-provider-key" || model.Choices.Length != 2 || !model.IsEnabled)
+                            throw new Exception("The sheet did not connect with the named key and model list.");
+                        model.Pick(1);
+                        if (Pet.ProviderModel(pet.Saved, pet.Saved.BrainProvider, 0) != "server-other")
+                            throw new Exception("The sheet did not remember the named model separately.");
+                        forget.Press();
+                        if (saved.Choices.Length != 1 || pet.Brain.Server != null || note.Text != "Forgot Local test provider.")
+                            throw new Exception("The provider sheet did not forget the named provider.");
                     }
                     finally { provider.Close(); }
                     checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, her own brain server and any OpenAI-compatible provider address with a key use loopback fakes");

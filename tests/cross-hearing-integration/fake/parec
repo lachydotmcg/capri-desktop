@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+import os, struct, sys, time
+state = os.environ['E7_PIDS']
+mode = os.environ['E7_MODE']
+with open(f'{state}/{os.getpid()}', 'w') as f:
+    f.write(' '.join(sys.argv[1:]))
+if mode == 'bad':
+    os.write(1, b'x')
+    print('record default source unavailable', file=sys.stderr)
+    sys.exit(7)
+if mode == 'partial':
+    os.write(1, b'x')
+    open(f'{state}/partial', 'w').close()
+elif mode == 'chunk':
+    os.write(1, struct.pack('<h', -4096)*319)
+    open(f'{state}/partial', 'w').close()
+    while not os.path.exists(f'{state}/continue'):
+        time.sleep(.005)
+    os.write(1, struct.pack('<h', -4096) + struct.pack('<h', -32768)*320 + bytes(640))
+elif mode == 'whisper':
+    for _ in range(204):
+        os.write(1, struct.pack('<h',16)*320)
+        time.sleep(.001)
+elif mode == 'utterance':
+    for i in range(49):
+        os.write(1, struct.pack('<h', 1234 if i < 8 else 0)*320)
+        time.sleep(.001)
+elif mode == 'zero':
+    os.write(1, bytes(640))
+else:
+    os.write(1, struct.pack('<h', 1234)*320)
+while True:
+    time.sleep(.1)

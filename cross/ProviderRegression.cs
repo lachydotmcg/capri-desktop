@@ -21,7 +21,8 @@ namespace CapriDesktop
             internal readonly List<string> UserAgents = new List<string>();
             internal readonly string Address;
             internal volatile bool Hold, Error, Redirect, StreamError, Retry;
-            internal string Destination;
+            internal string Destination, Model = "alpha";
+            internal bool EmptyModels;
             internal Server()
             {
                 Listener.Start();
@@ -82,7 +83,7 @@ namespace CapriDesktop
                 string body = Error && chat ? "{\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}"
                     : chat ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}"
                     : openCode ? "{\"data\":[{\"id\":\"alpha\",\"created\":1,\"type\":\"chat\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}]}"
-                    : "{\"data\":[{\"id\":\"alpha\"}]}";
+                    : EmptyModels ? "{\"data\":[]}" : "{\"data\":[{\"id\":\"" + Model + "\"}]}";
                 if (chat && Retry) body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
                 string type = "application/json";
                 if (chat && StreamError)
@@ -299,6 +300,88 @@ namespace CapriDesktop
                 else { File.WriteAllBytes(secret, oldSecret); if (oldMode != null) File.SetUnixFileMode(secret, oldMode.Value); }
             }
             if (failures.Count > 0) throw new Exception(string.Join("; ", failures));
+        }
+        internal static void Named(Pet pet)
+        {
+            using Server home = new Server { Model = "home-model" };
+            using Server work = new Server { Model = "work-model" };
+            using Server replacement = new Server { Model = "replacement-model" };
+            using Server pending = new Server { Hold = true };
+            const string homeKey = "test-home-key", workKey = "test-work-key";
+            string oldAddress = pet.Brain.Server, oldKey = pet.Brain.ServerKey, oldModel = pet.Brain.Model;
+            string savedAddress = pet.Saved.BrainServer, savedProvider = pet.Saved.BrainProvider, savedModel = pet.Saved.ServerModel;
+            int? oldTier = pet.Saved.BrainTier;
+            Cloud oldCloud = pet.Brain.Remote;
+            ProviderEndpoint[] endpoints = pet.Saved.ProviderEndpoints;
+            ProviderModelPick[] models = pet.Saved.ProviderModels;
+            string pair = Path.Combine(Program.Smoke, "brain-server");
+            byte[] pairBytes = File.Exists(pair) ? File.ReadAllBytes(pair) : null;
+            string first = null, second = null;
+            try
+            {
+                void Change(string id, string name, string address, string key, bool connect, bool success)
+                {
+                    bool done = false;
+                    string error = null;
+                    pet.SaveNamedProvider(id, name, address, key, connect, result => { error = result; done = true; });
+                    if (!Wait(() => done) || (error == null) != success) throw new Exception("Named provider change returned " + error);
+                }
+
+                Change(null, "Named home", home.Address, homeKey, false, true);
+                first = Array.Find(pet.Saved.ProviderEndpoints, e => e.Name == "Named home").Id;
+                Change(null, "Named work", work.Address, workKey, false, true);
+                second = Array.Find(pet.Saved.ProviderEndpoints, e => e.Name == "Named work").Id;
+                Change(first, "Named home", home.Address, "", true, true);
+                if (pet.Brain.ServerKey != homeKey || !home.Saw("Bearer " + homeKey) || pet.MainframeModels[0] != home.Model)
+                    throw new Exception("Named provider did not discover its own models with its saved key.");
+                string homePath = pet.EndpointKeyFile(first);
+                replacement.EmptyModels = true;
+                Change(first, "Bad name", replacement.Address, "test-unusable-key", false, false);
+                if (Pet.EndpointFor(pet.Saved, first).Name != "Named home" || pet.ReadEndpointKey(first) != homeKey
+                    || pet.Brain.Server != home.Address || pet.Brain.Model != home.Model)
+                    throw new Exception("Refused active edit replaced saved or live state.");
+
+                string oneOff = null;
+                pet.UseServer(pending.Address, "test-one-off-key", result => oneOff = result);
+                if (!Wait(() => pending.Received.IsSet)) throw new Exception("One-off race did not reach the loopback fixture.");
+                Change(second, "Named work", work.Address, null, true, true);
+                pending.Release.Set();
+                if (!Wait(() => oneOff == "Provider check cancelled.") || pet.Brain.Server != work.Address)
+                    throw new Exception("Late one-off reply replaced the named provider.");
+                pet.MainframePickListedModel(home.Model);
+                if (pet.Brain.Model != work.Model || !work.Saw("Bearer " + workKey))
+                    throw new Exception("Named provider allowed a different provider's model or key.");
+
+                Change(first, "Named home", replacement.Address, "", false, true);
+                if (pet.ReadEndpointKey(first) != null || File.Exists(homePath))
+                    throw new Exception("Changed origin retained the former credential.");
+                replacement.EmptyModels = false;
+                Change(first, "Named home", replacement.Address, null, true, true);
+                if (replacement.Saw("Bearer " + homeKey) || pet.Brain.ServerKey != null)
+                    throw new Exception("Changed origin received the former credential.");
+
+                oneOff = null;
+                pet.UseServer(replacement.Address, "test-one-off-key", result => oneOff = result);
+                if (!Wait(() => oneOff == "Provider connected.") || Pet.EndpointIdOf(pet.Saved.BrainProvider) != null ||
+                    pet.Brain.ServerKey != "test-one-off-key" || pet.ReadEndpointKey(second) != workKey || pet.ReadEndpointKey(first) != null)
+                    throw new Exception("One-off connection changed named credential state.");
+            }
+            finally
+            {
+                if (first != null) pet.SaveEndpointKey(first, null);
+                if (second != null) pet.SaveEndpointKey(second, null);
+                pet.Saved.ProviderEndpoints = endpoints;
+                pet.Saved.ProviderModels = models;
+                pet.Saved.BrainServer = savedAddress;
+                pet.Saved.BrainProvider = savedProvider;
+                pet.Saved.ServerModel = savedModel;
+                pet.Saved.BrainTier = oldTier;
+                pet.Brain.SetServer(oldAddress, oldKey);
+                pet.Brain.Model = oldModel;
+                pet.Brain.Remote = oldCloud;
+                if (pairBytes == null) File.Delete(pair);
+                else File.WriteAllBytes(pair, pairBytes);
+            }
         }
     }
 }
