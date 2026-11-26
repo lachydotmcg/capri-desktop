@@ -2581,7 +2581,7 @@ namespace CapriDesktop
             using var turn = new CancellationTokenSource();
             listening = turn;
             if (Saved.ListenCapri) StopNameListening("TALK owns the microphone. Re-enable Listen for Capri afterward.");
-            Talk.Thinking("(listening Â· TALK to cancel)");
+            Talk.Thinking("(listening · TALK to cancel)");
             string text = null, problem = null;
             try
             {
@@ -2594,7 +2594,7 @@ namespace CapriDesktop
                     StartHearingTap(false);
                     text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
                     {
-                        if (listening == turn) Talk.Thinking("(hearing your words Â· TALK to cancel)");
+                        if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
                     }), turn.Token));
                 }
                 catch (IOException error) { problem = error.Message; }
