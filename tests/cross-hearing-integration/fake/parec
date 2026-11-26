@@ -8,7 +8,10 @@ if mode == 'bad':
     os.write(1, b'x')
     print('record default source unavailable', file=sys.stderr)
     sys.exit(7)
-if mode == 'chunk':
+if mode == 'partial':
+    os.write(1, b'x')
+    open(f'{state}/partial', 'w').close()
+elif mode == 'chunk':
     os.write(1, struct.pack('<h', -4096)*319)
     open(f'{state}/partial', 'w').close()
     while not os.path.exists(f'{state}/continue'):

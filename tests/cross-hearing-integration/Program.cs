@@ -15,6 +15,7 @@ static class E7Probe
     const BindingFlags All = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
     const string Ready = "Hearing: her own ears · default mic · ready", Starting = "Hearing: her own ears · default mic · starting", Working = "Hearing: her own ears · default mic · working";
     const string NoWords = "No words came back", Quiet = "Mic is too quiet: raise its input volume", Silent = "No sound reached the mic test", NoEars = "Her ears aren't installed", NormalMiss = "I didn't catch that, choom. Try TALK again.";
+    const string RecorderStopped = "The microphone recorder stopped";
     static Assembly app;
     static string state, fake, pidDir;
     static int ok, bad;
@@ -97,7 +98,10 @@ static class E7Probe
         Check("parec PID gone on cancel", Gone(pid), pid);
         Mode("bad"); levels.Clear();
         run = (Task)Call(TypeOf("HearingTap"),"Run", (Action<double>)levels.Enqueue, CancellationToken.None);
-        run.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+        string failure = null;
+        try { run.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult(); }
+        catch (IOException error) { failure = error.Message; }
+        Eq("malformed capture that exits reports recorder failure", failure, RecorderStopped);
         pid = Pids().Single(); Wait(() => Gone(pid), "reaping malformed parec");
         Eq("one-byte malformed capture emits no levels", levels.Count, 0);
     }
@@ -192,13 +196,21 @@ static class E7Probe
         Eq("Stop restores prior diagnostics",Line(),prior);
         Eq("Stop leaves existing bubble unchanged",Reply(),NormalMiss);
         Mode("bad"); clock=200.125; Fix();
-        Wait(()=>Pids().Length==1 && Gone(Pids()[0]),"malformed test tap exits",true);
+        Wait(() => Pids().Length == 1 && Gone(Pids()[0]) && !Equals(Get(pet,"HearingTesting"),true),
+            "crashed recorder ends the mic test immediately", true);
+        Eq("recorder failure visible in the hearing line", Line(), "Mic failed: " + RecorderStopped);
+        LoudMiss();
+        Set(pet,"HearingTapRun",realTap);
+        Mode("partial"); clock=300.125; Fix();
+        Wait(() => File.Exists(Path.Combine(pidDir,"partial")), "live recorder sends a partial frame", true);
+        pid = Pids().Single();
         clock+=9.999; Call(pet,"TickHearing"); Sync();
-        Eq("malformed tap, still active before due",Get(pet,"HearingTesting"),true);
-        Eq("malformed tap never showed working",Line(),Starting);
-        clock=210.125; Call(pet,"TickHearing"); Sync();
+        Eq("partial frame still active before due",Get(pet,"HearingTesting"),true);
+        Eq("partial frame never showed working",Line(),Starting);
+        clock=310.125; Call(pet,"TickHearing"); Sync();
         Eq("timer fires exactly at ten seconds",Get(pet,"HearingTesting"),false);
-        Eq("malformed tap reaches silent result at deadline",Line(),Silent);
+        Eq("live recorder with no full frame reaches silent result",Line(),Silent);
+        Wait(() => Gone(pid), "test deadline stops the live recorder", true);
         if (Line()!=Silent) throw new Exception("can't seed subsequent TALK/Test interaction");
         TapConflict(pet,frame,talk,realTap);
     }
