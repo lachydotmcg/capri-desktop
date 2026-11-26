@@ -77,7 +77,7 @@ namespace CapriDesktop
             {
                 "SmokeBrainLayout", "HologramChecks", "SmokeVault", "SmokeResources", "SmokeSpend", "SmokeSheetScale",
                 "SmokeFirstRun", "SmokePersonal", "SmokeTreeEyes", "SmokeMainframeWheel", "SmokeMainframeFit",
-                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeLongMenus", "SmokeSettingsSearch",
+                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeLongMenus", "SmokeMenuScreens", "SmokeSettingsSearch",
                 "SmokeMainframeColours", "SmokeTips", "SmokeOverlayDraw", "SmokePanelTeleport", "SmokeNoteEditor",
                 "SmokeFileEditor", "SmokeMinis", "SmokeIcons", "SmokeChaosScreen", "SmokeMemoryWindow", "SmokeGifs",
                 "SmokeWorkspaceTool", "SmokeWorkspace", "SmokeWorkspaceLiveModes", "SmokeWorkspaceStream",
@@ -118,7 +118,7 @@ namespace CapriDesktop
                 "SmokeSlowDevices", "SmokeDucking", "SmokeVoiceInMic", "SmokeCallMic", "SmokeMicDelivery",
                 "SmokeMicSources", "SmokeMicTest", "SmokeHearingStatus", "SmokeSoundWarnings", "SmokeFreeze",
                 "SmokeListenCapri", "ListenCapriChecks", "SmokeAppVolume", "SmokeCallMode", "SmokeCallApps",
-                "SmokeCallErrands", "SmokeCallFriends", "SmokeCallModeUi", "SmokeHusk", "SmokeCallDisplay",
+                "SmokeCallErrands", "SmokeCallFriends", "SmokeCallModeUi", "SmokeHusk", "SmokeCallDisplay", "SmokeHolo",
                 "SmokeCallJob", "SmokeCallRestart", "SmokeListen", "SmokeTalkLogic", "SmokeTalkSettings",
                 "SmokeTalkBrain", "SmokeVoiceDetails", "SmokeHearingReasons", "SmokeCallHearing", "SmokeCallNoise",
                 "SmokeVoiceCredit", "SmokeMusicApp", "SmokeHonestMusic", "SmokeLooseCalls"
