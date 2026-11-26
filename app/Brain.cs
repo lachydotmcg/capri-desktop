@@ -6284,12 +6284,19 @@ namespace CapriDesktop
                     bool found = File.Exists(Path);
                     if (found != existed || found && !string.Equals(File.ReadAllText(Path), Text, StringComparison.Ordinal)) return "This note changed. Reload it before saving.";
                     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
+                    Exception failed = Files.Retried(4, 200, delegate
+                    {
+                        if (File.Exists(temporary)) File.Delete(temporary);
+                        // A failed File.Replace can leave the note already removed, so the next try moves the new text in.
+                        bool present = found && File.Exists(Path);
 #if CROSS
-                    WriteReplacement(temporary, Path, found, text ?? "");
+                        WriteReplacement(temporary, Path, present, text ?? "");
 #else
-                    File.WriteAllText(temporary, text ?? "");
+                        File.WriteAllText(temporary, text ?? "");
 #endif
-                    if (found) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
+                        if (present) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
+                    });
+                    if (failed != null) return "Couldn't save this note.";
                     Text = text ?? "";
                     existed = true;
                     return null;
