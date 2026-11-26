@@ -134,6 +134,9 @@ namespace CapriDesktop
                 RemoteJson.Map rfc = v.Child("hkdfRfc5869Case1");
                 Same(Hex(RemoteCrypto.Hkdf(FromHex(rfc.Text("ikm")), FromHex(rfc.Text("salt")), FromHex(rfc.Text("info")), Int(rfc, "length"))), rfc.Text("okm"), "HKDF, RFC 5869 case 1");
 
+                const string emptyInfoOkm = "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8";
+                Same(Hex(RemoteCrypto.Hkdf(FromHex(rfc.Text("ikm")), null, null, 42)), emptyInfoOkm, "HKDF, RFC 5869 case 3 with omitted salt and info");
+
                 RemoteJson.Map confirm = v.Child("confirm");
                 Same(Hex(RemoteCrypto.Hkdf(Input("pairingKey"), Input("pairNonce"), RemoteCrypto.Ascii(RemoteCrypto.ConfirmLabel), 4)), confirm.Text("okm"), "confirmation HKDF");
                 Same(RemoteCrypto.Confirm(Input("pairingKey"), Input("pairNonce")), confirm.Text("code"), "confirmation code");
