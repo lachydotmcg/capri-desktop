@@ -124,6 +124,7 @@ namespace CapriDesktop
         [DataMember] internal string Id;
         [DataMember] internal string Name;
         [DataMember] internal string Address;
+        [DataMember(EmitDefaultValue = false)] internal string Credential;
     }
 
     internal sealed class RemoteTurn
@@ -906,13 +907,20 @@ namespace CapriDesktop
         private int asking;
         private Smoke smoke;
         private CancellationTokenSource listening;
+        private readonly HearingLine hearing = new HearingLine();
+        private CancellationTokenSource hearingTap;
+        private Task hearingRecorder = Task.CompletedTask;
         internal Func<Action, CancellationToken, Task<string>> Listen;
+        internal Func<bool> HearingInstalled;
+        internal Func<Action<double>, CancellationToken, Task> HearingTapRun;
 
         internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
             if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears, () => TheirLanguage).Listen;
+            HearingInstalled = delegate { return Ears.Models(EarsFolder).Count > 0; };
+            HearingTapRun = Program.Smoke == null && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) ? HearingTap.Run : delegate(Action<double> level, CancellationToken stop) { return Task.CompletedTask; };
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
@@ -1141,7 +1149,8 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            if (OperatingSystem.IsMacOS()) desktop.ShutdownRequested += (_, _) => StopHearing();
+            Closed += delegate { StopHearing(); Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
@@ -1410,6 +1419,7 @@ namespace CapriDesktop
             TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();
+            TickHearing();
             if (ContextMenu.IsOpen && Desk is HyprlandDesk menuDesk && (menuDesk.Desktop.VisualSnapshot == null || menuDesk.Desktop.VisualSnapshot.Locked)) ContextMenu.Close();
             if (releaseSettling && Desk is HyprlandDesk settlingDesk && (settlingDesk.Desktop.VisualSnapshot == null || settlingDesk.Desktop.VisualSnapshot.Locked)) CancelNativeRelease();
             DragFrame();
@@ -2549,17 +2559,21 @@ namespace CapriDesktop
         {
             CancellationTokenSource turn = listening;
             if (turn == null) return false;
-            listening = null;
+            FinishListening(turn);
             turn.Cancel();
+            NotifySettings();
             return true;
         }
 
-        internal async void VoiceTurn()
+        internal async void VoiceTurn() { await RunVoiceTurn(); }
+
+        internal async Task RunVoiceTurn()
         {
-            if (away || quitting) return;
+            if (away || quitting || MacQuit.Quitting) return;
             if (StopListening()) { Talk.Dismiss(); return; }
             if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now, choom."); return; }
             Func<Action, CancellationToken, Task<string>> listen = Listen;
+            StopHearingTest();
             Typed();
             ++asking;
             Brain.Cancel();
@@ -2572,20 +2586,138 @@ namespace CapriDesktop
             string text = null, problem = null;
             try
             {
-                await nameLifetime;
-                if (listening != turn) return;
-                text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
+                hearing.Listening(true);
+                NotifySettings();
+                try
                 {
-                    if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
-                }), turn.Token));
+                    await nameLifetime;
+                    if (listening != turn) return;
+                    StartHearingTap(false);
+                    text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
+                    {
+                        if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
+                    }), turn.Token));
+                }
+                catch (IOException error) { problem = error.Message; }
+                catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
+                if (listening != turn) return;
+                FinishListening(turn);
+                Chimes.Play(Chime.Heard);
+                if (!string.IsNullOrWhiteSpace(text)) { hearing.Heard(); Hear(text, true); }
+                else
+                {
+                    if (problem != null) hearing.Failed(problem); else hearing.Missed();
+                    Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+                }
+                NotifySettings();
             }
-            catch (IOException error) { problem = error.Message; }
-            catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
-            if (listening != turn) return;
+            finally
+            {
+                if (FinishListening(turn)) NotifySettings();
+            }
+        }
+
+        private bool FinishListening(CancellationTokenSource turn)
+        {
+            if (listening != turn) return false;
             listening = null;
-            Chimes.Play(Chime.Heard);
-            if (!string.IsNullOrWhiteSpace(text)) Hear(text, true);
-            else Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+            StopHearingTap();
+            hearing.Listening(false);
+            return true;
+        }
+
+        internal HearingStatus HearingNow { get { return hearing.Read(HearingInstalled()); } }
+
+        internal bool HearingTesting { get { return hearing.Testing; } }
+
+        internal void HearingReset() { hearing.Reset(); }
+
+        internal void HearingFixAt(int index)
+        {
+            HearingStatus status = HearingNow;
+            if (index < 0 || index >= status.Actions.Length) return;
+            HearingAction action = status.Actions[index];
+            if (action == HearingAction.Test || action == HearingAction.Stop)
+            {
+                if (hearing.Testing) StopHearingTest(); else StartHearingTest();
+            }
+            else if (action == HearingAction.Type) Talk.Open();
+            else OpenEars();
+        }
+
+        private void StartHearingTest()
+        {
+            if (hearing.Testing || quitting || MacQuit.Quitting) return;
+            if (StopListening()) Talk.Dismiss();
+            if (Saved.ListenCapri) StopNameListening("Test mic owns the microphone. Re-enable Listen for Capri afterward.");
+            hearing.StartTest(Now);
+            StartHearingTap(true);
+            NotifySettings();
+        }
+
+        internal void StopHearingTest()
+        {
+            if (!hearing.Testing) return;
+            StopHearingTap();
+            hearing.TestCancelled();
+            NotifySettings();
+        }
+
+        private void TickHearing()
+        {
+            if (!hearing.TestDue(Now)) return;
+            StopHearingTap();
+            hearing.TestDone();
+            NotifySettings();
+        }
+
+        private void StartHearingTap(bool test)
+        {
+            StopHearingTap();
+            var stop = new CancellationTokenSource();
+            hearingTap = stop;
+            hearingRecorder = RunHearingTap(stop.Token, test);
+        }
+
+        private async Task RunHearingTap(CancellationToken token, bool test)
+        {
+            try
+            {
+                if (test) await nameLifetime;
+                if (token.IsCancellationRequested) return;
+                await HearingTapRun(value =>
+                {
+                    void Update() { if (!token.IsCancellationRequested && hearing.Level(value)) NotifySettings(); }
+                    if (Dispatcher.UIThread.CheckAccess()) Update();
+                    else Dispatcher.UIThread.Post(Update);
+                }, token);
+            }
+            catch (Exception error)
+            {
+                if (token.IsCancellationRequested) return;
+                Brain.Log("ears", -1, "Hearing level tap: " + error.GetType().Name);
+                if (test) hearing.TestDone();
+                hearing.Failed(error is IOException ? error.Message : HearingTap.Stopped);
+                NotifySettings();
+            }
+        }
+
+        private void StopHearingTap()
+        {
+            CancellationTokenSource stop = hearingTap;
+            if (stop == null) return;
+            Task recorder = hearingRecorder;
+            hearingTap = null;
+            hearingRecorder = Task.CompletedTask;
+            stop.Cancel();
+            _ = recorder.ContinueWith(_ => stop.Dispose(), TaskScheduler.Default);
+        }
+
+        private void StopHearing()
+        {
+            StopListening();
+            StopHearingTest();
+            StopHearingTap();
         }
 
         internal void Grab()
@@ -4110,6 +4242,7 @@ namespace CapriDesktop
 
         internal void ShowBrains(string[] found)
         {
+            frameModelServer = frameModelKey = frameModelProvider = null;
             if (found == null && Brain.Local != null && Brain.Remote == null) { frameModels = new[] { Brain.Model }; if (MainframeTier == 0) frameProblem = null; NotifySettings(); return; }
             frameModels = found ?? Array.Empty<string>();
             if (MainframeTier == 0) frameProblem = found == null ? NoOllama : null;
@@ -4159,13 +4292,14 @@ namespace CapriDesktop
         // On their own server the Brain menu lists its models, and can change its address or go back to Ollama.
         internal void ShowServer(string[] found)
         {
-            frameModels = found ?? Array.Empty<string>();
-            NotifySettings();
-            string server;
-            string serverKey;
-            Brain.GetServer(out server, out serverKey);
+            Brain.GetServer(out string server, out string serverKey);
             if (Brain.Remote != null || server == null) return;
+            frameModelServer = server;
+            frameModelKey = serverKey;
+            frameModelProvider = EndpointIdOf(Saved.BrainProvider);
+            frameModels = found ?? Array.Empty<string>();
             frameProblem = found == null ? "Can't reach your server. Is it running?" : null;
+            NotifySettings();
             brainMenu.Items.Clear();
             brainMenu.Items.Add(new MenuItem { Header = "My server at " + server + (serverKey == null ? "" : " (with a key)"), IsEnabled = false });
             if (found == null) brainMenu.Items.Add(new MenuItem { Header = "Can't reach it. Is it running?", IsEnabled = false });
@@ -4175,7 +4309,10 @@ namespace CapriDesktop
                 {
                     string model = name;
                     MenuItem pick = new MenuItem { Header = model, ToggleType = MenuItemToggleType.Radio, GroupName = "server", IsChecked = model == Brain.Model };
-                    pick.Click += Guarded(delegate { PickServerModel(model); });
+                    pick.Click += Guarded(delegate
+                    {
+                        if (ReferenceEquals(found, frameModels)) MainframePickListedModel(model);
+                    });
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
@@ -4246,7 +4383,9 @@ namespace CapriDesktop
             string server;
             string ignored;
             Brain.GetServer(out server, out ignored);
-            if (!WriteServerPair(ServerPairFile, server, null))
+            string id = EndpointIdOf(Saved.BrainProvider);
+            bool removed = id == null ? WriteServerPair(ServerPairFile, server, null) : SaveEndpointKey(id, null);
+            if (!removed)
             {
                 Talk.Answer("(brain provider)", "Couldn't remove the saved provider key.");
                 return;
@@ -4258,18 +4397,8 @@ namespace CapriDesktop
 
         internal void UseServer(string typed) { UseServer(typed, null); }
 
-        internal void UseServer(string typed, string key, Action<string> report = null)
+        private void CheckServer(string server, string key, Action<string> report, Action<string[]> connected)
         {
-            Action<string> say = report ?? (text => Talk.Answer("(brain server)", text));
-            string server = Brain.ServerAddress(typed);
-            if (server == null) { say("That address doesn't work. Try https://... or http://localhost:8080."); return; }
-            key = (key ?? "").Trim();
-            if (key.Length == 0) key = null;
-            if (key != null && !Brain.ServerKeySafe(server))
-            {
-                say("Use https:// for a provider elsewhere. A key over plain http isn't safe.");
-                return;
-            }
             int ticket = ++asking;
             if (report == null) Talk.Thinking("(brain server)");
             ThreadPool.QueueUserWorkItem(delegate
@@ -4279,39 +4408,75 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (ticket != asking)
+                    if (ticket != asking || quitting) { report?.Invoke("Provider check cancelled."); return; }
+                    if (found != null && found.Length > 0) { connected(found); return; }
+                    string problem = found == null
+                        ? key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key."
+                        : "Your server at " + server + " lists no models. Load one in it first.";
+                    if (report != null) report(problem); else Talk.Answer("(brain server)", problem);
+                });
+            });
+        }
+
+        internal void UseServer(string typed, string key, Action<string> report = null)
+        {
+            Action<string> say = report ?? (text => Talk.Answer("(brain server)", text));
+            string server = Brain.ServerAddress(typed);
+            if (server == null) { say("That address doesn't work. Try https://... or http://localhost:8080."); return; }
+            key = (key ?? "").Trim();
+            if (key.Length == 0) key = null;
+            if (!EndpointKeySafe(server, key))
+            {
+                say("Use https:// for a provider elsewhere. A key over plain http isn't safe.");
+                return;
+            }
+            CheckServer(server, key, report, found =>
+            {
+                string oldProvider = Saved.BrainProvider, oldAddress = Saved.BrainServer, oldModel = Saved.ServerModel;
+                string model = Array.IndexOf(found, oldModel) >= 0 ? oldModel : found[0];
+                bool saved;
+                bool replacesNamed = EndpointIdOf(oldProvider) != null;
+                if (replacesNamed)
+                {
+                    bool oldNative = Saved.NativePlan;
+                    Saved.BrainProvider = Brain.Remote?.Kind;
+                    Saved.BrainServer = server;
+                    Saved.ServerModel = model;
+                    Saved.NativePlan = false;
+                    saved = WriteProviderSettings(() => WriteServerPair(ServerPairFile, server, key));
+                    if (!saved)
                     {
-                        report?.Invoke("Provider check cancelled.");
-                        return;
+                        Saved.BrainProvider = oldProvider;
+                        Saved.BrainServer = oldAddress;
+                        Saved.ServerModel = oldModel;
+                        Saved.NativePlan = oldNative;
                     }
-                    if (found == null || found.Length == 0)
-                    {
-                        say(found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
-                        return;
-                    }
-                    if (!WriteServerPair(ServerPairFile, server, key))
-                    {
-                        say("Couldn't save the provider address and key.");
-                        return;
-                    }
-                    ComputerJobs.Stop();
+                }
+                else saved = WriteServerPair(ServerPairFile, server, key);
+                if (!saved) { say("Couldn't save the provider address and key."); return; }
+                StopProviderWork();
+                ++localRequests;
+                Brain.SetServer(server, key);
+                Saved.BrainServer = server;
+                WriteSecret(ServerKeyFile, null, "provider key");
+                if (Brain.Remote == null) Brain.Model = model;
+                Saved.ServerModel = model;
+                if (!replacesNamed) Save();
+                if (MainframeTier == 0) ShowServer(found);
+                else NotifySettings();
+                if (report != null)
+                    report(Brain.Remote == null ? "Provider connected." : "Provider saved. Your cloud key is still in use.");
+                else say(key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+            });
+        }
+
+        private void StopProviderWork()
+        {
+            ComputerJobs.Stop();
             ownedVoice?.Cancel();
             StopNativeListening();
             Brain.Cancel();
-                    LeavePlan();
-            Brain.SetServer(server, key);
-                    Saved.BrainServer = server;
-                    WriteSecret(ServerKeyFile, null, "provider key");
-                    string model = Array.IndexOf(found, Saved.ServerModel) >= 0 ? Saved.ServerModel : found[0];
-                    if (Brain.Remote == null) Brain.Model = model;
-                    Saved.ServerModel = model;
-                    Save();
-                    if (MainframeTier == 0) ShowServer(found);
-                    if (report != null)
-                        report(Brain.Remote == null ? "Provider connected." : "Provider saved. Your cloud key is still in use.");
-                    else if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
-                });
-            });
+            LeavePlan();
         }
 
         internal void PickServerModel(string model)
@@ -4332,7 +4497,25 @@ namespace CapriDesktop
         internal void LeaveServer(Action<string> report = null)
         {
             ++asking;
-            if (!WriteServerPair(ServerPairFile, null, null))
+            string named = EndpointIdOf(Saved.BrainProvider);
+            if (named != null)
+            {
+                string old = Saved.BrainProvider, address = Saved.BrainServer;
+                bool oldNative = Saved.NativePlan;
+                Saved.BrainProvider = Brain.Remote?.Kind;
+                Saved.BrainServer = null;
+                Saved.NativePlan = false;
+                if (!WriteProviderSettings(() => WriteServerPair(ServerPairFile, null, null)))
+                {
+                    Saved.BrainProvider = old;
+                    Saved.BrainServer = address;
+                    Saved.NativePlan = oldNative;
+                    if (report == null) Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                    else report("Couldn't remove the saved provider.");
+                    return;
+                }
+            }
+            else if (!WriteServerPair(ServerPairFile, null, null))
             {
                 if (report == null) Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
                 else report("Couldn't remove the saved provider.");
@@ -4348,7 +4531,8 @@ namespace CapriDesktop
             frameModels = Array.Empty<string>();
             WriteSecret(ServerKeyFile, null, "provider key");
             if (Brain.Remote == null) Brain.Model = null;
-            Save();
+            if (named == null) Save();
+            else NotifySettings();
             FindBrain();
             RefreshBrains();
             report?.Invoke("Provider forgotten.");
@@ -5239,7 +5423,8 @@ namespace CapriDesktop
             string server;
             string serverKey;
             Brain.GetServer(out server, out serverKey);
-            string serverSaved = Saved.ServerModel;
+            string provider = EndpointIdOf(Saved.BrainProvider) != null ? Saved.BrainProvider : null;
+            string serverSaved = provider == null ? Saved.ServerModel : ProviderModel(Saved, provider, 0);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string model = null;
@@ -5257,10 +5442,12 @@ namespace CapriDesktop
                 {
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
-                    if (MainframeTier != 0 || Brain.Model != null || model == null || currentServer != server || currentKey != serverKey) return;
+                    if (MainframeTier != 0 || Brain.Model != null || model == null || currentServer != server || currentKey != serverKey ||
+                        EndpointIdOf(Saved.BrainProvider) != EndpointIdOf(provider)) return;
                     Brain.Model = model;
                     if (server == null) Saved.Model = model;
-                    else Saved.ServerModel = model;
+                    else if (provider == null) Saved.ServerModel = model;
+                    else RememberProviderModel(Saved, provider, model, 0);
                     Save();
                 });
             });
@@ -6625,7 +6812,14 @@ namespace CapriDesktop
 
         private string ServerPairFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-server"); } }
 
-        internal string EndpointKeyFile(string id) { return Pet.ValidEndpointId(id) ? Path.Combine(Program.Smoke ?? folder, "brain-custom-" + id + "-key") : null; }
+        internal string EndpointKeyFile(string id) { return EndpointKeyFile(id, EndpointFor(Saved, id)?.Credential); }
+
+        private string EndpointKeyFile(string id, string credential)
+        {
+            if (!ValidEndpointId(id) || (credential != null && !Guid.TryParseExact(credential, "N", out _))) return null;
+            string token = credential == null ? id : id + "-" + credential;
+            return Path.Combine(Program.Smoke ?? folder, "brain-custom-" + token + "-key");
+        }
 
         // The address and key live in one file, replaced atomically, so a crash can never pair one provider's
         // address with another provider's key.
@@ -7594,12 +7788,13 @@ namespace CapriDesktop
             return string.IsNullOrEmpty(key) || Brain.ServerKeySafe(address);
         }
 
-        internal static ProviderEndpoint EndpointAt(Settings saved, string address)
+        private ProviderEndpoint LegacyEndpointForServer()
         {
-            if (saved == null || saved.ProviderEndpoints == null || string.IsNullOrEmpty(address)) return null;
-            foreach (ProviderEndpoint endpoint in saved.ProviderEndpoints)
-                if (endpoint != null && string.Equals(Brain.ServerAddress(endpoint.Address), address, StringComparison.Ordinal)) return endpoint;
-            return null;
+            Brain.GetServer(out string address, out string key);
+            if (address == null || Saved.ProviderEndpoints == null) return null;
+            if (ReadServerPair(ServerPairFile, out string pairAddress, out string pairKey) &&
+                Brain.ServerAddress(pairAddress) == address && pairKey == key) return null;
+            return Array.Find(Saved.ProviderEndpoints, endpoint => endpoint != null && Brain.ServerAddress(endpoint.Address) == address);
         }
 
         private bool SettingsWritable()
@@ -7661,6 +7856,137 @@ namespace CapriDesktop
             if (one == null || other == null) return one == other;
             if (one.Length != other.Length) return false;
             for (int i = 0; i < one.Length; i++) if (one[i] != other[i]) return false;
+            return true;
+        }
+
+        private bool WriteProviderSettings(Func<bool> commit = null)
+        {
+            if (!SnapshotSettings(out byte[] oldMain, out byte[] oldNew) || !SettingsWritable()) return false;
+            if (WriteSettings(out byte[] writtenMain, out byte[] writtenNew) && (commit == null || commit())) return true;
+            RestoreSettings(oldMain, oldNew, writtenMain, writtenNew);
+            return false;
+        }
+
+        internal bool IsActiveEndpoint(ProviderEndpoint endpoint)
+        {
+            return endpoint != null && MainframeTier == 0 && Brain.Remote == null && Brain.Provider == null &&
+                EndpointIdOf(Saved.BrainProvider) == endpoint.Id && Brain.Server != null &&
+                Brain.ServerAddress(endpoint.Address) == Brain.Server;
+        }
+
+        internal void SaveNamedProvider(string id, string name, string address, string key, bool connect, Action<string> report)
+        {
+            ProviderEndpoint previous = EndpointFor(Saved, id);
+            if (id != null && previous == null) { report("Pick a provider first."); return; }
+            name = (name ?? "").Trim();
+            string server = Brain.ServerAddress(address);
+            if (name.Length == 0) { report("Give it a name."); return; }
+            if (server == null) { report("That address doesn't work. Try https://... or http://localhost:8080."); return; }
+            if (HasOtherEndpoint(id, name, server)) { report("You already have that provider."); return; }
+            string oldKey = previous == null ? null : ReadEndpointKey(id);
+            string secret = (key ?? "").Trim();
+            bool sameOrigin = previous != null && SameProviderOrigin(Brain.ServerAddress(previous.Address), server);
+            if (secret.Length == 0)
+            {
+                if (sameOrigin && oldKey == null && File.Exists(EndpointKeyFile(id)))
+                {
+                    report("Couldn't read the saved provider key.");
+                    return;
+                }
+                secret = sameOrigin ? oldKey : null;
+            }
+            if (!EndpointKeySafe(server, secret)) { report("Use https:// for a provider elsewhere. A key over plain http isn't safe."); return; }
+            bool active = connect || IsActiveEndpoint(previous);
+            if (active)
+            {
+                CheckServer(server, secret, report, found =>
+                {
+                    if (!ReferenceEquals(previous, EndpointFor(Saved, id)) || HasOtherEndpoint(id, name, server))
+                    {
+                        report("Provider check cancelled.");
+                        return;
+                    }
+                    string model = ProviderModel(Saved, EndpointProviderId(id), 0);
+                    if (Array.IndexOf(found, model) < 0) model = found[0];
+                    if (!CommitNamedProvider(previous, name, server, secret, oldKey, sameOrigin, model, found))
+                        report("Couldn't save that provider.");
+                    else report(null);
+                });
+                return;
+            }
+            ++asking;
+            report(CommitNamedProvider(previous, name, server, secret, oldKey, sameOrigin, null, null) ? null : "Couldn't save that provider.");
+        }
+
+        private static bool SameProviderOrigin(string oldAddress, string address)
+        {
+            return Uri.TryCreate(oldAddress, UriKind.Absolute, out Uri previous) && Uri.TryCreate(address, UriKind.Absolute, out Uri next)
+                && previous.Scheme == next.Scheme && previous.IdnHost == next.IdnHost && previous.Port == next.Port;
+        }
+
+        private bool HasOtherEndpoint(string id, string name, string server)
+        {
+            if (Saved.ProviderEndpoints == null) return false;
+            foreach (ProviderEndpoint endpoint in Saved.ProviderEndpoints)
+                if (endpoint != null && endpoint.Id != id && (string.Equals(endpoint.Name, name, StringComparison.OrdinalIgnoreCase)
+                    || Brain.ServerAddress(endpoint.Address) == server)) return true;
+            return false;
+        }
+
+        private bool CommitNamedProvider(ProviderEndpoint previous, string name, string address, string secret, string oldKey,
+            bool sameOrigin, string model, string[] found)
+        {
+            ProviderEndpoint[] oldEndpoints = Saved.ProviderEndpoints;
+            ProviderModelPick[] oldModels = Saved.ProviderModels;
+            string oldProvider = Saved.BrainProvider, oldAddress = Saved.BrainServer;
+            string oldFree = Saved.FreeModel, oldPaid = Saved.PaidModel;
+            int? oldTier = Saved.BrainTier;
+            bool oldNative = Saved.NativePlan;
+            string id = previous?.Id ?? AddEndpoint(Saved, name, address);
+            bool replaceSecret = previous == null || secret != oldKey || !sameOrigin;
+            string credential = replaceSecret ? Guid.NewGuid().ToString("N") : previous?.Credential;
+            string newPath = EndpointKeyFile(id, credential), oldPath = previous == null ? null : EndpointKeyFile(id, previous.Credential);
+            if (replaceSecret && secret != null && !WriteSecret(newPath, secret, "custom provider key"))
+            {
+                Saved.ProviderEndpoints = oldEndpoints;
+                return false;
+            }
+            var endpoint = new ProviderEndpoint { Id = id, Name = name, Address = address, Credential = credential };
+            Saved.ProviderEndpoints = Array.ConvertAll(Saved.ProviderEndpoints, item => item?.Id == id ? endpoint : item);
+            string provider = EndpointProviderId(id);
+            if (!sameOrigin && oldModels != null) Saved.ProviderModels = Array.FindAll(oldModels, pick => pick != null && pick.Provider != provider);
+            if (found != null)
+            {
+                KeepBrainTier();
+                Saved.BrainProvider = provider;
+                Saved.BrainServer = address;
+                Saved.BrainTier = 0;
+                Saved.NativePlan = false;
+                RememberProviderModel(Saved, provider, model, 0);
+            }
+            if (!WriteProviderSettings(oldPath != null && replaceSecret ? () => WriteSecret(oldPath, null, "custom provider key") : null))
+            {
+                if (replaceSecret && secret != null) WriteSecret(newPath, null, "custom provider key");
+                Saved.ProviderEndpoints = oldEndpoints;
+                Saved.ProviderModels = oldModels;
+                Saved.BrainProvider = oldProvider;
+                Saved.BrainServer = oldAddress;
+                Saved.BrainTier = oldTier;
+                Saved.FreeModel = oldFree;
+                Saved.PaidModel = oldPaid;
+                Saved.NativePlan = oldNative;
+                return false;
+            }
+            if (found != null)
+            {
+                StopProviderWork();
+                ++localRequests;
+                Brain.Remote = null;
+                Brain.SetServer(address, secret);
+                Brain.Model = model;
+                ShowServer(found);
+            }
+            else NotifySettings();
             return true;
         }
 
@@ -7759,10 +8085,25 @@ namespace CapriDesktop
             }
             byte[] writtenMain, writtenNew;
             bool saved = SaveResult(out writtenMain, out writtenNew);
+            string pairAddress = null, pairKey = null;
+            bool hadPair = active && File.Exists(ServerPairFile);
+            bool pairGone = !hadPair || (saved && ReadServerPair(ServerPairFile, out pairAddress, out pairKey) && WriteServerPair(ServerPairFile, null, null));
             bool keyGone = true;
-            if (saved && path != null && File.Exists(path)) keyGone = WriteSecret(path, null, "custom provider key") && !File.Exists(path);
-            if (saved && keyGone) return true;
+            if (saved && pairGone && path != null && File.Exists(path)) keyGone = WriteSecret(path, null, "custom provider key") && !File.Exists(path);
+            if (saved && pairGone && keyGone)
+            {
+                ++asking;
+                if (active)
+                {
+                    StopProviderWork();
+                    ++localRequests;
+                    frameModels = Array.Empty<string>();
+                    if (Program.Smoke == null) { FindBrain(); RefreshBrains(); }
+                }
+                return true;
+            }
             if (!keyGone && oldKey != null) WriteSecret(path, oldKey, "custom provider key");
+            if (hadPair && pairGone) WriteServerPair(ServerPairFile, pairAddress, pairKey);
             RestoreSettings(oldMain, oldNew, writtenMain, writtenNew);
             Saved.ProviderEndpoints = oldEndpoints;
             Saved.ProviderModels = oldModels;
@@ -7779,14 +8120,14 @@ namespace CapriDesktop
         private void RestoreCustomEndpoint()
         {
             string id = EndpointIdOf(Saved.BrainProvider);
-            if (id == null || MainframeTier != 0) return;
+            if (id == null) return;
             ProviderEndpoint endpoint = EndpointFor(Saved, id);
             if (endpoint == null) return;
             string address = Brain.ServerAddress(endpoint.Address);
             if (address == null) return;
             string key = ReadEndpointKey(id);
             Brain.SetServer(address, EndpointKeySafe(address, key) ? key : null);
-            Brain.Model = ProviderModel(Saved, Saved.BrainProvider, 0);
+            if (MainframeTier == 0 && Brain.Provider == null) Brain.Model = ProviderModel(Saved, Saved.BrainProvider, 0);
         }
 
         internal static string ProviderModel(Settings saved, string provider, int? tier = null)
@@ -7961,6 +8302,7 @@ namespace CapriDesktop
             {
                 macQuit.Request(0, delegate(Action leave)
                 {
+                    StopHearing();
                     if (!frames.IsEnabled) { leave(); return; }
                     quitting = true;
                     ClonesOff();
@@ -7971,6 +8313,7 @@ namespace CapriDesktop
                 return;
             }
             quitting = true;
+            StopHearing();
             ClonesOff();
             StopOwnBrain();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
@@ -8011,6 +8354,7 @@ namespace CapriDesktop
 
         private void FinishNow(int code)
         {
+            StopHearing();
             StopRemote();
             if (OperatingSystem.IsMacOS()) { macQuit.Request(code); return; }
             if (husk != null) husk.Dispose();
