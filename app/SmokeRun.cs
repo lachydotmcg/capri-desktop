@@ -77,7 +77,7 @@ namespace CapriDesktop
             {
                 "SmokeBrainLayout", "HologramChecks", "SmokeVault", "SmokeResources", "SmokeSpend", "SmokeSheetScale",
                 "SmokeFirstRun", "SmokePersonal", "SmokeTreeEyes", "SmokeMainframeWheel", "SmokeMainframeFit",
-                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeStartFailure", "SmokeLongMenus", "SmokeMenuScreens", "SmokeSettingsSearch",
+                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeStartFailure", "SmokeInstallerErrors", "SmokeLongMenus", "SmokeMenuScreens", "SmokeSettingsSearch",
                 "SmokeMainframeColours", "SmokeTips", "SmokeOverlayDraw", "SmokePanelTeleport", "SmokeNoteEditor",
                 "SmokeFileEditor", "SmokeMinis", "SmokeIcons", "SmokeChaosScreen", "SmokeMemoryWindow", "SmokeGifs",
                 "SmokeWorkspaceTool", "SmokeWorkspace", "SmokeWorkspaceLiveModes", "SmokeWorkspaceStream",

@@ -236,8 +236,7 @@ namespace CapriDesktop
             return "Something went wrong while Capri was starting."
                 + (string.IsNullOrEmpty(log) ? "" : "\n\nThe details are saved in Capri's error log:\n" + log)
                 + "\n\nTry opening Capri again. If it still won't start, "
-                + (!keys ? "the help page at capriai.app/help says where to send that log." : "press Copy error details, then "
-                + (store ? "Report a problem and paste them into a new report." : "Help page to find where to send them."));
+                + (!keys ? "the help page at capriai.app/help says where to send that log." : "press Copy error details, then " + ProblemKeys.Then(store));
         }
 
         // A crash goes in errors.txt: what it was and where in her code, so Copy error details shows it.
@@ -2913,9 +2912,9 @@ namespace CapriDesktop
         private const string RouterKeyPage = "https://openrouter.ai/keys";
         private const string GuidePage = "https://capriai.app/setup/#voice";
         private const string DiscordPage = "https://discord.gg/capridesktop";
-        private const string HelpPage = "https://capriai.app/help/";
+        private const string HelpPage = ProblemKeys.HelpPage;
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
-        private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        private const string IssuesPage = ProblemKeys.IssuesPage;
         private const string PrivacyPage = "https://capriai.app/privacy/";
         private const string ModRulesPage = "https://capriai.app/privacy/#mods";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
@@ -5558,21 +5557,8 @@ namespace CapriDesktop
         {
             Cloud remote = brain.Remote;
             string head = "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
-            return head + Environment.NewLine + LoggedErrors();
+            return head + Environment.NewLine + ProblemKeys.Logged();
         }
-
-        // The last 25 lines of errors.txt and every close it holds, keys taken out: what Copy error details pastes under its first line.
-        private static string LoggedErrors()
-        {
-            string[] lines = new string[0];
-            try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
-            int from = Math.Max(0, lines.Length - 25);
-            System.Collections.Generic.List<string> details = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
-            return details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray()));
-        }
-
-        internal static Action<string> CopyText = delegate(string text) { try { Clipboard.SetText(text); } catch (System.Runtime.InteropServices.ExternalException) { } };
 
         // When she can't start there's no her to right-click, so the notice says where her log is and carries her Help menu's
         // Copy error details and Report a problem (the Help page outside the Store, as in that menu). What was thrown only goes in
@@ -5580,32 +5566,111 @@ namespace CapriDesktop
         internal static void CouldNotStart(Exception error)
         {
             bool store = Packaged.Is;
-            Notice.Tell(null, Program.StartProblem(Brain.LogPath, store, true), Program.StartCaption, true, Program.StartProblem(Brain.LogPath, store, false), StartKeys(error, store));
+            Notice.Tell(null, Program.StartProblem(Brain.LogPath, store, true), Program.StartCaption, true, Program.StartProblem(Brain.LogPath, store, false), ProblemKeys.For("could not start", error, store));
         }
 
-        internal static KeyValuePair<string, Action<Button>>[] StartKeys(Exception error, bool store)
+        // Her installer's install, update and removal failures, forced for real where that's safe (a bad update command, a file that
+        // isn't Capri given to remove) and through the same words for Windows' own errors, which can't be forced without
+        // touching the installed Capri. Nothing here installs, closes or removes anything.
+        private void SmokeInstallerErrors(System.Collections.Generic.List<string> checks, string output)
         {
-            string details = StartDetails(error);
-            return new[]
+            string folder = Path.Combine(output, "installer-errors");
+            Directory.CreateDirectory(folder);
+            Action<string> keptCopy = ProblemKeys.Copy;
+            Action<string> keptOpen = ProblemKeys.Open;
+            Action<Notice> keptShowing = Notice.Showing;
+            string copied = null, opened = null, seen = null;
+            try
             {
-                new KeyValuePair<string, Action<Button>>("Copy error details", delegate(Button key) { CopyText(details); key.Text = "Copied"; }),
-                new KeyValuePair<string, Action<Button>>(store ? "Report a problem" : "Help page", delegate { OpenPage(store ? IssuesPage : HelpPage); })
-            };
-        }
+                ProblemKeys.Copy = delegate(string text) { copied = text; };
+                ProblemKeys.Open = delegate(string page) { opened = page; };
+                // Runs `act`, which should show one failure notice, and checks it: its title, the words it must show, none of
+                // what was thrown, Copy error details carrying `copiedHas`, Help page, and a picture of it saved.
+                Func<string, string, string[], string[], Action, string> force = delegate(string picture, string title, string[] shown, string[] copiedHas, Action act)
+                {
+                    string problem = null;
+                    seen = copied = opened = null;
+                    Notice.Showing = delegate(Notice notice)
+                    {
+                        try
+                        {
+                            notice.Opacity = 0;
+                            notice.Show();
+                            Application.DoEvents();
+                            seen = notice.Said;
+                            if (!notice.Fits) { problem = "doesn't fit its words and keys"; return; }
+                            Button[] keys = notice.Extras;
+                            if (keys.Length != 2 || keys[0].Text != "Copy error details" || keys[1].Text != "Help page" || ((Button)notice.AcceptButton).Text != "OK") { problem = "doesn't have Copy error details, Help page and OK"; return; }
+                            using (Bitmap bitmap = new Bitmap(notice.Width, notice.Height))
+                            using (Bitmap sheet = new Bitmap(notice.Width + 48, notice.Height + 48))
+                            {
+                                notice.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                                using (Graphics graphics = Graphics.FromImage(sheet))
+                                {
+                                    graphics.Clear(Color.FromArgb(44, 47, 56));
+                                    if (notice.Region != null) using (Region shape = notice.Region.Clone()) { shape.Translate(24, 24); graphics.SetClip(shape, CombineMode.Replace); }
+                                    graphics.DrawImageUnscaled(bitmap, 24, 24);
+                                }
+                                sheet.Save(Path.Combine(folder, picture), ImageFormat.Png);
+                            }
+                            keys[0].Select();
+                            keys[0].PerformClick();
+                            if (keys[0].Text != "Copied" || !notice.Visible || notice.ActiveControl != notice.AcceptButton) { problem = "Copy error details didn't say Copied, closed it or kept focus off OK"; return; }
+                            keys[1].PerformClick();
+                            notice.Close();
+                        }
+                        catch (Exception error) { problem = error.Message; }
+                    };
+                    act();
+                    Notice.Showing = null;
+                    if (problem != null) return problem;
+                    if (seen == null) return "never showed";
+                    if (!seen.StartsWith(title + "\n", StringComparison.Ordinal) || seen.Contains("choom") || !seen.Contains("press Copy error details, then Help page")) return "lost its title or where to send the details: " + seen;
+                    if (seen.Contains("Exception") || seen.Contains(" at ")) return "shows what was thrown: " + seen;
+                    foreach (string part in shown) if (!seen.Contains(part)) return "doesn't say " + part + ": " + seen;
+                    if (copied == null) return "had Copy error details copy nothing";
+                    foreach (string part in copiedHas) if (!copied.Contains(part)) return "left " + part + " out of Copy error details: " + copied;
+                    if (opened != ProblemKeys.HelpPage) return "had Help page open " + opened;
+                    if (!File.Exists(Path.Combine(folder, picture))) return "wasn't drawn to " + picture;
+                    return null;
+                };
 
-        private static string StartDetails(Exception error)
-        {
-            string thrown;
-            try { thrown = string.Join(Environment.NewLine, Brain.Cleaned(error.ToString().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))); }
-            catch (Exception)
-            {
-                try { thrown = error.GetType().Name + ": " + Brain.Redacted(error.Message); }
-                catch (Exception) { thrown = error.GetType().FullName; }
+                string result = force("update-invalid.png", "CAPRI COULDN'T UPDATE", new[] { "The update command is invalid." }, new[] { "| couldn't update", "CapriSetup.SetupProblem: The update command is invalid.", "CapriSetup.Program.Update" }, delegate { CapriSetup.Program.Update(new[] { "--update", "nope" }); });
+                if (result != null) throw new Exception("A bad update command's notice " + result);
+
+                string notCapri = Path.Combine(folder, "not-capri.exe");
+                File.WriteAllText(notCapri, "not a program");
+                CapriSetup.Removal plan = new CapriSetup.Removal { Copy = true, App = notCapri, Forget = false };
+                result = force("remove-not-capri.png", "CAPRI COULD NOT BE REMOVED", new[] { "That isn't a copy of Capri this can remove." }, new[] { "| could not be removed", "CapriSetup.SetupProblem: That isn't a copy of Capri this can remove.", "CapriSetup.Program.RemoveCopy" }, delegate { CapriSetup.Program.RemoveCopy(plan); });
+                if (result != null) throw new Exception("Removing a file that isn't Capri gave a notice that " + result);
+                if (!File.Exists(notCapri)) throw new Exception("Removing a file that isn't Capri deleted it.");
+
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string held = Path.Combine(home, "AppData", "Local", "Capri", "brain", "llama.dll");
+                string user = Environment.UserName.Trim(), machine = Environment.MachineName.Trim();
+                foreach (string[] shape in new[] { new[] { CapriSetup.Program.UpdateCaption, "updating", CapriSetup.Program.UpdateNext, "update-windows-error.png" }, new[] { CapriSetup.Program.RemoveCaption, "removing", CapriSetup.Program.RemoveNext, "remove-windows-error.png" }, new[] { CapriSetup.Program.InstallCaption, "installing", CapriSetup.Program.InstallNext, "install-windows-error.png" } })
+                {
+                    Exception thrown;
+                    try { throw new UnauthorizedAccessException("Access to the path '" + held + "' is denied on " + machine + "."); }
+                    catch (Exception error) { thrown = error; }
+                    result = force(shape[3], shape[0].ToUpperInvariant(), new[] { "Something went wrong while " + shape[1] + " Capri.", shape[2] }, new[] { "| " + shape[0].Substring(6), "System.UnauthorizedAccessException: Access to the path '%USERPROFILE%", "is denied on [pc]." }, delegate { CapriSetup.Program.Failed(thrown, shape[0], shape[1], shape[2]); });
+                    if (result != null) throw new Exception("A Windows error while " + shape[1] + " Capri gave a notice that " + result);
+                    if (seen.Contains("Access to the path") || seen.Contains(held)) throw new Exception("A Windows error while " + shape[1] + " Capri shows its raw words: " + seen);
+                    foreach (string name in new[] { user, machine })
+                        if (name.Length >= 3 && name != "user" && name != "pc" && Regex.IsMatch(copied, @"(?<![\p{L}\p{N}_\[])" + Regex.Escape(name) + @"(?![\p{L}\p{N}_\]])", RegexOptions.IgnoreCase))
+                            throw new Exception("Copy error details for a Windows error while " + shape[1] + " Capri kept their user or PC name.");
+                    if (copied.IndexOf(home, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Copy error details for a Windows error while " + shape[1] + " Capri kept their user folder.");
+                    string plain = CapriSetup.Program.Problem(thrown, shape[1], shape[2], false);
+                    if (plain.Contains("Copy error details") || plain.Contains("Access to the path") || !plain.Contains("capriai.app/help")) throw new Exception("Windows' plain box for a failed " + shape[1] + " points at keys it doesn't have or shows the raw error: " + plain);
+                }
+                checks.Add("PASS her installer's install, update and removal failures say plainly what failed and what to try, with Copy error details (the full error, with keys, their user folder, user name and PC name taken out) and Help page, never the raw error in their words; a bad update command and a file that isn't Capri were forced for real; saved update-invalid, remove-not-capri, update-windows-error, remove-windows-error and install-windows-error pictures");
             }
-            string logged;
-            try { logged = LoggedErrors(); }
-            catch (Exception) { logged = "Capri's error log couldn't be read."; }
-            return "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | could not start" + Environment.NewLine + thrown + Environment.NewLine + logged;
+            finally
+            {
+                ProblemKeys.Copy = keptCopy;
+                ProblemKeys.Open = keptOpen;
+                Notice.Showing = keptShowing;
+            }
         }
 
         private void SmokeStartFailure(System.Collections.Generic.List<string> checks, string output)
@@ -5617,13 +5682,13 @@ namespace CapriDesktop
             try { throw new InvalidDataException(raw); }
             catch (Exception error) { thrown = error; }
             string keptLog = Brain.LogPath;
-            Action<string> keptCopy = CopyText;
-            Action<string> keptBrowse = Browse;
+            Action<string> keptCopy = ProblemKeys.Copy;
+            Action<string> keptBrowse = ProblemKeys.Open;
             string copied = null, opened = null;
             try
             {
-                CopyText = delegate(string text) { copied = text; };
-                Browse = delegate(string page) { opened = page; };
+                ProblemKeys.Copy = delegate(string text) { copied = text; };
+                ProblemKeys.Open = delegate(string page) { opened = page; };
                 string log = Path.Combine(folder, "errors.txt");
                 if (File.Exists(log)) File.Delete(log);
                 Brain.LogPath = log;
@@ -5635,7 +5700,7 @@ namespace CapriDesktop
                     bool store = shape[1] == "store";
                     Brain.LogPath = shape[0] == storeLog ? log : shape[0];
                     copied = opened = null;
-                    using (Notice notice = new Notice(Program.StartProblem(shape[0], store, true), Program.StartCaption, true, StartKeys(thrown, store)))
+                    using (Notice notice = new Notice(Program.StartProblem(shape[0], store, true), Program.StartCaption, true, ProblemKeys.For("could not start", thrown, store)))
                     {
                         notice.Opacity = 0;
                         notice.Show();
@@ -5687,8 +5752,8 @@ namespace CapriDesktop
             finally
             {
                 Brain.LogPath = keptLog;
-                CopyText = keptCopy;
-                Browse = keptBrowse;
+                ProblemKeys.Copy = keptCopy;
+                ProblemKeys.Open = keptBrowse;
             }
         }
 
@@ -47608,6 +47673,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStartFailure", delegate { SmokeStartFailure(checks, output); });
+            Section(checks, "SmokeInstallerErrors", delegate { SmokeInstallerErrors(checks, output); });
             Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });

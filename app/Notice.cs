@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Media;
@@ -21,6 +22,9 @@ namespace CapriDesktop
         private readonly Plate ok;
         private readonly Plate[] extras;
 
+        // The checks see the notice here, shown or not as they like, instead of waiting on it.
+        internal static Action<Notice> Showing;
+
         // Shows a notice and waits for OK. If her own window can't show, Windows' box says it instead.
         internal static void Tell(IWin32Window owner, string message, string caption, bool error, params KeyValuePair<string, Action<Button>>[] keys)
         {
@@ -35,6 +39,7 @@ namespace CapriDesktop
                 using (Notice notice = new Notice(message, caption, error, keys))
                 {
                     if (owner == null) { notice.ShowInTaskbar = true; notice.StartPosition = FormStartPosition.CenterScreen; }
+                    if (Showing != null) { Showing(notice); return; }
                     if (error) SystemSounds.Hand.Play(); else SystemSounds.Asterisk.Play();
                     notice.ShowDialog(owner);
                 }
@@ -176,6 +181,64 @@ namespace CapriDesktop
             base.OnPaint(e);
             float s = DeviceDpi / 96f;
             Neon.Frame(e.Graphics, ClientSize, s, 16 * s, 6 * s, 52 * s, 26 * s);
+        }
+    }
+
+    // Copy error details and the Help page (Report a problem for a Store copy, as in her Help menu) for a notice about something
+    // that failed. What was thrown goes only in the copy, with keys, her user folder, user name and PC name taken out.
+    internal static class ProblemKeys
+    {
+        internal const string HelpPage = "https://capriai.app/help/";
+        internal const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        internal const string Next = "If it keeps happening, press Copy error details, then ";
+        internal static Action<string> Copy = delegate(string text) { try { Clipboard.SetText(text); } catch (System.Runtime.InteropServices.ExternalException) { } };
+        internal static Action<string> Open = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
+
+        internal static string Then(bool store) { return store ? "Report a problem and paste them into a new report." : "Help page to find where to send them."; }
+
+        internal static KeyValuePair<string, Action<Button>>[] For(string what, Exception error, bool store)
+        {
+            string details = Details(what, error);
+            return new[]
+            {
+                new KeyValuePair<string, Action<Button>>("Copy error details", delegate(Button key) { Copy(details); key.Text = "Copied"; }),
+                new KeyValuePair<string, Action<Button>>(store ? "Report a problem" : "Help page", delegate { Open(store ? IssuesPage : HelpPage); })
+            };
+        }
+
+        internal static string Details(string what, Exception error)
+        {
+            string head = "Capri " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + (Packaged.Is ? " (Store)" : "") + " | " + what;
+            string thrown;
+            try { thrown = Clean(error.ToString()); }
+            catch (Exception)
+            {
+                try { thrown = error.GetType().Name + ": " + Brain.Redacted(error.Message); }
+                catch (Exception) { thrown = error.GetType().FullName; }
+            }
+            string logged = null;
+            try { if (Brain.LogPath != null) logged = Clean(Logged()); }
+            catch (Exception) { logged = "Capri's error log couldn't be read."; }
+            return head + Environment.NewLine + thrown + (logged == null ? "" : Environment.NewLine + logged);
+        }
+
+        // The last 25 lines of errors.txt and every close it holds, keys taken out: what Copy error details pastes under its first line.
+        internal static string Logged()
+        {
+            string[] lines = new string[0];
+            try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
+            int from = Math.Max(0, lines.Length - 25);
+            List<string> details = new List<string>();
+            for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
+            return details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray()));
+        }
+
+        private static string Clean(string text)
+        {
+            string[] lines = Brain.Cleaned(text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            for (int i = 0; i < lines.Length; i++) lines[i] = CrashReports.Private(lines[i], home, Environment.UserName, Environment.MachineName);
+            return string.Join(Environment.NewLine, lines);
         }
     }
 
