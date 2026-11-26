@@ -3990,6 +3990,22 @@ namespace CapriDesktop
                 if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
                     throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
 
+                pet.SetLite(true);
+                string stopWatch = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "watch_my_screen" });
+                if (!stopWatch.Contains("stay off") || SettingsCopy().LiteWatch) throw new Exception("An explicit Watch off did not clear the saved restart: " + stopWatch);
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed after an explicit off while paused.");
+                pet.SetLite(true);
+                string startWatch = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "watch_my_screen" });
+                if (!startWatch.Contains("when Lite mode ends") || pet.Saved.Watch || !SettingsCopy().LiteWatch) throw new Exception("An explicit Watch on did not wait for Lite to end: " + startWatch);
+                pet.SetLite(false);
+                if (!pet.Saved.Watch) throw new Exception("Watch did not resume after an explicit on while paused.");
+                pet.SetLite(true);
+                pet.SetWatchEvery(0);
+                pet.SetLite(false);
+                if (pet.Saved.Watch || SettingsCopy().LiteWatch) throw new Exception("Watch Every Off did not clear the saved restart.");
+                checks.Add("PASS Watch requests while paused wait for Lite mode to end, and an explicit Off clears the saved restart");
+
                 SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns resting = new SlowSigns { Kind = "built-in", Read = true, Running = false, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
