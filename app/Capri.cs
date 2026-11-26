@@ -52368,11 +52368,13 @@ namespace CapriDesktop
                             SmokeRun.ValidateSelection(checks);
                             sectionsRun = true;
                         }
-                        if (!options.RunSteps || step > 22)
+                        if (!options.RunSteps || step > SmokeRun.LastStep)
                         {
                             TestFailed = checks.Exists(delegate(string line) { return line.StartsWith("FAIL ", StringComparison.Ordinal); });
                             TestFinished = true;
                             test.Stop();
+                            if (resetGlance != null) resetGlance();
+                            if (backdrop != null && !backdrop.IsDisposed) backdrop.Close();
                             SmokeRun.Complete(checks);
                             Close();
                             return;
@@ -65321,7 +65323,7 @@ namespace CapriDesktop
                             ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).PerformClick();
                         }
                         SmokeRun.StepDone(step, true, checks);
-                        if (step == 22) SmokeRun.Complete(checks);
+                        if (step == SmokeRun.LastStep) SmokeRun.Complete(checks);
                         step++;
                     }
                     catch (Exception error)
