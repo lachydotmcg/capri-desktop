@@ -1688,16 +1688,16 @@ namespace CapriDesktop
                 if (!preferences.Motion)
                 {
                     List<IconSpot> spots;
-                    if (DesktopIcons.TryRead(DesktopIcons.Target(), out spots) && spots.Count == 0) return "Nothing on your desktop to throw, choom.";
+                    if (DesktopIcons.TryRead(DesktopIcons.Target(), out spots) && spots.Count == 0) return "Nothing on your desktop to throw.";
                     return IconPrank("hide");
                 }
                 int begun = BeginRampage(true);
-                if (begun == 0) return "Nothing on your desktop to throw, choom.";
+                if (begun == 0) return "Nothing on your desktop to throw.";
                 if (begun < 0) return IconPrank("mess");
                 return Lines.Pick(new[] { "Say that again. I dare you.", "Wrong answer, choom. Watch your icons.", "Oh, you're funny. Hold on to your desktop.", "Smasher couldn't even catch me. Your icons, though." });
             }
             bool hide = action == "hide";
-            if (!StartIconChaos(hide)) return "Couldn't get at your desktop icons just now, choom.";
+            if (!StartIconChaos(hide)) return "Couldn't get at your desktop icons just now.";
             if (hide || (iconChaos != null && iconChaos.Vanishing)) return "Poof. Your icons are gone... I'll put them back in a sec.";
             return "Messing with your icons, choom. They'll go back on their own in a few seconds.";
         }

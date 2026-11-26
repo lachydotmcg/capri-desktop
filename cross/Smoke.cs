@@ -775,7 +775,7 @@ namespace CapriDesktop
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
                     if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch gio launch " + Path.GetFullPath(Path.Combine(tempApps, "spotify.desktop"))) || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats") || !eachOpened) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / each " + eachOpened + " / " + log);
-                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.EndsWith(" on Windows for now, choom.", StringComparison.Ordinal)) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
+                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.EndsWith(" on Windows for now.", StringComparison.Ordinal)) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
                     if (macSong != "Petite Meller - In Love With Myself" || linuxSong != "Chase Atlantic - Consume") throw new Exception("Now playing was read wrong: " + macSong + " / " + linuxSong);
@@ -3137,7 +3137,7 @@ namespace CapriDesktop
             Action<string> runWas = Hands.Run;
             Func<string, string> fetchWas = Hands.Fetch;
             int opened = 0, searched = 0;
-            const string line = "My mini games are only on Windows for now, choom.";
+            const string line = "My mini games are only on Windows for now.";
             try
             {
                 Hands.Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
@@ -6853,7 +6853,7 @@ namespace CapriDesktop
                 pet.Saved.ListenCapri = false;
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit)
                     throw new Exception("A TALK with sound and no words didn't reach her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
@@ -6884,13 +6884,13 @@ namespace CapriDesktop
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.03); return Task.CompletedTask; };
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's second TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's second TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.NoWords || frame.HearingButtons != "Test mic | Type instead") throw new Exception("A second TALK with sound and no words didn't offer Test mic again: " + frame.HearingText + " / " + frame.HearingButtons);
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(16.0 / 32768); return Task.CompletedTask; };
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's quiet TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's quiet TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("A TALK that only heard sound under her 0.0005 threshold didn't say the mic is too quiet: " + frame.HearingText + " / " + frame.HearingButtons);
                 if (pet.Talk.Reply == frame.HearingText) throw new Exception("The hearing line's quiet result was said out loud.");
