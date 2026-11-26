@@ -125,7 +125,7 @@ namespace CapriDesktop
             }),
             new KeyValuePair<string, string[]>("Mods", new[]
             {
-                "SmokeMods", "SmokeModAsk", "SmokeModDrop", "SmokeCapriCodes"
+                "SmokeMods", "SmokeModsFit", "SmokeModAsk", "SmokeModDrop", "SmokeCapriCodes"
             }),
             new KeyValuePair<string, string[]>("Games", new[]
             {

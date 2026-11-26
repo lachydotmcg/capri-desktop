@@ -516,7 +516,7 @@ namespace CapriDesktop
 
         private void ScrollToFound(Control target)
         {
-            if (modded || pageView >= ScrollTall) return;
+            if (pageView >= ScrollTall) return;
             int edge = Scaled(12);
             if (target.Top >= edge && target.Bottom <= ClientSize.Height - edge) return;
             ScrollPage(Math.Max(0, pageScroll + (int)Math.Floor((target.Top - ClientSize.Height / 3f) / Unit())));
