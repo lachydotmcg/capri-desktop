@@ -131,7 +131,8 @@ Mac and Linux can hear one line at a time through **TALK** once you set up her o
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage), [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz), [Linux arm64 (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.AppImage) or [Linux arm64 (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.tar.gz). The arm64 files are for boards like the Raspberry Pi 5 running a 64-bit system
-2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude, DeepSeek or OpenCode Go key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+   OpenCode Go is experimental. OpenCode designed Go for coding agents. Everyday Capri chat has not been verified with Go. [OpenCode Go client guidance](https://opencode.ai/docs/console/go/#where-can-i-use-it)
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app
@@ -351,7 +352,8 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 
 - [x] Typing to her, with replies in her speech bubble
 - [x] A brain on your PC that sets itself up, or Ollama if you have it
-- [x] A free NVIDIA key, or your own Gemini, OpenRouter, ChatGPT, Claude, DeepSeek or OpenCode Go key
+- [x] A free NVIDIA key, or your own Gemini, OpenRouter, ChatGPT, Claude or DeepSeek key
+- OpenCode Go is experimental. OpenCode designed Go for coding agents. Everyday Capri chat has not been verified with Go. [OpenCode Go client guidance](https://opencode.ai/docs/console/go/#where-can-i-use-it)
 - [x] Any OpenAI-compatible provider with a key (0.8.3)
 - [x] Three brain tiers: NORMAL, MEDIUM INTELLIGENCE (free) and MAX INTELLIGENCE
 - [x] Remembering things about you, in her notes (me.md)

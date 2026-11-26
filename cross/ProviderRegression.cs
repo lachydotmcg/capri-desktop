@@ -18,6 +18,7 @@ namespace CapriDesktop
             internal readonly TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
             internal readonly ManualResetEventSlim Received = new ManualResetEventSlim(), Release = new ManualResetEventSlim();
             internal readonly List<string> Requests = new List<string>();
+            internal readonly List<string> UserAgents = new List<string>();
             internal readonly string Address;
             internal volatile bool Hold, Error, Redirect, StreamError, Retry;
             internal string Destination;
@@ -50,7 +51,7 @@ namespace CapriDesktop
                 string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
                 string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
                 string[] first = lines[0].Split(' ');
-                string url = first.Length > 1 ? first[1] : "/", authorization = null, session = null;
+                string url = first.Length > 1 ? first[1] : "/", authorization = null, session = null, userAgent = null;
                 int length = 0;
                 bool chunked = false;
                 foreach (string line in lines)
@@ -60,6 +61,7 @@ namespace CapriDesktop
                     string name = line.Substring(0, colon).Trim(), value = line.Substring(colon + 1).Trim();
                     if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) authorization = value;
                     else if (name.Equals("x-opencode-session", StringComparison.OrdinalIgnoreCase)) session = value;
+                    else if (name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) userAgent = value;
                     else if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) int.TryParse(value, out length);
                     else if (name.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) chunked = value.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;
                 }
@@ -69,7 +71,11 @@ namespace CapriDesktop
                     if (got <= 0) break;
                     for (int i = 0; i < got; i++) read.Add(chunk[i]);
                 }
-                lock (Requests) Requests.Add(url + " | " + (authorization ?? "<none>") + " | " + (session ?? "<none>"));
+                lock (Requests)
+                {
+                    Requests.Add(url + " | " + (authorization ?? "<none>") + " | " + (session ?? "<none>"));
+                    UserAgents.Add(userAgent);
+                }
                 Received.Set(); if (Hold) Release.Wait(TimeSpan.FromSeconds(8));
                 bool chat = url.EndsWith("/chat/completions");
                 bool openCode = authorization != null && authorization.StartsWith("Bearer oc_sk_", StringComparison.Ordinal);
@@ -142,6 +148,7 @@ namespace CapriDesktop
                     sessions.Add(request.Substring(request.LastIndexOf(" | ", StringComparison.Ordinal) + 3));
                 if (goModels.Count != 1 || goModels[0] != "alpha" || legacyModels.Length != 1 || legacyModels[0] != "alpha"
                     || requests.Length != 13
+                    || go.UserAgents.Count != requests.Length || go.UserAgents.Exists(value => value != "Capri-Desktop")
                     || !requests[0].StartsWith("/v1/models | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
                     || !requests[1].StartsWith("/openai/v1/chat/completions | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
                     || !requests[5].StartsWith("/openai/v1/chat/completions | Bearer " + nextKey + " | ses_", StringComparison.Ordinal)
