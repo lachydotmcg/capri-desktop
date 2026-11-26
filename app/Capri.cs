@@ -2480,6 +2480,7 @@ namespace CapriDesktop
         private double nextGlitch;
         private int clicks;
         private bool riding;
+        private int hologramNotices;
         // During a job she sits on the task panel. Where she was before, to go back to once it's gone.
         private bool onPanel;
         private Point panelHome;
@@ -3681,6 +3682,7 @@ namespace CapriDesktop
                 balloonMainframe = true;
                 tray.ShowBalloonTip(12000, "Capri started fresh", "She closed while starting twice in a row, so her settings were reset. Your keys stayed. The old settings are in settings.crashed.json.", ToolTipIcon.Warning);
             }
+            if (preferences.Hologram) TellHologram(true);
             ShowCloseNotice();
             // After the close notice, which would cover it: their keys need adding again, so this one matters more.
             ShowUnreadableNotice();
@@ -12379,6 +12381,7 @@ namespace CapriDesktop
 
         private void SetHologram(bool on)
         {
+            bool was = preferences.Hologram;
             preferences.Hologram = on;
             hologramItem.Checked = on;
             rideItem.Enabled = !on;
@@ -12396,6 +12399,22 @@ namespace CapriDesktop
             RenderFrame();
             SavePreferences();
             if (mainframe != null) mainframe.Sync();
+            TellHologram(on && !was);
+        }
+
+        // Clicks go through a hologram, so right-clicking her can't undo it. Her tray icon and a balloon say where it can be (#422).
+        private void TellHologram(bool balloon)
+        {
+            if (tray == null) return;
+            if (preferences.Hologram) tray.Text = "Capri · Hologram on · Untick it in this menu";
+            else if (!riding) tray.Text = "Capri · Double-click to restore";
+            if (!preferences.Hologram || !balloon) return;
+            hologramNotices++;
+            if (testing) return;
+            balloonPage = null;
+            balloonUpdate = false;
+            balloonMainframe = true;
+            tray.ShowBalloonTip(10000, "Capri is a hologram", "Clicks go through her, so right-clicking her won't work. Click here to turn Hologram off in Mainframe, or untick Hologram in her tray icon's menu.", ToolTipIcon.Info);
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
@@ -18282,7 +18301,12 @@ namespace CapriDesktop
                 SetHologram(false);
                 using (Bitmap normal = (Bitmap)frame.Clone())
                 {
+                    int noticesBefore = hologramNotices;
                     hologramItem.PerformClick();
+                    bool toldByMenu = hologramNotices == noticesBefore + 1;
+                    SetHologram(true);
+                    if (!toldByMenu || hologramNotices != noticesBefore + 1 || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram went on from her menu without telling them how to turn it off: " + (hologramNotices - noticesBefore) + " notices, tray \"" + tray.Text + "\".");
+                    checks.Add("PASS Hologram on from her menu says once, in a balloon and her tray tooltip, how to turn it off");
                     if (!preferences.Hologram || !hologramItem.Checked || !LoadPreferences().Hologram || tray.ContextMenuStrip != menu || !menu.ShowCheckMargin || hologramItem.AccessibleName.IndexOf("tray icon", StringComparison.Ordinal) < 0) throw new Exception("Hologram's shared tray item did not toggle, tick or save.");
                     checks.Add("PASS Hologram menu item toggles, shows its check and recovery hint, and saves in preferences");
                     foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
@@ -18346,6 +18370,7 @@ namespace CapriDesktop
                 foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
                     if ((Native.GetWindowLong(form.Handle, -20) & 0x20) != 0) throw new Exception("Turning hologram off did not give clicks back to " + form.GetType().Name);
                 if (preferences.Hologram || hologramItem.Checked || LoadPreferences().Hologram || !rideItem.Enabled) throw new Exception("Hologram off did not clear and save its state.");
+                if (tray.Text != "Capri · Double-click to restore") throw new Exception("Her tray tooltip still said hologram after it went off: " + tray.Text);
                 OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
                 MovePointer(new Point(pointerStart.X + 30, pointerStart.Y + 30));
                 if (!pressed || !dragging) throw new Exception("Dragging did not return after hologram off.");
