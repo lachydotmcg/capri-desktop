@@ -53,16 +53,14 @@ namespace CapriDesktop
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoHuskVerbosity;
         [DataMember] internal bool NoMemories;
+        [DataMember(EmitDefaultValue = false)] internal string HistoryRetention;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
-        // Lite mode stops her brain on this PC and pauses Watch my screen. LiteWatch is the ask to have Watch back when it goes
-        // off, and LiteWatchWas is what Watch was when Lite mode went on, so Off puts back exactly that; a settings file from
-        // before LiteWatchWas existed has none, and Lite off then follows the ask alone, like it always did.
+        // Lite mode stops her brain on this PC and pauses Watch my screen; LiteWatch remembers whether Watch was on, so Off puts it back.
         [DataMember] internal bool Lite;
         [DataMember] internal bool LiteWatch;
-        [DataMember] internal bool? LiteWatchWas;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
         [DataMember] internal int? SleepAfter;
@@ -909,7 +907,8 @@ namespace CapriDesktop
         private Smoke smoke;
         private CancellationTokenSource listening;
         private readonly HearingLine hearing = new HearingLine();
-        private CancellationTokenSource hearingTalkTap, hearingTestTap;
+        private CancellationTokenSource hearingTap;
+        private Task hearingRecorder = Task.CompletedTask;
         internal Func<Action, CancellationToken, Task<string>> Listen;
         internal Func<bool> HearingInstalled;
         internal Func<Action<double>, CancellationToken, Task> HearingTapRun;
@@ -990,7 +989,15 @@ namespace CapriDesktop
             VoiceFx.Glitch = Math.Max(0, Math.Min(100, Saved.Glitch));
             VoiceFx.Layers = LayersOf(Saved);
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
-            if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
+            if (Program.Smoke == null)
+            {
+                string chat = Path.Combine(folder, "chat.json");
+                string settings = Path.Combine(folder, "cross.json");
+                if (unreadableNotice != null || settingsWriteBlocked || !LimitsHistory || !Retention.Enabled(settings))
+                    Saved.HistoryRetention = null;
+                else Retention.Sweep(settings, Brain.TranscriptPath, chat, DateTime.Now);
+                Brain.Load(chat);
+            }
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
             Timeline.Open(Program.Smoke ?? folder);
@@ -1014,7 +1021,6 @@ namespace CapriDesktop
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
-            Hands.LiteActive = delegate { return Saved.Lite; };
             Hands.LevelOf = LevelOf;
             Hands.SetLevel = SetLevel;
             Hands.SettingAction = delegate(ToolArguments args) { return SettingAction(args.Action); };
@@ -1142,7 +1148,8 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            if (OperatingSystem.IsMacOS()) desktop.ShutdownRequested += (_, _) => StopHearing();
+            Closed += delegate { StopHearing(); Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
@@ -2551,17 +2558,21 @@ namespace CapriDesktop
         {
             CancellationTokenSource turn = listening;
             if (turn == null) return false;
-            listening = null;
+            FinishListening(turn);
             turn.Cancel();
+            NotifySettings();
             return true;
         }
 
-        internal async void VoiceTurn()
+        internal async void VoiceTurn() { await RunVoiceTurn(); }
+
+        internal async Task RunVoiceTurn()
         {
-            if (away || quitting) return;
+            if (away || quitting || MacQuit.Quitting) return;
             if (StopListening()) { Talk.Dismiss(); return; }
             if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now, choom."); return; }
             Func<Action, CancellationToken, Task<string>> listen = Listen;
+            StopHearingTest();
             Typed();
             ++asking;
             Brain.Cancel();
@@ -2570,42 +2581,48 @@ namespace CapriDesktop
             using var turn = new CancellationTokenSource();
             listening = turn;
             if (Saved.ListenCapri) StopNameListening("TALK owns the microphone. Re-enable Listen for Capri afterward.");
-            Talk.Thinking("(listening · TALK to cancel)");
+            Talk.Thinking("(listening Â· TALK to cancel)");
             string text = null, problem = null;
             try
             {
                 hearing.Listening(true);
-                StartHearingTap(turn.Token, ref hearingTalkTap);
                 NotifySettings();
                 try
                 {
                     await nameLifetime;
                     if (listening != turn) return;
+                    StartHearingTap(false);
                     text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
                     {
-                        if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
+                        if (listening == turn) Talk.Thinking("(hearing your words Â· TALK to cancel)");
                     }), turn.Token));
                 }
                 catch (IOException error) { problem = error.Message; }
                 catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
                 if (listening != turn) return;
-                listening = null;
+                FinishListening(turn);
                 Chimes.Play(Chime.Heard);
-                StopHearingTap(ref hearingTalkTap);
-                hearing.Listening(false);
                 if (!string.IsNullOrWhiteSpace(text)) { hearing.Heard(); Hear(text, true); }
                 else
                 {
                     if (problem != null) hearing.Failed(problem); else hearing.Missed();
                     Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
                 }
+                NotifySettings();
             }
             finally
             {
-                StopHearingTap(ref hearingTalkTap);
-                hearing.Listening(false);
-                NotifySettings();
+                if (FinishListening(turn)) NotifySettings();
             }
+        }
+
+        private bool FinishListening(CancellationTokenSource turn)
+        {
+            if (listening != turn) return false;
+            listening = null;
+            StopHearingTap();
+            hearing.Listening(false);
+            return true;
         }
 
         internal HearingStatus HearingNow { get { return hearing.Read(HearingInstalled()); } }
@@ -2629,49 +2646,77 @@ namespace CapriDesktop
 
         private void StartHearingTest()
         {
-            if (hearing.Testing) return;
-            if (Listening) StopListening();
-            StopHearingTap(ref hearingTalkTap);
+            if (hearing.Testing || quitting || MacQuit.Quitting) return;
+            if (StopListening()) Talk.Dismiss();
+            if (Saved.ListenCapri) StopNameListening("Test mic owns the microphone. Re-enable Listen for Capri afterward.");
             hearing.StartTest(Now);
-            StartHearingTap(CancellationToken.None, ref hearingTestTap);
+            StartHearingTap(true);
             NotifySettings();
         }
 
         internal void StopHearingTest()
         {
             if (!hearing.Testing) return;
-            StopHearingTap(ref hearingTestTap);
+            StopHearingTap();
             hearing.TestCancelled();
             NotifySettings();
         }
 
         private void TickHearing()
         {
-            if (!hearing.Testing || !hearing.TestDue(Now)) return;
-            StopHearingTap(ref hearingTestTap);
+            if (!hearing.TestDue(Now)) return;
+            StopHearingTap();
             hearing.TestDone();
             NotifySettings();
         }
 
-        // TALK and the mic test keep their own tap and stop only their own, so a cancelled TALK never kills the test's recorder.
-        private void StartHearingTap(CancellationToken outer, ref CancellationTokenSource tap)
+        private void StartHearingTap(bool test)
         {
-            StopHearingTap(ref tap);
-            var stop = CancellationTokenSource.CreateLinkedTokenSource(outer);
-            tap = stop;
-            Action<double> level = delegate(double value) { if (hearing.Level(value)) NotifySettings(); };
-            try
-            {
-                HearingTapRun(level, stop.Token);
-            }
-            catch (Exception error) { Brain.Log("ears", -1, "Hearing level tap: " + error.Message); }
+            StopHearingTap();
+            var stop = new CancellationTokenSource();
+            hearingTap = stop;
+            hearingRecorder = RunHearingTap(stop.Token, test);
         }
 
-        private void StopHearingTap(ref CancellationTokenSource tap)
+        private async Task RunHearingTap(CancellationToken token, bool test)
         {
-            CancellationTokenSource stop = tap;
-            tap = null;
-            if (stop != null) stop.Cancel();
+            try
+            {
+                if (test) await nameLifetime;
+                if (token.IsCancellationRequested) return;
+                await HearingTapRun(value =>
+                {
+                    void Update() { if (!token.IsCancellationRequested && hearing.Level(value)) NotifySettings(); }
+                    if (Dispatcher.UIThread.CheckAccess()) Update();
+                    else Dispatcher.UIThread.Post(Update);
+                }, token);
+            }
+            catch (Exception error)
+            {
+                if (token.IsCancellationRequested) return;
+                Brain.Log("ears", -1, "Hearing level tap: " + error.GetType().Name);
+                if (test) hearing.TestDone();
+                hearing.Failed(error is IOException ? error.Message : HearingTap.Stopped);
+                NotifySettings();
+            }
+        }
+
+        private void StopHearingTap()
+        {
+            CancellationTokenSource stop = hearingTap;
+            if (stop == null) return;
+            Task recorder = hearingRecorder;
+            hearingTap = null;
+            hearingRecorder = Task.CompletedTask;
+            stop.Cancel();
+            _ = recorder.ContinueWith(_ => stop.Dispose(), TaskScheduler.Default);
+        }
+
+        private void StopHearing()
+        {
+            StopListening();
+            StopHearingTest();
+            StopHearingTap();
         }
 
         internal void Grab()
@@ -3623,11 +3668,11 @@ namespace CapriDesktop
         internal string SetSetting(string name, bool on)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SetSetting(name, on); }).GetAwaiter().GetResult();
-            // Lite mode pauses Watch my screen: an ask for it on waits for Lite mode to go off, and an ask for it off cancels that.
             if (name == "watch_my_screen" && Saved.Lite)
             {
+                if (!on && !Saved.LiteWatch && !Saved.Watch) return null;
                 SetWatch(on, false);
-                return on ? "Watch my screen stays paused until Lite mode goes off." : null;
+                return on ? "Watch my screen will resume when Lite mode ends." : "Watch my screen will stay off when Lite mode ends.";
             }
             if (SettingOn(name) == on) return null;
             int careKind = Array.IndexOf(Hands.CareSettings, name);
@@ -4627,6 +4672,16 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return memoriesItem.IsChecked; } }
+        internal bool LimitsHistory { get { return Saved.HistoryRetention == Retention.Limited; } }
+
+        internal void SetHistoryLimit(bool on)
+        {
+            string previous = Saved.HistoryRetention;
+            Saved.HistoryRetention = on ? Retention.Limited : null;
+            if (!SaveResult() && Retention.Enabled(Path.Combine(folder, "cross.json")) != on)
+                Saved.HistoryRetention = previous;
+            Sync();
+        }
 
         // memories.md opens in their editor, made first if it isn't there yet. Her transcripts are in the folder beside it.
         internal string OpenMemories()
@@ -5084,18 +5139,19 @@ namespace CapriDesktop
 
         internal void SetWatch(bool on, bool say = true)
         {
-            // Lite mode pauses Watch my screen. Asking for it now only remembers the ask for when Lite mode goes off, and
-            // asking for it off cancels that ask.
+            // While Lite pauses screen watching, changes set what should happen when it ends.
             if (Saved.Lite)
             {
                 Saved.LiteWatch = on;
-                if (on)
-                {
-                    Save();
-                    Sync();
-                    return;
-                }
+                if (Saved.Watch) ApplyWatch(false, false);
+                else { Save(); Sync(); }
+                return;
             }
+            ApplyWatch(on, say);
+        }
+
+        private void ApplyWatch(bool on, bool say)
+        {
             Saved.Watch = on;
             watchTicket++;
             nextGlance = -1;
@@ -5118,7 +5174,7 @@ namespace CapriDesktop
 
         internal void SetWatchEvery(int seconds)
         {
-            if (seconds <= 0) { if (Saved.Watch) SetWatch(false); return; }
+            if (seconds <= 0) { if (Saved.Watch || Saved.Lite && Saved.LiteWatch) SetWatch(false); return; }
             if (Saved.Watch) SetGlanceGap(seconds);
             else
             {
@@ -7464,7 +7520,6 @@ namespace CapriDesktop
             [DataMember] internal int MusicApp;
             [DataMember] internal bool Lite;
             [DataMember] internal bool LiteWatch;
-            [DataMember] internal bool? LiteWatchWas;
             [DataMember] internal bool RemoteOn;
             [DataMember] internal string RemoteHost;
         }
@@ -7551,7 +7606,6 @@ namespace CapriDesktop
             saved.MusicApp = newer.MusicApp;
             saved.Lite = newer.Lite;
             saved.LiteWatch = newer.LiteWatch;
-            saved.LiteWatchWas = newer.LiteWatchWas;
             return saved;
         }
 
@@ -7559,7 +7613,7 @@ namespace CapriDesktop
         {
             return new NewSettings { NoChimes = saved.NoChimes, NoChimeSent = saved.NoChimeSent, NoChimeHeard = saved.NoChimeHeard, NoChimeListening = saved.NoChimeListening, ChimeVolume = saved.ChimeVolume, ChimeSet = saved.ChimeSet, VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, LiteWatchWas = saved.LiteWatchWas, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         internal static string ProviderKind(Settings saved, string inferred)
@@ -8038,6 +8092,7 @@ namespace CapriDesktop
             {
                 macQuit.Request(0, delegate(Action leave)
                 {
+                    StopHearing();
                     if (!frames.IsEnabled) { leave(); return; }
                     quitting = true;
                     ClonesOff();
@@ -8048,6 +8103,7 @@ namespace CapriDesktop
                 return;
             }
             quitting = true;
+            StopHearing();
             ClonesOff();
             StopOwnBrain();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
@@ -8088,6 +8144,7 @@ namespace CapriDesktop
 
         private void FinishNow(int code)
         {
+            StopHearing();
             StopRemote();
             if (OperatingSystem.IsMacOS()) { macQuit.Request(code); return; }
             if (husk != null) husk.Dispose();

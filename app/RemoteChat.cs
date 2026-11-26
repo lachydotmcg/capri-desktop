@@ -283,6 +283,9 @@ namespace CapriDesktop
         }
 
         private RoomHost roomHost;
+        private CapriCamera cameraOutput;
+
+        private CapriCamera CameraOutput { get { return cameraOutput ?? (cameraOutput = new CapriCamera()); } }
 
         internal void OpenRoomWindow()
         {
@@ -291,9 +294,14 @@ namespace CapriDesktop
                 try
                 {
                     roomHost = new RoomHost(RemotePage);
-                    CapriCamera camera = new CapriCamera();
-                    roomHost.CameraState = delegate { return CapriCamera.State; };
-                    roomHost.CameraInstall = CapriCamera.AskInstall;
+                    CapriCamera camera = CameraOutput;
+                    roomHost.CameraState = camera.RoomState;
+                    roomHost.CameraInstall = delegate
+                    {
+                        if (camera.PortraitBusy) return "busy";
+                        CapriCamera.AskInstall();
+                        return camera.RoomState();
+                    };
                     roomHost.Frame = camera.Send;
                     roomHost.CameraOff = camera.Off;
                 }

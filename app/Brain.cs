@@ -15,46 +15,25 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.7";
+        internal const string Version = "0.9.9";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Plug-ins: they have their own PLUG-INS section in Mods now, with a picture for each and a word for where it's at, and Gmail, iCloud, Notion and Linear show their real logos. Drop a mod or plug-in file on her and she asks before importing it.\n"
-            + "Email: Set up Email takes three steps: pick your email, make an app password there, then paste it. Once it's connected, a plain check my email goes straight to your inbox.\n"
-            + "Phishing: Watch for new mail, in Email's settings and off until you turn it on, has her tell you when mail lands and warn you when one looks like phishing. She moves an email to the bin or spam after asking, and never marks mail read or opens its links.\n"
-            + "Languages: Settings > YOU has I speak and She answers in, so she can answer in your language, a different one, or Auto to match each message.\n"
-            + "What she did: she keeps a timeline of what she did on your computer, up to 30 days. Ask what did you just do, or say undo that, and she puts back what can go back, like apps and sites she opened, her settings, notes and file changes.\n"
-            + "Companion packs: a .capri-companion file brings a whole companion of your own, with its name, personality, greetings and art, and takes her place while it's on. Turn it off and she's back as she was.\n"
-            + "New moves: skins can add moves she does when you ask, like do the wave, and Mods > Animations > New move... makes one from your frames.\n"
-            + "Listen for Capri: a line with her name gets answered without opening voice chat, and Hey Capri on its own takes your next line.\n"
-            + "Wander: she never wanders onto a monitor a full-screen window covers, and keeps to her own screen on a job.\n"
-            + "Brains: she tells you when an OpenAI key needs billing or a smaller model instead of waiting, and small jobs like comments and glances go to a cheaper model from the same provider.\n"
-            + (OperatingSystem.IsLinux()
-                ? "Settings search: type in the search box at the top of Settings, or press Ctrl + F, and pick a match to jump to it.\n"
-                    + "Desktops: Listen for Capri listens on desktops that can't report a screen lock, not just Hyprland, and still pauses when the desktop says the screen is locked. Where nothing reports a lock, she can keep listening while it's locked. From danielxxomg."
-                : "Settings search: type in the search box at the top of Settings, or press Cmd + F, and pick a match to jump to it.");
-        internal static readonly string Line = "I just updated to " + Version + ": plug-ins have their own section now, I can warn you about phishing, and you can search my settings. Ask me what's new.";
+            + "Lite mode: she rests her local brain and pauses Watch my screen. The Resources panel has a Why slow? check that explains what she can measure.\n"
+            + "Custom endpoints: connect an OpenAI-compatible server from the brain picker, with a URL, optional key and a model.\n"
+            + "Spend: see tracked token use and estimated API costs by model in Mainframe.\n"
+            + "Chimes: choose a sound set and volume for her alerts.\n"
+            + "Favourites: tell her which music app or browser you prefer.\n"
+            + "Provider help: she gives more specific messages for key, rate limit and connection errors."
+            + (OperatingSystem.IsLinux() ? "\nPlasma: fixed the handoff to computer controls on Wayland when uinput is available." : "");
+        internal static readonly string Line = "I just updated to " + Version + ": I have Lite mode, a Spend panel and support for your own chat server. Ask me what's new.";
 #else
-        internal const string Version = "0.9.7";
+        internal const string Version = "0.9.9";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Plug-ins: they have their own PLUG-INS section in Mods, with a picture for each, real logos for Gmail, iCloud, Notion and Linear, and a window with Connect and its tools. Drop a mod or plug-in file on her and she asks before importing it.\n"
-            + "Email: Set up Email takes three steps: pick your email, make an app password there, then paste it. Once it's connected, a plain check my email goes straight to your inbox.\n"
-            + "Phishing: turn on Watch for new mail in Email's settings and she tells you when mail lands and warns you when one looks like phishing, like a fake sender, a lying link or an ask for your card details or password. She moves an email to the bin or spam after asking, Deal with phishing on her own sends what she's sure of to spam, and she never opens its links.\n"
-            + "Settings search: the search box at the top of Settings, or Ctrl + F anywhere in her Mainframe, finds a setting from everyday words like mic or quiet and jumps to it.\n"
-            + "Languages: Settings > YOU has I speak and She answers in, so she can answer in your language, another one, or Auto to match each message. You can also ask her, like talk to me in Spanish.\n"
-            + "Startup animations: the button beside Glitch in at startup, under MOVES, opens a picker with live previews of Classic, Door and two new hand-drawn ones, Peek and Up close. The door intro no longer flashes her old standing pose.\n"
-            + "Lite mode: under HABITS, for weak PCs. Her brain on your PC switches off and she offers a free key, she draws less, HD voice hands over to her free voice, and Watch my screen, game comments and Clip my games pause until you turn it off. Why slow? beside it tells you what's slowing her down.\n"
-            + "Games: she does quick runs of keys and clicks with her own timing, sends real key codes for right Ctrl, right Alt, the arrows and the numpad, and skips repeat screenshots. Her combos never run beside kernel anti-cheat. While a game hides your cursor, clicks go through her.\n"
-            + "What she did: Workspace's What she did chat keeps up to 30 days of what she did on your computer, with Undo on what can go back, like apps and sites she opened, music, her settings, notes and file changes. Or ask what did you just do, or say undo that.\n"
-            + "Companion packs: a .capri-companion file brings a whole companion of your own, with its name, personality, greetings, voice and art, and takes her place until you turn it off. Her safety lines always come after its personality.\n"
-            + "Spend: Mainframe > Spend, under Resources, shows what her brain cost on your API keys today and this month from list prices, and small jobs go to a cheaper model from the same provider.\n"
-            + "Wander: she wanders and perches across all your monitors, never onto one with a full-screen game or video, and keeps to her own screen on a job, in a call or in Gaming Mode.\n"
-            + "New moves: skins can add moves she does when you ask, like do the wave, and Mods > Animations > New move... makes one from your frames.\n"
-            + "Listen for Capri: a line with her name gets answered without opening voice chat, Hey Capri on its own takes your next line, and her voice chat button turns normal voice chat on.\n"
-            + "Comments Off: with GAMES > Comments on Off, nothing turns Gaming Mode or game comments back on.\n"
-            + "OpenAI keys: she says when your key needs billing or a smaller model instead of waiting.\n"
-            + "Voice: she says when a Windows voice reads a language her own voice can't, goes back to ElevenLabs after you top up, hears a quiet mic, and her ears open by themselves in call mode.\n"
-            + "Fixes: typing into Discord no longer closes it, open Fortnite works when she hears fortnight, she only says music is playing once it is, she says when Windows blocks her brain, and an email moved twice no longer says the move failed.\n"
-            + "Squad: ask for a squad, like squad up and a job, and she splits into two or three copies that each search part of it, then brings back one answer and one note. Hold Esc to call them back.";
-        internal const string Line = "I just updated to " + Version + ": plug-ins have their own section now, I can warn you about phishing, and Ctrl + F searches my settings. Ask me what's new.";
+            + "Holocall: right-click me and pick Size > Holocall for a compact portrait and call controls with art by Qewiw.\n"
+            + "Full size: choose it from Size to put my portrait across your current screen.\n"
+            + "Capri Camera: after setting it up in my Room, choose Size > Capri Camera and select the Capri Camera device in the Discord desktop app.\n"
+            + "Startup: Qewiw's Peek is my new default, with an arm reach and a pull-up. You can pick another intro in Mainframe.\n"
+            + "Menus: right-click and tray menus fit the screen where they open, including monitors with different scaling.";
+        internal const string Line = "I just updated to " + Version + ": try Holocall or Full size from my Size menu, and check out my new Peek startup. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
@@ -1897,8 +1876,22 @@ namespace CapriDesktop
         private static readonly Regex TalkLine = new Regex(@"^\*\*\d\d:\d\d ([^*]+?):\*\* (.*)$");
         // She digs through her chats for whatever they talk about, unasked. The smoke's own chats would turn up in each other's prompts, so it digs only in its memory test.
         internal static volatile bool Digging = true;
-        // Each day's lines, kept until its file changes, so a search reads only today's again.
-        private static readonly Dictionary<string, KeyValuePair<string, List<Moment>>> dug = new Dictionary<string, KeyValuePair<string, List<Moment>>>(StringComparer.OrdinalIgnoreCase);
+        // Each day's lines, kept until its file changes, so a search reads only today's again. The oldest go first
+        // once there are more days or bytes than a search should hold, and a day whose file she deleted goes too.
+        private sealed class Dug
+        {
+            internal string Stamp;
+            internal List<Moment> Lines;
+            internal long Bytes;
+            internal long Used;
+        }
+        internal static int DugDays = 400;
+        internal static long DugBytes = 64L * 1024 * 1024;
+        private static readonly Dictionary<string, Dug> dug = new Dictionary<string, Dug>(StringComparer.OrdinalIgnoreCase);
+        private static long dugBytes;
+        internal static int DugHeld { get { lock (dug) return dug.Count; } }
+        internal static bool DugHolds(string day) { lock (dug) return dug.ContainsKey(day); }
+        internal static void ForgetDug() { lock (dug) { dug.Clear(); dugBytes = 0; } }
 
         // Lines from her chat logs, and notes too old for her prompt, that match what they said, found by a word search on this PC with no brain call.
         // "Remember when..." takes any match. Anything else takes only a telling one, so most chats add nothing. Lines already in her chat stay out.
@@ -1986,8 +1979,8 @@ namespace CapriDesktop
             }
             string[] days;
             try { days = Directory.GetFiles(TranscriptPath, "????-??-??.md"); }
-            catch (IOException) { return moments; }
-            catch (UnauthorizedAccessException) { return moments; }
+            catch (IOException) { lock (dug) TrimDug(); return moments; }
+            catch (UnauthorizedAccessException) { lock (dug) TrimDug(); return moments; }
             Array.Sort(days, StringComparer.Ordinal);
             lock (dug)
                 foreach (string day in days)
@@ -1997,8 +1990,8 @@ namespace CapriDesktop
                     catch (IOException) { continue; }
                     // A transcript she's lost access to is skipped: this runs on a worker thread, where an error would end her.
                     catch (UnauthorizedAccessException) { continue; }
-                    KeyValuePair<string, List<Moment>> kept;
-                    if (!dug.TryGetValue(day, out kept) || kept.Key != stamp)
+                    Dug kept;
+                    if (!dug.TryGetValue(day, out kept) || kept.Stamp != stamp)
                     {
                         string[] lines;
                         try { lock (writing) lines = File.ReadAllLines(day); }
@@ -2007,11 +2000,60 @@ namespace CapriDesktop
                         string on = Path.GetFileNameWithoutExtension(day);
                         List<Moment> read = new List<Moment>();
                         foreach (string line in lines) if (line.StartsWith("*", StringComparison.Ordinal)) read.Add(new Moment(on, line, Words(Said(on, line))));
-                        dug[day] = kept = new KeyValuePair<string, List<Moment>>(stamp, read);
+                        if (kept != null) dugBytes -= kept.Bytes;
+                        kept = new Dug { Stamp = stamp, Lines = read, Bytes = DugSize(read), Used = DateTime.UtcNow.Ticks };
+                        dugBytes += kept.Bytes;
+                        dug[day] = kept;
                     }
-                    moments.AddRange(kept.Value);
+                    else kept.Used = DateTime.UtcNow.Ticks;
+                    if (dug.Count > DugDays || dugBytes > DugBytes) TrimDug();
+                    moments.AddRange(kept.Lines);
                 }
+            lock (dug) TrimDug();
             return moments;
+        }
+
+        // The cache holds a few hundred days or about 64 MB, whichever comes first, and forgets the days she no longer
+        // has. A read marks its day as used, so the days someone actually asks about stay.
+        private static void TrimDug()
+        {
+            if (dug.Count == 0) return;
+            List<string> gone = new List<string>();
+            foreach (string day in dug.Keys) if (!File.Exists(day)) gone.Add(day);
+            foreach (string day in gone) { dugBytes -= dug[day].Bytes; dug.Remove(day); }
+            if (dug.Count <= DugDays && dugBytes <= DugBytes) return;
+            List<KeyValuePair<string, Dug>> oldest = new List<KeyValuePair<string, Dug>>(dug);
+            oldest.Sort(delegate(KeyValuePair<string, Dug> a, KeyValuePair<string, Dug> b) { return a.Value.Used.CompareTo(b.Value.Used); });
+            for (int i = 0; i < oldest.Count && (dug.Count > DugDays || dugBytes > DugBytes); i++)
+            {
+                dugBytes -= oldest[i].Value.Bytes;
+                dug.Remove(oldest[i].Key);
+            }
+        }
+
+        private static long DugSize(List<Moment> lines)
+        {
+            long size = 32;
+            foreach (Moment moment in lines) size += 48 + (moment.Line == null ? 0 : moment.Line.Length * 2) + moment.Words.Length * 8;
+            return size;
+        }
+
+        // Words in one place so repeated ones share a string, but only a bounded set: the old intern pool held every
+        // word she ever read until the app closed.
+        internal static int SharedCap = 20000;
+        private static readonly Dictionary<string, string> shared = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static readonly object sharedGate = new object();
+        internal static int SharedHeld { get { lock (sharedGate) return shared.Count; } }
+        private static string Shared(string word)
+        {
+            lock (sharedGate)
+            {
+                string held;
+                if (shared.TryGetValue(word, out held)) return held;
+                if (shared.Count >= SharedCap) shared.Clear();
+                shared[word] = word;
+                return word;
+            }
         }
 
         // The words that count, in a message or a line she kept: no filler, plain English endings off, so "beating" finds "beat" and "games" finds "game".
@@ -2021,11 +2063,11 @@ namespace CapriDesktop
             foreach (Match run in Wordy.Matches((text ?? "").Replace('\u2019', '\'').ToLowerInvariant()))
             {
                 string word = run.Value.Trim('\'');
-                if (run.Groups[1].Success) { for (int i = 0; i + 1 < word.Length; i++) words.Add(string.Intern(word.Substring(i, 2))); continue; }
+                if (run.Groups[1].Success) { for (int i = 0; i + 1 < word.Length; i++) words.Add(Shared(word.Substring(i, 2))); continue; }
                 if (word.EndsWith("'s", StringComparison.Ordinal)) word = word.Substring(0, word.Length - 2);
                 if (word.Length < 3 || Small.Contains(word) || (word.EndsWith("s", StringComparison.Ordinal) && Small.Contains(word.Substring(0, word.Length - 1)))) continue;
                 word = Stem(word);
-                if (word.Length >= 3 && !Small.Contains(word)) words.Add(string.Intern(word));
+                if (word.Length >= 3 && !Small.Contains(word)) words.Add(Shared(word));
             }
             return words.ToArray();
         }
@@ -2585,7 +2627,7 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             string job = doing == null ? "" : "\nRight now your hands are on a job for the user: " + Voice.Quote(doing) + ". It carries on while you talk, and only the user can change it.";
-            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action." + job, text);
+            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues && !session.Shared ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action." + job, text);
             if (messages == null) return null;
             int ticket;
             lock (gate) ticket = cancelled;
@@ -2594,7 +2636,7 @@ namespace CapriDesktop
             Check(ticket);
             string said = calls.Count == 0 ? Clean(raw) : CallSession.Conversation;
             if (!session.Keep(version, text, said, Recall, current)) return null;
-            Cue(raw, said);
+            if (!session.Shared) Cue(raw, said);
             return said;
         }
 
@@ -2816,6 +2858,7 @@ namespace CapriDesktop
             // once it says a message is a job: the whole tool list on every message would slow each reply by seconds on a graphics
             // card and by minutes without one.
             bool planning = act != null && !fileChat && WorksOut(), planned = false;
+            bool exactClose = false;
             bool chatFirst = planning && OnThisPc;
             string planText = null;
             List<string> results = new List<string>();
@@ -2862,8 +2905,9 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && (typed == null || input.Length > 0) && recent.Count == 2 && !previousPicture && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(input.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = input }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs, request)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
+                exactClose = planning && direct == "app_window" && directArgs.Action == "close";
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 if (direct == "remember" && directArgs.Action != "forget" && Hands.Back(request))
                 {
@@ -3055,7 +3099,7 @@ namespace CapriDesktop
                 done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
                 namedWebsite = calls.Count == 1 && calls[0].Key == "open_website" && calls[0].Value != null && string.IsNullOrWhiteSpace(calls[0].Value.Search) && Hands.Websites != null && Hands.Websites.Nickname(calls[0].Value.Site) != null;
                 Cloud remote = Remote;
-                string pulled = held ?? (namedWebsite ? done : results.Count == 1 ? Hands.Pulled(results[0]) : null);
+                string pulled = held ?? (namedWebsite || exactClose ? done : results.Count == 1 ? Hands.Pulled(results[0]) : null);
                 bool teaching = results.Exists(Hands.Diagrammed);
                 bool stopped = false;
 #if !CROSS

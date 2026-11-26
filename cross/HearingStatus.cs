@@ -202,16 +202,20 @@ namespace CapriDesktop
 
     // The ears only give back words, not levels, so she taps the same recorder they use for the seconds she holds
     // the mic: parec on Linux and capri-mic on a Mac, both at her ears' 16 kHz mono. It never speaks and only shows
-    // on the hearing line, and if it can't start she simply has nothing to measure.
+    // on the hearing line.
     internal static class HearingTap
     {
         private const int Rate = 16000;
         private const int Frame = Rate / 50;
+        internal const string Stopped = "The microphone recorder stopped";
+        internal const string Missing = "The microphone recorder is not installed";
 
-        internal static async Task Run(Action<double> level, CancellationToken stop)
+        internal static Task Run(Action<double> level, CancellationToken stop) { return RunRecorder(Recorder(), level, stop); }
+
+        internal static async Task RunRecorder(string file, Action<double> level, CancellationToken stop)
         {
-            string file = Recorder();
-            if (file == null || stop.IsCancellationRequested) return;
+            if (stop.IsCancellationRequested) return;
+            if (file == null) throw new IOException(Missing);
             bool mac = OperatingSystem.IsMacOS();
             var start = new ProcessStartInfo(file) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
             if (!mac) foreach (string arg in new[] { "--raw", "--format=s16le", "--rate=16000", "--channels=1", "--latency-msec=50", "--client-name=Capri" }) start.ArgumentList.Add(arg);
@@ -219,7 +223,8 @@ namespace CapriDesktop
             try
             {
                 run = Process.Start(start);
-                if (run == null) return;
+                if (run == null) throw new IOException(Stopped);
+                using var cancel = stop.Register(() => Kill(run));
                 run.ErrorDataReceived += delegate { };
                 run.BeginErrorReadLine();
                 byte[] frame = new byte[Frame * 2];
@@ -235,16 +240,20 @@ namespace CapriDesktop
                     level(Math.Sqrt((double)energy / Frame) / 32768.0);
                 }
             }
-            catch (Exception error) when (error is IOException || error is Win32Exception || error is OperationCanceledException || error is InvalidOperationException) { }
+            catch (Exception error) when (error is IOException || error is Win32Exception || error is OperationCanceledException || error is InvalidOperationException)
+            {
+                if (!stop.IsCancellationRequested) throw new IOException(Stopped, error);
+            }
             finally
             {
-                if (run != null)
-                {
-                    try { if (!run.HasExited) run.Kill(); }
-                    catch (Exception error) when (error is InvalidOperationException || error is Win32Exception || error is NotSupportedException) { }
-                    run.Dispose();
-                }
+                if (run != null) { Kill(run); run.Dispose(); }
             }
+        }
+
+        private static void Kill(Process run)
+        {
+            try { if (!run.HasExited) run.Kill(); }
+            catch (Exception error) when (error is InvalidOperationException || error is Win32Exception || error is NotSupportedException) { }
         }
 
         // The same places her ears look for a recorder: a desktop launch doesn't get a shell's PATH.

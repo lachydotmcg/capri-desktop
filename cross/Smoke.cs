@@ -1192,6 +1192,51 @@ namespace CapriDesktop
                 if (!noteBlocked || !sawRedacted || !legacyRedacted || !recalledLabelled || !pronounsOutside || !memoriesLabelled)
                     throw new Exception("Her memory labels went wrong: note " + noteBlocked + " (" + forged + "), saw " + sawRedacted + ", legacy " + legacyRedacted + ", recalled " + recalledLabelled + ", pronouns " + pronounsOutside + ", memories " + memoriesLabelled + " / " + sawBlock + " / " + legacyBlock + " / " + memoriesBlocked);
                 checks.Add("PASS memory labels: her notes, screen sightings, memories and old chats reach her brain as data blocks that say they are data, a note cannot forge another block, a legacy sighting with an address is redacted, and her pronouns directive stays outside the block");
+                // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
+                // set is bounded too, so a long history can't grow it until the app closes.
+                string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(dugDir);
+                DateTime dugDay = new DateTime(2026, 3, 1, 9, 0, 0);
+                for (int i = 0; i < 4; i++)
+                    File.WriteAllText(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"), "*09:00 You: we tested retention on day " + i + "\n");
+                string dugWas = Brain.TranscriptPath;
+                bool dugKeepingWas = Brain.Keeping;
+                int dugDaysWas = Brain.DugDays, sharedCapWas = Brain.SharedCap;
+                long dugBytesWas = Brain.DugBytes;
+                bool dugTrimmed, dugForgotten, sharedBounded;
+                try
+                {
+                    Brain.TranscriptPath = dugDir;
+                    Brain.Keeping = true;
+                    Brain.ForgetDug();
+                    Brain.DugDays = 2;
+                    Brain.DugBytes = long.MaxValue;
+                    Brain.Recalled("remember when we tested retention");
+                    dugTrimmed = Brain.DugHeld == 2
+                        && Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"))
+                        && !Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-3).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    for (int i = 0; i < 3; i++) File.Delete(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = Brain.DugHeld == 1;
+                    Directory.Delete(dugDir, true);
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = dugForgotten && Brain.DugHeld == 0;
+                    Brain.SharedCap = 2;
+                    Brain.Recalled("remember when alpha beta gamma delta");
+                    sharedBounded = Brain.SharedHeld <= 2;
+                }
+                finally
+                {
+                    Brain.TranscriptPath = dugWas;
+                    Brain.Keeping = dugKeepingWas;
+                    Brain.DugDays = dugDaysWas;
+                    Brain.DugBytes = dugBytesWas;
+                    Brain.SharedCap = sharedCapWas;
+                    if (Directory.Exists(dugDir)) Directory.Delete(dugDir, true);
+                }
+                if (!dugTrimmed || !dugForgotten || !sharedBounded)
+                    throw new Exception("Her recall cache went wrong: trimmed " + dugTrimmed + ", forgotten " + dugForgotten + ", shared " + sharedBounded);
+                checks.Add("PASS recall cache: days beyond the cap go oldest first, a day whose file is gone leaves the cache, and the shared word set stays bounded");
                 // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
                 // glances go in the transcript but never into memories.md (a Bazzite user).
                 string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
@@ -3255,8 +3300,9 @@ namespace CapriDesktop
                 checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:", "Desktops:" } : new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:" })
+                foreach (string fact in new[] { "Lite mode:", "Custom endpoints:", "Spend:", "Chimes:", "Favourites:", "Provider help:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                if (News.Facts.Contains("Plasma:") != OperatingSystem.IsLinux()) throw new Exception("Cross update help put the Plasma fix on the wrong platform.");
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
                     if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
@@ -3396,7 +3442,6 @@ namespace CapriDesktop
                 MainframeSheets(frame);
                 MemoryPageChecks(frame);
                 MainframeConnections(frame);
-                CustomProviderChecks(frame);
                 MainframeLayout(frame, voice);
                 foreach (string name in new[] { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" })
                 {
@@ -3991,6 +4036,22 @@ namespace CapriDesktop
                 string off = SettingsJson(pet.Saved);
                 if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
                     throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
+
+                pet.SetLite(true);
+                string stopWatch = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "watch_my_screen" });
+                if (!stopWatch.Contains("stay off") || SettingsCopy().LiteWatch) throw new Exception("An explicit Watch off did not clear the saved restart: " + stopWatch);
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed after an explicit off while paused.");
+                pet.SetLite(true);
+                string startWatch = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "watch_my_screen" });
+                if (!startWatch.Contains("when Lite mode ends") || pet.Saved.Watch || !SettingsCopy().LiteWatch) throw new Exception("An explicit Watch on did not wait for Lite to end: " + startWatch);
+                pet.SetLite(false);
+                if (!pet.Saved.Watch) throw new Exception("Watch did not resume after an explicit on while paused.");
+                pet.SetLite(true);
+                pet.SetWatchEvery(0);
+                pet.SetLite(false);
+                if (pet.Saved.Watch || SettingsCopy().LiteWatch) throw new Exception("Watch Every Off did not clear the saved restart.");
+                checks.Add("PASS Watch requests while paused wait for Lite mode to end, and an explicit Off clears the saved restart");
 
                 SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
@@ -6440,7 +6501,7 @@ namespace CapriDesktop
                 PlugTile[] tiles = frame.PlugTileRow;
                 string[] names = { "Email", "Notion", "Linear", "Todoist" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, ServiceLogo.Todoist };
                 for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
@@ -6455,7 +6516,7 @@ namespace CapriDesktop
                 }
                 pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
                 frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
-                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion, Linear and Todoist as tiles, Email with an envelope and the others with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
 
                 tiles[1].Press();
                 PluginWindow notion = frame.PluginSheet;
@@ -6525,6 +6586,12 @@ namespace CapriDesktop
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
                 List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                Dictionary<string, ServiceLogo> logosOnLaterPages = new Dictionary<string, ServiceLogo>
+                {
+                    { "github", ServiceLogo.GitHub }, { "atlassian", ServiceLogo.Atlassian },
+                    { "monday", ServiceLogo.Monday }, { "miro", ServiceLogo.Miro },
+                    { "cloudflare-docs", ServiceLogo.Cloudflare }, { "context7", ServiceLogo.Context7 }
+                };
                 for (int first = 0; first < expectedPlugs.Count; first += tiles.Length)
                 {
                     if (frame.PlugFirst != first || frame.PlugBack.IsEnabled != (first > 0) || frame.PlugNext.IsEnabled != (first + tiles.Length < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
@@ -6532,6 +6599,8 @@ namespace CapriDesktop
                     {
                         int at = first + slot;
                         if (tiles[slot].IsVisible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && tiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                        if (at < expectedPlugs.Count && logosOnLaterPages.TryGetValue(expectedPlugs[at].File.Id, out ServiceLogo logo) && tiles[slot].Logo != logo)
+                            throw new Exception("PLUG-INS didn't show the service logo for " + tiles[slot].Text);
                     }
                     if (frame.PlugNext.IsEnabled) frame.PlugNext.Press();
                 }
@@ -6840,12 +6909,49 @@ namespace CapriDesktop
                 frame.PressHearing(1);
                 if (!pet.Talk.Typing) throw new Exception("Type instead didn't open her type box.");
                 pet.Talk.Typer.Hide();
+
+                var firstTurn = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var secondTurn = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                int calls = 0;
+                var tokens = new List<CancellationToken>();
+                pet.HearingTapRun = (level, token) => { tokens.Add(token); level(0.03); return Task.CompletedTask; };
+                pet.Listen = (_, _) => Interlocked.Increment(ref calls) == 1 ? firstTurn.Task : secondTurn.Task;
+                frame.PressHearing(0);
+                if (!pet.HearingTesting || tokens.Count != 1) throw new Exception("The race fixture did not start Test mic.");
+                Task oldTalk = pet.RunVoiceTurn();
+                MainframeWait(() => calls == 1, "the first TALK in the microphone ownership check");
+                if (pet.HearingTesting || tokens.Count != 2 || !tokens[0].IsCancellationRequested)
+                    throw new Exception("TALK did not stop Test mic before starting the recorder.");
+                pet.VoiceTurn();
+                Task newTalk = pet.RunVoiceTurn();
+                MainframeWait(() => calls == 2, "the restarted TALK");
+                firstTurn.SetResult("");
+                MainframeWait(() => oldTalk.IsCompleted, "the cancelled TALK's cleanup");
+                if (tokens.Count != 3 || !tokens[1].IsCancellationRequested || tokens[2].IsCancellationRequested || !pet.Listening)
+                    throw new Exception("The cancelled TALK stopped a newer recorder.");
+                pet.StopListening();
+                secondTurn.SetResult("");
+                MainframeWait(() => newTalk.IsCompleted, "the restarted TALK's cleanup");
+                pet.Listen = (_, _) => Task.FromResult("");
+                void QuietMic()
+                {
+                    pet.HearingReset();
+                    pet.HearingTapRun = (level, _) => { level(16.0 / 32768); return Task.CompletedTask; };
+                    pet.VoiceTurn();
+                    MainframeWait(() => pet.HearingNow.Text == HearingStatus.Quiet, "restoring the quiet mic fixture");
+                }
+                QuietMic();
+                pet.HearingTapRun = (_, token) => HearingTap.RunRecorder(null, _ => { }, token);
+                frame.PressHearing(0);
+                MainframeWait(() => !pet.HearingTesting && pet.HearingNow.Text == HearingStatus.MicFailed + HearingTap.Missing, "the missing mic recorder error");
+                QuietMic();
+
                 if (OperatingSystem.IsLinux())
                 {
                     string fake = Path.Combine(folder, "hearing-tap");
                     Directory.CreateDirectory(fake);
                     string script = Path.Combine(fake, "parec");
-                    File.WriteAllText(script, "#!/usr/bin/env python3\nimport math, struct, sys\nframe = b\"\".join(struct.pack(\"<h\", int(12000 * math.sin(2 * math.pi * 440 * i / 16000))) for i in range(320))\nfor _ in range(200):\n    sys.stdout.buffer.write(frame)\nsys.stdout.buffer.flush()\n");
+                    File.WriteAllText(script, "#!/usr/bin/env python3\nimport math, struct, sys, time\nframe = b\"\".join(struct.pack(\"<h\", int(12000 * math.sin(2 * math.pi * 440 * i / 16000))) for i in range(320))\nwhile True:\n    sys.stdout.buffer.write(frame)\n    sys.stdout.buffer.flush()\n    time.sleep(0.02)\n");
                     File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                     string pathWas = Environment.GetEnvironmentVariable("PATH") ?? "";
                     try
@@ -6857,6 +6963,9 @@ namespace CapriDesktop
                         pet.StopHearingTest();
                         frame.Sync(); frame.UpdateLayout();
                         if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning) throw new Exception("A stand-in parec's sound didn't clear her level tap, or stopping it didn't restore her quiet line: " + frame.HearingText);
+                        File.WriteAllText(script, "#!/bin/sh\nexit 1\n");
+                        frame.PressHearing(0);
+                        MainframeWait(() => !pet.HearingTesting && pet.HearingNow.Text == HearingStatus.MicFailed + HearingTap.Stopped, "the crashed recorder error");
                     }
                     finally
                     {
@@ -7298,239 +7407,11 @@ namespace CapriDesktop
             }
         }
 
-        private void CustomProviderChecks(Mainframe frame)
-        {
-            Settings before = SettingsCopy();
-            string serverWas, keyWas;
-            pet.Brain.GetServer(out serverWas, out keyWas);
-            Cloud remoteWas = pet.Brain.Remote;
-            string modelWas = pet.Brain.Model;
-            string homeKey = Path.Combine(folder, "brain-custom-home-gpu-key"), workKey = Path.Combine(folder, "brain-custom-work-gpu-key");
-            try
-            {
-                pet.Saved.ProviderEndpoints = null;
-                File.Delete(homeKey); File.Delete(workKey);
-                using (var server = new MainframeServer())
-                using (var workServer = new MainframeServer { Models = new[] { "work-only" } })
-                using (var oneOff = new MainframeServer { Models = new[] { "one-off-a", "one-off-b" } })
-                {
-                    string workAddress = workServer.Address;
-                    var sheet = new MainframeSheet(pet, "BRAIN PROVIDER", "provider"); sheet.Show(frame);
-                    try
-                    {
-                        foreach (string name in new[] { "Saved providers", "Provider name", "Address", "API key", "Model", "Add", "Save", "Connect", "Forget", "Note" })
-                            if (!sheet.Rows.ContainsKey(name)) throw new Exception("The provider sheet has no " + name + ".");
-                        var providers = (NeonPicker)sheet.Rows["Saved providers"];
-                        var nameBox = ((NeonEntry)sheet.Rows["Provider name"]).Box;
-                        var address = ((NeonEntry)sheet.Rows["Address"]).Box;
-                        var key = ((NeonEntry)sheet.Rows["API key"]).Box;
-                        var model = (NeonPicker)sheet.Rows["Model"];
-                        var add = (NeonButton)sheet.Rows["Add"];
-                        var save = (NeonButton)sheet.Rows["Save"];
-                        var connect = (NeonButton)sheet.Rows["Connect"];
-                        var forget = (NeonButton)sheet.Rows["Forget"];
-                        var note = (NeonCaption)sheet.Rows["Note"];
-                        if (providers.Text != "New provider") throw new Exception("The provider sheet did not start on a new provider: " + providers.Text);
-                        if (model.IsEnabled) throw new Exception("The provider model picker worked before a provider was connected.");
-
-                        nameBox.Text = "Home GPU"; address.Text = server.Address + "/v1"; key.Text = "home-key"; add.Press();
-                        ProviderEndpoint home = pet.Saved.ProviderEndpoints != null && pet.Saved.ProviderEndpoints.Length == 1 ? pet.Saved.ProviderEndpoints[0] : null;
-                        if (home == null || home.Id != "home-gpu" || home.Name != "Home GPU" || home.Address != server.Address)
-                            throw new Exception("Adding a provider did not save its name and address: " + (home == null ? "none" : home.Id + " " + home.Name + " " + home.Address));
-                        if (note.Text != "Added Home GPU." || providers.Text != "Home GPU \u00b7 " + server.Address)
-                            throw new Exception("Adding a provider did not show it: " + note.Text + " / " + providers.Text);
-                        if (!File.Exists(homeKey) || File.ReadAllText(homeKey) != "home-key") throw new Exception("Adding a provider did not save its key.");
-                        if (nameBox.Text != "Home GPU" || address.Text != server.Address) throw new Exception("Adding a provider did not fill its saved values back in: " + nameBox.Text + " / " + address.Text);
-                        if (!save.IsEnabled || !forget.IsEnabled) throw new Exception("A saved provider's Save and Forget stayed off.");
-
-                        nameBox.Text = ""; address.Text = "https://other.example"; add.Press();
-                        if (pet.Saved.ProviderEndpoints.Length != 1 || note.Text != "Give it a name.") throw new Exception("A provider without a name was added or not refused: " + note.Text);
-                        nameBox.Text = "Home GPU"; key.Text = "other-key"; add.Press();
-                        if (pet.Saved.ProviderEndpoints.Length != 1 || note.Text != "You already have that provider.") throw new Exception("A duplicate provider was added or not refused: " + note.Text);
-                        if (File.ReadAllText(homeKey) != "home-key") throw new Exception("A refused duplicate changed the saved key.");
-
-                        Func<string> fingerprint = () =>
-                        {
-                            using (var json = new MemoryStream())
-                            {
-                                new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).WriteObject(json, pet.Saved);
-                                byte[] settings = json.ToArray();
-                                byte[] keyBytes = File.Exists(homeKey) ? File.ReadAllBytes(homeKey) : Array.Empty<byte>();
-                                byte[] both = new byte[settings.Length + keyBytes.Length];
-                                Buffer.BlockCopy(settings, 0, both, 0, settings.Length);
-                                Buffer.BlockCopy(keyBytes, 0, both, settings.Length, keyBytes.Length);
-                                using (var sha = System.Security.Cryptography.SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(both));
-                            }
-                        };
-                        Action<bool, string, string, string, string> reject = (adding, providerName, providerAddress, providerKey, expected) =>
-                        {
-                            string was = fingerprint();
-                            nameBox.Text = providerName; address.Text = providerAddress; key.Text = providerKey;
-                            (adding ? add : save).Press();
-                            if (note.Text != expected) throw new Exception("A refused " + (adding ? "add" : "save") + " said " + note.Text + " instead of " + expected + ".");
-                            if (fingerprint() != was) throw new Exception("A refused " + (adding ? "add" : "save") + " changed the saved providers or Home's key.");
-                        };
-                        string badAddress = "That address doesn't work. Try https://... or http://localhost:8080.";
-                        string unsafeKey = "Use https:// for a provider elsewhere. A key over plain http isn't safe.";
-                        reject(true, "Malformed", "ftp://example.invalid", "", badAddress);
-                        reject(false, "Home GPU", "http://192.0.2.25:8080", "", unsafeKey);
-                        reject(true, " Home GPU ", server.Address, "", "You already have that provider.");
-                        string blockedKey = Path.Combine(folder, "brain-custom-blocked-key");
-                        Directory.CreateDirectory(blockedKey);
-                        try { reject(true, "Blocked", "https://blocked.example", "blocked-key", "Couldn't save its key."); }
-                        finally { Directory.Delete(blockedKey, true); }
-                        if (Pet.EndpointFor(pet.Saved, "blocked") != null) throw new Exception("A provider whose key couldn't be saved stayed in the list.");
-                        byte[] homeBytes = File.ReadAllBytes(homeKey);
-                        File.Delete(homeKey); Directory.CreateDirectory(homeKey);
-                        try
-                        {
-                            providers.Pick(1);
-                            string was = fingerprint();
-                            nameBox.Text = "Home Changed"; address.Text = server.Address; key.Text = "changed-key";
-                            save.Press();
-                            if (note.Text != "Couldn't save its key.") throw new Exception("A save that couldn't write its key said " + note.Text + ".");
-                            if (fingerprint() != was) throw new Exception("A save that couldn't write its key changed the saved provider.");
-                            if (pet.Saved.ProviderEndpoints[0].Name != "Home GPU" || pet.Saved.ProviderEndpoints[0].Address != server.Address) throw new Exception("A save that couldn't write its key kept its name or address.");
-                        }
-                        finally { Directory.Delete(homeKey, true); File.WriteAllBytes(homeKey, homeBytes); }
-                        providers.Pick(1);
-
-                        nameBox.Text = "Work GPU"; address.Text = "https://work.example"; key.Text = ""; add.Press();
-                        if (pet.Saved.ProviderEndpoints.Length != 2 || note.Text != "Added Work GPU." || providers.Text != "Work GPU \u00b7 https://work.example")
-                            throw new Exception("A second provider did not save or show: " + note.Text + " / " + providers.Text);
-
-                        providers.Pick(1);
-                        if (nameBox.Text != "Home GPU" || address.Text != server.Address || key.Text != "") throw new Exception("Picking a provider did not show its saved values: " + nameBox.Text + " / " + address.Text);
-                        nameBox.Text = "Home"; save.Press();
-                        if (note.Text != "Saved Home." || providers.Text != "Home \u00b7 " + server.Address || pet.Saved.ProviderEndpoints[0].Id != "home-gpu" || File.ReadAllText(homeKey) != "home-key")
-                            throw new Exception("Saving a provider did not keep its id and key: " + note.Text + " / " + providers.Text);
-
-                        connect.Press();
-                        if (note.Text != "Connected to Home." || pet.Brain.Server != server.Address || pet.Brain.ServerKey != "home-key" || pet.Saved.BrainProvider != "custom:home-gpu" || pet.Saved.BrainTier != 0)
-                            throw new Exception("Connecting a saved provider did not use its address and key: " + note.Text + " / " + (pet.Brain.Server ?? "none") + " / " + (pet.Saved.BrainProvider ?? "none"));
-                        MainframeWait(() => pet.MainframeModels.Length == 2 && pet.MainframeModels[0] == "server-test", "the saved provider's models");
-                        sheet.Sync();
-                        if (!model.IsEnabled || model.Text != "Model") throw new Exception("The saved provider's model picker did not open: " + model.Text);
-                        model.Pick(0);
-                        if (pet.Brain.Model != "server-test" || Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test")
-                            throw new Exception("Picking a model did not keep it with the saved provider: " + (pet.Brain.Model ?? "none"));
-
-                        workServer.Hold = "/v1/models";
-                        providers.Pick(2);
-                        if (nameBox.Text != "Work GPU" || address.Text != "https://work.example") throw new Exception("Picking Work did not show its saved values: " + nameBox.Text + " / " + address.Text);
-                        address.Text = workAddress; key.Text = "work-key"; save.Press();
-                        ProviderEndpoint work = Pet.EndpointFor(pet.Saved, "work-gpu");
-                        if (note.Text != "Saved Work GPU." || work == null || work.Address != workAddress || !File.Exists(workKey) || File.ReadAllText(workKey) != "work-key")
-                            throw new Exception("Saving Work's own address and key did not stick: " + note.Text);
-                        connect.Press();
-                        if (note.Text != "Connected to Work GPU." || pet.Brain.Server != workAddress || pet.Brain.ServerKey != "work-key" || pet.Saved.BrainProvider != "custom:work-gpu")
-                            throw new Exception("Connecting Work did not use its own address and key: " + note.Text);
-                        MainframeWait(() => workServer.Held.IsSet, "Work's pending model scan");
-                        sheet.Sync();
-                        if (model.IsEnabled || model.Text != "Checking models..." || model.Choices.Length != 0)
-                            throw new Exception("Work's pending scan offered the previous provider's models: " + model.Text + " / " + model.IsEnabled);
-                        save.Press();
-                        if (note.Text != "Saved Work GPU." || model.IsEnabled || model.Text != "Checking models..." || model.Choices.Length != 0)
-                            throw new Exception("Saving Work released its still-pending model scan: " + note.Text + " / " + model.Text + " / " + model.IsEnabled);
-                        workServer.Release.Set();
-                        MainframeWait(() => model.IsEnabled && model.Choices.Length == 1 && model.Choices[0] == "work-only", "Work's own models");
-                        if (pet.Brain.Server != workAddress || pet.Brain.ServerKey != "work-key") throw new Exception("Work's models arrived on another provider's address or key.");
-                        model.Pick(0);
-                        if (pet.Brain.Model != "work-only" || Pet.ProviderModel(pet.Saved, "custom:work-gpu", 0) != "work-only" || Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test")
-                            throw new Exception("Work's model pick changed another provider's remembered model: " + (pet.Brain.Model ?? "none"));
-
-                        providers.Pick(1);
-                        connect.Press();
-                        if (note.Text != "Connected to Home." || pet.Brain.Server != server.Address || pet.Brain.ServerKey != "home-key" || pet.Brain.Model != "server-test" || pet.Saved.BrainProvider != "custom:home-gpu")
-                            throw new Exception("Reconnecting Home did not restore its own key and model: " + note.Text + " / " + (pet.Brain.ServerKey ?? "none") + " / " + (pet.Brain.Model ?? "none"));
-                        MainframeWait(() => model.IsEnabled && Array.IndexOf(model.Choices, "server-test") >= 0, "Home's models again");
-                        if (Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test" || Pet.ProviderModel(pet.Saved, "custom:work-gpu", 0) != "work-only")
-                            throw new Exception("Reconnecting a provider changed a remembered model.");
-
-                        string pair = Path.Combine(folder, "brain-server"), pairKey = Path.Combine(folder, "brain-server-key");
-                        byte[] pairWas = File.Exists(pair) ? File.ReadAllBytes(pair) : null;
-                        byte[] pairKeyWas = File.Exists(pairKey) ? File.ReadAllBytes(pairKey) : null;
-                        string ollamaWas = Brain.Ollama;
-                        try
-                        {
-                            providers.Pick(0);
-                            address.Text = oneOff.Address + "/v1"; key.Text = "one-off-key";
-                            connect.Press();
-                            MainframeWait(() => note.Text == "Provider connected.", "the one-off provider");
-                            if (pet.Brain.Server != oneOff.Address || pet.Brain.ServerKey != "one-off-key" || pet.Saved.BrainProvider != null)
-                                throw new Exception("A one-off connection did not leave the named providers alone: " + (pet.Saved.BrainProvider ?? "null"));
-                            pet.MainframePickModel("one-off-b");
-                            if (pet.Brain.Model != "one-off-b" || pet.Saved.ServerModel != "one-off-b" ||
-                                Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test" || Pet.ProviderModel(pet.Saved, "custom:work-gpu", 0) != "work-only")
-                                throw new Exception("A one-off model pick changed a named provider's remembered model.");
-                            forget.Press();
-                            MainframeWait(() => note.Text == "Provider forgotten.", "forgetting the one-off provider");
-                            if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.ProviderEndpoints.Length != 2 ||
-                                Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test" || Pet.ProviderModel(pet.Saved, "custom:work-gpu", 0) != "work-only")
-                                throw new Exception("Forgetting the one-off provider touched the named providers.");
-                            providers.Pick(1); connect.Press();
-                            MainframeWait(() => model.IsEnabled && model.Choices.Contains("server-test"), "Home before closing the provider sheet");
-
-                            using var heldOneOff = new MainframeServer { Hold = "/v1/models", Models = new[] { "closed-a", "closed-b" } };
-                            var closing = new MainframeSheet(pet, "BRAIN PROVIDER", "provider"); closing.Show(frame);
-                            try
-                            {
-                                ((NeonPicker)closing.Rows["Saved providers"]).Pick(0);
-                                ((NeonEntry)closing.Rows["Address"]).Box.Text = heldOneOff.Address;
-                                ((NeonEntry)closing.Rows["API key"]).Box.Text = "one-off-key";
-                                ((NeonButton)closing.Rows["Connect"]).Press();
-                                MainframeWait(() => heldOneOff.Held.IsSet, "the pending one-off Connect");
-                                ((NeonButton)closing.Rows["Close"]).Press();
-                                heldOneOff.Release.Set();
-                                MainframeWait(() => pet.Brain.Server == heldOneOff.Address && pet.MainframeModels.Contains("closed-b"), "the one-off connection after Close");
-                                pet.MainframePickModel("closed-b");
-                                if (pet.Saved.BrainProvider != null || pet.Saved.ServerModel != "closed-b" || Pet.ProviderModel(pet.Saved, "custom:home-gpu", 0) != "server-test")
-                                    throw new Exception("Closing during one-off Connect let it overwrite Home's remembered model.");
-                                providers.Pick(0); forget.Press();
-                                if (note.Text != "Provider forgotten.") throw new Exception(note.Text);
-                            }
-                            finally
-                            {
-                                heldOneOff.Release.Set();
-                                if (closing.IsVisible) closing.Close();
-                            }
-                        }
-                        finally
-                        {
-                            if (pairWas == null) { if (File.Exists(pair)) File.Delete(pair); } else File.WriteAllBytes(pair, pairWas);
-                            if (pairKeyWas == null) { if (File.Exists(pairKey)) File.Delete(pairKey); } else File.WriteAllBytes(pairKey, pairKeyWas);
-                            Brain.Ollama = ollamaWas;
-                        }
-
-                        providers.Pick(1);
-                        forget.Press();
-                        if (note.Text != "Forgot Home." || pet.Saved.ProviderEndpoints.Length != 1 || Pet.EndpointFor(pet.Saved, "home-gpu") != null || File.Exists(homeKey))
-                            throw new Exception("Forgetting a provider did not remove it and its key: " + note.Text);
-                        if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainProvider != null || pet.Saved.BrainServer != null)
-                            throw new Exception("Forgetting the connected provider left it in use.");
-                        if (providers.Text != "Work GPU \u00b7 " + workAddress || model.IsEnabled) throw new Exception("The provider sheet did not move to the provider left: " + providers.Text);
-                    }
-                    finally { sheet.Close(); }
-                }
-            }
-            finally
-            {
-                pet.Saved = before;
-                pet.Save();
-                pet.Brain.SetServer(serverWas, keyWas);
-                pet.Brain.Model = modelWas;
-                pet.Brain.Remote = remoteWas;
-                File.Delete(homeKey); File.Delete(workKey);
-            }
-            checks.Add("PASS custom providers: the provider sheet saves a named provider with its address and key, refuses one without a name or a duplicate, edits it without losing its id or key, connects it, remembers its model, and forgets it and its key while the one left stays");
-        }
-
         private sealed class MainframeServer : IDisposable
         {
             private readonly TcpListener server = new TcpListener(IPAddress.Loopback, 0);
             internal readonly List<string> Requests = new List<string>();
             internal string Hold;
-            internal string[] Models;
             internal readonly ManualResetEventSlim Held = new ManualResetEventSlim();
             internal readonly ManualResetEventSlim Release = new ManualResetEventSlim();
             internal string Address { get { return "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port; } }
@@ -7567,7 +7448,7 @@ namespace CapriDesktop
                 });
                 thread.IsBackground = true; thread.Start();
             }
-            private string Reply(string request)
+            private static string Reply(string request)
             {
                 if (request.Contains("/api/pull")) return "{\"status\":\"success\",\"total\":100,\"completed\":100}\n";
                 if (request.Contains("/api/tags")) return "{\"models\":[{\"name\":\"gemma4:e4b\"},{\"name\":\"qwen3:8b\"}]}";
@@ -7577,14 +7458,7 @@ namespace CapriDesktop
                 if (request.Contains("/router/")) return "{\"data\":[{\"id\":\"test/model:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"test/paid\"}]}";
                 if (request.Contains("/nvidia/")) return "{\"data\":[{\"id\":\"meta/llama-3.2-11b-vision-instruct\"}]}";
                 if (request.Contains("/paid/")) return "{\"data\":[{\"id\":\"gpt-4.1-mini\"}]}";
-                if (Models == null) return "{\"data\":[{\"id\":\"server-test\"},{\"id\":\"server-other\"}]}";
-                StringBuilder listed = new StringBuilder("{\"data\":[");
-                for (int i = 0; i < Models.Length; i++)
-                {
-                    if (i > 0) listed.Append(',');
-                    listed.Append("{\"id\":\"").Append(Models[i]).Append("\"}");
-                }
-                return listed.Append("]}").ToString();
+                return "{\"data\":[{\"id\":\"server-test\"},{\"id\":\"server-other\"}]}";
             }
             public void Dispose() { server.Stop(); }
         }
@@ -13945,7 +13819,8 @@ namespace CapriDesktop
                 if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
                 if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
-                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                // Let the bridge reject the declared length before the test client starts sending the body.
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), "Expect", "100-continue") != 413) throw new Exception("The companion bridge accepted an oversized body.");
                 if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
                 bridge.Dispose();
                 bridge = null;
