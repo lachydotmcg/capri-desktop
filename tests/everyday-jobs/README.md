@@ -21,6 +21,8 @@ It uses her Mac and Linux tool list, as the cross build has it, with the Linux t
 
 ## Running it
 
+`--routing-checks` runs offline direct-routing regressions, including a planner that proposes opening Chrome when asked to close it. The harness binds the same fake open windows advertised by `list_windows` while each request runs, so direct routing never depends on the evaluator's desktop.
+
 ```
 dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --brain "Scripted=scripted" --floor 100
 dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --brain "NORMAL=server:http://127.0.0.1:8080|capri" --warmup --out results/local.json

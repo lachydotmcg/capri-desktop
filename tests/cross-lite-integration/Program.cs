@@ -69,7 +69,7 @@ static class Recheck
         Lite(false); Check("tool interval preserves prior off","False/False/False",Bool3(saved));
         Direct(false); Lite(true); Direct(true);
         Check("explicit Watch on deferred, still paused","True/True/False",Bool3(saved));
-        Lite(false); Check("explicit Watch on versus exact prior off","False/False/False",Bool3(saved));
+        Lite(false); Check("explicit Watch on takes effect after Lite","False/False/True",Bool3(saved));
         Direct(false); Lite(true);
         string path=Path.Combine(state,"cross.json"), shadow=Path.Combine(state,"cross-new.json");
         // An invalid action is rejected; compare both persisted files. Explicit enable is a different, deferred operation.
@@ -81,9 +81,9 @@ static class Recheck
             Check("invalid action originals SHA-256",hash,Hash(path)+Hash(shadow));
         } finally { Put(T("Program"),"Smoke",state); }
         string reply=Tool("watch_my_screen","on");
-        Check("Watch tool exact reply","Couldn't turn Watch my screen on: it's still off. Watch my screen stays paused until Lite mode goes off.",reply);
+        Check("Watch tool exact reply","Watch my screen will resume when Lite mode ends.",reply);
         Check("Watch tool queues intent without capture","True/True/False",Bool3(saved));
-        Lite(false); Check("Watch tool versus exact prior off","False/False/False",Bool3(saved));
+        Lite(false); Check("Watch tool request takes effect after Lite","False/False/True",Bool3(saved));
         // If enable is deliberately deferred, a later explicit off must still cancel it.
         Direct(false); Lite(true);
         string deferred=Tool("watch_my_screen","on"), cancel=Tool("watch_my_screen","off");
@@ -102,8 +102,8 @@ static class Recheck
     static void WatchContract(string state)
     {
         object pet = Pet();
-        const string onReply = "Couldn't turn Watch my screen on: it's still off. Watch my screen stays paused until Lite mode goes off.";
-        const string offReply = "Watch my screen was already off.";
+        const string onReply = "Watch my screen will resume when Lite mode ends.";
+        const string offReply = "Watch my screen will stay off when Lite mode ends.";
 
         void Use(string dir, object saved)
         {
@@ -150,7 +150,7 @@ static class Recheck
                 Check($"prior={prior}: OFF reply", offReply, Tool("off", prior));
                 Check($"prior={prior}: OFF clears intent immediately", false, Get(saved, "LiteWatch"));
                 Check($"prior={prior}: OFF clears intent on disk", "False/False", Stored(dir, "LiteWatch"));
-                Check($"prior={prior}: duplicate OFF reply", offReply, Tool("off", prior));
+                Check($"prior={prior}: duplicate OFF reply", "Watch my screen was already off.", Tool("off", prior));
                 Check($"prior={prior}: Watch still paused", false, Get(saved, "Watch"));
                 Call(pet, "SetLite", false);
                 Check($"prior={prior}: latest OFF ask wins", false, Get(saved, "Watch"));
@@ -160,13 +160,7 @@ static class Recheck
             Use(legacy, New("Settings"));
             Call(pet, "SetWatch", true, false);
             Call(pet, "SetLite", true);
-            Check("prior ON saved in both contracts", "True/True", Stored(legacy, "LiteWatchWas"));
-            foreach (string path in Files(legacy))
-            {
-                var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path)).AsObject();
-                json.Remove("LiteWatchWas");
-                File.WriteAllText(path, json.ToJsonString());
-            }
+            Check("deferred ON saved in both contracts", "True/True", Stored(legacy, "LiteWatch"));
             object[] read = { Files(legacy)[0], null };
             object resumed = Call(T("Pet"), "ReadSettings", read);
             Check("legacy profile read without error", null, read[1]);

@@ -14,9 +14,12 @@ namespace CapriDesktop
 {
     internal static class Intros
     {
-        internal const string Classic = "classic", Door = "door", FromMods = "mods";
-        private static readonly string[,] Art = { { "peek", "Peek" }, { "up-close", "Up close" } };
-        internal static readonly string[] Built = { Classic, "peek", "up-close", Door };
+        internal const string Classic = "classic", Peek = "peek", Door = "door", FromMods = "mods";
+        private static readonly string[,] Art = { { Peek, "Peek" }, { "up-close", "Up close" } };
+        internal static readonly string[] Built = { Classic, Peek, "up-close", Door };
+        internal static string Default { get { return ArtIntro.Frames(Peek) > 0 ? Peek : Classic; } }
+
+        internal static string AtStartup(string pick, bool doorDue) { return doorDue && pick != Peek ? Door : pick; }
 
         internal static bool IsArt(string id)
         {
@@ -39,32 +42,36 @@ namespace CapriDesktop
         {
             if (id == Classic) return "Her own glitch in";
             if (id == Door) return "YunoTheAlien \u00b7 " + DoorIntro.Length.ToString("0.0") + " s";
-            if (IsArt(id)) return "Hand-drawn \u00b7 " + (ArtIntro.Frames(id) / ArtIntro.Fps).ToString("0.0") + " s";
+            if (IsArt(id)) return (id == Peek ? "Qewiw" : "Hand-drawn") + " \u00b7 " + (ArtIntro.Frames(id) / ArtIntro.Fps(id)).ToString("0.0") + " s";
             return "";
         }
     }
 
     internal sealed class ArtIntro : ICapriIntro, IDisposable
     {
-        internal const double Fps = 12;
         internal const int ArtWide = 1920, ArtHigh = 1080;
-        private const int Lead = 3, Workers = 2;
+        private const int MinLead = 3, Workers = 2;
+        private const long BufferedPixels = 12L * 1024 * 1024;
         private static readonly Dictionary<string, int> counted = new Dictionary<string, int>();
         private readonly string id;
         private readonly int count;
+        private readonly double fps;
         private readonly object gate = new object();
         private readonly Dictionary<int, ArtFrame> ready = new Dictionary<int, ArtFrame>();
         private readonly List<int> making = new List<int>(), failed = new List<int>();
         private Rectangle spot;
         private bool keepAll, ended;
         private ArtFrame shown;
-        private int shownAt = -1, wanted, round;
+        private int shownAt = -1, wanted, round, lead;
 
         private ArtIntro(string name, int frames)
         {
             id = name;
             count = frames;
+            fps = Fps(id);
         }
+
+        internal static double Fps(string id) { return id == Intros.Peek ? 30 : 12; }
 
         internal static ArtIntro Make(string id)
         {
@@ -92,7 +99,7 @@ namespace CapriDesktop
         internal int Count { get { return count; } }
         internal int Shown { get { return shownAt; } }
         internal bool Filled { get { lock (gate) return ready.Count == count; } }
-        public double Seconds { get { return count / Fps; } }
+        public double Seconds { get { return count / fps; } }
 
         internal static Rectangle Fit(Rectangle screen)
         {
@@ -141,7 +148,7 @@ namespace CapriDesktop
             }
         }
 
-        private int FrameAt(double at) { return Math.Max(0, Math.Min(count - 1, (int)(at * Fps))); }
+        private int FrameAt(double at) { return Math.Max(0, Math.Min(count - 1, (int)(at * fps))); }
 
         private void Place(Rectangle screen)
         {
@@ -150,7 +157,10 @@ namespace CapriDesktop
             {
                 if (fit.Size != spot.Size) Drop();
                 spot = fit;
-                keepAll = (long)fit.Width * fit.Height <= 960L * 540;
+                long pixels = (long)fit.Width * fit.Height;
+                keepAll = pixels <= 960L * 540 && pixels * count <= BufferedPixels;
+                // A faster clip needs more frames queued for the same amount of time.
+                lead = Math.Min((int)Math.Ceiling(fps / 4), Math.Max(MinLead, (int)(BufferedPixels / pixels)));
             }
         }
 
@@ -196,7 +206,7 @@ namespace CapriDesktop
         private void Queue()
         {
             if (ended || spot.Width <= 0) return;
-            int from = keepAll ? 0 : Math.Max(wanted, shownAt + 1), to = keepAll ? count : Math.Min(count, wanted + 1 + Lead);
+            int from = keepAll ? 0 : Math.Max(wanted, shownAt + 1), to = keepAll ? count : Math.Min(count, wanted + 1 + lead);
             for (int next = from; next < to && making.Count < Workers; next++)
             {
                 if (ready.ContainsKey(next) || making.Contains(next) || failed.Contains(next)) continue;

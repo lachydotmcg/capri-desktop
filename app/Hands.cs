@@ -1055,11 +1055,24 @@ namespace CapriDesktop
         }
 
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
-        internal static bool Instant(string tool, ToolArguments args = null)
+        internal static bool Instant(string tool, ToolArguments args = null, string request = null)
         {
+            if (tool == "app_window" && args != null && args.Action == "close" && ExactAppClose(args, request ?? args.Asked)) return true;
             // Known websites and file names need no planner to reinterpret them (john_sandevistan, B88).
             if (tool == "website_nickname" || tool == "find_file" || tool == "open_website" && args != null && string.IsNullOrWhiteSpace(args.Search) && Websites != null && Websites.Nickname(args.Site) != null) return true;
             return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember" || tool == "stopwatch";
+        }
+
+        private static bool ExactAppClose(ToolArguments args, string request)
+        {
+            if (string.IsNullOrWhiteSpace(args.Name) || string.IsNullOrWhiteSpace(args.Asked)) return false;
+            string target = args.Name.Trim();
+            if (!Regex.IsMatch(Asked(request), @"\A(?:close|quit|exit|kill|shut down)\s+" + Regex.Escape(target) + @"\z", RegexOptions.IgnoreCase)) return false;
+            try
+            {
+                return Windows().Exists(window => string.Equals(window.Program, target, StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception) { return false; }
         }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it. Only a brain on their
@@ -7548,7 +7561,6 @@ namespace CapriDesktop
         // Flips one of her switches the way its own switch does, without her announcing it, since her brain tells them, and returns
         // anything worth knowing, like Gaming Mode's line. Her window sets it.
         internal static Func<string, bool, string> SetSetting = delegate { return null; };
-        internal static Func<bool> LiteActive = delegate { return false; };
         // The same from voice chat, which holds back what would end the call until her reply is out. Her window sets it.
         internal static Func<string, bool, string> SetAgentSetting = delegate(string name, bool on) { return SetSetting(name, on); };
         // Which step one of her sliders is on, counted from the bottom, or -1 when it can't be read. Her window sets it.
@@ -7698,11 +7710,19 @@ namespace CapriDesktop
             if (was.Value == want)
             {
 #if CROSS
-                if (args.Name == "watch_my_screen" && LiteActive()) { string cleared = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want); if (cleared == GamingNeedsComments) return cleared; }
+                if (!want && args.Name == "watch_my_screen")
+                {
+                    // An explicit Off can clear a pending Watch setting while Lite has paused it.
+                    string saved = args.FromAgent ? SetAgentSetting(args.Name, false) : SetSetting(args.Name, false);
+                    if (saved != null) return saved;
+                }
 #endif
                 return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
             }
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
+#if CROSS
+            if (args.Name == "watch_my_screen" && note != null) return note;
+#endif
             // Gaming Mode stays off while game comments are Off, and she answers the same as her gaming_mode tool does.
             if (note == GamingNeedsComments) return note;
             bool? now = SettingOn(args.Name);

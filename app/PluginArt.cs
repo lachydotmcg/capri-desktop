@@ -65,9 +65,10 @@ namespace CapriDesktop
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             graphics.TranslateTransform(area.Left + (area.Width - size) / 2, area.Top + (area.Height - size) / 2);
             graphics.ScaleTransform(size / 24f, size / 24f);
-            using (GraphicsPath shape = Outline(logo))
-            using (Brush brush = new SolidBrush(ink))
-                graphics.FillPath(brush, shape);
+            foreach (ServiceLogo layer in logo.Layers ?? new[] { logo })
+                using (GraphicsPath shape = Outline(layer))
+                using (Brush brush = new SolidBrush(logo.Layers == null ? ink : ColorTranslator.FromHtml(layer.Ink)))
+                    graphics.FillPath(brush, shape);
             graphics.Restore(state);
         }
 
