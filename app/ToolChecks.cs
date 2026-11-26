@@ -1552,7 +1552,7 @@ namespace CapriDesktop
                     string[,] asked =
                     {
                         { "play lofi on youtube music", "chrome", null },
-                        { "open reddit in firefox", "chrome", null },
+                        { "open reddit in firefox", "chrome", "Firefox" },
                         { "open youtube in chrome", "chrome", "Chrome" },
                         { "open youtube in google chrome", "chrome", "Chrome" },
                         { "open it in ms edge", "edge", "Edge" },
@@ -1560,8 +1560,11 @@ namespace CapriDesktop
                         { "play lofi on youtube music in microsoft edge", "edge", "Edge" },
                         { "open twitch in opera gx", "opera gx", "Opera GX" },
                         { null, "chrome", "Chrome" },
-                        { "", "chrome", "Chrome" },
-                        { "ユーチューブを開いて", "chrome", "Chrome" }
+                        { "", "chrome", null },
+                        { "ユーチューブを開いて", "chrome", null },
+                        { "search Chrome Hearts on YouTube", "chrome", null },
+                        { "open twitch in opera", "opera gx", "Opera" },
+                        { "search cat videos using Firefox", null, "Firefox" }
                     };
                     for (int i = 0; i < asked.GetLength(0); i++)
                     {
@@ -1571,7 +1574,7 @@ namespace CapriDesktop
                         if (browsed != wanted || (wanted == null) != (ran != null))
                             throw new Exception("open_website took a browser they didn't name, or dropped one they did: " + (asked[i, 0] ?? "(no words)") + " / " + asked[i, 1] + " -> " + (browsed ?? "default " + ran));
                     }
-                    checks.Add("PASS open_website drops a browser they didn't name in their own words and opens their default browser, keeps Chrome, Edge or Opera GX when they said it, and keeps it when their words are unknown");
+                    checks.Add("PASS open_website drops a browser they didn't name in their own words and opens their default browser, keeps Chrome, Edge or Opera GX when they said it, and preserves an explicit structured browser choice");
                 }
                 if (part == "job")
                 {
@@ -1598,9 +1601,9 @@ namespace CapriDesktop
                     List<string> failed = new List<string>();
                     playing.Stepped = delegate(JobStep step) { if (step.Finished && step.Failed) failed.Add(step.Label); };
                     playing.Run();
-                    bool refused = failed.Count == 4 && failed.TrueForAll(label => label == Computer.NoAddressBarShown) && Hands.Shown(Computer.NoAddressBarShown) == Computer.NoAddressBarShown
-                        && playing.Steps.FindAll(step => step.IndexOf(Computer.NoAddressBar, StringComparison.Ordinal) >= 0).Count == 4;
-                    if (!refused || string.Join(",", acted.ToArray()) != "type,type,open_website" || browserUsed != null)
+                    bool refused = failed.Count == 3 && failed.TrueForAll(label => label == Computer.NoAddressBarShown) && Hands.Shown(Computer.NoAddressBarShown) == Computer.NoAddressBarShown
+                        && playing.Steps.FindAll(step => step.IndexOf(Computer.NoAddressBar, StringComparison.Ordinal) >= 0).Count == 3;
+                    if (!refused || string.Join(",", acted.ToArray()) != "type,type,type,open_website" || browserUsed != null)
                         throw new Exception("A job used Chrome's address bar or a browser they didn't name: " + string.Join(",", acted.ToArray()) + " / " + (browserUsed ?? "default") + " / " + string.Join(" | ", failed.ToArray()));
                     line = 0; acted.Clear(); browserUsed = "unset";
                     script = new[] { "open_website{\"site\": \"music.youtube.com\", \"browser\": \"chrome\"}", "done{\"text\": \"Opened it.\"}" };
@@ -1614,6 +1617,13 @@ namespace CapriDesktop
                     music.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
                     music.Run();
                     if (browserUsed != null) throw new Exception("Her YouTube Music job, which carries no words of theirs, kept a browser its brain guessed: " + browserUsed);
+                    line = 0; browserUsed = "unset";
+                    Job edited = new Job("Open YouTube Music in Chrome", "open YouTube Music in Chrome");
+                    edited.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                    if (!edited.RequestEdit(delegate { })) throw new Exception("Could not edit the browser job.");
+                    edited.FinishEdit("open YouTube Music in Firefox");
+                    edited.Run();
+                    if (Hands.BrowserName(browserUsed) != "Firefox") throw new Exception("The edited job used the old browser: " + browserUsed);
                     string guessedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats" }) ?? "";
                     string namedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats in chrome" }) ?? "";
                     if (guessedSearch.Length == 0 || guessedSearch.IndexOf("chrome", StringComparison.OrdinalIgnoreCase) >= 0 || namedSearch.IndexOf("browser \"chrome\"", StringComparison.Ordinal) < 0)

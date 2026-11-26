@@ -19,11 +19,42 @@ namespace CapriDesktop
 
     internal static class NameListeningText
     {
+        internal static bool Named(string text)
+        {
+            return Regex.IsMatch(text ?? "", @"(?<!\w)capri(?!\w)", RegexOptions.IgnoreCase);
+        }
+
         internal static string Request(string text)
         {
             text = (text ?? "").Trim();
             text = Regex.Replace(text, @"^(?:hey\s+)?capri(?:[\s,:.!?]+|$)", "", RegexOptions.IgnoreCase);
             return Regex.Replace(text, @"[\s,:.!?]+capri[.!?]*$", "", RegexOptions.IgnoreCase).Trim();
+        }
+
+        // The Python gate decides which lines listening accepts, so her name on its own is decided the same way
+        // bridge/speech/name_chat.py's name_alone decides it: her name, then nothing but the greetings she answers to.
+        // Python's word characters are letters, numbers and underscore; .NET's \w also counts combining marks, so the
+        // name boundary is spelled out instead of \w to find the same name the Python gate finds.
+        // Python's re.IGNORECASE puts the Turkish I pair on i (I, i, İ and ı all match i); .NET's culture-sensitive
+        // IgnoreCase instead follows the current culture, so under tr-TR an ASCII I folds to ı, while invariant casing
+        // leaves İ and ı alone. Lowercase with the invariant rules, fold those two onto i by hand, and match the
+        // lowercase patterns with CultureInvariant so the answer can never depend on the machine's locale.
+        internal static bool NameAlone(string text)
+        {
+            if (text == null) return false;
+            // The Python gate reads the NFKC form before deciding, so her name on its own is decided on that form too.
+            string normalized;
+            try { normalized = text.Normalize(NormalizationForm.FormKC); }
+            catch (ArgumentException) { normalized = text; }
+            normalized = normalized.ToLowerInvariant().Replace('\u0130', 'i').Replace('\u0131', 'i');
+            const string word = @"[\p{L}\p{N}_]";
+            string name = @"(?<!" + word + @")capri(?!" + word + @")";
+            if (!Regex.IsMatch(normalized, name, RegexOptions.CultureInvariant)) return false;
+            string left = Regex.Replace(normalized, name, " ", RegexOptions.CultureInvariant);
+            foreach (string part in Regex.Split(left, @"[^\p{L}\p{N}]+"))
+                if (part.Length > 0 && !Regex.IsMatch(part, @"\A(?:hey|hi|hiya|hello|yo|ok|okay|oi|um|uh)\z", RegexOptions.CultureInvariant))
+                    return false;
+            return true;
         }
     }
 
@@ -98,7 +129,7 @@ namespace CapriDesktop
         // The start path takes its own lock read; the tick passes the one it already took, so a tick never reads twice.
         private NameListeningState NameState() => NameState(LockedForNameListening());
         private NameListeningState NameState(bool? observedLock) => new NameListeningState(nameIdentity, Saved.MicrophoneNode,
-            Saved.MicrophoneFingerprint, NameBarredAt(observedLock), SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
+            Saved.MicrophoneFingerprint, NameBarredAt(observedLock), SpeechAudio.MicrophoneHeld || Chimes.Masking || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
             Talk?.ThinkingNow == true || ComputerJobs.Active, ComputerJobs.GameRunning);
 
         private void InitializeNameListening()
@@ -516,11 +547,21 @@ namespace CapriDesktop
                     // An ordinary new Hear cancels the provider generation too. Drop
                     // that stale queued line without ending the valid name window.
                     if (providerGeneration != (captured.Provider?.Generation ?? 0)) return;
-                    if (NameBarred || SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil) || !nameEars.IsCurrent(transcript)) return;
-                    string request = NameListeningText.Request(transcript.Text);
-                    if (request.Length != 0) Hear(request, true);
+                    if (NameBarred || Chimes.Masking || SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil) || !nameEars.IsCurrent(transcript)) return;
+                    NameLineAccepted(transcript.Text);
                 });
             });
+        }
+
+        internal void NameLineAccepted(string text)
+        {
+            // Her name on its own is the cue to go ahead, decided exactly as the Python gate decides it, so a line it
+            // accepts as name-only never counts as a request. A line that carries one plays Heard you, like Windows.
+            if (NameListeningText.NameAlone(text)) { Chimes.Play(Chime.Listening); return; }
+            string request = NameListeningText.Request(text);
+            if (request.Length == 0) return;
+            Chimes.Play(Chime.Heard);
+            Hear(request, true);
         }
 
         private void TickNameListening()

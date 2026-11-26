@@ -29,6 +29,8 @@ Thanks for helping her out, choom.
 
 This builds `out/windows/Capri.exe` and `Capri-Setup.exe`, then runs her smoke test. Every line should say `PASS`.
 
+For faster local runs, pass `-Suggest` to pick groups from your git diff, or `-Group` (`UI`, `Animations`, `Brain`, `Voice`, `Mods`, `Games`, `Remote`), `-Only`, `-Steps`, or `-Step`. CI still runs the full smoke test.
+
 The smoke output folder also contains `smoke-timings.txt`, a tab-separated diagnostic for completed sections. `inclusive_ms` includes child sections; `own_ms` excludes their measured time, `depth` shows nesting, and `parent` names the enclosing section, so recovery credits only its own completed children. Only sections that ran and reached their exit have rows; interrupted sections and timer steps are not measured here. A new full run clears the file when writable, while worker recovery keeps completed rows and counts a resumed parent's kept children in its inclusive time, so nesting still reads top-down. This optional diagnostic does not change checks, timeouts, or normal app behavior; an unavailable timing file does not fail the checks. Do not compare runs using a timing file that could not be reset.
 
 The section recorder can be tested without Windows using the .NET 10 SDK:

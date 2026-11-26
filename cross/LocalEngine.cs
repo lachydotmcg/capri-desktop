@@ -67,7 +67,7 @@ namespace CapriDesktop
             catch (IOException) { }
             catch (FormatException) { }
             catch (System.ComponentModel.Win32Exception) { }
-            if (machine.Ram <= 0) machine.Ram = 8L << 30;
+            // A failed read stays zero: her Resources says "-" and Fit picks her smallest model, rather than inventing memory.
             return machine;
         }
 

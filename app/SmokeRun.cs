@@ -13,9 +13,10 @@ namespace CapriDesktop
     internal sealed class SmokeOptions
     {
         internal string[] Only = new string[0];
+        internal string[] Groups = new string[0];
         internal bool Steps, NoSteps;
-        internal int Shard, Shards;
-        internal bool RunSteps { get { return Steps || (!NoSteps && Only.Length == 0); } }
+        internal int Shard, Shards, Step = -1;
+        internal bool RunSteps { get { return Steps || Step >= 0 || (!NoSteps && Only.Length == 0 && Groups.Length == 0); } }
 
         internal static SmokeOptions Parse(string[] args)
         {
@@ -37,19 +38,159 @@ namespace CapriDesktop
                     foreach (string name in options.Only)
                         if (name.Trim().Length == 0) throw new ArgumentException("--only needs a comma list of section names.");
                 }
+                else if (args[i] == "--group" && i + 1 < args.Length)
+                {
+                    options.Groups = args[++i].Split(',');
+                    foreach (string name in options.Groups)
+                    {
+                        string trimmed = name.Trim();
+                        if (trimmed.Length == 0) throw new ArgumentException("--group needs a comma list of group names.");
+                        if (SmokeRun.GroupSections(trimmed) == null)
+                            throw new ArgumentException("Unknown smoke group: " + trimmed + ". Known groups: " + string.Join(", ", SmokeRun.GroupNames) + ".");
+                    }
+                }
+                else if (args[i] == "--step" && i + 1 < args.Length)
+                {
+                    if (!int.TryParse(args[++i], NumberStyles.None, CultureInfo.InvariantCulture, out options.Step) || options.Step < 0 || options.Step > SmokeRun.MaxStep)
+                        throw new ArgumentException("--step needs a step number from 0 to " + SmokeRun.MaxStep + ".");
+                }
                 else throw new ArgumentException("Unknown smoke option: " + args[i]);
             }
-            if (options.Steps && (options.NoSteps || options.Only.Length != 0))
-                throw new ArgumentException("--steps runs the steps alone; use --only or --no-steps for sections.");
-            if (options.Shards != 0 && (!options.NoSteps || options.Only.Length != 0))
-                throw new ArgumentException("--shard splits the sections, so it goes with --no-steps and without --only.");
+            if (options.Steps && (options.NoSteps || options.Only.Length != 0 || options.Groups.Length != 0 || options.Step >= 0))
+                throw new ArgumentException("--steps runs the steps alone; use --only, --group, --step or --no-steps for other runs.");
+            if (options.Step >= 0 && (options.NoSteps || options.Only.Length != 0 || options.Groups.Length != 0 || options.Shards != 0))
+                throw new ArgumentException("--step runs one step on its own without --no-steps, --only, --group or --shard.");
+            if (options.Shards != 0 && (!options.NoSteps || options.Only.Length != 0 || options.Groups.Length != 0))
+                throw new ArgumentException("--shard splits the sections, so it goes with --no-steps and without --only or --group.");
+            if (options.Groups.Length != 0) options.Only = SmokeRun.ExpandGroups(options.Only, options.Groups);
             return options;
         }
     }
 
     internal static class SmokeRun
     {
+        internal const int MaxStep = 22;
         private const string WorkerVariable = "CAPRI_SMOKE_WORKER";
+        private static readonly KeyValuePair<string, string[]>[] GroupTable =
+        {
+            new KeyValuePair<string, string[]>("UI", new[]
+            {
+                "SmokeBrainLayout", "HologramChecks", "SmokeVault", "SmokeResources", "SmokeSpend", "SmokeSheetScale",
+                "SmokeFirstRun", "SmokePersonal", "SmokeTreeEyes", "SmokeMainframeWheel", "SmokeMainframeFit",
+                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeLongMenus", "SmokeMenuScreens", "SmokeSettingsSearch",
+                "SmokeMainframeColours", "SmokeTips", "SmokeOverlayDraw", "SmokePanelTeleport", "SmokeNoteEditor",
+                "SmokeFileEditor", "SmokeMinis", "SmokeIcons", "SmokeChaosScreen", "SmokeMemoryWindow", "SmokeGifs",
+                "SmokeWorkspaceTool", "SmokeWorkspace", "SmokeWorkspaceLiveModes", "SmokeWorkspaceStream",
+                "SmokeWorkspaceFolders", "SmokeWorkspaceWindow", "SmokeWorkspaceLook", "SmokeWorkspacePickers",
+                "SmokeWorkspaceWords", "SmokeSetupFiles", "SmokeSetupWindow", "SmokePackageMarker", "SmokePackaged",
+                "SmokePowerSaver", "SmokePerformance", "SmokePerf", "SmokeMenuWait"
+            }),
+            new KeyValuePair<string, string[]>("Animations", new[]
+            {
+                "SmokeMoves", "SmokeStanding", "SmokeLegacyStand", "SmokeGlitchUnder", "SmokeGlitchFilm",
+                "SmokeOldStand", "SmokeStandFilm", "SmokeSleepWake", "SmokeClickEffect", "SmokeThrows", "SmokeRoam",
+                "SmokeReactions", "SmokeRibbons", "SmokeEmotes", "SmokeEmoteFilms", "SmokeStarvedPaint",
+                "SmokeEmoteStarved", "SmokeStarvedFlood", "SmokeBeatCost", "SmokeTimerStarve", "SmokeGivingWay",
+                "SmokeHeadPats", "SmokePopTimes", "SmokeHaul"
+            }),
+            new KeyValuePair<string, string[]>("Brain", new[]
+            {
+                "SmokeReportedLogic", "SmokeRepeats", "SmokeOwnDelivery", "SmokeJealous", "SmokeCommentDelivery",
+                "SmokeTypingRepeats", "SmokeComments", "SmokeAppMemory", "SmokeOpening", "SmokeBrowserNamed", "SmokeBrowserJob", "SmokeBrowserDefault", "SmokeLineChanges",
+                "SmokeAdminKeys", "SmokeLanguages", "SmokeLanguagePair", "SmokeAutoReply", "SmokeReplyLine",
+                "SmokeLanguageTool", "SmokeLocalBrains", "SmokeBrainLooks", "SmokeCloudBrains", "SmokeCloudPicker",
+                "SmokeProviders", "SmokeLogTimeouts", "SmokeFreeKeys", "SmokeMedium", "SmokeBrainBodies", "SmokeSaid",
+                "SmokeLingo", "SmokeBetterModels", "SmokePlanBrain", "SmokeLeaks", "SmokeWorkingOut",
+                "SmokeLocalWorkingOut", "SmokePlannerChecks", "SmokeSettingTurns", "SmokeMoreSettings",
+                "SmokeOwnSettings", "SmokeSettingsTool", "SmokeOwnSliders", "SmokeEverydayAsks", "SmokeHelpForTools",
+                "SmokeClaims", "SmokeSighted", "SmokeActions", "SmokeActionEnds", "SmokeChoiceGates", "SmokeMixedAsks",
+                "SmokeFiles", "SmokeRequests", "SmokeCare", "SmokeReminders", "SmokeSavedLists",
+                "SmokeCalendarReminders", "SmokeNews", "SmokeSelfKnow", "SmokeToolKit", "SmokeUnreadableSettings",
+                "SmokeFetch", "SmokeSaveLog", "SmokeFolderNotices", "SmokeBrainNotes", "SmokeToolCallErrors",
+                "SmokeBrainOnlyText", "SmokeShownToYou", "SmokeJobPanelFixes", "SmokeRateLimits", "SmokeThinking",
+                "SmokeSpecialLetters", "SmokeWordingFixes", "SmokeHelpQuotes", "SmokeSmallWording", "SmokePrivacy",
+                "SmokeRedaction", "SmokeLiteUse", "SmokeLite", "SmokeWhySlow", "SmokeHeartbeat"
+            }),
+            new KeyValuePair<string, string[]>("Voice", new[]
+            {
+                "SmokeSounds", "SmokeVoiceWaits", "SmokeAnswerVoice", "SmokeVoiceCuts", "SmokeVoiceLanguages",
+                "SmokeVoiceBack", "SmokeQuietMic", "SmokeTongueVoices", "SmokeSound", "SmokeDeviceChoices",
+                "SmokeSlowDevices", "SmokeDucking", "SmokeVoiceInMic", "SmokeCallMic", "SmokeMicDelivery",
+                "SmokeMicSources", "SmokeMicTest", "SmokeHearingStatus", "SmokeSoundWarnings", "SmokeFreeze",
+                "SmokeListenCapri", "ListenCapriChecks", "SmokeAppVolume", "SmokeCallMode", "SmokeCallApps",
+                "SmokeCallErrands", "SmokeCallFriends", "SmokeCallModeUi", "SmokeHusk", "SmokeCallDisplay", "SmokeHolo",
+                "SmokeCallJob", "SmokeCallRestart", "SmokeListen", "SmokeTalkLogic", "SmokeTalkSettings",
+                "SmokeTalkBrain", "SmokeVoiceDetails", "SmokeHearingReasons", "SmokeCallHearing", "SmokeCallNoise",
+                "SmokeVoiceCredit", "SmokeMusicApp", "SmokeHonestMusic", "SmokeLooseCalls"
+            }),
+            new KeyValuePair<string, string[]>("Mods", new[]
+            {
+                "SmokeMods", "SmokeModAsk", "SmokeModDrop", "SmokeCapriCodes"
+            }),
+            new KeyValuePair<string, string[]>("Games", new[]
+            {
+                "GamingChecks", "SmokeGameWatch", "SmokeGameWindows", "SmokeBrowserGame", "SmokeSayNow",
+                "SmokeStreamChat", "SmokeGameHolds", "SmokeGameFocus", "SmokeGameClicks", "SmokeGameAsks",
+                "SmokeGameEnter", "SmokeJobEars", "SmokeWindowTool", "SmokeWindowReal", "SmokePcStatus",
+                "SmokeInternetStatus", "SmokeOpensOnce", "SmokeStoreLaunch", "SmokeClickStops",
+                "SmokeKeepsAppsOpen", "SmokeGameNotes", "SmokeLongJob", "SmokeFrames", "SmokeGameKeys",
+                "SmokeGameSpeed", "SmokeScanKeys", "SmokeGameCombo", "SmokeAntiCheat", "SmokeSameFrames",
+                "SmokeGameControls", "SmokePausedExplore", "SmokeMiniChoices", "SmokeLookout", "SmokeGameGlances",
+                "SmokeGameSense", "SmokeAsideTools", "SmokeAsideGame", "SmokeStores", "SmokeLauncherGames",
+                "SmokeBlockedEngine", "SmokeClips", "SmokeClipOptions", "SmokeClipPanel", "SmokeClipPopup",
+                "SmokeClipToggle", "SmokeGameEars", "SmokePlayJobs", "SmokeInk", "SmokeJobTeleport",
+                "SmokeJobProblems", "SmokeSteering", "SmokeControlSign", "SmokeCamera", "CheckOcr"
+            }),
+            new KeyValuePair<string, string[]>("Remote", new[]
+            {
+                "SmokeRemoteBrains", "SmokeRemote", "SmokeRemotePictures", "SmokeRemoteJobs", "SmokeRemoteCall",
+                "SmokeRoomHost"
+            })
+        };
+        internal static readonly string[] GroupNames = BuildGroupNames();
+
+        private static string[] BuildGroupNames()
+        {
+            string[] names = new string[GroupTable.Length];
+            for (int i = 0; i < GroupTable.Length; i++) names[i] = GroupTable[i].Key;
+            return names;
+        }
+
+        internal static KeyValuePair<string, string[]>[] AllGroups() { return (KeyValuePair<string, string[]>[])GroupTable.Clone(); }
+
+        internal static string[] GroupSections(string group)
+        {
+            foreach (KeyValuePair<string, string[]> entry in GroupTable)
+                if (string.Equals(entry.Key, group, StringComparison.OrdinalIgnoreCase)) return entry.Value;
+            return null;
+        }
+
+        internal static string GroupOf(string section)
+        {
+            foreach (KeyValuePair<string, string[]> entry in GroupTable)
+                foreach (string name in entry.Value)
+                    if (string.Equals(name, section, StringComparison.OrdinalIgnoreCase)) return entry.Key;
+            return null;
+        }
+
+        internal static string[] ExpandGroups(string[] only, string[] groups)
+        {
+            List<string> merged = new List<string>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string item in only)
+            {
+                string trimmed = item.Trim();
+                if (trimmed.Length != 0 && seen.Add(trimmed)) merged.Add(trimmed);
+            }
+            foreach (string group in groups)
+            {
+                string[] sections = GroupSections(group.Trim());
+                if (sections == null) continue;
+                foreach (string section in sections)
+                    if (seen.Add(section)) merged.Add(section);
+            }
+            return merged.ToArray();
+        }
         // Sections run inside another, so --only can name a child and its parent still runs to reach it.
         private static readonly Dictionary<string, string[]> Children = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
@@ -100,7 +241,12 @@ namespace CapriDesktop
         }
         internal static int NextStep
         {
-            get { int next = 0; while (stepsDone.ContainsKey(next)) next++; return next; }
+            get
+            {
+                int next = options != null && options.Step >= 0 ? StartStep(options.Step) : 0;
+                while (stepsDone.ContainsKey(next)) next++;
+                return next;
+            }
         }
 
         internal static void Start(string output, SmokeOptions settings)
@@ -171,7 +317,7 @@ namespace CapriDesktop
         internal static bool Wants(string name)
         {
             // --steps runs the steps alone, with the sections inside them.
-            if (options.Steps) return kind == "step" || (selected.Count != 0 && selected.Peek());
+            if (options.Steps || options.Step >= 0) return kind == "step" || (selected.Count != 0 && selected.Peek());
             if (options.Shards != 0 && selected.Count == 0) return ShardOf(name, options.Shards) == options.Shard;
             bool wanted = options.Only.Length == 0 || (selected.Count != 0 && selected.Peek());
             foreach (string item in options.Only)
@@ -341,6 +487,20 @@ namespace CapriDesktop
             if (step == 0 || step == 14 || step == 17) return -1;
             bool passed;
             return stepsDone.TryGetValue(step - 1, out passed) && passed ? -1 : step - 1;
+        }
+
+        internal static int LastStep { get { return options != null && options.Step >= 0 ? options.Step : MaxStep; } }
+
+        internal static int StartStep(int target)
+        {
+            int at = target;
+            while (at > 0)
+            {
+                int need = Needs(at);
+                if (need < 0) break;
+                at = need;
+            }
+            return at;
         }
 
         internal static void StepDone(int step, bool passed, List<string> checks)

@@ -676,7 +676,7 @@ namespace CapriDesktop
                     {
                         string prompted = new Job("Check the skill").Prompted(hands);
                         bare.Add(prompted);
-                        if (prompted != Computer.Allowing(hands)) throw new Exception("A job prompt with no skills on wasn't what it was before skills.");
+                        if (prompted != Computer.Allowing(hands) + Computer.DownloadWarning) throw new Exception("A job prompt with no skills on changed beyond its download warning.");
                     }
                     foreach (string prompt in bare)
                         if (prompt.Contains("Skills on in Mods") || prompt.Contains("read_skill") || prompt.Contains("read one of your skills")) throw new Exception("A prompt or tool list told her about skills with none on.");

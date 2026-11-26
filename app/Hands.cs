@@ -1055,11 +1055,24 @@ namespace CapriDesktop
         }
 
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
-        internal static bool Instant(string tool, ToolArguments args = null)
+        internal static bool Instant(string tool, ToolArguments args = null, string request = null)
         {
+            if (tool == "app_window" && args != null && args.Action == "close" && ExactAppClose(args, request ?? args.Asked)) return true;
             // Known websites and file names need no planner to reinterpret them (john_sandevistan, B88).
             if (tool == "website_nickname" || tool == "find_file" || tool == "open_website" && args != null && string.IsNullOrWhiteSpace(args.Search) && Websites != null && Websites.Nickname(args.Site) != null) return true;
             return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember" || tool == "stopwatch";
+        }
+
+        private static bool ExactAppClose(ToolArguments args, string request)
+        {
+            if (string.IsNullOrWhiteSpace(args.Name) || string.IsNullOrWhiteSpace(args.Asked)) return false;
+            string target = args.Name.Trim();
+            if (!Regex.IsMatch(Asked(request), @"\A(?:close|quit|exit|kill|shut down)\s+" + Regex.Escape(target) + @"\z", RegexOptions.IgnoreCase)) return false;
+            try
+            {
+                return Windows().Exists(window => string.Equals(window.Program, target, StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception) { return false; }
         }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it. Only a brain on their
@@ -1711,6 +1724,7 @@ namespace CapriDesktop
 #if CROSS
         internal static Func<ToolArguments, string> NativeLook;
         internal static Func<ToolArguments, string> NativeWork;
+        internal static Func<ToolArguments, string> FallbackWork;
 #endif
         // A look at the monitor they named; where she can't tell their monitors apart, the usual look.
         internal static Func<string, string, string> LookOn = delegate(string focus, string screen) { return Look(focus); };
@@ -1961,7 +1975,13 @@ namespace CapriDesktop
                 return was ? "Stopped streaming." : "I'm not streaming right now.";
             }
 #if CROSS
-            if (NativeWork == null) return Work("stream mode", args.Asked);
+            if (NativeWork == null)
+            {
+                if (FallbackWork == null) return Work("stream mode", args.Asked);
+                ToolArguments fallback = args.Copy();
+                fallback.Task = "stream mode";
+                return FallbackWork(fallback);
+            }
 #endif
             Streaming = true;
             string game = string.IsNullOrWhiteSpace(args.Name) ? null : args.Name.Trim();
@@ -2186,6 +2206,7 @@ namespace CapriDesktop
                     if (MusicJob(args.Task, out musicArgs)) { AimMusic(musicArgs, args.Asked); return Do("play_music", musicArgs); }
 #if CROSS
                     if (NativeWork != null) return NativeWork(args);
+                    if (FallbackWork != null) return FallbackWork(args);
 #endif
                     return Work(args.Task.Trim(), args.Asked);
                 }
@@ -5123,19 +5144,26 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-#if !CROSS
             string kind = null;
             try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
             if (kind != null)
             {
+                bool browser = string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase);
                 string theirs = null;
-                try { theirs = Favourites.Best(kind); } catch (Exception) { }
+                try
+                {
+#if CROSS
+                    theirs = Favourites.Best(kind);
+#else
+                    theirs = browser ? Favourites.Picked(kind) : Favourites.Best(kind);
+#endif
+                }
+                catch (Exception) { }
                 bool installed = false;
                 if (!string.IsNullOrEmpty(theirs)) try { installed = FindApps(theirs).Count > 0; } catch (Exception) { installed = false; }
                 if (installed) wanted = theirs;
-                else if (string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase)) return OpenBrowserKind(current);
+                else if (browser) return OpenBrowserKind(current);
             }
-#endif
             List<InstalledApp> found;
 #if CROSS
             found = FindApps(wanted);
@@ -5148,9 +5176,7 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
-#if !CROSS
             try { Favourites.SheOpened(chosen.Id); } catch (Exception) { }
-#endif
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
             // Windows saying no gets said, instead of "Opened" over nothing.
             try { Run(chosen.Id); }
@@ -5170,11 +5196,11 @@ namespace CapriDesktop
                 using (Microsoft.Win32.RegistryKey choice = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"))
                 {
                     string progId = choice == null ? null : choice.GetValue("ProgId") as string;
-                    if (string.IsNullOrWhiteSpace(progId)) return null;
+                    if (string.IsNullOrWhiteSpace(progId)) progId = "https";
                     using (Microsoft.Win32.RegistryKey command = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(progId + @"\shell\open\command"))
                     {
                         string program = BrowserCommand(command == null ? null : command.GetValue(null) as string);
-                        return program != null && Exists(program) ? program : null;
+                        return program != null && Path.IsPathRooted(program) && Exists(program) ? program : null;
                     }
                 }
             }
@@ -5184,14 +5210,17 @@ namespace CapriDesktop
             return null;
         }
 
+#endif
+
         internal static string OpenBrowserKind(Func<bool> current)
         {
+#if !CROSS
             string theirs = DefaultBrowser();
             if (theirs != null)
             {
                 if (current != null && !current()) return "That call errand has ended.";
                 string program = Path.GetFileNameWithoutExtension(theirs);
-                string named = BrowserName(string.Equals(program, "msedge", StringComparison.OrdinalIgnoreCase) ? "edge" : program) ?? program;
+                string named = BrowserName(program) ?? program;
                 try
                 {
                     Run(theirs);
@@ -5200,6 +5229,7 @@ namespace CapriDesktop
                 catch (InvalidOperationException) { }
                 catch (System.ComponentModel.Win32Exception) { }
             }
+#endif
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
             {
                 List<InstalledApp> found;
@@ -5213,9 +5243,12 @@ namespace CapriDesktop
                 catch (System.ComponentModel.Win32Exception) { continue; }
                 return "Opened " + named + (current == null ? Opened(named) : "") + ".";
             }
+#if CROSS
+            return "I can't tell which browser is yours yet.";
+#else
             return "I can't tell which browser is yours yet. Name it once and I'll remember.";
-        }
 #endif
+        }
 
 #if !CROSS
         internal static string AppMeant(string named)
@@ -5844,24 +5877,20 @@ namespace CapriDesktop
             else if (Named(args.Search) && Site(args.Search)) { args.Site = args.Search.Trim(); args.Search = null; }
         }
 
-        // A browser a model picked that they never named, like Chrome for a song when Edge is their default, opens in their default instead.
-        private static readonly string[,] BrowserSaid =
-        {
-            { "Chrome", @"\bchrome\b" }, { "Edge", @"\b(ms)?edge\b" }, { "Firefox", @"\bfire ?fox\b" }, { "Opera GX", @"\bopera\b" },
-            { "Opera", @"\bopera\b" }, { "Brave", @"\bbrave\b" }, { "Vivaldi", @"\bvivaldi\b" }
-        };
-
+        // A blank transcript still came from the model. Null is used by structured callers with their own browser choice.
         internal static void AimBrowser(ToolArguments args, string said)
         {
-            string named = args == null ? null : BrowserName(args.Browser);
-            if (named == null || string.IsNullOrWhiteSpace(said) || Regex.IsMatch(said, @"[\p{L}-[\u0000-ɏḀ-ỿ]]")) return;
-#if !CROSS
-            string picked = null;
-            try { picked = BrowserName(Regex.Replace(Favourites.Picked("browser") ?? "", @"^msedge$", "edge", RegexOptions.IgnoreCase)); } catch (Exception) { }
-            if (picked == named) return;
-#endif
-            for (int i = 0; i < BrowserSaid.GetLength(0); i++)
-                if (BrowserSaid[i, 0] == named && !Regex.IsMatch(said, BrowserSaid[i, 1], RegexOptions.IgnoreCase)) args.Browser = null;
+            if (args == null || said == null) return;
+            string request = Asked(said);
+            string wanted = BrowserQualifier(ref request);
+            if (wanted == null)
+            {
+                Match use = Regex.Match(request, @"^(?:use|open|launch|start)\s+(?:the |my )?(" + BrowserWords + @")(?: browser)?\s+(?:to|for)\s+", RegexOptions.IgnoreCase);
+                if (use.Success) wanted = use.Groups[1].Value;
+            }
+            string selected = BrowserName(wanted);
+            if (selected == null) try { selected = BrowserName(Favourites.Picked("browser")); } catch (Exception) { }
+            if (selected == null || BrowserName(args.Browser) != selected) args.Browser = selected;
         }
 
         private static string OpenSite(string site, string search, string browser = null)
@@ -5887,15 +5916,15 @@ namespace CapriDesktop
             return result + " in " + browserName + Opened(browserName) + ".";
         }
 
-        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft )?edge|(?:mozilla )?firefox|opera[ _]gx|opera|brave|vivaldi";
+        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft |ms ?)?edge|(?:mozilla )?fire ?fox|opera[ _]gx|opera|brave|vivaldi";
         private static readonly string[] BrowserNames = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
 
         internal static string BrowserName(string browser)
         {
             string plain = Regex.Replace(Plain(browser), @"^the | (browser|stable)$", "");
             if (plain == "google chrome") plain = "chrome";
-            if (plain == "microsoft edge") plain = "edge";
-            if (plain == "mozilla firefox") plain = "firefox";
+            if (plain == "microsoft edge" || plain == "ms edge" || plain == "msedge") plain = "edge";
+            if (plain == "mozilla firefox" || plain == "mozilla fire fox" || plain == "fire fox") plain = "firefox";
             foreach (string choice in BrowserNames) if (plain == choice.ToLowerInvariant()) return choice;
             return null;
         }
@@ -5905,14 +5934,19 @@ namespace CapriDesktop
             return BrowserName(name);
         }
 
-        // "open youtube in chrome", "in firefox open reddit", "search for cats on youtube in edge". Only the end or the start of what they said can name a browser, so "chrome hearts" stays a search.
+        // Browser qualifiers must bracket the request, so a phrase like "Chrome Hearts" stays a search.
+        private static string BrowserQualifier(ref string text)
+        {
+            Match before = Regex.Match(text, @"^(?:in|using|with) (?:the )?(" + BrowserWords + @")(?: browser)?[, ]+(.+)$", RegexOptions.IgnoreCase);
+            if (before.Success) { text = before.Groups[2].Value; return before.Groups[1].Value.ToLowerInvariant(); }
+            Match after = Regex.Match(text, @"^(.+?)\s+(?:in|using|with) (?:the )?(" + BrowserWords + @")(?: browser)?$", RegexOptions.IgnoreCase);
+            if (after.Success) { text = after.Groups[1].Value; return after.Groups[2].Value.ToLowerInvariant(); }
+            return null;
+        }
+
         private static ToolArguments WebsiteRequest(string text)
         {
-            string browser = null;
-            Match before = Regex.Match(text, @"^in (?:the )?(" + BrowserWords + @")(?: browser)?[, ]+(.+)$", RegexOptions.IgnoreCase);
-            if (before.Success) { browser = before.Groups[1].Value.ToLowerInvariant(); text = before.Groups[2].Value; }
-            Match after = Regex.Match(text, @"^(.+?)\s+in (?:the )?(" + BrowserWords + @")(?: browser)?$", RegexOptions.IgnoreCase);
-            if (after.Success && browser == null) { browser = after.Groups[2].Value.ToLowerInvariant(); text = after.Groups[1].Value; }
+            string browser = BrowserQualifier(ref text);
             Match nickname = Regex.Match(text, @"^(?:open|launch|start|go to|take me to|check out)\s+(.+)$", RegexOptions.IgnoreCase);
             if (Websites != null)
             {
@@ -7747,8 +7781,22 @@ namespace CapriDesktop
             bool want = way == "on";
             bool? was = SettingOn(args.Name);
             if (was == null) return args.Name == "mic" ? "Couldn't change my voice chat mic: voice chat isn't on." : "Couldn't read " + label + " just now.";
-            if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            if (was.Value == want)
+            {
+#if CROSS
+                if (!want && args.Name == "watch_my_screen")
+                {
+                    // An explicit Off can clear a pending Watch setting while Lite has paused it.
+                    string saved = args.FromAgent ? SetAgentSetting(args.Name, false) : SetSetting(args.Name, false);
+                    if (saved != null) return saved;
+                }
+#endif
+                return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            }
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
+#if CROSS
+            if (args.Name == "watch_my_screen" && note != null) return note;
+#endif
             // Gaming Mode stays off while game comments are Off, and she answers the same as her gaming_mode tool does.
             if (note == GamingNeedsComments) return note;
             bool? now = SettingOn(args.Name);

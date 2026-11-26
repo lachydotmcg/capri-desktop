@@ -63,7 +63,7 @@ namespace CapriDesktop
                     Brain.LocalPick = pick;
                     Brain.Local = engine;
                     Brain.Model = pick.Name;
-                    engine.Ensure(pick);
+                    if (!Brain.Lite) engine.Ensure(pick);
                 }
                 catch (OperationCanceledException) { problem = "Cancelled. It picks up where it left off."; }
                 catch (Exception error)
@@ -89,7 +89,7 @@ namespace CapriDesktop
                     Saved.OwnBrain = true;
                     Save();
                     NotifySettings();
-                    Talk.Notice(BrainHeard, "My brain's in. Talk to me, choom.");
+                    Talk.Notice(BrainHeard, Brain.Lite ? "My brain's downloaded. Turn off Lite mode to use it." : "My brain's in. Talk to me, choom.");
                 });
             });
         }

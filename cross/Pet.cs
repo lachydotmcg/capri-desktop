@@ -36,6 +36,12 @@ namespace CapriDesktop
         [DataMember] internal int Wander;
         [DataMember] internal bool NoDance;
         [DataMember] internal int? Sounds;
+        [DataMember] internal bool NoChimes;
+        [DataMember] internal bool NoChimeSent;
+        [DataMember] internal bool NoChimeHeard;
+        [DataMember] internal bool NoChimeListening;
+        [DataMember] internal int ChimeVolume;
+        [DataMember] internal string ChimeSet;
         [DataMember] internal string VoiceId;
         [DataMember] internal bool Silent;
         [DataMember] internal int Typing;
@@ -51,6 +57,9 @@ namespace CapriDesktop
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
+        // Lite mode stops her brain on this PC and pauses Watch my screen; LiteWatch remembers whether Watch was on, so Off puts it back.
+        [DataMember] internal bool Lite;
+        [DataMember] internal bool LiteWatch;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
         [DataMember] internal int? SleepAfter;
@@ -892,6 +901,7 @@ namespace CapriDesktop
         private double coveredSince = -1;
         private double seatLost = -1;
         private double nextCheck;
+        private double frontSampleAt;
         private int asking;
         private Smoke smoke;
         private CancellationTokenSource listening;
@@ -905,6 +915,7 @@ namespace CapriDesktop
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
+            Brain.Lite = Saved.Lite;
             StartCare();
             StartCompanion();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
@@ -929,6 +940,7 @@ namespace CapriDesktop
             Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
             Brain.Bin = OperatingSystem.IsMacOS() ? "Trash" : "trash";
             Brain.MemoryPath = Path.Combine(Program.Smoke ?? folder, "me.md");
+            Favourites.Kept = Path.Combine(Program.Smoke ?? folder, Favourites.FileName);
             StartVault();
             // Their personality.md, made only when they pick Edit (back in 0.8.0). Her safety lines stay in her code after it.
             Brain.PersonalityPath = Path.Combine(Program.Smoke ?? folder, Brain.PersonalityName);
@@ -957,6 +969,10 @@ namespace CapriDesktop
             Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
+            MigrateChimes(Saved);
+            Chimes.Testing = Program.Smoke != null;
+            ShowChimes();
+            ThreadPool.QueueUserWorkItem(delegate { Chimes.Warm(); });
             if (Saved.Volume <= 0) { Saved.Silent = true; Saved.Volume = 100; }
             Voice.Loudness = Math.Max(10, Math.Min(150, Saved.Volume ?? 100));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, Saved.Pitch));
@@ -995,7 +1011,6 @@ namespace CapriDesktop
             if (Program.Smoke == null)
             {
                 if (OperatingSystem.IsMacOS() || ComputerJobs.Supported) ComputerJobs.Attach(Brain);
-                else Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
                 Chores.Mouse = delegate { return OperatingSystem.IsMacOS() ? MacFingers.Mouse() : Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
                 // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
@@ -1096,7 +1111,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, words => Hear(words), HandMods);
+            MacFiles.Drops(body, HearNotTyped, HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -1117,7 +1132,7 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
@@ -1382,6 +1397,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            if (Program.Smoke == null && now - frontSampleAt >= 4) { frontSampleAt = now; Favourites.SampleInBackground(); }
             TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();
@@ -1400,6 +1416,7 @@ namespace CapriDesktop
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             CheckRaised(now);
             CheckKeepAwake();
+            CheckLiteRest(now);
             if (Program.Smoke == null) CheckHabits(now);
             if (away && !IsVisible)
             {
@@ -2557,6 +2574,7 @@ namespace CapriDesktop
             catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
             if (listening != turn) return;
             listening = null;
+            Chimes.Play(Chime.Heard);
             if (!string.IsNullOrWhiteSpace(text)) Hear(text, true);
             else Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
         }
@@ -2983,6 +3001,7 @@ namespace CapriDesktop
             for (int i = 0; i < popPicks.Count; i++) popPicks[i].IsChecked = i == PopPace;
             loginItem.IsChecked = StartsAtLogin;
             watchItem.IsChecked = Saved.Watch;
+            watchItem.IsEnabled = !Saved.Lite;
             for (int i = 0; i < gapPicks.Count; i++) gapPicks[i].IsChecked = GlanceGaps[i] == GlanceGap;
             caughtUpItem.IsChecked = !Saved.NoCaughtUp;
             quietItem.IsChecked = shushed;
@@ -3509,6 +3528,12 @@ namespace CapriDesktop
         internal string SetSetting(string name, bool on)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SetSetting(name, on); }).GetAwaiter().GetResult();
+            if (name == "watch_my_screen" && Saved.Lite)
+            {
+                if (!on && !Saved.LiteWatch && !Saved.Watch) return null;
+                SetWatch(on, false);
+                return on ? "Watch my screen will resume when Lite mode ends." : "Watch my screen will stay off when Lite mode ends.";
+            }
             if (SettingOn(name) == on) return null;
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) { SetCare((CareKind)careKind, on); return null; }
@@ -3978,6 +4003,72 @@ namespace CapriDesktop
             Sfx.Play(Cue.Hop);
         }
 
+        internal bool ChimesOn { get { return !(Saved.NoChimeSent && Saved.NoChimeHeard && Saved.NoChimeListening); } }
+
+        internal int ChimeVolume { get { int volume = Saved.ChimeVolume; return volume <= 0 ? Chimes.DefaultVolume : Math.Max(10, Math.Min(100, volume / 10 * 10)); } }
+
+        internal int ChimeVolumeStep { get { return Math.Max(0, Math.Min(9, ChimeVolume / 10 - 1)); } }
+
+        internal int ChimeSet { get { int set = Array.IndexOf(Chimes.Sets, Saved.ChimeSet ?? ""); return set < 0 ? Chimes.DefaultSet : set; } }
+
+        internal int ChimeSetStep { get { return Math.Max(0, Array.IndexOf(Chimes.Picked, ChimeSet)); } }
+
+        internal bool ChimeOn(Chime chime) { return chime == Chime.Sent ? !Saved.NoChimeSent : chime == Chime.Heard ? !Saved.NoChimeHeard : !Saved.NoChimeListening; }
+
+        internal static void MigrateChimes(Settings saved)
+        {
+            if (!saved.NoChimes) return;
+            saved.NoChimeSent = saved.NoChimeHeard = saved.NoChimeListening = true;
+            saved.NoChimes = false;
+        }
+
+        internal void ShowChimes()
+        {
+            Chimes.On = ChimesOn;
+            Chimes.Volume = ChimeVolume;
+            Chimes.Set = ChimeSet;
+            Chimes.Want(Chime.Sent, !Saved.NoChimeSent);
+            Chimes.Want(Chime.Heard, !Saved.NoChimeHeard);
+            Chimes.Want(Chime.Listening, !Saved.NoChimeListening);
+        }
+
+        internal void SetChime(Chime chime, bool on)
+        {
+            if (ChimeOn(chime) == on) return;
+            ToggleChime(chime);
+        }
+
+        internal void ToggleChime(Chime chime)
+        {
+            if (chime == Chime.Sent) Saved.NoChimeSent = !Saved.NoChimeSent;
+            else if (chime == Chime.Heard) Saved.NoChimeHeard = !Saved.NoChimeHeard;
+            else Saved.NoChimeListening = !Saved.NoChimeListening;
+            ShowChimes();
+            if (!ChimesOn) Chimes.Hush();
+            Save();
+            Sync();
+        }
+
+        internal void SetChimeVolume(int percent)
+        {
+            Saved.ChimeVolume = Math.Max(10, Math.Min(100, percent / 10 * 10));
+            ShowChimes();
+            Save();
+            Sync();
+        }
+
+        internal void SetChimeSet(int set)
+        {
+            set = Math.Max(0, Math.Min(Chimes.Sets.Length - 1, set));
+            Saved.ChimeSet = set == Chimes.DefaultSet ? null : Chimes.Sets[set];
+            ShowChimes();
+            Save();
+            Sync();
+            Chimes.Play(Chime.Heard, true);
+        }
+
+        internal void PreviewChime() { Chimes.Play(Chime.Heard, true); }
+
         private void RefreshBrains()
         {
             if (Brain.Provider != null) { ShowPlanModel(); return; }
@@ -4158,19 +4249,20 @@ namespace CapriDesktop
 
         internal void UseServer(string typed) { UseServer(typed, null); }
 
-        internal void UseServer(string typed, string key)
+        internal void UseServer(string typed, string key, Action<string> report = null)
         {
+            Action<string> say = report ?? (text => Talk.Answer("(brain server)", text));
             string server = Brain.ServerAddress(typed);
-            if (server == null) { Talk.Answer("(brain server)", "That address doesn't work. Try http://localhost:8080."); return; }
+            if (server == null) { say("That address doesn't work. Try https://... or http://localhost:8080."); return; }
             key = (key ?? "").Trim();
             if (key.Length == 0) key = null;
             if (key != null && !Brain.ServerKeySafe(server))
             {
-                Talk.Answer("(brain provider)", "Use https:// for a provider elsewhere. A key over plain http isn't safe.");
+                say("Use https:// for a provider elsewhere. A key over plain http isn't safe.");
                 return;
             }
             int ticket = ++asking;
-            Talk.Thinking("(brain server)");
+            if (report == null) Talk.Thinking("(brain server)");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
@@ -4178,15 +4270,19 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (ticket != asking) return;
+                    if (ticket != asking)
+                    {
+                        report?.Invoke("Provider check cancelled.");
+                        return;
+                    }
                     if (found == null || found.Length == 0)
                     {
-                        if (ticket == asking) Talk.Answer("(brain server)", found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
+                        say(found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
                         return;
                     }
                     if (!WriteServerPair(ServerPairFile, server, key))
                     {
-                        Talk.Answer("(brain provider)", "Couldn't save the provider address and key.");
+                        say("Couldn't save the provider address and key.");
                         return;
                     }
                     ComputerJobs.Stop();
@@ -4202,7 +4298,9 @@ namespace CapriDesktop
                     Saved.ServerModel = model;
                     Save();
                     if (MainframeTier == 0) ShowServer(found);
-                    if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+                    if (report != null)
+                        report(Brain.Remote == null ? "Provider connected." : "Provider saved. Your cloud key is still in use.");
+                    else if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
         }
@@ -4222,12 +4320,13 @@ namespace CapriDesktop
             Save();
         }
 
-        internal void LeaveServer()
+        internal void LeaveServer(Action<string> report = null)
         {
             ++asking;
             if (!WriteServerPair(ServerPairFile, null, null))
             {
-                Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                if (report == null) Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                else report("Couldn't remove the saved provider.");
                 return;
             }
             ComputerJobs.Stop();
@@ -4243,6 +4342,7 @@ namespace CapriDesktop
             Save();
             FindBrain();
             RefreshBrains();
+            report?.Invoke("Provider forgotten.");
         }
 
         // On a cloud key the Brain menu lists that key's chat models, and can go back to Ollama.
@@ -4889,6 +4989,19 @@ namespace CapriDesktop
 
         internal void SetWatch(bool on, bool say = true)
         {
+            // While Lite pauses screen watching, changes set what should happen when it ends.
+            if (Saved.Lite)
+            {
+                Saved.LiteWatch = on;
+                if (Saved.Watch) ApplyWatch(false, false);
+                else { Save(); Sync(); }
+                return;
+            }
+            ApplyWatch(on, say);
+        }
+
+        private void ApplyWatch(bool on, bool say)
+        {
             Saved.Watch = on;
             watchTicket++;
             nextGlance = -1;
@@ -4911,12 +5024,15 @@ namespace CapriDesktop
 
         internal void SetWatchEvery(int seconds)
         {
-            if (seconds <= 0) { if (Saved.Watch) SetWatch(false); return; }
+            if (seconds <= 0) { if (Saved.Watch || Saved.Lite && Saved.LiteWatch) SetWatch(false); return; }
             if (Saved.Watch) SetGlanceGap(seconds);
             else
             {
                 Saved.GlanceGap = seconds;
-                SetWatch(true);
+                // Lite mode keeps Watch my screen paused: a new interval waits for it to come back on, and must not wake it.
+                // Windows' Watch Every turns it back on here; the help promises a pause, so this side keeps it paused.
+                if (Saved.Lite) { Save(); Sync(); }
+                else SetWatch(true);
             }
         }
 
@@ -6123,7 +6239,14 @@ namespace CapriDesktop
             return System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
 
-        internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
+        // What they typed into her box is the only send Windows plays Message sent for. Every other way in, like a
+        // dropped file, a mod's line or her own follow-up, goes through the overload below and plays none.
+        internal void Hear(string text) { Hear(text, false, null, null, true); }
+
+        internal void Hear(string text, bool fromVoice) { Hear(text, fromVoice, null); }
+
+        // A file they dropped, or the first job her card hands over, is handed to her, not typed.
+        internal void HearNotTyped(string text) { Hear(text, false, null, null, false); }
 
         internal void HandMods(string[] paths)
         {
@@ -6139,10 +6262,10 @@ namespace CapriDesktop
             });
         }
 
-        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
+        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null, bool fromTyped = false)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed); }
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed, fromTyped); }
             catch { RemoteEnd(phone, true); throw; }
             finally
             {
@@ -6158,10 +6281,11 @@ namespace CapriDesktop
             finally { RemoteTurn.Working = previous; }
         }
 
-        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null, bool fromTyped = false)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (fromTyped && modSendDepth == 0) Chimes.Play(Chime.Sent);
             string typed = phone == null ? null : phone.Typed;
             string input = typed ?? text;
             if (phone == null && modSendDepth > 0 && RemoteJobReply(input, true)) return;
@@ -7203,6 +7327,12 @@ namespace CapriDesktop
         [DataContract]
         internal sealed class NewSettings
         {
+            [DataMember] internal bool NoChimes;
+            [DataMember] internal bool NoChimeSent;
+            [DataMember] internal bool NoChimeHeard;
+            [DataMember] internal bool NoChimeListening;
+            [DataMember] internal int ChimeVolume;
+            [DataMember] internal string ChimeSet;
             [DataMember] internal int HuskMode;
             [DataMember] internal bool NoHuskVerbosity;
             [DataMember] internal string VoiceProvider;
@@ -7238,6 +7368,8 @@ namespace CapriDesktop
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
             [DataMember] internal int MusicApp;
+            [DataMember] internal bool Lite;
+            [DataMember] internal bool LiteWatch;
             [DataMember] internal bool RemoteOn;
             [DataMember] internal string RemoteHost;
         }
@@ -7280,6 +7412,15 @@ namespace CapriDesktop
                 if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, folder);
                 if (saved.ProviderEndpoints == null) saved.ProviderEndpoints = newer.ProviderEndpoints;
             }
+            if (saved != null && newer != null && !saved.NoChimes && !saved.NoChimeSent && !saved.NoChimeHeard && !saved.NoChimeListening && saved.ChimeVolume <= 0 && saved.ChimeSet == null)
+            {
+                saved.NoChimes = newer.NoChimes;
+                saved.NoChimeSent = newer.NoChimeSent;
+                saved.NoChimeHeard = newer.NoChimeHeard;
+                saved.NoChimeListening = newer.NoChimeListening;
+                saved.ChimeVolume = newer.ChimeVolume;
+                saved.ChimeSet = newer.ChimeSet;
+            }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
             saved.LocalVoiceUrl = newer.LocalVoiceUrl;
@@ -7313,14 +7454,16 @@ namespace CapriDesktop
             saved.ThinkingPicks = newer.ThinkingPicks;
             saved.NoHuskVerbosity = newer.NoHuskVerbosity;
             saved.MusicApp = newer.MusicApp;
+            saved.Lite = newer.Lite;
+            saved.LiteWatch = newer.LiteWatch;
             return saved;
         }
 
         internal static NewSettings Newest(Settings saved)
         {
-            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
+            return new NewSettings { NoChimes = saved.NoChimes, NoChimeSent = saved.NoChimeSent, NoChimeHeard = saved.NoChimeHeard, NoChimeListening = saved.NoChimeListening, ChimeVolume = saved.ChimeVolume, ChimeSet = saved.ChimeSet, VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         internal static string ProviderKind(Settings saved, string inferred)

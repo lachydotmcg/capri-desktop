@@ -389,7 +389,7 @@ namespace CapriDesktop
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
         private readonly NeonButton support, remoteKey;
-        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
+        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote, spendLine, resourcesLine;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
@@ -402,6 +402,10 @@ namespace CapriDesktop
         private readonly NeonCaption thinkingLabel, extraLabel;
         private readonly NeonButton thinkingExtra;
         private readonly NeonSwitch stayRow;
+        private NeonPicker chimeSet;
+        private NeonSlider chimeVolume;
+        private NeonSwitch chimeSent, chimeHeard, chimeListening;
+        private static readonly string[] ChimeVolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly NeonPicker answers;
         private readonly Control answersLabel;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress, weatherCity;
@@ -414,14 +418,15 @@ namespace CapriDesktop
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
-        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 488 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 1006, 2028 } };
         // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
         private static readonly int[] EarsBand = { 428, 488 };
+        private static readonly int[] ChimeBand = { 488, 630 };
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 978, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 1006, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -448,7 +453,10 @@ namespace CapriDesktop
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
             if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
-            brainName = Caption("", 28, 79, 328, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            brainName = Caption("", 28, 79, 244, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            // Like Windows: the provider button beside her brain name opens a form for any OpenAI-compatible address and key,
+            // so she isn't limited to the providers Capri recognises from a key's prefix (the field below).
+            Key("Provider", 280, 79, 76, 20, OpenProvider);
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
             models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
             refresh = Key("Refresh", 280, 134, 76, 28, pet.MainframeRefresh);
@@ -533,6 +541,16 @@ namespace CapriDesktop
             Key("Help", 186, 606, 62, 28, () => { if (Program.Smoke == null) Pet.Browse(Pet.HelpPage); });
             Key("Quit Capri", 256, 606, 100, 28, pet.Quit).Accent = MainframeTheme.Hot;
             updateNote = Caption("", 28, 644, 328, 18, MainframeTheme.Faint, 34.0 / 3); updateNote.Ellipsis = true;
+            // Resources and Spend sit under her update note as on Windows' main page.
+            var resourcesKey = Key("Resources", 28, 674, 112, 20, OpenResources); resourcesKey.Chevron = true;
+            AutomationProperties.SetName(resourcesKey, "Resources: what's using your CPU, RAM and GPU, Capri's parts apart from other programs");
+            resourcesLine = Caption("", 148, 674, 208, 18, MainframeTheme.Faint, 34.0 / 3); resourcesLine.Align = TextAlignment.Right; resourcesLine.Ellipsis = true;
+            AutomationProperties.SetName(resourcesLine, "CPU and RAM in use");
+            readers.Add(() => resourcesLine.Text = CapriDesktop.Resources.Line());
+            var spendKey = Key("Spend", 28, 704, 112, 20, OpenSpend); spendKey.Chevron = true;
+            AutomationProperties.SetName(spendKey, "Spend: what her brain cost on your API keys today and this month, model by model");
+            spendLine = Caption("", 148, 704, 208, 18, MainframeTheme.Faint, 34.0 / 3); spendLine.Align = TextAlignment.Right; spendLine.Ellipsis = true;
+            readers.Add(() => spendLine.Text = Spend.Line());
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
             BuildSearch();
@@ -590,6 +608,21 @@ namespace CapriDesktop
                 ears.Height = 22; ears.Ellipsis = true; ears.Options(pet.EarsChoices());
                 Key("Open ears folder", 28, 459, 328, 22, pet.OpenEars);
             }
+            Named("Sound set", 0, 488);
+            chimeSet = Picker("Sound set", 184, 491, 172, () => pet.ChimeSetStep, i => pet.SetChimeSet(Chimes.Picked[i]));
+            chimeSet.Height = 22; chimeSet.Options(ChimeSetNames());
+            ToolTip.SetTip(chimeSet, "Which set of chimes she plays");
+            AutomationProperties.SetName(chimeSet, "Which set of chimes she plays");
+            chimeVolume = Slider("Chime volume", ChimeVolumeNames, 0, 518, () => pet.ChimeVolumeStep, i => pet.SetChimeVolume((i + 1) * 10), false, () => pet.PreviewChime());
+            ToolTip.SetTip(chimeVolume, "How loud her chimes are");
+            AutomationProperties.SetName(chimeVolume, "How loud her chimes are");
+            chimeSent = Toggle("Message sent", 0, 546, () => pet.ChimeOn(Chime.Sent), on => pet.SetChime(Chime.Sent, on));
+            AutomationProperties.SetName(chimeSent, "Message sent. A soft rising tick when your typed message goes to her");
+            chimeHeard = Toggle("Heard you", 0, 574, () => pet.ChimeOn(Chime.Heard), on => pet.SetChime(Chime.Heard, on));
+            AutomationProperties.SetName(chimeHeard, "Heard you. A soft falling tick when she's heard you finish talking");
+            chimeListening = Toggle("Listening", 0, 602, () => pet.ChimeOn(Chime.Listening), on => pet.SetChime(Chime.Listening, on));
+            AutomationProperties.SetName(chimeListening, "Listening. Three soft rising ticks when Listen for Capri hears her name and opens her ears");
+            readers.Add(() => { bool on = pet.ChimesOn; chimeSet.IsEnabled = chimeVolume.IsEnabled = on; });
             Section("MOVES", 0, 648);
             Slider("Wander", Pet.WanderNames, 0, 700, () => pet.Saved.Wander, pet.SetWander);
             Slider("Sleep", Pet.SleepNames, 0, 728, () => Array.IndexOf(Pet.Sleeps, pet.SleepAfter), i => pet.SetSleepAfter(Pet.Sleeps[i]));
@@ -680,8 +713,11 @@ namespace CapriDesktop
             Named("Music app", 380, 876);
             var musicApp = Picker("Music app", 564, 879, 172, () => OperatingSystem.IsLinux() ? Pet.LinuxMusicPick(pet.MusicApp) : pet.MusicApp, pick => pet.SetMusicApp(OperatingSystem.IsLinux() ? Pet.LinuxMusicApp(pick) : pick)); musicApp.Height = 22; musicApp.Options(OperatingSystem.IsLinux() ? Pet.LinuxMusicSteps : Hands.MusicSteps());
             Toggle("Remember our chats", 380, 904, () => !pet.Saved.NoMemories, pet.SetRemembering);
-            var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
-            var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
+            var lite = Toggle("Lite mode", 380, 932, () => pet.LiteOn, pet.SetLite);
+            lite.Width = 224; lite.Switch = 68;
+            Key("Why slow?", 640, 935, 96, 22, pet.CheckWhySlow);
+            var security = Key("Security: " + Security.PresetName, 408, 963, 328, 22, OpenSecurity);
+            var securityNote = Caption(Security.Short, 408, 987, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
             for (int i = 0; i < Care.Names.Length; i++)
             {
@@ -765,13 +801,14 @@ namespace CapriDesktop
             readers.Add(() => picker.Selected = read()); changes[name] = i => picker.Pick(i);
             return picker;
         }
-        private NeonSlider Slider(string name, string[] labels, int x, int y, Func<int> read, Action<int> change, bool sample = false)
+        private NeonSlider Slider(string name, string[] labels, int x, int y, Func<int> read, Action<int> change, bool sample = false, Action released = null)
         {
             Named(name, x, y);
             var slider = Add(new NeonSlider(name, labels), x + 184, y + 3, 172, 22, name);
             slider.Changed += i => { if (!syncing) change(i); };
             if (sample) readers.Add(() => slider.IsEnabled = !pet.RetainedVoice);
             if (sample) slider.Released += () => { if (!syncing && Program.Smoke == null) pet.HearStyle(); };
+            if (released != null) slider.Released += () => { if (!syncing) released(); };
             readers.Add(() => { if (!slider.Deferred || !slider.Editing) slider.Value = read(); });
             changes[name] = i => slider.Slide(i);
             return slider;
@@ -843,6 +880,8 @@ namespace CapriDesktop
         }
         private bool Expanded { get { return pet.MainframeTier == 0 && (pet.Brain.Model == null || pet.MainframePulling); } }
         internal bool SettingsShown { get { return paged; } }
+        internal string SpendLine { get { return spendLine == null ? null : spendLine.Text; } }
+        internal string ResourcesLine { get { return resourcesLine == null ? null : resourcesLine.Text; } }
         internal void Shut() { finishing = true; Close(); }
         internal void ShowSettings(bool on) { paged = on; if (on) modded = false; layout = null; CloseMenus(); Top(); Sync(); }
         protected override void Back()
@@ -919,7 +958,7 @@ namespace CapriDesktop
                     if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 910, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     if (!right && !inputSetup && anchor >= 854 && anchor < 910) show = false;
                     // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
-                    if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);
+                    if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { ChimeBand[1], band[1] } : band);
                     y = Lift(anchor, missing, folded, simple) - (control is NeonHead ? 5 : 0);
                     if (!right && anchor >= 110 && control != answers && control != answersLabel) y += 28;
                     if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += control == stayRow ? 84 : pet.NvidiaBrain ? 112 : 84;
@@ -992,6 +1031,24 @@ namespace CapriDesktop
             if (row is NeonButton key) return key.Text;
             return (row as NeonEntry)?.Box.Text;
         }
+        internal static string[] ChimeSetNames()
+        {
+            string[] names = new string[Chimes.Picked.Length];
+            for (int i = 0; i < names.Length; i++) names[i] = Chimes.Titles[Chimes.Picked[i]];
+            return names;
+        }
+        internal string ChimesStatus
+        {
+            get
+            {
+                List<string> each = new List<string>();
+                if (chimeSent.Checked) each.Add("sent");
+                if (chimeHeard.Checked) each.Add("heard");
+                if (chimeListening.Checked) each.Add("listening");
+                bool enabled = chimeVolume.IsEnabled && chimeSet.IsEnabled;
+                return (chimeSent.Checked || chimeHeard.Checked || chimeListening.Checked ? "on" : "off") + " | " + chimeVolume.Shown + " | " + string.Join(" ", each.ToArray()) + " | " + (enabled ? "enabled" : "disabled");
+            }
+        }
         internal string Outside()
         {
             var page = new Rect(0, 0, Page.Width, Page.Height);
@@ -1034,6 +1091,7 @@ namespace CapriDesktop
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
         internal void OpenServer() { ShowSheet(new MainframeSheet(pet, "CUSTOM LOCAL", "server")); }
+        internal void OpenProvider() { ShowSheet(new MainframeSheet(pet, "BRAIN PROVIDER", "provider")); }
         internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
@@ -1050,6 +1108,8 @@ namespace CapriDesktop
             else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
         }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenResources() { ShowSheet(new ResourcesSheet(pet)); }
+        internal void OpenSpend() { ShowSheet(new MainframeSheet(pet, "spend", "spend", "SPEND >")); }
         internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()
         {

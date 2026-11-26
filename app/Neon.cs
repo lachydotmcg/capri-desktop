@@ -193,6 +193,19 @@ namespace CapriDesktop
             return Narrow != null ? new Font(Narrow, size, FontStyle.Regular, unit) : new Font("Segoe UI Semibold", size - 2f, FontStyle.Regular, unit);
         }
 
+        // A point font in pixels for a screen at this DPI. .NET Framework draws points at the main screen's scale on every
+        // screen, so her menu on a 100% screen beside a 200% one came out twice too big. Each is made once and kept, so a
+        // menu never holds one that was disposed (#78).
+        private static readonly Dictionary<string, Font> atDpi = new Dictionary<string, Font>();
+
+        internal static Font AtDpi(Font font, int dpi)
+        {
+            string key = font.FontFamily.Name + "|" + font.SizeInPoints + "|" + font.Style + "|" + dpi;
+            Font made;
+            if (!atDpi.TryGetValue(key, out made)) atDpi[key] = made = new Font(font.FontFamily, font.SizeInPoints * dpi / 72f, font.Style, GraphicsUnit.Pixel);
+            return made;
+        }
+
         // A box with each corner clipped by its own amount, top left first and on round the clock.
         internal static GraphicsPath Cut(RectangleF box, float topLeft, float topRight, float bottomRight, float bottomLeft)
         {
