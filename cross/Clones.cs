@@ -328,11 +328,12 @@ namespace CapriDesktop
                 foreach (Window window in new Window[] { this, Talk.Pill, Talk.Bubble })
                     window.Opened += (_, _) => { if (Saved.Hologram) Program.Guard(() => cloneThrough(window, true)); };
             Closed += (_, _) => { ClonesOff(); body.Hologram.Dispose(); body.HologramMouth.Dispose(); };
-            hologramItem = HologramMenu();
-            ContextMenu.Items.Insert(3, hologramItem);
-            MenuItem clear = new MenuItem { Header = "Clear clones" };
+            hologramItem = Tipped(HologramMenu(), "Clicks go through her until you turn it off");
+            int hidden = ContextMenu.Items.IndexOf(hideItem);
+            ContextMenu.Items.Insert(hidden < 0 ? 3 : hidden + 1, hologramItem);
+            MenuItem clear = Tipped(new MenuItem { Header = "Clear clones" }, "Send her copies away");
             clear.Click += Guarded(ClonesOff);
-            ContextMenu.Items.Insert(4, clear);
+            ContextMenu.Items.Insert(ContextMenu.Items.IndexOf(hologramItem) + 1, clear);
             body.HologramOn = Saved.Hologram;
         }
 

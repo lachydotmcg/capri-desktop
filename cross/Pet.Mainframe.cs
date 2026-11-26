@@ -408,7 +408,8 @@ namespace CapriDesktop
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
                 var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
-                    ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
+                    ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None,
+                    ToolTip = ToolTip.GetTip(row) is string tip ? Lingo.Of(tip) : null };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 menu.Items.Add(item);
