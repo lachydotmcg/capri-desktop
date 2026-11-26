@@ -88,12 +88,19 @@ namespace CapriDesktop
             return Plug;
         }
 
-        // Notion and Linear show their own logos, and Email shows its provider's once one is connected. The rest keep her drawings.
+        // Starter services show their own marks; Email keeps its envelope until a known provider is connected.
         internal static ServiceLogo PluginLogo(Mod mod)
         {
             if (mod == null || !mod.Starter) return null;
             if (mod.File.Id == "notion") return ServiceLogo.Notion;
             if (mod.File.Id == "linear") return ServiceLogo.Linear;
+            if (mod.File.Id == "todoist") return ServiceLogo.Todoist;
+            if (mod.File.Id == "github") return ServiceLogo.GitHub;
+            if (mod.File.Id == "atlassian") return ServiceLogo.Atlassian;
+            if (mod.File.Id == "monday") return ServiceLogo.Monday;
+            if (mod.File.Id == "miro") return ServiceLogo.Miro;
+            if (mod.File.Id == "cloudflare-docs") return ServiceLogo.Cloudflare;
+            if (mod.File.Id == "context7") return ServiceLogo.Context7;
             if (!Builtin(mod, "mail") || !MailTools.Ready) return null;
             MailProvider provider = ProviderFor(MailTools.Account.Address);
             return provider == null ? null : provider.Logo;

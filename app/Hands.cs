@@ -1055,11 +1055,24 @@ namespace CapriDesktop
         }
 
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
-        internal static bool Instant(string tool, ToolArguments args = null)
+        internal static bool Instant(string tool, ToolArguments args = null, string request = null)
         {
+            if (tool == "app_window" && args != null && args.Action == "close" && ExactAppClose(args, request ?? args.Asked)) return true;
             // Known websites and file names need no planner to reinterpret them (john_sandevistan, B88).
             if (tool == "website_nickname" || tool == "find_file" || tool == "open_website" && args != null && string.IsNullOrWhiteSpace(args.Search) && Websites != null && Websites.Nickname(args.Site) != null) return true;
             return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember" || tool == "stopwatch";
+        }
+
+        private static bool ExactAppClose(ToolArguments args, string request)
+        {
+            if (string.IsNullOrWhiteSpace(args.Name) || string.IsNullOrWhiteSpace(args.Asked)) return false;
+            string target = args.Name.Trim();
+            if (!Regex.IsMatch(Asked(request), @"\A(?:close|quit|exit|kill|shut down)\s+" + Regex.Escape(target) + @"\z", RegexOptions.IgnoreCase)) return false;
+            try
+            {
+                return Windows().Exists(window => string.Equals(window.Program, target, StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception) { return false; }
         }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it. Only a brain on their
