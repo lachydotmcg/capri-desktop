@@ -811,7 +811,7 @@ namespace CapriDesktop
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
             intro.Width = 226;
-            introPick = Make(Intros.NameOf(Intros.Classic), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
+            introPick = Make(Intros.NameOf(Intros.Default), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
             introPick.Chevron = true;
             introPick.Ellipsis = true;
             introPick.AccessibleName = "Startup animation: pick which one plays, with a live preview of each";
