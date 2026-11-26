@@ -1024,6 +1024,7 @@ namespace CapriDesktop
         [DataMember] public bool HideFullScreen;
         [DataMember] public bool PlayerFullScreen;
         [DataMember] public bool Hologram;
+        [DataMember(EmitDefaultValue = false)] public bool HologramTold;
         [DataMember] public bool ExploreAway;
         [DataMember] public bool AdvancedSettings;
         [DataMember] public int ExploreAfter;
@@ -3682,7 +3683,7 @@ namespace CapriDesktop
                 balloonMainframe = true;
                 tray.ShowBalloonTip(12000, "Capri started fresh", "She closed while starting twice in a row, so her settings were reset. Your keys stayed. The old settings are in settings.crashed.json.", ToolTipIcon.Warning);
             }
-            if (preferences.Hologram) TellHologram(true);
+            HologramAtStart();
             ShowCloseNotice();
             // After the close notice, which would cover it: their keys need adding again, so this one matters more.
             ShowUnreadableNotice();
@@ -12395,14 +12396,22 @@ namespace CapriDesktop
                 StopRide();
                 if (clip == dangle) { Play(idle); Drop(); }
             }
+            bool firstTime = on && !was && !preferences.HologramTold;
+            if (firstTime) preferences.HologramTold = true;
             PassThrough();
             RenderFrame();
             SavePreferences();
             if (mainframe != null) mainframe.Sync();
-            TellHologram(on && !was);
+            TellHologram(firstTime);
         }
 
-        // Clicks go through a hologram, so right-clicking her can't undo it. Her tray icon and a balloon say where it can be (#422).
+        private void HologramAtStart()
+        {
+            if (preferences.Hologram) TellHologram(false);
+        }
+
+        // Clicks go through a hologram, so right-clicking her can't undo it. Her tray tooltip always says where it can be, and one quiet
+        // balloon says so the first time it ever goes on (#422).
         private void TellHologram(bool balloon)
         {
             if (tray == null) return;
@@ -12414,7 +12423,23 @@ namespace CapriDesktop
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = true;
-            tray.ShowBalloonTip(10000, "Capri is a hologram", "Clicks go through her, so right-clicking her won't work. Click here to turn Hologram off in Mainframe, or untick Hologram in her tray icon's menu.", ToolTipIcon.Info);
+            if (!QuietBalloon(tray, "Hologram on", "Clicks go through her. Turn it off from her tray icon.")) tray.ShowBalloonTip(5000, "Hologram on", "Clicks go through her. Turn it off from her tray icon.", ToolTipIcon.Info);
+        }
+
+        // NotifyIcon.ShowBalloonTip can't ask Windows for no sound, so this sends the same balloon with NIIF_NOSOUND to the icon's own window.
+        private static bool QuietBalloon(NotifyIcon icon, string title, string text)
+        {
+            try
+            {
+                const BindingFlags hidden = BindingFlags.NonPublic | BindingFlags.Instance;
+                FieldInfo windowField = typeof(NotifyIcon).GetField("window", hidden), idField = typeof(NotifyIcon).GetField("id", hidden);
+                NativeWindow window = windowField == null ? null : windowField.GetValue(icon) as NativeWindow;
+                if (window == null || window.Handle == IntPtr.Zero || idField == null) return false;
+                Native.TrayIconData data = new Native.TrayIconData { Window = window.Handle, Id = (int)idField.GetValue(icon), Flags = 0x10, Info = text, InfoTitle = title, InfoFlags = 0x01 | 0x10 };
+                data.Size = Marshal.SizeOf(typeof(Native.TrayIconData));
+                return Native.Shell_NotifyIcon(1, ref data);
+            }
+            catch (Exception) { return false; }
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
@@ -18301,12 +18326,10 @@ namespace CapriDesktop
                 SetHologram(false);
                 using (Bitmap normal = (Bitmap)frame.Clone())
                 {
+                    preferences.HologramTold = false;
                     int noticesBefore = hologramNotices;
                     hologramItem.PerformClick();
-                    bool toldByMenu = hologramNotices == noticesBefore + 1;
-                    SetHologram(true);
-                    if (!toldByMenu || hologramNotices != noticesBefore + 1 || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram went on from her menu without telling them how to turn it off: " + (hologramNotices - noticesBefore) + " notices, tray \"" + tray.Text + "\".");
-                    checks.Add("PASS Hologram on from her menu says once, in a balloon and her tray tooltip, how to turn it off");
+                    if (hologramNotices != noticesBefore + 1 || !LoadPreferences().HologramTold || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram's first time on from her menu showed " + (hologramNotices - noticesBefore) + " balloons and tray \"" + tray.Text + "\".");
                     if (!preferences.Hologram || !hologramItem.Checked || !LoadPreferences().Hologram || tray.ContextMenuStrip != menu || !menu.ShowCheckMargin || hologramItem.AccessibleName.IndexOf("tray icon", StringComparison.Ordinal) < 0) throw new Exception("Hologram's shared tray item did not toggle, tick or save.");
                     checks.Add("PASS Hologram menu item toggles, shows its check and recovery hint, and saves in preferences");
                     foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
@@ -18362,10 +18385,14 @@ namespace CapriDesktop
                 PassThrough();
                 checks.Add("PASS Hologram preserves cursor lending during jobs and leaves the task panel usable when the cursor returns");
                 Preferences restarted = LoadPreferences();
+                int noticesThen = hologramNotices;
                 SetHologram(false);
                 SetHologram(restarted.Hologram);
                 if (!preferences.Hologram || !hologramItem.Checked || rideItem.Enabled || (Native.GetWindowLong(Handle, -20) & 0x20) == 0) throw new Exception("Loading saved preferences did not restore hologram mode.");
                 checks.Add("PASS Hologram survives LoadPreferences and restores its check, disabled ride and click-through");
+                HologramAtStart();
+                if (hologramNotices != noticesThen || !restarted.HologramTold || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram's balloon came back on a later toggle or at startup (" + (hologramNotices - noticesThen) + "), or her tray tooltip lost it: \"" + tray.Text + "\".");
+                checks.Add("PASS Hologram's balloon shows only the first time it ever goes on, not on later toggles or at startup, and her tray tooltip says so every time");
                 hologramItem.PerformClick();
                 foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
                     if ((Native.GetWindowLong(form.Handle, -20) & 0x20) != 0) throw new Exception("Turning hologram off did not give clicks back to " + form.GetType().Name);
@@ -67068,6 +67095,20 @@ namespace CapriDesktop
             internal int Flags;
             internal IntPtr Dirty;
         }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] internal struct TrayIconData
+        {
+            internal int Size;
+            internal IntPtr Window;
+            internal int Id, Flags, CallbackMessage;
+            internal IntPtr Icon;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] internal string Tip;
+            internal int State, StateMask;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)] internal string Info;
+            internal int TimeoutOrVersion;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] internal string InfoTitle;
+            internal int InfoFlags;
+        }
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)] internal static extern bool Shell_NotifyIcon(int message, ref TrayIconData data);
         [StructLayout(LayoutKind.Sequential)] private struct InputInfo { internal int Size; internal uint Time; }
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
