@@ -10,6 +10,7 @@ voice_scratch=$(mktemp -d)
 trap 'if [ -n "${voice_scratch:-}" ]; then rm -rf -- "$voice_scratch"; fi' EXIT
 dotnet run --project "$root/tests/cross-voice-integration/VoiceVerifier.csproj" -c Release -- "$root/out/voice-bin/Capri.dll" "$voice_scratch" fresh
 dotnet run --project "$root/tests/everyday-jobs/EverydayJobs.csproj" -c Release -- --brain "Scripted=scripted" --floor 100
+dotnet run --project "$root/tests/everyday-jobs/EverydayJobs.csproj" -c Release --no-build -- --routing-checks
 make -C "$root/cross/native"
 python3 "$root/tests/computer/native_input_checks.py" "$root/cross/native/capri-input"
 python3 "$root/tests/native-bridge/terminal_supervisor_checks.py"

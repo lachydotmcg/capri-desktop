@@ -518,7 +518,7 @@ namespace CapriDesktop
                 ShowMods(true);
                 string[] names = { "Email", "Notion", "Linear", "Todoist" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, ServiceLogo.Todoist };
                 for (int i = 0; i < 4; i++)
                     if (!plugTiles[i].Visible || plugTiles[i].Text != names[i] || plugTiles[i].Picture != pictures[i] || plugTiles[i].Logo != logos[i] || plugTiles[i].State != "Off" || plugTiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + plugTiles[i].Text + " " + plugTiles[i].State);
