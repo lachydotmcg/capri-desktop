@@ -880,11 +880,11 @@ namespace CapriDesktop
         {
             int callVersion = pushCallVersion;
             pushing = false;
+            if (pushOpened) { pushOpened = false; ears.Stop(); }
             if (pushUnmuted) { pushUnmuted = false; ears.Muted = true; if (chatting) pill.SetChat(true, true); }
             List<short[]> taken;
             CallChunk[] callLine;
             lock (waking) { taken = pushed; pushed = null; callLine = pushedCall == null ? null : pushedCall.ToArray(); pushedCall = null; }
-            if (pushOpened) { pushOpened = false; ears.Stop(); }
             if (taken == null) { Commentary.Stage.Hear("", true); return; }
             int total = 0;
             foreach (short[] piece in taken) total += piece.Length;

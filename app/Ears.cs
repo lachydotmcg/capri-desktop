@@ -57,7 +57,31 @@ namespace CapriDesktop
         internal event Action<double> Level;
         internal event Action<string> Changed;
         internal string OpenedId { get { return openedId; } }
-        internal volatile bool Muted;
+        // Muted closes the mic itself, so Windows stops showing her as using it (issue #420), and feeds silence in its place, so
+        // everything listening still hears quiet chunks at the same pace. Unmuting opens it again.
+        internal bool Muted
+        {
+            get { return muted; }
+            set
+            {
+                lock (switching)
+                {
+                    if (muted == value) return;
+                    muted = value;
+                    if (!running) return;
+                    if (value) { Release(); StartSilence(); return; }
+                    StopSilence();
+                    lastChunk = Environment.TickCount;
+                    // A mic that's blocked, gone to the cable or won't open again is left to look stalled, so her hearing check
+                    // reopens it through Start's own checks and says why.
+                    if (blocked() || !fake && MicMix.IsCableOut(openedId == null ? DefaultName() : FullName(openedId))) { lastChunk = Environment.TickCount - 6000; return; }
+                    try { Capture(FullName(openedId) ?? openedId ?? "Windows default"); }
+                    catch (Exception) { lastChunk = Environment.TickCount - 6000; }
+                }
+            }
+        }
+        private volatile bool muted;
+        internal bool Capturing { get { return capturing || modern != null; } }
         internal volatile string Chosen;
         // Power saver over a game (issue #111): her mics are polled and their routes checked less often. Every chunk still gets
         // heard and decoded, so Hey Capri and Listen for Capri keep working; she might just take a moment longer to hear you.
@@ -71,6 +95,10 @@ namespace CapriDesktop
         private Thread worker;
         private AutoResetEvent signal;
         private volatile bool running;
+        private volatile bool capturing;
+        private Thread silence;
+        private ManualResetEvent silenceDone;
+        private readonly object switching = new object();
         private SoundIn modern;
         private readonly Func<string, Action<short[]>, SoundIn> open;
         private readonly Func<string, string> resolve;
@@ -345,6 +373,11 @@ namespace CapriDesktop
 
         internal void Start()
         {
+            lock (switching) Open();
+        }
+
+        private void Open()
+        {
             if (running) return;
             if (blocked())
             {
@@ -375,6 +408,21 @@ namespace CapriDesktop
             string name = FullName(openedId) ?? openedId ?? "Windows default";
             if (!string.IsNullOrEmpty(Chosen) && !string.Equals(Chosen, openedId, StringComparison.OrdinalIgnoreCase))
                 Brain.Log("ears", -1, "Saved mic " + Chosen + " is unavailable; using Windows default " + name + ".");
+            lastChunk = Environment.TickCount;
+            running = true;
+            if (muted)
+            {
+                StartSilence();
+                Brain.Log("ears", -1, "Her mic " + name + " [" + openedId + "] stays closed while she's muted.");
+                if (Changed != null) Changed(null);
+                return;
+            }
+            try { Capture(name); }
+            catch (Exception) { running = false; throw; }
+        }
+
+        private void Capture(string name)
+        {
             if (!fake && !preferModern)
             {
                 try
@@ -400,7 +448,7 @@ namespace CapriDesktop
                     }
                     CheckWave(waveInStart(device), "start");
                     lastChunk = Environment.TickCount;
-                    running = true;
+                    capturing = true;
                     worker = new Thread(Pump) { IsBackground = true, Name = "Capri ears" };
                     worker.Start();
                     Brain.Log("ears", -1, "WaveIn opened " + name + " [" + openedId + "]: 16000 Hz, 1 channel, 16-bit PCM.");
@@ -409,8 +457,7 @@ namespace CapriDesktop
                 }
                 catch (Exception error)
                 {
-                    running = false;
-                    CloseWave();
+                    Release();
                     preferModern = true;
                     Brain.Log("ears", -1, "WaveIn couldn't open " + name + " as 16000 Hz mono 16-bit PCM: " + VoiceException.Logged(error) + " Trying WASAPI.");
                 }
@@ -418,14 +465,12 @@ namespace CapriDesktop
             try
             {
                 lastChunk = Environment.TickCount;
-                running = true;
                 modern = open(openedId, Receive);
                 Brain.Log("ears", -1, "WASAPI opened " + name + " [" + openedId + "]: " + modern.Format + " -> 16000 Hz, 1 channel, 16-bit PCM.");
                 if (Changed != null) Changed(null);
             }
             catch (Exception error)
             {
-                running = false;
                 Brain.Log("ears", -1, "WASAPI couldn't open " + name + " [" + openedId + "]: " + VoiceException.Logged(error));
                 // Only her own plain lines reach the hearing line and her bubble; anything else Windows threw is errors.txt's.
                 string plain = error is VoiceException ? error.Message : Unopened;
@@ -436,9 +481,19 @@ namespace CapriDesktop
 
         internal void Stop()
         {
-            if (!running) return;
-            if (modern == null && Environment.TickCount - lastChunk > 5000) preferModern = true;
-            running = false;
+            lock (switching)
+            {
+                if (!running) return;
+                if (capturing && modern == null && Environment.TickCount - lastChunk > 5000) preferModern = true;
+                running = false;
+                StopSilence();
+                Release();
+            }
+        }
+
+        private void Release()
+        {
+            capturing = false;
             if (modern != null) { modern.Dispose(); modern = null; }
             if (signal != null) signal.Set();
             // A chunk handler that never returns mustn't freeze her. After 3 s its buffers are left alone, so the stuck thread
@@ -470,6 +525,33 @@ namespace CapriDesktop
             signal = null;
         }
 
+        // Quiet chunks at the mic's own pace while she's muted, so hearing, levels and her stall check carry on as if it were open.
+        private void StartSilence()
+        {
+            ManualResetEvent done = new ManualResetEvent(false);
+            silenceDone = done;
+            silence = new Thread(delegate()
+            {
+                while (!done.WaitOne(1000 * Chunk / Rate))
+                {
+                    lastChunk = Environment.TickCount;
+                    Feed(new short[Chunk]);
+                }
+            }) { IsBackground = true, Name = "Capri muted ears" };
+            silence.Start();
+        }
+
+        private void StopSilence()
+        {
+            if (silence == null) return;
+            silenceDone.Set();
+            // A stuck handler keeps its event, so the thread never waits on a disposed one.
+            if (silence.Join(3000)) silenceDone.Dispose();
+            else Brain.Log("ears", -1, "Her muted mic's quiet thread didn't stop within 3 s.");
+            silence = null;
+            silenceDone = null;
+        }
+
         public void Dispose() { Stop(); }
 
         private void Pump()
@@ -479,10 +561,10 @@ namespace CapriDesktop
             int next = 0;
             try
             {
-                while (running)
+                while (capturing && worker == Thread.CurrentThread)
                 {
                     signal.WaitOne(250);
-                    while (running)
+                    while (capturing && worker == Thread.CurrentThread)
                     {
                         IntPtr pointer = headers[next];
                         WaveHeader header = (WaveHeader)Marshal.PtrToStructure(pointer, typeof(WaveHeader));
@@ -498,12 +580,12 @@ namespace CapriDesktop
                     }
                 }
             }
-            catch (Exception error) { if (running) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + VoiceException.Logged(error)); } }
+            catch (Exception error) { if (capturing) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + VoiceException.Logged(error)); } }
         }
 
         private void Receive(short[] chunk)
         {
-            if (!running) return;
+            if (!running || muted) return;
             lastChunk = Environment.TickCount;
             Feed(chunk);
         }
