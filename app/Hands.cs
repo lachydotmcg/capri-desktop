@@ -2165,6 +2165,7 @@ namespace CapriDesktop
                     return make == null ? "Making tools isn't set up here." : make(args.Text);
                 }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
+                if (tool == "open_website") AimBrowser(args, args.Asked);
 #if CROSS
                 if (tool == "open_website" && NativeWebsite != null)
                 {
@@ -5147,12 +5148,21 @@ namespace CapriDesktop
             try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
             if (kind != null)
             {
+                bool browser = string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase);
                 string theirs = null;
-                try { theirs = Favourites.Best(kind); } catch (Exception) { }
+                try
+                {
+#if CROSS
+                    theirs = Favourites.Best(kind);
+#else
+                    theirs = browser ? Favourites.Picked(kind) : Favourites.Best(kind);
+#endif
+                }
+                catch (Exception) { }
                 bool installed = false;
                 if (!string.IsNullOrEmpty(theirs)) try { installed = FindApps(theirs).Count > 0; } catch (Exception) { installed = false; }
                 if (installed) wanted = theirs;
-                else if (string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase)) return OpenBrowserKind(current);
+                else if (browser) return OpenBrowserKind(current);
             }
             List<InstalledApp> found;
 #if CROSS
@@ -5175,8 +5185,51 @@ namespace CapriDesktop
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
 
-        private static string OpenBrowserKind(Func<bool> current)
+#if !CROSS
+        internal static Func<string> DefaultBrowser = FindDefaultBrowser;
+
+        // The program Windows opens https links with, from their own choice in Default apps.
+        private static string FindDefaultBrowser()
         {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey choice = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"))
+                {
+                    string progId = choice == null ? null : choice.GetValue("ProgId") as string;
+                    if (string.IsNullOrWhiteSpace(progId)) progId = "https";
+                    using (Microsoft.Win32.RegistryKey command = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(progId + @"\shell\open\command"))
+                    {
+                        string program = BrowserCommand(command == null ? null : command.GetValue(null) as string);
+                        return program != null && Path.IsPathRooted(program) && Exists(program) ? program : null;
+                    }
+                }
+            }
+            catch (System.Security.SecurityException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (IOException) { }
+            return null;
+        }
+
+#endif
+
+        internal static string OpenBrowserKind(Func<bool> current)
+        {
+#if !CROSS
+            string theirs = DefaultBrowser();
+            if (theirs != null)
+            {
+                if (current != null && !current()) return "That call errand has ended.";
+                string program = Path.GetFileNameWithoutExtension(theirs);
+                string named = BrowserName(program) ?? program;
+                try
+                {
+                    Run(theirs);
+                    return "Opened " + named + (current == null ? Opened(named) : "") + ".";
+                }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+#endif
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
             {
                 List<InstalledApp> found;
@@ -5824,6 +5877,24 @@ namespace CapriDesktop
             else if (Named(args.Search) && Site(args.Search)) { args.Site = args.Search.Trim(); args.Search = null; }
         }
 
+        // A blank transcript still came from the model. Null is used by structured callers with their own browser choice.
+        internal static void AimBrowser(ToolArguments args, string said)
+        {
+            if (args == null || said == null) return;
+            string request = Asked(said);
+            string wanted = BrowserQualifier(ref request);
+            if (wanted == null)
+            {
+                Match use = Regex.Match(request, @"^(?:use|open|launch|start)\s+(?:the |my )?(" + BrowserWords + @")(?: browser)?\s+(?:to|for)\s+", RegexOptions.IgnoreCase);
+                if (use.Success) wanted = use.Groups[1].Value;
+            }
+            string selected = BrowserName(wanted);
+#if !CROSS
+            if (selected == null) try { selected = BrowserName(Favourites.Picked("browser")); } catch (Exception) { }
+#endif
+            if (selected == null || BrowserName(args.Browser) != selected) args.Browser = selected;
+        }
+
         private static string OpenSite(string site, string search, string browser = null)
         {
             string address = null;
@@ -5847,15 +5918,15 @@ namespace CapriDesktop
             return result + " in " + browserName + Opened(browserName) + ".";
         }
 
-        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft )?edge|(?:mozilla )?firefox|opera[ _]gx|opera|brave|vivaldi";
+        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft |ms ?)?edge|(?:mozilla )?fire ?fox|opera[ _]gx|opera|brave|vivaldi";
         private static readonly string[] BrowserNames = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
 
         internal static string BrowserName(string browser)
         {
             string plain = Regex.Replace(Plain(browser), @"^the | (browser|stable)$", "");
             if (plain == "google chrome") plain = "chrome";
-            if (plain == "microsoft edge") plain = "edge";
-            if (plain == "mozilla firefox") plain = "firefox";
+            if (plain == "microsoft edge" || plain == "ms edge" || plain == "msedge") plain = "edge";
+            if (plain == "mozilla firefox" || plain == "mozilla fire fox" || plain == "fire fox") plain = "firefox";
             foreach (string choice in BrowserNames) if (plain == choice.ToLowerInvariant()) return choice;
             return null;
         }
@@ -5865,14 +5936,19 @@ namespace CapriDesktop
             return BrowserName(name);
         }
 
-        // "open youtube in chrome", "in firefox open reddit", "search for cats on youtube in edge". Only the end or the start of what they said can name a browser, so "chrome hearts" stays a search.
+        // Browser qualifiers must bracket the request, so a phrase like "Chrome Hearts" stays a search.
+        private static string BrowserQualifier(ref string text)
+        {
+            Match before = Regex.Match(text, @"^(?:in|using|with) (?:the )?(" + BrowserWords + @")(?: browser)?[, ]+(.+)$", RegexOptions.IgnoreCase);
+            if (before.Success) { text = before.Groups[2].Value; return before.Groups[1].Value.ToLowerInvariant(); }
+            Match after = Regex.Match(text, @"^(.+?)\s+(?:in|using|with) (?:the )?(" + BrowserWords + @")(?: browser)?$", RegexOptions.IgnoreCase);
+            if (after.Success) { text = after.Groups[1].Value; return after.Groups[2].Value.ToLowerInvariant(); }
+            return null;
+        }
+
         private static ToolArguments WebsiteRequest(string text)
         {
-            string browser = null;
-            Match before = Regex.Match(text, @"^in (?:the )?(" + BrowserWords + @")(?: browser)?[, ]+(.+)$", RegexOptions.IgnoreCase);
-            if (before.Success) { browser = before.Groups[1].Value.ToLowerInvariant(); text = before.Groups[2].Value; }
-            Match after = Regex.Match(text, @"^(.+?)\s+in (?:the )?(" + BrowserWords + @")(?: browser)?$", RegexOptions.IgnoreCase);
-            if (after.Success && browser == null) { browser = after.Groups[2].Value.ToLowerInvariant(); text = after.Groups[1].Value; }
+            string browser = BrowserQualifier(ref text);
             Match nickname = Regex.Match(text, @"^(?:open|launch|start|go to|take me to|check out)\s+(.+)$", RegexOptions.IgnoreCase);
             if (Websites != null)
             {

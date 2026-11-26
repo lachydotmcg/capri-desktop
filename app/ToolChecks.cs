@@ -1526,5 +1526,145 @@ namespace CapriDesktop
             if (problems.Count > 0) throw new Exception("Her local brain's tools went wrong: " + string.Join("; ", problems.ToArray()));
             checks.Add("PASS her brain on their PC holds her tools (Lachy, 8 Nov): chat is one call without the tool list, a job it names or a plain ask goes to every tool and its own pick runs, the open shortcut waits for it, and a model that turns tools down falls back to written calls for that model alone");
         }
+
+        // "Play X" with YouTube Music ended up typing into Chrome's address bar on a PC whose default browser is Edge (23 Nov). A
+        // browser they never named, an open browser's address bar, or "open my browser" picking the first one found chose it.
+        private static void SmokeDefaultBrowser(List<string> checks, string part)
+        {
+            Func<string, string> browserWas = Hands.BrowserPath, openedWas = Hands.Opened;
+            Func<string> defaultWas = Hands.DefaultBrowser;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Action<string, string> browseWas = Hands.Browse;
+            Func<Sight> lookWas = Computer.Look;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<Target> focusWas = Computer.Focus;
+            try
+            {
+                string ran = null, browsed = null;
+                Hands.BrowserPath = delegate(string name) { return @"C:\Browsers\" + name + ".exe"; };
+                Hands.Opened = delegate { return ""; };
+                Hands.Run = delegate(string address) { ran = address; };
+                Hands.Browse = delegate(string path, string address) { browsed = path; };
+                if (part == "named")
+                {
+                    string[,] asked =
+                    {
+                        { "play lofi on youtube music", "chrome", null },
+                        { "open reddit in firefox", "chrome", "Firefox" },
+                        { "open youtube in chrome", "chrome", "Chrome" },
+                        { "open youtube in google chrome", "chrome", "Chrome" },
+                        { "open it in ms edge", "edge", "Edge" },
+                        { "play taylor swift’s new song on youtube music 🎵", "chrome", null },
+                        { "play lofi on youtube music in microsoft edge", "edge", "Edge" },
+                        { "open twitch in opera gx", "opera gx", "Opera GX" },
+                        { null, "chrome", "Chrome" },
+                        { "", "chrome", null },
+                        { "ユーチューブを開いて", "chrome", null },
+                        { "search Chrome Hearts on YouTube", "chrome", null },
+                        { "open twitch in opera", "opera gx", "Opera" },
+                        { "search cat videos using Firefox", null, "Firefox" }
+                    };
+                    for (int i = 0; i < asked.GetLength(0); i++)
+                    {
+                        ran = null; browsed = null;
+                        Hands.Do("open_website", new ToolArguments { Site = "music.youtube.com", Browser = asked[i, 1], Asked = asked[i, 0] });
+                        string wanted = asked[i, 2] == null ? null : @"C:\Browsers\" + asked[i, 2] + ".exe";
+                        if (browsed != wanted || (wanted == null) != (ran != null))
+                            throw new Exception("open_website took a browser they didn't name, or dropped one they did: " + (asked[i, 0] ?? "(no words)") + " / " + asked[i, 1] + " -> " + (browsed ?? "default " + ran));
+                    }
+                    checks.Add("PASS open_website drops a browser they didn't name in their own words and opens their default browser, keeps Chrome, Edge or Opera GX when they said it, and preserves an explicit structured browser choice");
+                }
+                if (part == "job")
+                {
+                    Sight chrome = new Sight { Window = new IntPtr(9), Title = "New Tab - Google Chrome", Program = "chrome" };
+                    chrome.Targets.Add(new Target { Number = 1, Role = "box", Name = "Address and search bar", Line = true, Focused = true, Box = new Rectangle(100, 40, 600, 24) });
+                    chrome.Targets.Add(new Target { Number = 2, Role = "document", Name = "New Tab", Page = true, Box = new Rectangle(0, 80, 1000, 700) });
+                    chrome.Targets.Add(new Target { Number = 3, Role = "box", Name = "Search", Line = true, Box = new Rectangle(300, 300, 400, 30) });
+                    chrome.Targets.Add(new Target { Number = 4, Role = "box", Name = "", Line = true, Box = new Rectangle(720, 40, 200, 24) });
+                    chrome.Targets.Add(new Target { Number = 5, Role = "box", Name = "Search by location", Line = true, Box = new Rectangle(300, 360, 400, 30) });
+                    Computer.Look = delegate { return chrome; };
+                    Computer.Front = delegate { return new IntPtr(9); };
+                    List<string> acted = new List<string>();
+                    string browserUsed = "unset";
+                    Computer.Act = delegate(string name, ToolArguments a, Sight s) { acted.Add(name); if (name == "open_website") browserUsed = a.Browser; return "Did it."; };
+                    string[] script =
+                    {
+                        "press{\"keys\": \"ctrl+l\"}", "type{\"target\": \"1\", \"text\": \"music.youtube.com\", \"enter\": \"yes\"}", "type{\"text\": \"lofi\", \"enter\": \"yes\"}",
+                        "type{\"target\": \"4\", \"text\": \"lofi\"}", "type{\"target\": \"3\", \"text\": \"lofi\"}", "type{\"target\": \"5\", \"text\": \"lofi cafes\"}",
+                        "open_website{\"site\": \"music.youtube.com\", \"search\": \"lofi\", \"browser\": \"chrome\"}", "done{\"text\": \"Playing lofi.\"}"
+                    };
+                    int line = 0;
+                    Job playing = new Job("Play lofi on YouTube Music", "play lofi on youtube music");
+                    playing.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                    List<string> failed = new List<string>();
+                    playing.Stepped = delegate(JobStep step) { if (step.Finished && step.Failed) failed.Add(step.Label); };
+                    playing.Run();
+                    bool refused = failed.Count == 3 && failed.TrueForAll(label => label == Computer.NoAddressBarShown) && Hands.Shown(Computer.NoAddressBarShown) == Computer.NoAddressBarShown
+                        && playing.Steps.FindAll(step => step.IndexOf(Computer.NoAddressBar, StringComparison.Ordinal) >= 0).Count == 3;
+                    if (!refused || string.Join(",", acted.ToArray()) != "type,type,type,open_website" || browserUsed != null)
+                        throw new Exception("A job used Chrome's address bar or a browser they didn't name: " + string.Join(",", acted.ToArray()) + " / " + (browserUsed ?? "default") + " / " + string.Join(" | ", failed.ToArray()));
+                    line = 0; acted.Clear(); browserUsed = "unset";
+                    script = new[] { "open_website{\"site\": \"music.youtube.com\", \"browser\": \"chrome\"}", "done{\"text\": \"Opened it.\"}" };
+                    Job named = new Job("Open YouTube Music in Chrome", "open youtube music in chrome");
+                    named.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                    named.Run();
+                    if (browserUsed != "chrome") throw new Exception("A job dropped the Chrome they named: " + (browserUsed ?? "default"));
+                    line = 0; browserUsed = "unset";
+                    script = new[] { "open_website{\"site\": \"music.youtube.com\", \"search\": \"lofi\", \"browser\": \"chrome\"}", "done{\"text\": \"Playing lofi.\"}" };
+                    Job music = new Job(Hands.ServiceJob("youtubemusic", "lofi", null));
+                    music.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                    music.Run();
+                    if (browserUsed != null) throw new Exception("Her YouTube Music job, which carries no words of theirs, kept a browser its brain guessed: " + browserUsed);
+                    line = 0; browserUsed = "unset";
+                    Job edited = new Job("Open YouTube Music in Chrome", "open YouTube Music in Chrome");
+                    edited.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                    if (!edited.RequestEdit(delegate { })) throw new Exception("Could not edit the browser job.");
+                    edited.FinishEdit("open YouTube Music in Firefox");
+                    edited.Run();
+                    if (Hands.BrowserName(browserUsed) != "Firefox") throw new Exception("The edited job used the old browser: " + browserUsed);
+                    string guessedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats" }) ?? "";
+                    string namedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats in chrome" }) ?? "";
+                    if (guessedSearch.Length == 0 || guessedSearch.IndexOf("chrome", StringComparison.OrdinalIgnoreCase) >= 0 || namedSearch.IndexOf("browser \"chrome\"", StringComparison.Ordinal) < 0)
+                        throw new Exception("Her YouTube search job took a browser they didn't name, or lost one they did: " + guessedSearch + " / " + namedSearch);
+                    if (Computer.AddressBarStep("type", new ToolArguments { Target = "1", Text = "cats" }, chrome, "type cats into the address bar"))
+                        throw new Exception("A job that asks for the address bar couldn't use it.");
+                    Sight seen = new Sight { Window = new IntPtr(9), Title = "New Tab - Google Chrome", Program = "chrome" };
+                    Computer.Focus = delegate { return new Target { Name = "Address and search bar", Line = true, Focused = true }; };
+                    bool omnibox = Computer.AddressBarStep("type", new ToolArguments { Text = "music.youtube.com" }, seen, "play lofi on youtube music", true);
+                    Computer.Focus = delegate { return new Target { Name = "Email address", Line = true, Focused = true }; };
+                    bool email = Computer.AddressBarStep("type", new ToolArguments { Text = "sam@example.com" }, seen, "sign me up", true);
+                    if (!omnibox || email) throw new Exception("Her screenshot hands' typing missed Chrome's address bar, or blocked a page's own box: " + omnibox + " / " + email);
+                    string prompts = Computer.Prompt + Computer.Seeing;
+                    string[,] specs = (string[,])typeof(Computer).GetField("Specs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);
+                    string press = null;
+                    for (int i = 0; i < specs.GetLength(0); i++) if (specs[i, 0] == "press") press = specs[i, 1];
+                    if (press == null || press.Contains("ctrl+l") || press.Contains("ctrl+t") || prompts.Split(new[] { "never type an address or search into a browser's address bar" }, StringSplitOptions.None).Length != 3)
+                        throw new Exception("Her hands' prompts still point her at a browser's address bar: " + press);
+                    checks.Add("PASS a job opens pages with open_website, not by typing into or jumping to an open browser's address bar (unless their job asks for it), and its open_website keeps only a browser they named, or one a music job's own task names; her YouTube search job does the same");
+                }
+                if (part == "default")
+                {
+                    ran = null;
+                    Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Google Chrome", @"C:\Browsers\Chrome.exe"), new InstalledApp("Microsoft Edge", @"C:\Browsers\Edge.exe") }; };
+                    Hands.Forget();
+                    Hands.DefaultBrowser = delegate { return @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"; };
+                    string opened = Hands.OpenBrowserKind(delegate { return true; });
+                    if (ran != @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" || opened != "Opened Edge.")
+                        throw new Exception("\"Open my browser\" didn't open their default browser: " + opened + " / " + ran);
+                    Hands.DefaultBrowser = delegate { return null; };
+                    opened = Hands.OpenBrowserKind(delegate { return true; });
+                    if (ran != @"C:\Browsers\Chrome.exe") throw new Exception("\"Open my browser\" with no default lost its fallback: " + opened + " / " + ran);
+                    checks.Add("PASS \"open my browser\" with no favourite opens Windows' default browser, like Edge, before any other installed one");
+                }
+            }
+            finally
+            {
+                Hands.BrowserPath = browserWas; Hands.Opened = openedWas; Hands.DefaultBrowser = defaultWas; Hands.Catalog = catalogWas; Hands.Run = runWas; Hands.Browse = browseWas;
+                Hands.Forget();
+                Computer.Look = lookWas; Computer.Act = actWas; Computer.Front = frontWas; Computer.Focus = focusWas;
+            }
+        }
     }
 }
