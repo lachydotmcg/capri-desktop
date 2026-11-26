@@ -1253,7 +1253,7 @@ namespace CapriDesktop
                 dialog.BackColor = Neon.Sheet;
                 dialog.ForeColor = Neon.SheetInk;
                 dialog.Font = Look.Mono(9f, FontStyle.Regular, GraphicsUnit.Point);
-                dialog.ClientSize = new Size(520, 170);
+                dialog.ClientSize = new Size(520, 236);
                 // Their own Obsidian vaults, read from Obsidian's list on this PC: picking one keeps her memories in its Capri Memories note.
                 List<KeyValuePair<string, string>> vaults = Companion.ObsidianVaults();
                 List<string> vaultNotes = new List<string> { "" };
@@ -1299,10 +1299,24 @@ namespace CapriDesktop
                         if (picker.ShowDialog(dialog) == DialogResult.OK) useVault(picker.FileName);
                     }
                 };
-                Button close = DialogButton("Close", 404, 124, 100, Neon.SheetDim);
+                Button close = DialogButton("Close", 404, 190, 100, Neon.SheetDim);
                 close.Click += delegate { dialog.Close(); };
+                CheckBox retention = new CheckBox { Bounds = new Rectangle(16, 116, 480, 22), Text = "Limit chat history", ForeColor = Neon.SheetInk, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Checked = capri.LimitsHistory, AccessibleName = "Limit chat history" };
+                bool syncing = false;
+                retention.CheckedChanged += delegate
+                {
+                    if (syncing) return;
+                    capri.SetHistoryLimit(retention.Checked);
+                    if (retention.Checked != capri.LimitsHistory)
+                    {
+                        syncing = true;
+                        retention.Checked = capri.LimitsHistory;
+                        syncing = false;
+                    }
+                };
+                Label historyNote = Hint("On launch: remove chats after 7 days and transcripts after 1 year.", 142, 34);
                 dialog.CancelButton = close;
-                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
+                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, retention, historyNote, close });
                 Fit(dialog);
                 dialog.ShowDialog(this);
             }

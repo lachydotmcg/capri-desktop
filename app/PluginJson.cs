@@ -9,11 +9,11 @@ namespace CapriDesktop
     {
         private const int Deepest = 64;
 
-        internal static object Parse(string text)
+        internal static object Parse(string text, bool strict = false)
         {
             string from = (text ?? "").TrimStart('\uFEFF');
             int at = 0;
-            object value = Value(from, ref at, 0);
+            object value = Value(from, ref at, 0, strict);
             Space(from, ref at);
             if (at != from.Length) throw new FormatException("Extra text after the JSON at " + at + ".");
             return value;
@@ -30,7 +30,7 @@ namespace CapriDesktop
             while (at < s.Length && (s[at] == ' ' || s[at] == '\t' || s[at] == '\r' || s[at] == '\n')) at++;
         }
 
-        private static object Value(string s, ref int at, int depth)
+        private static object Value(string s, ref int at, int depth, bool strict)
         {
             if (depth > Deepest) throw new FormatException("The JSON is nested too deep.");
             Space(s, ref at);
@@ -46,11 +46,12 @@ namespace CapriDesktop
                 {
                     Space(s, ref at);
                     if (at >= s.Length || s[at] != '"') throw new FormatException("Expected a name in quotes at " + at + ".");
-                    string key = Text(s, ref at);
+                    string key = Text(s, ref at, strict);
+                    if (strict && map.ContainsKey(key)) throw new FormatException("Duplicate JSON property " + key + ".");
                     Space(s, ref at);
                     if (at >= s.Length || s[at] != ':') throw new FormatException("Expected : at " + at + ".");
                     at++;
-                    map[key] = Value(s, ref at, depth + 1);
+                    map[key] = Value(s, ref at, depth + 1, strict);
                     Space(s, ref at);
                     if (at < s.Length && s[at] == ',') { at++; continue; }
                     if (at < s.Length && s[at] == '}') { at++; return map; }
@@ -65,14 +66,14 @@ namespace CapriDesktop
                 if (at < s.Length && s[at] == ']') { at++; return list; }
                 while (true)
                 {
-                    list.Add(Value(s, ref at, depth + 1));
+                    list.Add(Value(s, ref at, depth + 1, strict));
                     Space(s, ref at);
                     if (at < s.Length && s[at] == ',') { at++; continue; }
                     if (at < s.Length && s[at] == ']') { at++; return list; }
                     throw new FormatException("Expected , or ] at " + at + ".");
                 }
             }
-            if (c == '"') return Text(s, ref at);
+            if (c == '"') return Text(s, ref at, strict);
             if (Word(s, ref at, "true")) return true;
             if (Word(s, ref at, "false")) return false;
             if (Word(s, ref at, "null")) return null;
@@ -81,6 +82,8 @@ namespace CapriDesktop
             while (at < s.Length && (char.IsDigit(s[at]) || s[at] == '.' || s[at] == 'e' || s[at] == 'E' || s[at] == '+' || s[at] == '-')) at++;
             double number;
             if (at == start || !double.TryParse(s.Substring(start, at - start), NumberStyles.Float, CultureInfo.InvariantCulture, out number)) throw new FormatException("Unexpected character at " + start + ".");
+            if (strict && !System.Text.RegularExpressions.Regex.IsMatch(s.Substring(start, at - start), @"\A-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\z"))
+                throw new FormatException("Invalid JSON number.");
             return number;
         }
 
@@ -91,13 +94,14 @@ namespace CapriDesktop
             return true;
         }
 
-        private static string Text(string s, ref int at)
+        private static string Text(string s, ref int at, bool strict)
         {
             StringBuilder made = new StringBuilder();
             at++;
             while (at < s.Length)
             {
                 char c = s[at++];
+                if (strict && c < 32) throw new FormatException("Invalid JSON string character.");
                 if (c == '"') return made.ToString();
                 if (c != '\\') { made.Append(c); continue; }
                 if (at >= s.Length) break;

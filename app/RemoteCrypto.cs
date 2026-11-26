@@ -48,6 +48,7 @@ namespace CapriDesktop
         internal static byte[] Hkdf(byte[] ikm, byte[] salt, byte[] info, int length)
         {
             if (length < 0 || length > 255 * 32) throw new ArgumentOutOfRangeException("length");
+            info = info ?? new byte[0];
             byte[] prk;
             using (HMACSHA256 extract = new HMACSHA256(salt ?? new byte[32])) prk = extract.ComputeHash(ikm);
             byte[] okm = new byte[length];
