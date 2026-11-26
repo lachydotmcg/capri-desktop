@@ -550,7 +550,7 @@ namespace CapriDesktop
                 screen.Name = screen.Primary ? "main screen" : "screen " + (screen.Number > 0 ? screen.Number : order.IndexOf(screen) + 1);
         }
 
-        internal static int DpiAt(Point point)
+        internal static int DpiAt(Point point, int unknown = 96)
         {
             try
             {
@@ -560,7 +560,7 @@ namespace CapriDesktop
             }
             catch (DllNotFoundException) { }
             catch (EntryPointNotFoundException) { }
-            return 96;
+            return unknown;
         }
 
         private static Spot ReadSpot(IntPtr window)
