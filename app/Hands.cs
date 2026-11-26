@@ -5889,7 +5889,9 @@ namespace CapriDesktop
                 if (use.Success) wanted = use.Groups[1].Value;
             }
             string selected = BrowserName(wanted);
+#if !CROSS
             if (selected == null) try { selected = BrowserName(Favourites.Picked("browser")); } catch (Exception) { }
+#endif
             if (selected == null || BrowserName(args.Browser) != selected) args.Browser = selected;
         }
 
