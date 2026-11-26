@@ -139,3 +139,6 @@
 [data-ui] .sound .is-off { display: none; }
 [data-ui] .sound[aria-pressed="true"] .is-on { display: none; }
 [data-ui] .sound[aria-pressed="true"] .is-off { display: block; }
+
+/* The "what she does" cue is a finger's height on a touch screen (--target-size is in home.css). */
+.fo-cue { min-block-size: var(--target-size, 24px); }

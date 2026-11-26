@@ -49,6 +49,7 @@
       if (asked.has(name)) continue;
       asked.add(name);
       const strip = new Image();
+      strip.fetchPriority = 'low';
       strip.src = table[name].url;
       strip.decode().then(() => { strips.set(name, strip); ready.add(name); }).catch(() => {});
     }
@@ -1644,7 +1645,11 @@
   };
   new ResizeObserver(resized).observe(stage);
   if (document.fonts) document.fonts.ready.then(layoutFrames);
-  addEventListener('load', () => { layoutFrames(); fetchStrips(['blink', 'blink_glitch', 'glitch', 'perch_glitch', 'leave', 'arrive', 'perch_leave', 'perch_arrive']); });
+  addEventListener('load', () => {
+    layoutFrames();
+    fetchStrips(['perch_music', 'laydown', 'laydown_talk', 'laydown_blink', 'laydown_sleep', 'laydown_glitch', 'laydown_leave']);
+    fetchStrips(['blink', 'blink_glitch', 'glitch', 'perch_glitch', 'leave', 'arrive', 'perch_leave', 'perch_arrive']);
+  });
   addEventListener('pointerdown', () => fetchStrips(['dangle', 'grin', 'sleep', 'wake', 'mouth']), { once: true, passive: true });
   addEventListener('keydown', () => fetchStrips(['dangle', 'grin', 'sleep', 'wake', 'mouth']), { once: true, passive: true });
 
@@ -1653,7 +1658,7 @@
   place();
   paintSeek();
   layoutFrames();
-  fetchStrips(['idle', 'perch', 'perch_music', 'laydown', 'laydown_talk', 'laydown_blink', 'laydown_sleep', 'laydown_glitch', 'laydown_leave']);
+  fetchStrips(['idle', 'perch']);
   perform('hero');
   requestAnimationFrame(tick);
 

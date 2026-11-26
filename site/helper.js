@@ -94,6 +94,7 @@
   const loaded = new Set();
   for (const name in clips) {
     const image = new Image();
+    image.fetchPriority = 'low';
     image.onload = () => loaded.add(name);
     image.src = new URL('assets/helper/' + name + '.webp', root).href;
   }

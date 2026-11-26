@@ -26,7 +26,10 @@
   --head: 84px;
   --small: 16px;
   --hud: 18px;
+  /* The least a control takes up: 24px for a mouse, 44px for a finger (WCAG 2.5.8 and 2.5.5). */
+  --target-size: 24px;
 }
+@media (pointer: coarse) { :root { --target-size: 44px; } }
 * { box-sizing: border-box; }
 html { background: var(--ink-0); scroll-padding-top: 16px; }
 body { margin: 0; overflow-x: clip; background: var(--ink-0); color: var(--text); font: 400 18px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
@@ -710,3 +713,30 @@ button, input { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .helper-arrive, .helper-typing span { animation: none; } .helper-panel::before, .helper-tab::before { transition: none; } }
 @media print { .helper { display: none; } }
 #stage .stage-tries { display: none; }
+
+/* ---------- Tap targets ---------- */
+/* Header links and the stage's hints grow to a finger's size on a touch screen. */
+@media (pointer: coarse) {
+  .links a, .menu-links a { display: flex; align-items: center; min-block-size: var(--target-size); }
+  [data-ui] .help-links a, [data-ui] .stage-tries button { display: inline-flex; align-items: center; min-block-size: var(--target-size); }
+  #stage #talkbox .help-links a { display: inline; min-block-size: 0; }
+}
+/* Her desktop's own buttons keep their drawn size; an invisible ring around each takes the tap instead. Buttons in a row only
+   grow up and down, so no ring covers its neighbour. */
+[data-ui] #clear-log { position: relative; --hit-y: min(0px, (22px - var(--target-size)) / 2); }
+[data-ui] .close { --hit-y: min(0px, (28px - var(--target-size)) / 2); --hit-x: var(--hit-y); --hit-bottom: 0px; }
+[data-ui] .motion { --hit-y: min(0px, (34px - var(--target-size)) / 2); --hit-x: var(--hit-y); }
+[data-ui] .pill button { position: relative; --hit-y: min(0px, (28px - var(--target-size)) / 2); --hit-x: -1px; }
+[data-ui] .task { position: relative; --hit-y: min(0px, (38px - var(--target-size)) / 2); }
+[data-ui] .player .pause, [data-ui] .player .transport { position: relative; --hit-y: min(0px, (38px - var(--target-size)) / 2); }
+[data-ui] .close, [data-ui] .motion { position: relative; }
+[data-ui] #clear-log::after, [data-ui] .close::after, [data-ui] .motion::after, [data-ui] .pill button::after, [data-ui] .task::after, [data-ui] .player .pause::after, [data-ui] .player .transport::after {
+  content: ""; position: absolute; inset: var(--hit-y, 0) var(--hit-x, 0) var(--hit-bottom, var(--hit-y, 0));
+}
+/* The seek bar's track is drawn 4px tall in the middle, so its hit area grows without moving anything around it. */
+[data-ui] .player input.seek { height: var(--target-size); margin-block: calc(18px - var(--target-size) / 2) calc(20px - var(--target-size) / 2); }
+
+/* ---------- Rendering ---------- */
+/* The numbers, changelog and footer sit far below the first screen, so the browser skips drawing them until they come near. */
+.proof { content-visibility: auto; contain-intrinsic-size: auto 1200px; }
+.foot { content-visibility: auto; contain-intrinsic-size: auto 800px; }
