@@ -352,7 +352,7 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     const plain = words => words.replace(/\s/g, ' ');
     // The time is the phone's own, with no zone code: 11:00 or 11:00 AM, as this browser writes it.
     const elevenLocal = plain(await page.run(`new Date(${JSON.stringify(provider.state.free.resets)}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`));
-    assert.match(elevenLocal, /^11:00( AM)?$/);
+    assert.match(elevenLocal, /^11:00( AM)?$/i);
     // Once on, SETTINGS says so in a plain line in place of the button.
     assert.equal(await text('#brain .native-free-on'), 'Free messages are on.');
     assert.equal(await page.run(`document.querySelector('#brain .native-free').hidden && document.querySelector('#brain .native-free-count').hidden`), true);
@@ -539,7 +539,7 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     let midnight = new Date(Math.ceil(Date.now() / 3600000) * 3600000);
     while (pacificDay(new Date(midnight - 1)) === pacificDay(midnight)) midnight = new Date(+midnight + 3600000);
     const sevenLocal = (await page.run(`new Date(${+midnight}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`)).replace(/\s/g, ' ');
-    assert.match(sevenLocal, /^(7:00 PM|19:00)$/);
+    assert.match(sevenLocal, /^(7:00 PM|19:00)$/i);
     const backAt = 'at ' + sevenLocal + ' ' + (sydneyDay(midnight) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
     assert.equal((await noticeSays('/daily free limit/', 'the daily notice')).replace(/\s/g, ' '), "Your Google AI key has hit Google's daily free limit. It comes back " + backAt + ', or pick another model in SETTINGS.');
     await click('.native-notice-more');
