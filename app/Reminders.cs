@@ -18,6 +18,7 @@ namespace CapriDesktop
         private readonly string path, label, kept;
         private string note;
         private bool uncopied;
+        private bool stuck;
 
         internal SavedList(string path, string label)
         {
@@ -78,8 +79,16 @@ namespace CapriDesktop
             }
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temporary = path + ending;
-            using (FileStream output = File.Create(temporary)) new DataContractJsonSerializer(typeof(List<T>)).WriteObject(output, items);
-            if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+            // An antivirus scan or the search indexer can hold the file she just saved for a moment, and File.Replace then fails
+            // with "Unable to remove the file to be replaced", losing the reminder or website they just asked for. Once a save has
+            // failed for good, later ones try once until one works, so a read-only file doesn't stall her timer's every tick.
+            Exception failed = Files.Retried(stuck ? 1 : 6, 250, delegate
+            {
+                using (FileStream output = File.Create(temporary)) new DataContractJsonSerializer(typeof(List<T>)).WriteObject(output, items);
+                if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+            });
+            stuck = failed != null;
+            if (failed != null) throw failed;
         }
 
         // Her reply, with what happened to the file ahead of it the first time.
