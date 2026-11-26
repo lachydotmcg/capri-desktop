@@ -1191,6 +1191,51 @@ namespace CapriDesktop
                 if (!noteBlocked || !sawRedacted || !legacyRedacted || !recalledLabelled || !pronounsOutside || !memoriesLabelled)
                     throw new Exception("Her memory labels went wrong: note " + noteBlocked + " (" + forged + "), saw " + sawRedacted + ", legacy " + legacyRedacted + ", recalled " + recalledLabelled + ", pronouns " + pronounsOutside + ", memories " + memoriesLabelled + " / " + sawBlock + " / " + legacyBlock + " / " + memoriesBlocked);
                 checks.Add("PASS memory labels: her notes, screen sightings, memories and old chats reach her brain as data blocks that say they are data, a note cannot forge another block, a legacy sighting with an address is redacted, and her pronouns directive stays outside the block");
+                // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
+                // set is bounded too, so a long history can't grow it until the app closes.
+                string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(dugDir);
+                DateTime dugDay = new DateTime(2026, 3, 1, 9, 0, 0);
+                for (int i = 0; i < 4; i++)
+                    File.WriteAllText(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"), "*09:00 You: we tested retention on day " + i + "\n");
+                string dugWas = Brain.TranscriptPath;
+                bool dugKeepingWas = Brain.Keeping;
+                int dugDaysWas = Brain.DugDays, sharedCapWas = Brain.SharedCap;
+                long dugBytesWas = Brain.DugBytes;
+                bool dugTrimmed, dugForgotten, sharedBounded;
+                try
+                {
+                    Brain.TranscriptPath = dugDir;
+                    Brain.Keeping = true;
+                    Brain.ForgetDug();
+                    Brain.DugDays = 2;
+                    Brain.DugBytes = long.MaxValue;
+                    Brain.Recalled("remember when we tested retention");
+                    dugTrimmed = Brain.DugHeld == 2
+                        && Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"))
+                        && !Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-3).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    for (int i = 0; i < 3; i++) File.Delete(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = Brain.DugHeld == 1;
+                    Directory.Delete(dugDir, true);
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = dugForgotten && Brain.DugHeld == 0;
+                    Brain.SharedCap = 2;
+                    Brain.Recalled("remember when alpha beta gamma delta");
+                    sharedBounded = Brain.SharedHeld <= 2;
+                }
+                finally
+                {
+                    Brain.TranscriptPath = dugWas;
+                    Brain.Keeping = dugKeepingWas;
+                    Brain.DugDays = dugDaysWas;
+                    Brain.DugBytes = dugBytesWas;
+                    Brain.SharedCap = sharedCapWas;
+                    if (Directory.Exists(dugDir)) Directory.Delete(dugDir, true);
+                }
+                if (!dugTrimmed || !dugForgotten || !sharedBounded)
+                    throw new Exception("Her recall cache went wrong: trimmed " + dugTrimmed + ", forgotten " + dugForgotten + ", shared " + sharedBounded);
+                checks.Add("PASS recall cache: days beyond the cap go oldest first, a day whose file is gone leaves the cache, and the shared word set stays bounded");
                 // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
                 // glances go in the transcript but never into memories.md (a Bazzite user).
                 string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
@@ -3254,8 +3299,9 @@ namespace CapriDesktop
                 checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Plug-ins:", "Tools:", "Connect:", "Languages:", "Settings search:", "Cloud voice:", "Colours:", "Music:", "Listen for Capri:", "Omarchy:" } : new[] { "Plug-ins:", "Tools:", "Connect:", "Languages:", "Settings search:", "Cloud voice:", "Colours:", "Music:" })
+                foreach (string fact in new[] { "Lite mode:", "Custom endpoints:", "Spend:", "Chimes:", "Favourites:", "Provider help:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                if (News.Facts.Contains("Plasma:") != OperatingSystem.IsLinux()) throw new Exception("Cross update help put the Plasma fix on the wrong platform.");
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
                     if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
@@ -3988,6 +4034,22 @@ namespace CapriDesktop
                 string off = SettingsJson(pet.Saved);
                 if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
                     throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
+
+                pet.SetLite(true);
+                string stopWatch = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "watch_my_screen" });
+                if (!stopWatch.Contains("stay off") || SettingsCopy().LiteWatch) throw new Exception("An explicit Watch off did not clear the saved restart: " + stopWatch);
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed after an explicit off while paused.");
+                pet.SetLite(true);
+                string startWatch = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "watch_my_screen" });
+                if (!startWatch.Contains("when Lite mode ends") || pet.Saved.Watch || !SettingsCopy().LiteWatch) throw new Exception("An explicit Watch on did not wait for Lite to end: " + startWatch);
+                pet.SetLite(false);
+                if (!pet.Saved.Watch) throw new Exception("Watch did not resume after an explicit on while paused.");
+                pet.SetLite(true);
+                pet.SetWatchEvery(0);
+                pet.SetLite(false);
+                if (pet.Saved.Watch || SettingsCopy().LiteWatch) throw new Exception("Watch Every Off did not clear the saved restart.");
+                checks.Add("PASS Watch requests while paused wait for Lite mode to end, and an explicit Off clears the saved restart");
 
                 SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };

@@ -7707,8 +7707,22 @@ namespace CapriDesktop
             bool want = way == "on";
             bool? was = SettingOn(args.Name);
             if (was == null) return args.Name == "mic" ? "Couldn't change my voice chat mic: voice chat isn't on." : "Couldn't read " + label + " just now.";
-            if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            if (was.Value == want)
+            {
+#if CROSS
+                if (!want && args.Name == "watch_my_screen")
+                {
+                    // An explicit Off can clear a pending Watch setting while Lite has paused it.
+                    string saved = args.FromAgent ? SetAgentSetting(args.Name, false) : SetSetting(args.Name, false);
+                    if (saved != null) return saved;
+                }
+#endif
+                return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            }
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
+#if CROSS
+            if (args.Name == "watch_my_screen" && note != null) return note;
+#endif
             // Gaming Mode stays off while game comments are Off, and she answers the same as her gaming_mode tool does.
             if (note == GamingNeedsComments) return note;
             bool? now = SettingOn(args.Name);

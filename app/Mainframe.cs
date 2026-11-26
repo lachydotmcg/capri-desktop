@@ -811,7 +811,7 @@ namespace CapriDesktop
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
             intro.Width = 226;
-            introPick = Make(Intros.NameOf(Intros.Classic), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
+            introPick = Make(Intros.NameOf(Intros.Default), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
             introPick.Chevron = true;
             introPick.Ellipsis = true;
             introPick.AccessibleName = "Startup animation: pick which one plays, with a live preview of each";
@@ -1253,7 +1253,7 @@ namespace CapriDesktop
                 dialog.BackColor = Neon.Sheet;
                 dialog.ForeColor = Neon.SheetInk;
                 dialog.Font = Look.Mono(9f, FontStyle.Regular, GraphicsUnit.Point);
-                dialog.ClientSize = new Size(520, 170);
+                dialog.ClientSize = new Size(520, 236);
                 // Their own Obsidian vaults, read from Obsidian's list on this PC: picking one keeps her memories in its Capri Memories note.
                 List<KeyValuePair<string, string>> vaults = Companion.ObsidianVaults();
                 List<string> vaultNotes = new List<string> { "" };
@@ -1299,10 +1299,24 @@ namespace CapriDesktop
                         if (picker.ShowDialog(dialog) == DialogResult.OK) useVault(picker.FileName);
                     }
                 };
-                Button close = DialogButton("Close", 404, 124, 100, Neon.SheetDim);
+                Button close = DialogButton("Close", 404, 190, 100, Neon.SheetDim);
                 close.Click += delegate { dialog.Close(); };
+                CheckBox retention = new CheckBox { Bounds = new Rectangle(16, 116, 480, 22), Text = "Limit chat history", ForeColor = Neon.SheetInk, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Checked = capri.LimitsHistory, AccessibleName = "Limit chat history" };
+                bool syncing = false;
+                retention.CheckedChanged += delegate
+                {
+                    if (syncing) return;
+                    capri.SetHistoryLimit(retention.Checked);
+                    if (retention.Checked != capri.LimitsHistory)
+                    {
+                        syncing = true;
+                        retention.Checked = capri.LimitsHistory;
+                        syncing = false;
+                    }
+                };
+                Label historyNote = Hint("On launch: remove chats after 7 days and transcripts after 1 year.", 142, 34);
                 dialog.CancelButton = close;
-                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
+                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, retention, historyNote, close });
                 Fit(dialog);
                 dialog.ShowDialog(this);
             }
@@ -2622,7 +2636,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, answerMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, speakerMenu, personalityMenu, languageMenu, answerMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu, jealousMenu, screenMenu, huskMenu, thinkingMenu, miniMenu }) if (menu != null) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }

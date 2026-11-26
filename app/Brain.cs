@@ -15,35 +15,25 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.8";
+        internal const string Version = "0.9.9";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Plug-ins: Mods adds Todoist, GitHub, Atlassian, monday.com, Miro, Cloudflare Docs and Context7. Turn one on from PLUG-INS when you want it.\n"
-            + "Tools: she searches each connected plug-in's tool list for the tools she needs. Off and Ask first choices stay in place across restarts and are set separately per server.\n"
-            + "Connect: GitHub uses a personal access token, Context7 an API key, and Cloudflare Docs needs no account. Custom plug-ins can use a provider's registered public OAuth client.\n"
-            + "Languages: her greetings, reactions, check-ins, settings tips and more of the memory and mail screens follow the language you chose.\n"
-            + "Settings search: more of the same everyday words find the same settings across platforms.\n"
-            + "Cloud voice: Fish Audio and OpenAI voices can be set up from her voice menu with your own key. The menu shows the provider deadlines and she types when cloud voice fails.\n"
-            + "Colours: her chat bubble and TYPE and TALK controls follow your Mainframe colours.\n"
-            + "Music: choose Deezer or YouTube Music in Habits, or name one when asking for a song.\n"
-            + (OperatingSystem.IsLinux()
-                ? "Listen for Capri: with a supported screen-lock signal, she pauses when the screen locks and resumes on unlock. If she loses that signal while paused, she waits for you to confirm.\n"
-                    + "Omarchy: an opt-in local bridge lets a compatible shell plug-in share desktop state with her."
-                : "");
-        internal static readonly string Line = "I just updated to " + Version + ": there are seven new plug-ins in Mods, and more of my speech and settings follow your language. Ask me what's new.";
+            + "Lite mode: she rests her local brain and pauses Watch my screen. The Resources panel has a Why slow? check that explains what she can measure.\n"
+            + "Custom endpoints: connect an OpenAI-compatible server from the brain picker, with a URL, optional key and a model.\n"
+            + "Spend: see tracked token use and estimated API costs by model in Mainframe.\n"
+            + "Chimes: choose a sound set and volume for her alerts.\n"
+            + "Favourites: tell her which music app or browser you prefer.\n"
+            + "Provider help: she gives more specific messages for key, rate limit and connection errors."
+            + (OperatingSystem.IsLinux() ? "\nPlasma: fixed the handoff to computer controls on Wayland when uinput is available." : "");
+        internal static readonly string Line = "I just updated to " + Version + ": I have Lite mode, a Spend panel and support for your own chat server. Ask me what's new.";
 #else
-        internal const string Version = "0.9.8";
+        internal const string Version = "0.9.9";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Discord Bot: link your own bot from Mainframe. Join a server voice channel and tell me “Join my Discord call.” Friends choose whether I can hear them in the call notice.\n"
-            + "Capricord: with Her own computer on, watch the call with avatars, speaking rings and controls to ask me to wait for my name or leave.\n"
-            + "Plug-ins: Mods adds Todoist, GitHub, Atlassian, monday.com, Miro, Cloudflare Docs and Context7. Turn one on from PLUG-INS when you want it.\n"
-            + "Tools: she searches each connected plug-in's tool list for the tools she needs. Off and Ask first choices stay in place across restarts and are set separately per server.\n"
-            + "Connect: GitHub uses a personal access token, Context7 an API key, and Cloudflare Docs needs no account. Custom plug-ins can use a provider's registered public OAuth client.\n"
-            + "Cloud voice: Fish Audio advertises its free model through 30 November 2026. OpenAI's current Speech model shuts down 6 January 2027. The setup help shows both dates.\n"
-            + "Download warnings: during a computer job, she is told to report a blocked download or security warning and leave the file for you to review.\n"
-            + "Job controls: use Edit instructions to redirect a running computer job and use the mic while she works.\n"
-            + "Colours: her chat bubble, TYPE and TALK controls, and mini player follow your Mainframe colours.\n"
-            + "Music: choose Deezer or YouTube Music in Habits, or name one when asking for a song.";
-        internal const string Line = "I just updated to " + Version + ": I can join your Discord server’s calls as my own bot. Ask me what's new.";
+            + "Holocall: right-click me and pick Size > Holocall for a compact portrait and call controls with art by Qewiw.\n"
+            + "Full size: choose it from Size to put my portrait across your current screen.\n"
+            + "Capri Camera: after setting it up in my Room, choose Size > Capri Camera and select the Capri Camera device in the Discord desktop app.\n"
+            + "Startup: Qewiw's Peek is my new default, with an arm reach and a pull-up. You can pick another intro in Mainframe.\n"
+            + "Menus: right-click and tray menus fit the screen where they open, including monitors with different scaling.";
+        internal const string Line = "I just updated to " + Version + ": try Holocall or Full size from my Size menu, and check out my new Peek startup. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
@@ -1886,8 +1876,22 @@ namespace CapriDesktop
         private static readonly Regex TalkLine = new Regex(@"^\*\*\d\d:\d\d ([^*]+?):\*\* (.*)$");
         // She digs through her chats for whatever they talk about, unasked. The smoke's own chats would turn up in each other's prompts, so it digs only in its memory test.
         internal static volatile bool Digging = true;
-        // Each day's lines, kept until its file changes, so a search reads only today's again.
-        private static readonly Dictionary<string, KeyValuePair<string, List<Moment>>> dug = new Dictionary<string, KeyValuePair<string, List<Moment>>>(StringComparer.OrdinalIgnoreCase);
+        // Each day's lines, kept until its file changes, so a search reads only today's again. The oldest go first
+        // once there are more days or bytes than a search should hold, and a day whose file she deleted goes too.
+        private sealed class Dug
+        {
+            internal string Stamp;
+            internal List<Moment> Lines;
+            internal long Bytes;
+            internal long Used;
+        }
+        internal static int DugDays = 400;
+        internal static long DugBytes = 64L * 1024 * 1024;
+        private static readonly Dictionary<string, Dug> dug = new Dictionary<string, Dug>(StringComparer.OrdinalIgnoreCase);
+        private static long dugBytes;
+        internal static int DugHeld { get { lock (dug) return dug.Count; } }
+        internal static bool DugHolds(string day) { lock (dug) return dug.ContainsKey(day); }
+        internal static void ForgetDug() { lock (dug) { dug.Clear(); dugBytes = 0; } }
 
         // Lines from her chat logs, and notes too old for her prompt, that match what they said, found by a word search on this PC with no brain call.
         // "Remember when..." takes any match. Anything else takes only a telling one, so most chats add nothing. Lines already in her chat stay out.
@@ -1975,8 +1979,8 @@ namespace CapriDesktop
             }
             string[] days;
             try { days = Directory.GetFiles(TranscriptPath, "????-??-??.md"); }
-            catch (IOException) { return moments; }
-            catch (UnauthorizedAccessException) { return moments; }
+            catch (IOException) { lock (dug) TrimDug(); return moments; }
+            catch (UnauthorizedAccessException) { lock (dug) TrimDug(); return moments; }
             Array.Sort(days, StringComparer.Ordinal);
             lock (dug)
                 foreach (string day in days)
@@ -1986,8 +1990,8 @@ namespace CapriDesktop
                     catch (IOException) { continue; }
                     // A transcript she's lost access to is skipped: this runs on a worker thread, where an error would end her.
                     catch (UnauthorizedAccessException) { continue; }
-                    KeyValuePair<string, List<Moment>> kept;
-                    if (!dug.TryGetValue(day, out kept) || kept.Key != stamp)
+                    Dug kept;
+                    if (!dug.TryGetValue(day, out kept) || kept.Stamp != stamp)
                     {
                         string[] lines;
                         try { lock (writing) lines = File.ReadAllLines(day); }
@@ -1996,11 +2000,60 @@ namespace CapriDesktop
                         string on = Path.GetFileNameWithoutExtension(day);
                         List<Moment> read = new List<Moment>();
                         foreach (string line in lines) if (line.StartsWith("*", StringComparison.Ordinal)) read.Add(new Moment(on, line, Words(Said(on, line))));
-                        dug[day] = kept = new KeyValuePair<string, List<Moment>>(stamp, read);
+                        if (kept != null) dugBytes -= kept.Bytes;
+                        kept = new Dug { Stamp = stamp, Lines = read, Bytes = DugSize(read), Used = DateTime.UtcNow.Ticks };
+                        dugBytes += kept.Bytes;
+                        dug[day] = kept;
                     }
-                    moments.AddRange(kept.Value);
+                    else kept.Used = DateTime.UtcNow.Ticks;
+                    if (dug.Count > DugDays || dugBytes > DugBytes) TrimDug();
+                    moments.AddRange(kept.Lines);
                 }
+            lock (dug) TrimDug();
             return moments;
+        }
+
+        // The cache holds a few hundred days or about 64 MB, whichever comes first, and forgets the days she no longer
+        // has. A read marks its day as used, so the days someone actually asks about stay.
+        private static void TrimDug()
+        {
+            if (dug.Count == 0) return;
+            List<string> gone = new List<string>();
+            foreach (string day in dug.Keys) if (!File.Exists(day)) gone.Add(day);
+            foreach (string day in gone) { dugBytes -= dug[day].Bytes; dug.Remove(day); }
+            if (dug.Count <= DugDays && dugBytes <= DugBytes) return;
+            List<KeyValuePair<string, Dug>> oldest = new List<KeyValuePair<string, Dug>>(dug);
+            oldest.Sort(delegate(KeyValuePair<string, Dug> a, KeyValuePair<string, Dug> b) { return a.Value.Used.CompareTo(b.Value.Used); });
+            for (int i = 0; i < oldest.Count && (dug.Count > DugDays || dugBytes > DugBytes); i++)
+            {
+                dugBytes -= oldest[i].Value.Bytes;
+                dug.Remove(oldest[i].Key);
+            }
+        }
+
+        private static long DugSize(List<Moment> lines)
+        {
+            long size = 32;
+            foreach (Moment moment in lines) size += 48 + (moment.Line == null ? 0 : moment.Line.Length * 2) + moment.Words.Length * 8;
+            return size;
+        }
+
+        // Words in one place so repeated ones share a string, but only a bounded set: the old intern pool held every
+        // word she ever read until the app closed.
+        internal static int SharedCap = 20000;
+        private static readonly Dictionary<string, string> shared = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static readonly object sharedGate = new object();
+        internal static int SharedHeld { get { lock (sharedGate) return shared.Count; } }
+        private static string Shared(string word)
+        {
+            lock (sharedGate)
+            {
+                string held;
+                if (shared.TryGetValue(word, out held)) return held;
+                if (shared.Count >= SharedCap) shared.Clear();
+                shared[word] = word;
+                return word;
+            }
         }
 
         // The words that count, in a message or a line she kept: no filler, plain English endings off, so "beating" finds "beat" and "games" finds "game".
@@ -2010,11 +2063,11 @@ namespace CapriDesktop
             foreach (Match run in Wordy.Matches((text ?? "").Replace('\u2019', '\'').ToLowerInvariant()))
             {
                 string word = run.Value.Trim('\'');
-                if (run.Groups[1].Success) { for (int i = 0; i + 1 < word.Length; i++) words.Add(string.Intern(word.Substring(i, 2))); continue; }
+                if (run.Groups[1].Success) { for (int i = 0; i + 1 < word.Length; i++) words.Add(Shared(word.Substring(i, 2))); continue; }
                 if (word.EndsWith("'s", StringComparison.Ordinal)) word = word.Substring(0, word.Length - 2);
                 if (word.Length < 3 || Small.Contains(word) || (word.EndsWith("s", StringComparison.Ordinal) && Small.Contains(word.Substring(0, word.Length - 1)))) continue;
                 word = Stem(word);
-                if (word.Length >= 3 && !Small.Contains(word)) words.Add(string.Intern(word));
+                if (word.Length >= 3 && !Small.Contains(word)) words.Add(Shared(word));
             }
             return words.ToArray();
         }

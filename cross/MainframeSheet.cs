@@ -1127,7 +1127,11 @@ namespace CapriDesktop
                 catch (Exception) { if (!closed) note.Text = "Couldn't open the note picker."; }
             };
             Button("Close", 388, 164, 104, 26, Close);
-            return 214;
+            var retention = Put(Page, new NeonSwitch { Text = "Limit chat history" }, 56, 200, 432, 22, "Limit chat history");
+            retention.IsCheckedChanged += (_, _) => { if (!syncing) pet.SetHistoryLimit(retention.Checked); };
+            readers.Add(() => retention.Checked = pet.LimitsHistory);
+            Caption("On launch: remove chats after 7 days and transcripts after 1 year.", 28, 224, 464, 18, MainframeTheme.Faint, 34.0 / 3);
+            return 252;
         }
         private double Spent()
         {

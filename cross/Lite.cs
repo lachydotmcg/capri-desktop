@@ -57,7 +57,7 @@ namespace CapriDesktop
             {
                 Saved.LiteWatch = Saved.Watch;
                 Saved.Lite = Brain.Lite = true;
-                if (Saved.Watch) SetWatch(false, false);
+                if (Saved.Watch) ApplyWatch(false, false);
                 RestForLite();
             }
             else

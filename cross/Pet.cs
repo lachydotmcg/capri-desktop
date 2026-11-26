@@ -53,6 +53,7 @@ namespace CapriDesktop
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoHuskVerbosity;
         [DataMember] internal bool NoMemories;
+        [DataMember(EmitDefaultValue = false)] internal string HistoryRetention;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
@@ -981,7 +982,15 @@ namespace CapriDesktop
             VoiceFx.Glitch = Math.Max(0, Math.Min(100, Saved.Glitch));
             VoiceFx.Layers = LayersOf(Saved);
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
-            if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
+            if (Program.Smoke == null)
+            {
+                string chat = Path.Combine(folder, "chat.json");
+                string settings = Path.Combine(folder, "cross.json");
+                if (unreadableNotice != null || settingsWriteBlocked || !LimitsHistory || !Retention.Enabled(settings))
+                    Saved.HistoryRetention = null;
+                else Retention.Sweep(settings, Brain.TranscriptPath, chat, DateTime.Now);
+                Brain.Load(chat);
+            }
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
             Timeline.Open(Program.Smoke ?? folder);
@@ -3528,6 +3537,12 @@ namespace CapriDesktop
         internal string SetSetting(string name, bool on)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SetSetting(name, on); }).GetAwaiter().GetResult();
+            if (name == "watch_my_screen" && Saved.Lite)
+            {
+                if (!on && !Saved.LiteWatch && !Saved.Watch) return null;
+                SetWatch(on, false);
+                return on ? "Watch my screen will resume when Lite mode ends." : "Watch my screen will stay off when Lite mode ends.";
+            }
             if (SettingOn(name) == on) return null;
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) { SetCare((CareKind)careKind, on); return null; }
@@ -3546,7 +3561,7 @@ namespace CapriDesktop
                 case "mini_player": miniPlayer.SetEnabled(on); miniPlayer.Refresh(); break;
                 case "typing_sound": SetTypingMode(on ? 1 : 2); break;
                 case "glitch_in": SetIntro(on); break;
-                case "watch_my_screen": if (on && Saved.Lite) { SetWatch(true, false); return "Watch my screen stays paused until Lite mode goes off."; } SetWatch(on, false); break;
+                case "watch_my_screen": SetWatch(on, false); break;
                 case "startup": SetLogin(on, false); break;
                 case "discord_presence": SetDiscord(on); break;
                 case "voice_layers": SetLayers(VoiceFx.Layers.Turned(on)); break;
@@ -4526,6 +4541,16 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return memoriesItem.IsChecked; } }
+        internal bool LimitsHistory { get { return Saved.HistoryRetention == Retention.Limited; } }
+
+        internal void SetHistoryLimit(bool on)
+        {
+            string previous = Saved.HistoryRetention;
+            Saved.HistoryRetention = on ? Retention.Limited : null;
+            if (!SaveResult() && Retention.Enabled(Path.Combine(folder, "cross.json")) != on)
+                Saved.HistoryRetention = previous;
+            Sync();
+        }
 
         // memories.md opens in their editor, made first if it isn't there yet. Her transcripts are in the folder beside it.
         internal string OpenMemories()
@@ -4983,14 +5008,19 @@ namespace CapriDesktop
 
         internal void SetWatch(bool on, bool say = true)
         {
-            // Lite mode pauses Watch my screen. Asking for it now only remembers to put it back when Lite mode goes off.
-            if (on && Saved.Lite)
+            // While Lite pauses screen watching, changes set what should happen when it ends.
+            if (Saved.Lite)
             {
-                Saved.LiteWatch = true;
-                Save();
-                Sync();
+                Saved.LiteWatch = on;
+                if (Saved.Watch) ApplyWatch(false, false);
+                else { Save(); Sync(); }
                 return;
             }
+            ApplyWatch(on, say);
+        }
+
+        private void ApplyWatch(bool on, bool say)
+        {
             Saved.Watch = on;
             watchTicket++;
             nextGlance = -1;
@@ -5013,7 +5043,7 @@ namespace CapriDesktop
 
         internal void SetWatchEvery(int seconds)
         {
-            if (seconds <= 0) { if (Saved.Watch) SetWatch(false); return; }
+            if (seconds <= 0) { if (Saved.Watch || Saved.Lite && Saved.LiteWatch) SetWatch(false); return; }
             if (Saved.Watch) SetGlanceGap(seconds);
             else
             {
