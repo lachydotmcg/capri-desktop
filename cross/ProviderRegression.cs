@@ -102,6 +102,61 @@ namespace CapriDesktop
             while (!ready() && DateTime.UtcNow < until) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(10); }
             return ready();
         }
+        internal static void OpenCodeGo(List<string> failures)
+        {
+        string goWas = Brain.OpenCode;
+        try
+        {
+            using (Server go = new Server())
+            {
+                Brain.OpenCode = go.Address;
+                string goKey = "oc_sk_fixture_0123456789abcdef";
+                List<string> goModels = Brain.CloudModels(goKey);
+                Brain goBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
+                string Chat(Brain brain) => brain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "hello test") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                if (Chat(goBrain) != "OK" || Chat(goBrain) != "OK") failures.Add("OpenCode Go chat replies");
+                Brain another = new Brain { Model = "alpha", Remote = goBrain.Remote };
+                Chat(another);
+                goBrain.Forget();
+                Chat(goBrain);
+                string nextKey = "oc_sk_second_0123456789abcdef";
+                goBrain.Remote = new Cloud(nextKey, "alpha");
+                Chat(goBrain);
+                goBrain.Remote = new Cloud(goKey, "alpha");
+                Chat(goBrain);
+
+                string legacyKey = "sk-" + new string('a', 64);
+                string[] legacyModels = Brain.ServerModels(go.Address + "/openai", legacyKey);
+                goBrain.Remote = null;
+                goBrain.SetServer(go.Address, legacyKey);
+                Chat(goBrain);
+                Chat(goBrain);
+                goBrain.SetServer(go.Address, nextKey);
+                Chat(goBrain);
+                goBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "one-shot job") }, false, new List<KeyValuePair<string, ToolArguments>>(), job: true);
+                Chat(goBrain);
+                string[] requests;
+                lock (go.Requests) requests = go.Requests.ToArray();
+                var sessions = new List<string>();
+                foreach (string request in requests)
+                    sessions.Add(request.Substring(request.LastIndexOf(" | ", StringComparison.Ordinal) + 3));
+                if (goModels.Count != 1 || goModels[0] != "alpha" || legacyModels.Length != 1 || legacyModels[0] != "alpha"
+                    || requests.Length != 13
+                    || !requests[0].StartsWith("/v1/models | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[1].StartsWith("/openai/v1/chat/completions | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[5].StartsWith("/openai/v1/chat/completions | Bearer " + nextKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[7].StartsWith("/v1/models | Bearer " + legacyKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[8].StartsWith("/openai/v1/chat/completions | Bearer " + legacyKey + " | ses_", StringComparison.Ordinal)
+                    || sessions[1] != sessions[2] || sessions[8] != sessions[9]
+                    || sessions[10] != sessions[12]
+                    || sessions.Exists(id => !System.Text.RegularExpressions.Regex.IsMatch(id, @"\Ases_[0-9a-f]{32}\z"))
+                    || new HashSet<string>(sessions).Count != 10)
+                    failures.Add("OpenCode Go catalog, chat routing or conversation and credential session isolation");
+            }
+        }
+        finally { Brain.OpenCode = goWas; }
+        }
+
         internal static void Run(Pet pet, string folder)
         {
             const string key = "opaque-provider-key-42";
@@ -131,34 +186,7 @@ namespace CapriDesktop
                 });
                 writer.Start(); reader.Start(); writer.Join(); reader.Join();
                 if (mismatch != null) failures.Add("S3 server/key pair not atomic: " + mismatch);
-                string goWas = Brain.OpenCode;
-                try
-                {
-                    using (Server go = new Server())
-                    {
-                        Brain.OpenCode = go.Address;
-                        string goKey = "oc_sk_fixture_0123456789abcdef";
-                        List<string> goModels = Brain.CloudModels(goKey);
-                        Brain goBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
-                        string goSaid = goBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "hello test") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
-                        Brain goAgainBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
-                        string goAgain = goAgainBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "again") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
-                        string goFirst = null, goSecond = null;
-                        lock (go.Requests)
-                            foreach (string request in go.Requests)
-                                if (request.StartsWith("/openai/v1/chat/completions", StringComparison.Ordinal))
-                                {
-                                    string session = request.Substring(request.LastIndexOf(" | ", StringComparison.Ordinal) + 3);
-                                    if (goFirst == null) goFirst = session; else goSecond = session;
-                                }
-                        if (goModels.Count != 1 || goModels[0] != "alpha" || goSaid != "OK" || goAgain != "OK"
-                            || !go.Saw("/v1/models | Bearer " + goKey + " | ses_")
-                            || !go.Saw("/openai/v1/chat/completions | Bearer " + goKey + " | ses_")
-                            || goFirst == null || goSecond == null || goFirst != goSecond || goFirst != Brain.OpenCodeSession)
-                            failures.Add("OpenCode Go models, chat or session header");
-                    }
-                }
-                finally { Brain.OpenCode = goWas; }
+                OpenCodeGo(failures);
                 using (Server older = new Server()) using (Server newer = new Server())
                 {
                     Brain live = new Brain { Model = "alpha" };

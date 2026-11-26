@@ -115,7 +115,16 @@ internal static class Program
 
         List<string> degraded = Brain.ReadCloudModels("opencode", "{\"object\":\"list\",\"data\":[{\"id\":\"alpha\"},{\"id\":\"text-embedding-3-small\"}]}");
         Check("an OpenCode Go catalogue without models.dev details still lists chat models", degraded.Count == 1 && degraded[0] == "alpha", "models=" + string.Join(",", degraded.ToArray()));
-        Check("an OpenCode Go session id is a Capri session, not a key", System.Text.RegularExpressions.Regex.IsMatch(Brain.OpenCodeSession, @"\Ases_[0-9a-f]{32}\z"), "session=" + Brain.OpenCodeSession);
+        Check("only OpenCode Go interprets its entitlement and session errors",
+            Brain.Meaning(403, "{\"error\":\"EntitlementError\"}", openCode: true) == Brain.NoGoPlan
+            && Brain.Meaning(400, "{\"error\":\"MissingSessionID\"}", openCode: true) == Brain.MissingSession
+            && Brain.Meaning(403, "{\"error\":\"EntitlementError\"}", openai: true) == Brain.PlusRejected
+            && Brain.Meaning(400, "{\"error\":\"MissingSessionID\"}") == null,
+            "a Go error was missed or attributed to another provider");
+        var failures = new List<string>();
+        ProviderRegression.OpenCodeGo(failures);
+        Check("OpenCode Go requests route through the catalog and chat endpoints with scoped sessions",
+            failures.Count == 0, string.Join("; ", failures));
     }
 
     private static void ProviderNames()

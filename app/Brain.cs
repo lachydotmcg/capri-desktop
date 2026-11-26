@@ -782,7 +782,7 @@ namespace CapriDesktop
         internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.";
         internal const string OldGoKey = "A 64-character sk- key isn't guessed. For OpenCode Go, use Provider with https://opencode.ai/inference/go.";
         internal const string NoGoPlan = "This key isn't on an OpenCode Go plan. Subscribe at opencode.ai/console/go, or pick another brain key.";
-        internal const string MissingSession = "OpenCode Go needs a newer Capri for each chat. Update Capri, or pick another brain key.";
+        internal const string MissingSession = "OpenCode Go didn't accept this conversation's session. Try again or choose another brain key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
@@ -801,8 +801,26 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private readonly List<HttpWebRequest> active = new List<HttpWebRequest>();
         private int cancelled;
-        private static string openCodeSession = NewOpenCodeSession();
-        internal static string OpenCodeSession { get { return openCodeSession; } }
+        private readonly object openCodeGate = new object();
+        private string openCodeKey, openCodeRoute, openCodeSession;
+        private string GoSession(string route, string key)
+        {
+            lock (openCodeGate)
+            {
+                if (openCodeSession == null || openCodeRoute != route || openCodeKey != key)
+                {
+                    openCodeRoute = route;
+                    openCodeKey = key;
+                    openCodeSession = NewOpenCodeSession();
+                }
+                return openCodeSession;
+            }
+        }
+
+        private void ResetGoSession()
+        {
+            lock (openCodeGate) { openCodeSession = null; openCodeRoute = null; openCodeKey = null; }
+        }
         private static string NewOpenCodeSession() { return "ses_" + Guid.NewGuid().ToString("N"); }
         internal static string LogPath;
         // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
@@ -831,16 +849,22 @@ namespace CapriDesktop
         internal string Server
         {
             get { lock (serverGate) return server; }
-            set { lock (serverGate) { if (!string.Equals(server, value, StringComparison.Ordinal)) serverKey = null; server = value; } }
+            set { lock (serverGate) if (server != value) SetServer(value, null); }
         }
         internal string ServerKey
         {
             get { lock (serverGate) return serverKey; }
-            set { lock (serverGate) serverKey = value; }
+            set { lock (serverGate) SetServer(server, value); }
         }
         internal void SetServer(string address, string key)
         {
-            lock (serverGate) { server = address; serverKey = address == null ? null : key; }
+            lock (serverGate)
+            {
+                if (address == null) key = null;
+                if (server != address || serverKey != key) ResetGoSession();
+                server = address;
+                serverKey = key;
+            }
         }
         internal void GetServer(out string address, out string key)
         {
@@ -862,7 +886,21 @@ namespace CapriDesktop
         private volatile string unstreamed;
         private volatile string thinker;
         private volatile string ollamaCpu;
-        internal volatile Cloud Remote;
+        private volatile Cloud remoteBrain;
+        internal Cloud Remote
+        {
+            get { return remoteBrain; }
+            set
+            {
+                lock (openCodeGate)
+                {
+                    Cloud previous = remoteBrain;
+                    if ((previous == null ? null : previous.Key) != (value == null ? null : value.Key)
+                        || (previous == null ? null : previous.Kind) != (value == null ? null : value.Kind)) ResetGoSession();
+                    remoteBrain = value;
+                }
+            }
+        }
 #if CROSS
         internal volatile IBrainProvider Provider;
         internal Action<string> Streamed;
@@ -2118,15 +2156,21 @@ namespace CapriDesktop
         internal static string[] ServerModels(string address, string key = null)
         {
             if (!string.IsNullOrEmpty(key) && !ServerKeySafe(address)) throw new BrainException("Use https for a provider elsewhere. A key over plain http isn't safe.", true);
-            HttpWebRequest request = Create(address + "/v1/models", 5000);
+            bool go = IsOpenCodeGo(address);
+            HttpWebRequest request = Create(go ? Address("opencode", "/models") : address + "/v1/models", 5000);
             bool signed = !string.IsNullOrEmpty(key);
-            if (signed) SignServer(request, key);
+            if (signed) SignServer(request, key, go ? NewOpenCodeSession() : null);
             try
             {
                 using (WebResponse response = request.GetResponse())
                 using (Stream body = response.GetResponseStream())
                 {
                     if (signed) CheckRedirect(response);
+                    if (go)
+                    {
+                        using (var reader = new StreamReader(body, Encoding.UTF8))
+                            return ReadCloudModels("opencode", reader.ReadToEnd()).ToArray();
+                    }
                     CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
                     List<string> names = new List<string>();
                     if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && Chats(model.Id)) names.Add(model.Id);
@@ -2135,7 +2179,7 @@ namespace CapriDesktop
             }
             catch (WebException error)
             {
-                if (error.Response != null) throw Problem(error, true, null, key);
+                if (error.Response != null) throw Problem(error, true, go ? "opencode" : null, key);
                 throw new BrainException(error.Status == WebExceptionStatus.Timeout ? "The provider took too long to list its models." : "Couldn't reach the provider. Check the address.", true);
             }
         }
@@ -2573,12 +2617,18 @@ namespace CapriDesktop
 
         private static void ShutDoor(string key, string address) { lock (headerKeys) headerKeys.Remove(Door(key, address)); }
 
+        private static bool IsOpenCodeGo(string address)
+        {
+            return string.Equals(address, OpenCode, StringComparison.Ordinal)
+                || string.Equals(address, OpenCode + "/openai", StringComparison.Ordinal);
+        }
+
         private static void Sign(HttpWebRequest request, string key, bool claude, string session = null)
         {
             request.AllowAutoRedirect = false;
             string kind = Cloud.KindOf(key);
             if (kind == "openrouter") request.Headers["X-Title"] = "Capri";
-            if (kind == "opencode") request.Headers["x-opencode-session"] = session ?? openCodeSession;
+            if (kind == "opencode") request.Headers["x-opencode-session"] = session ?? NewOpenCodeSession();
             bool headerKey;
             lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
@@ -2591,9 +2641,7 @@ namespace CapriDesktop
         {
             request.AllowAutoRedirect = false;
             request.Headers["Authorization"] = "Bearer " + key;
-            string host = request.RequestUri.Host;
-            if (host.Equals("opencode.ai", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".opencode.ai", StringComparison.OrdinalIgnoreCase))
-                request.Headers["x-opencode-session"] = session ?? openCodeSession;
+            if (session != null) request.Headers["x-opencode-session"] = session;
         }
 
 #if !CROSS
@@ -4141,7 +4189,8 @@ namespace CapriDesktop
                 if (level != ThinkingLevels.Default) ThinkingLevels.Apply(body, remote.Kind, level, tools);
                 if (pick != null) body.Extra = pick.Extra;
                 string address = remote.Kind == "local" ? remote.Host + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
-                Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false, openCodeSession); });
+                string session = remote.Kind == "opencode" ? (job || routing ? NewOpenCodeSession() : GoSession(address, remote.Key)) : null;
+                Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false, session); });
                 int wait = ThinkingLevels.Wait(level, remote.Kind == "local" || screen ? Math.Max(180000, CloudWait) : CloudWait);
                 CompletionReply reply;
                 try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
@@ -4351,15 +4400,18 @@ namespace CapriDesktop
             if (named != null) asking.Model = named;
             if (level != ThinkingLevels.Default) ThinkingLevels.Apply(asking, model, level);
             if (pick != null) asking.Extra = pick.Extra;
-            Action<HttpWebRequest> sign = string.IsNullOrEmpty(key) ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { SignServer(request, key, openCodeSession); });
+            bool go = IsOpenCodeGo(address);
+            string target = go ? Address("opencode", "/chat/completions") : address + "/v1/chat/completions";
+            string session = go ? (job || routing ? NewOpenCodeSession() : GoSession("provider:" + address, key)) : null;
+            Action<HttpWebRequest> sign = string.IsNullOrEmpty(key) ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { SignServer(request, key, session); });
             CompletionReply reply;
-            try { reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key); }
+            try { reply = Send<CompletionReply>(target, asking, 180000, listed, sign, parts, ticket, key); }
             catch (BrainException error)
             {
                 if (level == ThinkingLevels.Default || pick.Extra != null || !Refused(error)) throw;
                 asking.Effort = null;
                 asking.Thinking = null;
-                reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
+                reply = Send<CompletionReply>(target, asking, 180000, listed, sign, parts, ticket, key);
                 TurnedDown(address, "kimi", model, level);
             }
             CompletionChoice choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
@@ -4369,7 +4421,7 @@ namespace CapriDesktop
                 thinker = thinking;
                 asking.Limit = ReplyLimit(limit + 2048, job || routing);
                 EnsureServer(address, key);
-                reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
+                reply = Send<CompletionReply>(target, asking, 180000, listed, sign, parts, ticket, key);
                 choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             }
             CompletionMessage cut = choice != null ? choice.Message : null;
@@ -4378,7 +4430,7 @@ namespace CapriDesktop
                 {
                     EnsureServer(address, key);
                     asking.Limit = room;
-                    return Send<CompletionReply>(address + "/v1/chat/completions", asking, Math.Max(180000, room * 150), listed, sign, parts, ticket, key);
+                    return Send<CompletionReply>(target, asking, Math.Max(180000, room * 150), listed, sign, parts, ticket, key);
                 });
             if (routing && Stopped(reply)) return CutShort(Said(reply), Whole(reply), calls);
             return Read(reply, calls, limit > 400);
@@ -4825,7 +4877,7 @@ namespace CapriDesktop
 
         internal void Forget()
         {
-            lock (gate) { history.Clear(); Kept(); }
+            lock (gate) { history.Clear(); ResetGoSession(); Kept(); }
             Attachments.Clear();
         }
 
@@ -5013,7 +5065,7 @@ namespace CapriDesktop
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
             if (error == OldGoKey) return "Older Go key: use Provider, opencode.ai/inference/go.";
             if (error == NoGoPlan) return "No OpenCode Go plan. Subscribe at opencode.ai/console/go.";
-            if (error == MissingSession) return "OpenCode Go needs a newer Capri. Update it.";
+            if (error == MissingSession) return "OpenCode Go needs a chat session. Try again.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
@@ -5297,7 +5349,8 @@ namespace CapriDesktop
                         string imageJson = Encoding.UTF8.GetString(payload);
                         if (imageJson.IndexOf("\"images\":", StringComparison.Ordinal) >= 0) imageParts = imageJson;
                     }
-                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret, imageParts);
+                    string kind = request.Headers["x-opencode-session"] != null ? "opencode" : sending == null ? null : sending.Kind;
+                    BrainException problem = Problem(error, sign != null, kind, secret, imageParts);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
                     throw problem;
@@ -5500,7 +5553,7 @@ namespace CapriDesktop
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
             bool code = Cloud.IsCode(secret) && (status == 401 || status == 403) && Regex.IsMatch(said, @"\AThat Capri code (isn't right|was switched off|has expired|has used up its budget)\.\z");
-            string meaning = code ? said : remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind)) : null;
+            string meaning = code ? said : remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind), kind == "opencode") : null;
             // Only a limit that passes gets a wait. Gemini's used-up day, or a request bigger than OpenAI's whole per-minute
             // limit, would fail again after it.
             string limit = meaning ?? Meaning(status, text);
@@ -5628,10 +5681,10 @@ namespace CapriDesktop
             return (named ? company + " rejected the key for my brain" : "The key for my brain was rejected") + ". Press Forget " + BrainMenu + ", then paste it again.";
         }
 
-        internal static string Meaning(int status, string body, bool google = false, bool openai = false, string company = null)
+        internal static string Meaning(int status, string body, bool google = false, bool openai = false, string company = null, bool openCode = false)
         {
-            if (Regex.IsMatch(body ?? "", @"EntitlementError|OpenCode Go subscription required", RegexOptions.IgnoreCase)) return NoGoPlan;
-            if (Regex.IsMatch(body ?? "", @"MissingSessionID|missing x-opencode-session", RegexOptions.IgnoreCase)) return MissingSession;
+            if (openCode && Regex.IsMatch(body ?? "", @"EntitlementError|OpenCode Go subscription required", RegexOptions.IgnoreCase)) return NoGoPlan;
+            if (openCode && Regex.IsMatch(body ?? "", @"MissingSessionID|missing x-opencode-session", RegexOptions.IgnoreCase)) return MissingSession;
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
             string words = Regex.Replace(body ?? "", @"https?:\\?/\\?/(?:[^\s""'<>\\]|\\/)+", "");

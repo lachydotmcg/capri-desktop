@@ -41419,15 +41419,15 @@ namespace CapriDesktop
                 if (goSaid != "OpenCode says hi." || goAgain != "OpenCode says hi again." || goAsked.Count != 3
                     || !goAsked[0].StartsWith("GET /v1/models ", StringComparison.Ordinal) || !Regex.IsMatch(goAsked[0], @"(?im)^x-opencode-session:\s*ses_")
                     || !goAsked[1].StartsWith("POST /openai/v1/chat/completions ", StringComparison.Ordinal)
-                    || !goFirst.Success || !goSecond.Success || goFirst.Groups["id"].Value != goSecond.Groups["id"].Value || goFirst.Groups["id"].Value != Brain.OpenCodeSession)
-                    throw new Exception("OpenCode Go didn't get its model list, chat, or one stable session across her chat and a one-shot brain.");
+                    || !goFirst.Success || !goSecond.Success || goFirst.Groups["id"].Value == goSecond.Groups["id"].Value)
+                    throw new Exception("OpenCode Go didn't get its model list, chat, or a separate session for each chat and one-shot brain.");
             }
             finally
             {
                 Brain.OpenCode = goWas;
                 if (goFake != null) goFake.Stop();
             }
-            checks.Add("PASS OpenCode Go: oc_sk_ keys go under MAX while older sk- keys ask for Provider, its chat models keep their image and tool abilities in the listed order, the Go model list is read at /inference/go/v1/models, chats use the OpenAI-compatible path, and every request carries one stable x-opencode-session across her chat and a one-shot brain");
+            checks.Add("PASS OpenCode Go: oc_sk_ keys go under MAX while older sk- keys ask for Provider, its chat models keep their image and tool abilities in the listed order, the Go model list is read at /inference/go/v1/models, chats use the OpenAI-compatible path, and her chat and a one-shot brain send distinct session IDs");
             Cloud plan = new Cloud(Plans.CodexKey, "default");
             try
             {

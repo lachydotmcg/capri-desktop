@@ -446,7 +446,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 - [x] An early preview: she sits on your windows and chats
 - [x] Her ElevenLabs voice, wandering and dancing
 - [x] Opening apps and sites, and controlling your music
-- [x] Brains from a key: a free NVIDIA key, or OpenAI, Claude, DeepSeek or OpenCode Go, with no Ollama needed (0.7.6)
+- [x] Brains from a key: a free NVIDIA key, or OpenAI, Claude or DeepSeek with no Ollama needed (0.7.6)
 - [x] Chat memory, watching your screen, pop-ins and Discord status (0.7.6)
 - [x] Switching and closing your apps (0.7.6)
 - [x] Telling you when a new version is out (0.7.6)

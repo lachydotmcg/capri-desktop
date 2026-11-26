@@ -819,7 +819,7 @@ Pick MAX INTELLIGENCE under BRAIN, paste the key in its box and press Connect. S
 - DeepSeek and OpenAI keys start with sk- (DeepSeek's are 32 letters and numbers)
 - OpenCode Go keys start with oc_sk_. Older Go keys are sk- followed by 64 letters and numbers; those are never guessed, so use Provider with https://opencode.ai/inference/go for them
 
-These keys need paid credits on their sites, except OpenCode Go, which needs a Go subscription from opencode.ai/console/go. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen. Every OpenCode Go chat carries one stable session id for the whole run, shared by her chat, jobs and asides, so the service can route the conversation and keep its prompt cache warm.
+These keys need paid credits on their sites, except OpenCode Go, which needs a Go subscription from opencode.ai/console/go. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen. Capri sends a stable session ID for each conversation. Clearing chat or changing the provider or key starts a new session. Independent requests such as jobs and asides use their own sessions. OpenCode Go is designed for coding-agent traffic, and [OpenCode lists the clients it has validated](https://opencode.ai/docs/console/go/#validated-clients). Capri compatibility may vary by model and request.
 
 - Move to MAX: paste an OpenAI, Claude, DeepSeek or OpenCode Go key under MEDIUM INTELLIGENCE and she offers Move to MAX. Press it to connect there; your current key keeps running until the new key connects successfully.
 
