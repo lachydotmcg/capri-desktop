@@ -51,10 +51,20 @@ namespace CapriDesktop
         internal const int Longest = 400;
         internal const int Biggest = 7800;
         internal const double After = 90;
+        // Reports already waiting go a few seconds after she starts, sooner after a start that closed before settling, so a
+        // Capri that crashes in her first minute still gets them out. The pass at 90 s picks up what she logs while starting.
+        internal const double Early = 5;
+        internal const double Hurried = 2;
+
+        internal static double FirstPass(int unfinished) { return unfinished > 0 ? Hurried : Early; }
         internal static readonly string[] Places = { "crash", "closed", "frozen" };
         internal static Func<string, int> Post = Send;
 
-        internal static string[] Since(string[] log, DateTime after, out DateTime newest)
+        internal static string[] Since(string[] log, DateTime after, out DateTime newest) { return Since(log, after, DateTime.MaxValue, out newest); }
+
+        // Lines after `after` and before `before`. A pass leaves out the second it runs in, which more lines may still join, so
+        // the second after its newest line is never skipped.
+        internal static string[] Since(string[] log, DateTime after, DateTime before, out DateTime newest)
         {
             newest = after;
             List<string> found = new List<string>();
@@ -64,7 +74,7 @@ namespace CapriDesktop
                 DateTime at;
                 string[] parts = (line ?? "").Split(new[] { " | " }, 3, StringSplitOptions.None);
                 if (parts.Length < 3 || parts[0].Length != 19 || Array.IndexOf(Places, parts[1]) < 0) continue;
-                if (!DateTime.TryParseExact(parts[0], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out at) || at <= after) continue;
+                if (!DateTime.TryParseExact(parts[0], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out at) || at <= after || at >= before) continue;
                 if (at > newest) newest = at;
                 found.Add(line);
             }
@@ -173,7 +183,8 @@ namespace CapriDesktop
                 string[] lines;
                 lock (typeof(Brain)) lines = File.Exists(log) ? File.ReadAllLines(log) : new string[0];
                 DateTime newest;
-                string[] picked = Since(lines, new DateTime(Math.Max(0, Math.Min(DateTime.MaxValue.Ticks, handled)), DateTimeKind.Local), out newest);
+                DateTime local = utcNow.ToLocalTime();
+                string[] picked = Since(lines, new DateTime(Math.Max(0, Math.Min(DateTime.MaxValue.Ticks, handled)), DateTimeKind.Local), new DateTime(local.Ticks - local.Ticks % TimeSpan.TicksPerSecond, DateTimeKind.Local), out newest);
                 if (picked.Length > 0)
                 {
                     string id = Guid.NewGuid().ToString("N");
@@ -373,8 +384,9 @@ namespace CapriDesktop
         // fresh pass that remembers nothing but the folder.
         internal static string CheckWaiting(string root)
         {
-            DateTime now = new DateTime(2026, 11, 26, 12, 0, 0, DateTimeKind.Utc);
-            DateTime crashed = new DateTime(2026, 11, 26, 13, 0, 0, DateTimeKind.Local);
+            DateTime now = DateTime.UtcNow;
+            DateTime hourAgo = now.ToLocalTime().AddHours(-1);
+            DateTime crashed = new DateTime(hourAgo.Year, hourAgo.Month, hourAgo.Day, hourAgo.Hour, hourAgo.Minute, hourAgo.Second, DateTimeKind.Local);
             Func<bool> yes = delegate { return true; };
             Func<string, string> idOf = delegate(string body) { return Regex.Match(body ?? "", "\"id\":\"([0-9a-f]{32})\"").Groups[1].Value; };
             Dictionary<string, string> kept = new Dictionary<string, string>();
@@ -514,11 +526,122 @@ namespace CapriDesktop
 
     internal sealed partial class Companion
     {
-        // A pass 90 s after she starts, then, while reports still wait, again after 2, 10, 30 and 60 minutes.
+        // A pretend run of starts against a pretend server. Each starts her schedule over the way a new start does, finds the
+        // crash its last start ended in already logged, logs another line `lateAt` seconds in when that's set, and crashes
+        // `crashAt` seconds in. `firstPass` stands in for her own first pass when it's set. Gives how many reports were posted.
+        private int CrashLoopSends(string log, Func<string> crashLine, int unfinished, double? firstPass, double crashAt, double lateAt, int starts, Func<string, int> post)
+        {
+            int posts = 0;
+            CrashReports.Post = delegate(string body) { posts++; return post(body); };
+            for (int start = 0; start < starts; start++)
+            {
+                Program.UnfinishedStarts = unfinished;
+                RestartCrashSchedule();
+                if (firstPass.HasValue) crashNextAt = firstPass.Value;
+                File.AppendAllText(log, crashLine() + Environment.NewLine);
+                bool late = lateAt < 0;
+                for (double now = 0; now < crashAt; now += 0.25)
+                {
+                    if (!late && now >= lateAt) { File.AppendAllText(log, crashLine() + Environment.NewLine); late = true; }
+                    CheckCrashReports(now);
+                    System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
+                    while (crashSending && waited.ElapsedMilliseconds < 20000) { Application.DoEvents(); Thread.Sleep(10); }
+                    if (crashSending) throw new Exception("A crash report pass never finished.");
+                }
+            }
+            return posts;
+        }
+
+        private void RestartCrashSchedule()
+        {
+            crashNextAt = CrashReports.FirstPass(Program.UnfinishedStarts);
+            crashEarly = true;
+            crashRound = 0;
+            crashCleared = false;
+        }
+
+        private void SmokeCrashLoop(List<string> checks, string output)
+        {
+            string root = Path.Combine(output, "crash-loop");
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            string keptLog = Brain.LogPath;
+            Func<string, int> keptPost = CrashReports.Post;
+            bool keptOn = preferences.CrashReports;
+            long keptThrough = preferences.CrashesSentThrough;
+            int keptUnfinished = Program.UnfinishedStarts;
+            Dictionary<string, int> kept = new Dictionary<string, int>();
+            Func<string, int> server = delegate(string body)
+            {
+                string id = Regex.Match(body, "\"id\":\"([0-9a-f]{32})\"").Groups[1].Value;
+                kept[id] = kept.ContainsKey(id) ? kept[id] + 1 : 1;
+                return 200;
+            };
+            DateTime stamp = DateTime.Now.AddMinutes(-40);
+            Func<string> crashLine = delegate { stamp = stamp.AddMinutes(1); return stamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " | crash | - | NullReferenceException: crash loop " + Guid.NewGuid().ToString("N").Substring(0, 8); };
+            // A folder where a start before saved a report it couldn't send, or none.
+            Func<string, bool, string> place = delegate(string name, bool waiting)
+            {
+                string folder = Path.Combine(root, name);
+                Directory.CreateDirectory(folder);
+                string log = Path.Combine(folder, "errors.txt");
+                File.WriteAllText(log, "");
+                if (waiting)
+                {
+                    File.AppendAllText(log, crashLine() + Environment.NewLine);
+                    if (CrashReports.Pass(CrashReports.Folder(log), log, 0, News.Version, CrashReports.Os(), false, delegate { return true; }, delegate(string body) { return 0; }, DateTime.UtcNow).Waiting != 1)
+                        throw new Exception("The crash loop check couldn't save a waiting report.");
+                }
+                kept.Clear();
+                Brain.LogPath = log;
+                return log;
+            };
+            Func<bool> once = delegate { foreach (int sent in kept.Values) if (sent != 1) return false; return true; };
+            try
+            {
+                preferences.CrashReports = true;
+                preferences.CrashesSentThrough = 0;
+
+                string old = place("ninety", true);
+                if (CrashLoopSends(old, crashLine, 1, CrashReports.After, 10, -1, 3, server) != 0) throw new Exception("With a first pass at 90 s, starts that crash 10 s in still sent something, so this check can't tell the old schedule from the new one.");
+
+                string looping = place("looping", true);
+                int sends = CrashLoopSends(looping, crashLine, 1, null, 10, -1, 3, server);
+                if (sends != 4 || kept.Count != 4 || !once() || CrashReports.Read(CrashReports.Folder(looping)).Count != 0)
+                    throw new Exception("Three starts that each crash 10 s in sent " + sends + " reports (" + kept.Count + " different) instead of the waiting one and each start's crash, once each.");
+                sends = CrashLoopSends(looping, crashLine, 0, null, 10, -1, 2, server);
+                if (sends != 2 || kept.Count != 6 || !once()) throw new Exception("Later starts sent an earlier crash report again.");
+
+                string settling = place("settling", false);
+                sends = CrashLoopSends(settling, crashLine, 0, null, 95, 30, 1, server);
+                if (sends != 2 || kept.Count != 2 || !once()) throw new Exception("A start that runs on sent " + sends + " reports instead of its last crash early and what it logged 30 s in at 90 s.");
+
+                if (CrashReports.FirstPass(0) >= 10 || CrashReports.FirstPass(1) > CrashReports.FirstPass(0)) throw new Exception("Waiting crash reports don't go out in her first seconds.");
+                string crashed = Path.Combine(root, "settings.crashed.json"), reset = Path.Combine(root, "settings.json");
+                using (FileStream stream = File.Create(crashed)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, new Preferences { CrashReports = true, CrashesSentThrough = 12345, Size = 300 });
+                Program.KeepKeys(crashed, reset);
+                Preferences afterReset;
+                using (FileStream stream = File.OpenRead(reset)) afterReset = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
+                if (!afterReset.CrashReports || afterReset.CrashesSentThrough != 12345 || afterReset.Size == 300) throw new Exception("Settings reset after starts that kept crashing turned crash reports off or kept more than her keys and that choice.");
+                checks.Add("PASS crash reports go " + CrashReports.FirstPass(0) + " s into a start (" + CrashReports.FirstPass(1) + " s after one that closed while starting): starts that each crash 10 s in send the waiting report and each start's crash, once each, where a first pass at 90 s sent nothing; what she logs while starting goes at 90 s; and settings reset after crashing while starting keep crash reports on");
+            }
+            finally
+            {
+                Brain.LogPath = keptLog;
+                CrashReports.Post = keptPost;
+                Program.UnfinishedStarts = keptUnfinished;
+                preferences.CrashReports = keptOn;
+                preferences.CrashesSentThrough = keptThrough;
+                crashNextAt = double.MaxValue;
+                crashEarly = false;
+                SavePreferences();
+            }
+        }
+
+        // A pass a few seconds after she starts, another at 90 s, then, while reports still wait, again after 2, 10, 30 and 60 minutes.
         private static readonly double[] CrashRetries = { 120, 600, 1800, 3600 };
         private ToolStripMenuItem crashItem;
-        private bool crashSending, crashCleared;
-        private double crashNextAt = CrashReports.After;
+        private bool crashSending, crashCleared, crashEarly = true;
+        private double crashNextAt = CrashReports.FirstPass(Program.UnfinishedStarts);
         private int crashRound;
 
         internal bool CrashReportsOn { get { return preferences.CrashReports; } }
@@ -543,6 +666,7 @@ namespace CapriDesktop
             crashNextAt = 0;
             crashRound = 0;
             crashCleared = false;
+            crashEarly = false;
             CheckCrashReports(clock.Elapsed.TotalSeconds);
         }
 
@@ -587,6 +711,7 @@ namespace CapriDesktop
                     crashSending = false;
                     bool again = pass == null || pass.Busy || pass.Waiting > 0;
                     if (!preferences.CrashReports) crashNextAt = 0;
+                    else if (crashEarly) { crashEarly = false; crashNextAt = Math.Max(now + 1, CrashReports.After); }
                     else crashNextAt = again && crashRound < CrashRetries.Length ? now + CrashRetries[crashRound++] : double.MaxValue;
                     if (pass != null && pass.SentThrough > preferences.CrashesSentThrough) { preferences.CrashesSentThrough = pass.SentThrough; SavePreferences(); }
                 });
