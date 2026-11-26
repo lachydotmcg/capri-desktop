@@ -1192,6 +1192,51 @@ namespace CapriDesktop
                 if (!noteBlocked || !sawRedacted || !legacyRedacted || !recalledLabelled || !pronounsOutside || !memoriesLabelled)
                     throw new Exception("Her memory labels went wrong: note " + noteBlocked + " (" + forged + "), saw " + sawRedacted + ", legacy " + legacyRedacted + ", recalled " + recalledLabelled + ", pronouns " + pronounsOutside + ", memories " + memoriesLabelled + " / " + sawBlock + " / " + legacyBlock + " / " + memoriesBlocked);
                 checks.Add("PASS memory labels: her notes, screen sightings, memories and old chats reach her brain as data blocks that say they are data, a note cannot forge another block, a legacy sighting with an address is redacted, and her pronouns directive stays outside the block");
+                // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
+                // set is bounded too, so a long history can't grow it until the app closes.
+                string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(dugDir);
+                DateTime dugDay = new DateTime(2026, 3, 1, 9, 0, 0);
+                for (int i = 0; i < 4; i++)
+                    File.WriteAllText(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"), "*09:00 You: we tested retention on day " + i + "\n");
+                string dugWas = Brain.TranscriptPath;
+                bool dugKeepingWas = Brain.Keeping;
+                int dugDaysWas = Brain.DugDays, sharedCapWas = Brain.SharedCap;
+                long dugBytesWas = Brain.DugBytes;
+                bool dugTrimmed, dugForgotten, sharedBounded;
+                try
+                {
+                    Brain.TranscriptPath = dugDir;
+                    Brain.Keeping = true;
+                    Brain.ForgetDug();
+                    Brain.DugDays = 2;
+                    Brain.DugBytes = long.MaxValue;
+                    Brain.Recalled("remember when we tested retention");
+                    dugTrimmed = Brain.DugHeld == 2
+                        && Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"))
+                        && !Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-3).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    for (int i = 0; i < 3; i++) File.Delete(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = Brain.DugHeld == 1;
+                    Directory.Delete(dugDir, true);
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = dugForgotten && Brain.DugHeld == 0;
+                    Brain.SharedCap = 2;
+                    Brain.Recalled("remember when alpha beta gamma delta");
+                    sharedBounded = Brain.SharedHeld <= 2;
+                }
+                finally
+                {
+                    Brain.TranscriptPath = dugWas;
+                    Brain.Keeping = dugKeepingWas;
+                    Brain.DugDays = dugDaysWas;
+                    Brain.DugBytes = dugBytesWas;
+                    Brain.SharedCap = sharedCapWas;
+                    if (Directory.Exists(dugDir)) Directory.Delete(dugDir, true);
+                }
+                if (!dugTrimmed || !dugForgotten || !sharedBounded)
+                    throw new Exception("Her recall cache went wrong: trimmed " + dugTrimmed + ", forgotten " + dugForgotten + ", shared " + sharedBounded);
+                checks.Add("PASS recall cache: days beyond the cap go oldest first, a day whose file is gone leaves the cache, and the shared word set stays bounded");
                 // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
                 // glances go in the transcript but never into memories.md (a Bazzite user).
                 string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");

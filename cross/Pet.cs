@@ -53,6 +53,7 @@ namespace CapriDesktop
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoHuskVerbosity;
         [DataMember] internal bool NoMemories;
+        [DataMember(EmitDefaultValue = false)] internal string HistoryRetention;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
@@ -988,7 +989,15 @@ namespace CapriDesktop
             VoiceFx.Glitch = Math.Max(0, Math.Min(100, Saved.Glitch));
             VoiceFx.Layers = LayersOf(Saved);
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
-            if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
+            if (Program.Smoke == null)
+            {
+                string chat = Path.Combine(folder, "chat.json");
+                string settings = Path.Combine(folder, "cross.json");
+                if (unreadableNotice != null || settingsWriteBlocked || !LimitsHistory || !Retention.Enabled(settings))
+                    Saved.HistoryRetention = null;
+                else Retention.Sweep(settings, Brain.TranscriptPath, chat, DateTime.Now);
+                Brain.Load(chat);
+            }
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
             Timeline.Open(Program.Smoke ?? folder);
@@ -4663,6 +4672,16 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return memoriesItem.IsChecked; } }
+        internal bool LimitsHistory { get { return Saved.HistoryRetention == Retention.Limited; } }
+
+        internal void SetHistoryLimit(bool on)
+        {
+            string previous = Saved.HistoryRetention;
+            Saved.HistoryRetention = on ? Retention.Limited : null;
+            if (!SaveResult() && Retention.Enabled(Path.Combine(folder, "cross.json")) != on)
+                Saved.HistoryRetention = previous;
+            Sync();
+        }
 
         // memories.md opens in their editor, made first if it isn't there yet. Her transcripts are in the folder beside it.
         internal string OpenMemories()
