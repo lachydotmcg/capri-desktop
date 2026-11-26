@@ -559,6 +559,8 @@ namespace CapriDesktop
                 BrainServerChecks();
                 ProviderRegression.Run(pet, folder);
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
+                ProviderRegression.Named(pet);
+                checks.Add("PASS named providers: validated connection, failed active-edit rollback, isolated credentials and models, and late one-off cancellation");
                 ChoresChecks();
                 LinuxInputChecks();
                 PlasmaHandsChecks();
@@ -7395,6 +7397,27 @@ namespace CapriDesktop
                         MainframeWait(() => note.Text == "Provider forgotten.", "forgetting the custom provider");
                         if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainServer != null || forget.IsEnabled)
                             throw new Exception("The sheet did not remove the custom provider pair.");
+
+                        var saved = (NeonPicker)provider.Rows["Saved providers"];
+                        var name = ((NeonEntry)provider.Rows["Provider name"]).Box;
+                        var model = (NeonPicker)provider.Rows["Model"];
+                        var add = (NeonButton)provider.Rows["Add"];
+                        name.Text = "Local test provider";
+                        address.Text = server.Address + "/v1";
+                        key.Text = "named-provider-key";
+                        add.Press();
+                        if (saved.Selected != 1 || pet.Brain.Server != null || note.Text != "Added Local test provider.")
+                            throw new Exception("The provider sheet did not save and select a new provider.");
+                        connect.Press();
+                        MainframeWait(() => note.Text == "Connected to Local test provider.", "the saved provider from its panel");
+                        if (pet.Brain.ServerKey != "named-provider-key" || model.Choices.Length != 2 || !model.IsEnabled)
+                            throw new Exception("The sheet did not connect with the named key and model list.");
+                        model.Pick(1);
+                        if (Pet.ProviderModel(pet.Saved, pet.Saved.BrainProvider, 0) != "server-other")
+                            throw new Exception("The sheet did not remember the named model separately.");
+                        forget.Press();
+                        if (saved.Choices.Length != 1 || pet.Brain.Server != null || note.Text != "Forgot Local test provider.")
+                            throw new Exception("The provider sheet did not forget the named provider.");
                     }
                     finally { provider.Close(); }
                     checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, her own brain server and any OpenAI-compatible provider address with a key use loopback fakes");

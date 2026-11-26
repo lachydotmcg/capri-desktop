@@ -874,6 +874,88 @@ namespace CapriDesktop
         }
     }
 
+    internal sealed class CustomProviderList
+    {
+        private readonly Pet pet;
+
+        internal CustomProviderList(Pet owner) { pet = owner; }
+
+        internal string SelectedId { get; private set; }
+        internal string Problem { get; private set; }
+
+        private List<ProviderEndpoint> Live()
+        {
+            List<ProviderEndpoint> listed = new List<ProviderEndpoint>();
+            if (pet.Saved.ProviderEndpoints != null) foreach (ProviderEndpoint endpoint in pet.Saved.ProviderEndpoints) if (endpoint != null) listed.Add(endpoint);
+            return listed;
+        }
+
+        internal int Count { get { return Live().Count; } }
+        internal bool Empty { get { return Live().Count == 0; } }
+        internal ProviderEndpoint Selected
+        {
+            get { return SelectedId == null ? null : Pet.EndpointFor(pet.Saved, SelectedId); }
+        }
+        internal int SelectedIndex
+        {
+            get
+            {
+                if (SelectedId == null) return -1;
+                List<ProviderEndpoint> listed = Live();
+                for (int i = 0; i < listed.Count; i++) if (listed[i].Id == SelectedId) return i;
+                return -1;
+            }
+        }
+        internal bool SelectedActive { get { return pet.IsActiveEndpoint(Selected); } }
+
+        internal string[] Labels()
+        {
+            List<string> labels = new List<string>();
+            labels.Add("New provider");
+            foreach (ProviderEndpoint endpoint in Live()) labels.Add(endpoint.Name + " \u00b7 " + endpoint.Address);
+            return labels.ToArray();
+        }
+        internal void Select(int at)
+        {
+            List<ProviderEndpoint> listed = Live();
+            SelectedId = at <= 0 || at > listed.Count ? null : listed[at - 1].Id;
+            Problem = null;
+        }
+        internal void SelectActive()
+        {
+            SelectedId = Pet.EndpointIdOf(pet.Saved.BrainProvider);
+            if (!SelectedActive) SelectedId = null;
+        }
+
+        internal void Save(string name, string address, string key, bool add, bool connect, Action<string> report)
+        {
+            pet.SaveNamedProvider(add ? null : SelectedId, name, address, key, connect, problem =>
+            {
+                if (problem == null && add) SelectedId = Live()[Count - 1].Id;
+                report(problem);
+            });
+        }
+
+        internal bool Forget()
+        {
+            ProviderEndpoint endpoint = Selected;
+            if (endpoint == null) { Problem = "Pick a provider first."; return false; }
+            int at = SelectedIndex;
+            string id = endpoint.Id;
+            Problem = null;
+            if (!pet.RemoveEndpoint(id)) { Problem = "Couldn't remove that provider."; return false; }
+            List<ProviderEndpoint> left = Live();
+            SelectedId = left.Count == 0 ? null : left[Math.Min(at, left.Count - 1)].Id;
+            return true;
+        }
+
+        internal void PickModel(string model)
+        {
+            if (!SelectedActive || string.IsNullOrEmpty(model) || Array.IndexOf(pet.MainframeModels, model) < 0) return;
+            pet.MainframePickListedModel(model);
+        }
+    }
+
     internal sealed class MainframeSheet : MainframeWindow
     {
         private readonly Pet pet;
@@ -947,43 +1029,104 @@ namespace CapriDesktop
         private double Provider()
         {
             Caption("Use an OpenAI-compatible chat endpoint.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
-            var address = Input("Address", "https://api.example.com/v1", 28, 84, 328, () => pet.Brain.Server ?? "");
-            var key = Input("API key", "Optional", 28, 140, 328, () => null);
+            var list = new CustomProviderList(pet);
+            list.SelectActive();
+            var providers = Put(Page, new NeonPicker { Ellipsis = true }, 28, 76, 328, 24, "Saved providers"); Rows["Saved providers"] = providers;
+            var empty = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint }, 28, 104, 328, 20);
+            var name = Input("Provider name", "My server", 28, 128, 154, () => list.Selected == null ? "" : list.Selected.Name);
+            var address = Input("Address", "https://api.example.com/v1", 202, 128, 154, () => list.Selected == null ? pet.Brain.Server ?? "" : list.Selected.Address);
+            var key = Input("API key", "Optional", 28, 182, 328, () => null);
             key.Box.PasswordChar = '•';
-            Caption("A key needs HTTPS unless the server is on this PC.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
-            var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 264, 328, 20);
+            Caption("A key needs HTTPS unless the server is on this PC.", 28, 234, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            Caption("Model", 28, 296, 100, 18);
+            var model = Put(Page, new NeonPicker { Ellipsis = true }, 28, 316, 216, 24, "Model"); Rows["Model"] = model;
+            var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 350, 328, 20);
             Rows["Note"] = note;
             Action<string> say = text => { note.Text = text; ToolTip.SetTip(note, text); note.InvalidateVisual(); };
-            int request = 0;
-            NeonButton connectButton = null;
-            Action connect = () =>
+            bool pending = false;
+            Action<string, Action<Action<string>>> apply = (checking, change) =>
             {
-                if (!connectButton.IsEnabled) return;
-                int ticket = ++request;
-                string secret = key.Box.Text;
-                key.Box.Text = "";
-                connectButton.IsEnabled = false;
-                say("Checking the provider...");
-                pet.UseServer(address.Box.Text, secret, result =>
+                if (pending) return;
+                pending = true;
+                say(checking);
+                Sync();
+                change(result =>
                 {
-                    if (closed || ticket != request) return;
-                    connectButton.IsEnabled = true;
+                    if (closed) return;
+                    pending = false;
                     say(result);
+                    Sync();
                 });
             };
-            connectButton = Button("Connect", 28, 224, 104, 28, () => connect());
-            connectButton.Accent = MainframeTheme.Cyan;
-            var forget = Button("Forget", 140, 224, 104, 28, () =>
+            Action<bool, bool> named = (add, connect) =>
             {
-                ++request;
+                apply(connect || list.SelectedActive ? "Checking the provider..." : "", done =>
+                    list.Save(name.Box.Text, address.Box.Text, key.Box.Text, add, connect, problem =>
+                    {
+                        if (problem != null) { done(problem); return; }
+                        key.Box.Text = "";
+                        name.Box.Text = list.Selected.Name;
+                        address.Box.Text = list.Selected.Address;
+                        done((add ? "Added " : connect ? "Connected to " : "Saved ") + list.Selected.Name + ".");
+                    }));
+            };
+            var add = Button("Add", 28, 256, 76, 28, () => named(true, false));
+            var save = Button("Save", 112, 256, 76, 28, () => named(false, false));
+            Action connectAction = () =>
+            {
+                if (list.Selected == null) apply("Checking the provider...", done =>
+                {
+                    string secret = key.Box.Text;
+                    key.Box.Text = "";
+                    pet.UseServer(address.Box.Text, secret, done);
+                });
+                else named(false, true);
+            };
+            var connect = Button("Connect", 196, 256, 76, 28, connectAction);
+            connect.Accent = MainframeTheme.Cyan;
+            var forget = Button("Forget", 280, 256, 76, 28, () =>
+            {
+                if (pending) return;
                 key.Box.Text = "";
-                connectButton.IsEnabled = true;
-                pet.LeaveServer(say);
+                if (list.Selected == null) { pet.LeaveServer(say); return; }
+                string removed = list.Selected.Name;
+                if (!list.Forget()) { say(list.Problem); return; }
+                name.Box.Text = list.Selected?.Name ?? "";
+                address.Box.Text = list.Selected?.Address ?? pet.Brain.Server ?? "";
+                say("Forgot " + removed + ".");
+                Sync();
             });
-            readers.Add(() => forget.IsEnabled = pet.Brain.Server != null);
-            Button("Close", 252, 224, 104, 28, Close);
-            foreach (var entry in new[] { address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => connect()); } };
-            return 300;
+            Button("Close", 252, 314, 104, 28, Close);
+            readers.Add(() =>
+            {
+                providers.Options(list.Labels());
+                providers.Selected = list.SelectedIndex + 1;
+                empty.Text = list.Empty ? "No saved providers yet." : "";
+                empty.InvalidateVisual();
+                providers.IsEnabled = add.IsEnabled = connect.IsEnabled = !pending;
+                name.Box.IsEnabled = address.Box.IsEnabled = key.Box.IsEnabled = !pending;
+                save.IsEnabled = !pending && list.Selected != null;
+                forget.IsEnabled = !pending && (list.Selected != null || pet.Brain.Server != null);
+                bool active = list.SelectedActive;
+                string[] available = active ? pet.MainframeModels : Array.Empty<string>();
+                model.IsEnabled = !pending && available.Length > 0;
+                model.Options(available);
+                model.Selected = Array.IndexOf(available, pet.Brain.Model);
+                model.Text = active ? pet.Brain.Model ?? "Model" : list.Selected == null ? "Model" : Pet.ProviderModel(pet.Saved, Pet.EndpointProviderId(list.SelectedId), 0) ?? "Not connected";
+            });
+            providers.Changed += i =>
+            {
+                if (syncing || pending) return;
+                list.Select(i);
+                name.Box.Text = list.Selected == null ? "" : list.Selected.Name;
+                address.Box.Text = list.Selected == null ? pet.Brain.Server ?? "" : list.Selected.Address;
+                key.Box.Text = "";
+                say("");
+                Sync();
+            };
+            model.Changed += i => { if (!syncing && !pending) list.PickModel(model.Text); };
+            foreach (var entry in new[] { name, address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => connectAction()); } };
+            return 378;
         }
         // Extra request JSON for the brain she's on, merged into each request it sends.
         private double ThinkingExtra()
