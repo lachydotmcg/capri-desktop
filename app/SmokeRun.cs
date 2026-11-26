@@ -491,7 +491,7 @@ namespace CapriDesktop
 
         internal static int LastStep { get { return options != null && options.Step >= 0 ? options.Step : MaxStep; } }
 
-        private static int StartStep(int target)
+        internal static int StartStep(int target)
         {
             int at = target;
             while (at > 0)

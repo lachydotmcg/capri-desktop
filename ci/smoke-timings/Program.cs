@@ -235,7 +235,15 @@ internal static class Program
             catch (ArgumentException) { refused = true; }
             Check(refused, "--step must refuse " + string.Join(" ", bad) + ".");
         }
-        Console.WriteLine("PASS --step runs a single step chain cleanly");
+        foreach (int step in new[] { 14, 17 })
+        {
+            string recovered = Path.Combine(folder, "recover-" + step);
+            Directory.CreateDirectory(recovered);
+            File.WriteAllText(Path.Combine(recovered, "steps-done.txt"), "FAIL " + step + "\n");
+            SmokeRun.Start(recovered, Settings(recovered, new[] { "--step", step.ToString() }));
+            Check(SmokeRun.NextStep > SmokeRun.LastStep, "A worker already recorded step " + step + " as failed.");
+        }
+        Console.WriteLine("PASS --step runs a single step chain and skips recorded failures on recovery");
     }
 
     private static void Unavailable(string folder)
