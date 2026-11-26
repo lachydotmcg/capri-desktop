@@ -12,14 +12,14 @@ namespace CapriDesktop
 {
     internal sealed partial class Mainframe
     {
-        private const int ModRows = 3, ModRowTop = 370, ModRowHeight = 62, ModListHead = 312;
+        private const int ModRows = 3, ModRowTop = 334, ModRowHeight = 62, ModListHead = 276;
         private readonly List<KeyValuePair<Control, int>> modLeft = new List<KeyValuePair<Control, int>>();
         private readonly Label[] modNames = new Label[ModRows], modAbouts = new Label[ModRows];
         private readonly Key[] modSwitches = new Key[ModRows], modRemoves = new Key[ModRows], modPublishes = new Key[ModRows], modOptions = new Key[ModRows];
         private Key modsKey, modBack, modNext, modBrowse;
         private Head modListHead;
         private readonly Key[] colourKeys = new Key[ArtColors.Slots];
-        private Label modStatus, modEmpty, modNoMatch, modPage;
+        private Label modStatus, modCaption, modEmpty, modNoMatch, modPage;
         private readonly Timer modStatusTimer = new Timer();
         private Entry modSearch;
         private List<Mod> modShown = new List<Mod>();
@@ -32,7 +32,7 @@ namespace CapriDesktop
             ModAsk = AskToRun;
             int first = Controls.Count;
             Section("MODS >", 0, 58);
-            Caption("Code mods can reach your whole PC. Only trusted ones.", 28, 80, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
+            modCaption = Caption("Code mods can reach your whole PC. Only trusted ones.", 28, 80, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
             Key import = Make("Import mod", 28, 104, 100, 28, delegate { ImportMod(); });
             import.Accent = Cyan;
             import.Loud = true;
@@ -41,10 +41,13 @@ namespace CapriDesktop
             Explain(import, "Import mod", "MainframeMods.cs");
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
-            modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
-            modStatusTimer.Tick += delegate { modStatusTimer.Stop(); modStatus.Text = ""; };
+            // What a mod did takes the caption's line until modStatusTimer clears it, so no empty row waits under the buttons.
+            modStatus = ModLabel("", 28, 80, 328, 20, Font, Faint);
+            modStatus.Visible = false;
+            modStatus.TextChanged += delegate { bool quiet = modStatus.Text.Length == 0; modCaption.Visible = quiet; modStatus.Visible = !quiet; };
+            modStatusTimer.Tick += delegate { ModQuiet(); };
             FormClosed += delegate { modStatusTimer.Stop(); modStatusTimer.Dispose(); };
-            // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
+            // A long import error, like a compiler's, is cut to one line here, and hovering it shows the whole thing.
             ((Note)modStatus).Hovers = true;
             // Mod names can hold an &, like Dice & Decider, so it isn't read as a shortcut key.
             modStatus.UseMnemonic = false;
@@ -219,6 +222,12 @@ namespace CapriDesktop
                 foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
                 return true;
             });
+        }
+
+        private void ModQuiet()
+        {
+            modStatusTimer.Stop();
+            modStatus.Text = "";
         }
 
         private void ModSays(string text, bool problem)
@@ -484,6 +493,51 @@ namespace CapriDesktop
             }
         }
 
+        private const string LongModProblem = "Couldn't build Long Mod: main.cs(12,40): error CS1002: ; expected, main.cs(14,9): error CS0103: The name 'cpu' does not exist in the current context.";
+
+        private void CheckModsLayout(List<string> checks, string output)
+        {
+            int wasDpi = layoutDpi, wasText = layoutText;
+            bool wasFallback = layoutFallback;
+            try
+            {
+                foreach (int percent in new[] { 100, 200 })
+                {
+                    LayoutScale(percent * 96 / 100, 100);
+                    ModSays("", false);
+                    string problem = TextFits() ?? Overlap();
+                    if (problem != null) throw new Exception("The Mods page doesn't fit at " + percent + "%: " + problem);
+                    if (!modCaption.Visible || modStatus.Visible || plugBack.Top - modBrowse.Bottom > Scaled(12)) throw new Exception("The Mods page at " + percent + "% left a gap of " + (plugBack.Top - modBrowse.Bottom) + " px under its buttons, or hid its caption.");
+                    SaveModsPicture(output, "mods-" + percent);
+                    ModSays(LongModProblem, true);
+                    problem = TextFits() ?? Overlap();
+                    if (problem != null) throw new Exception("A long mod error doesn't fit at " + percent + "%: " + problem);
+                    if (modCaption.Visible || !modStatus.Visible || modStatus.Top != modCaption.Top || modStatus.Bottom > modBrowse.Top || modStatus.Height > Scaled(22) || modStatus.ForeColor != Rose
+                        || modStatus.Text != LongModProblem || modStatus.AccessibilityObject.Name != LongModProblem || !ModStatusHovers || !modStatusTimer.Enabled)
+                        throw new Exception("A long mod error at " + percent + "% didn't take the caption's one line in the problem colour with its whole text for hover and screen readers.");
+                    SaveModsPicture(output, "mods-error-" + percent);
+                    ModQuiet();
+                    if (!modCaption.Visible || modStatus.Text.Length != 0) throw new Exception("The caption didn't come back when the mod message timed out.");
+                }
+                checks.Add("PASS Mods page: a mod message takes the caption's one line (cut with ... and whole on hover and for screen readers) until it times out, PLUG-INS sits right under the buttons, and it fits at 100% and 200%");
+            }
+            finally
+            {
+                LayoutScale(wasDpi, wasText, wasFallback);
+                ModSays("", false);
+            }
+        }
+
+        private void SaveModsPicture(string output, string name)
+        {
+            Refresh();
+            using (Bitmap page = new Bitmap(Width, Height))
+            {
+                DrawToBitmap(page, new Rectangle(Point.Empty, Size));
+                page.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
+            }
+        }
+
         internal void CheckMods(List<string> checks, string output)
         {
             FormWindowState wasState = WindowState;
@@ -514,6 +568,7 @@ namespace CapriDesktop
                 DrawToBitmap(page, new Rectangle(Point.Empty, Size));
                 page.Save(Path.Combine(output, "mods-page.png"), ImageFormat.Png);
             }
+            CheckModsLayout(checks, output);
             SwitchMod(0);
             if (Hands.HeardName("hey nova") || !Hands.HeardName("hey capri") || Hands.NoteFor(Hands.KitFor()).Contains("They can also call you")) throw new Exception("Turning a mod off left its names on.");
             mods.Load();

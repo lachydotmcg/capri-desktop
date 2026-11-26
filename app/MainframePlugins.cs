@@ -13,7 +13,7 @@ namespace CapriDesktop
     internal sealed partial class Mainframe
     {
         private static readonly string[] GrantOrder = { Plugins.Usual, Plugins.Always, Plugins.Ask, Plugins.Off };
-        private const int PlugTiles = 4, PlugHead = 180, PlugTop = 204;
+        private const int PlugTiles = 4, PlugHead = 144, PlugTop = 168;
         private readonly PlugTile[] plugTiles = new PlugTile[PlugTiles];
         private Key plugBack, plugNext;
         private Label plugEmpty;
