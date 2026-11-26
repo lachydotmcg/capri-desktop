@@ -420,7 +420,7 @@ namespace CapriDesktop
             internal bool CanRate
             {
                 get { return canRate; }
-                set { canRate = value; TabStop = value; hover = 0; Cursor = value ? Cursors.Hand : Cursors.Default; Invalidate(); }
+                set { canRate = value; TabStop = value; hover = 0; Cursor = value ? Look.Hand : Cursors.Default; Invalidate(); }
             }
 
             internal void Pick(int stars) { if (canRate && Picked != null) Picked(stars); }

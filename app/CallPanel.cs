@@ -366,7 +366,7 @@ namespace CapriDesktop
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
             SetStyle(ControlStyles.Selectable, false);
             BackColor = Color.Transparent;
-            Cursor = Cursors.Hand;
+            Cursor = Look.Hand;
             AccessibleRole = AccessibleRole.PushButton;
         }
         internal void Take(CallView view) { string was = View == null ? "" : CallInk.Tip(Kind, View); View = view; string now = CallInk.Tip(Kind, view); AccessibleName = now; if (was != now) Invalidate(); }
@@ -543,7 +543,7 @@ namespace CapriDesktop
                 return;
             }
             int part = PartAt(e.Location);
-            Cursor = part == 0 ? Cursors.SizeAll : Cursors.Hand;
+            Cursor = part == 0 ? Cursors.SizeAll : Look.Hand;
             if (part == hover) return;
             hover = part;
             tips.Clear();
@@ -871,7 +871,7 @@ namespace CapriDesktop
             bool over = Picking(e.Location);
             if (over == overApp || apps.Visible) return;
             overApp = over;
-            Cursor = over ? Cursors.Hand : Cursors.Default;
+            Cursor = over ? Look.Hand : Cursors.Default;
             if (over) tips.Hover(delegate { return PickTip; }, delegate { return RectangleToScreen(Rectangle.Round(AppBox)); });
             else tips.Clear();
             Invalidate();

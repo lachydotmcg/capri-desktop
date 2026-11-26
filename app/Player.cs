@@ -568,7 +568,7 @@ namespace CapriDesktop
         internal MiniPlayer() : base("Capri mini player")
         {
             AccessibleName = "Capri mini player";
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             ticks.Interval = 500;
             ticks.Tick += delegate { Step(); };
         }
@@ -753,7 +753,7 @@ namespace CapriDesktop
                 return;
             }
             int part = PartAt(OnPlate(e.Location), scale, tune.Heartable);
-            Cursor = part == 0 ? Cursors.SizeAll : Look.Pointer;
+            Cursor = part == 0 ? Cursors.SizeAll : Look.PointerFor(this);
             if (part != hover) { hover = part; Redraw(); }
         }
 

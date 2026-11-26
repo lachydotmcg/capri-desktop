@@ -534,7 +534,7 @@ namespace CapriDesktop
             shortcut.AutoSize = false;
             shortcut.TextAlign = ContentAlignment.MiddleRight;
             shortcut.Bounds = new Rectangle(156, 181, 200, 20);
-            shortcut.Cursor = Cursors.Hand;
+            shortcut.Cursor = Look.Hand;
             // Keys are picked in Settings, where Confirm and Cancel sit beside them.
             shortcut.Click += delegate { ShowSettings(true); PickKeys(0); };
             Lower(shortcut);
@@ -626,7 +626,7 @@ namespace CapriDesktop
                 hearingFixes[i].Visible = false;
             }
             muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 509, small, Faint));
-            muteShortcut.Cursor = Cursors.Hand;
+            muteShortcut.Cursor = Look.Hand;
             muteShortcut.Click += delegate { ShowSettings(true); PickKeys(1); };
             Deactivate += delegate { CancelKeys(); };
             voiceNote = Lower(Caption("", 28, InstallAt, Font, Faint));
@@ -1824,7 +1824,7 @@ namespace CapriDesktop
             micLoudness.Value = (capri.MicLoudness - 50) / 10;
             syncing = was;
             voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
-            voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
+            voiceInMicNote.Cursor = cable ? Cursors.Default : Look.Hand;
             voiceInMicState.Text = setup != null ? setup : problem != null ? problem : !cable ? MicMix.Missing : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
             // Visible reads false while Settings isn't on screen, so the width goes by what it was set to.
@@ -5353,11 +5353,11 @@ namespace CapriDesktop
             speechFix = text != null && text != hearingNote.Text && text.IndexOf("Online speech recognition", StringComparison.Ordinal) >= 0;
             voiceNote.Text = speechFix ? text + OpenSpeech : text;
             voiceNote.ForeColor = problem ? Hot : Faint;
-            voiceNote.Cursor = speechFix ? Cursors.Hand : Cursors.Default;
+            voiceNote.Cursor = speechFix ? Look.Hand : Cursors.Default;
         }
 
         internal const string OpenSpeech = " Click to open it.";
-        internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Cursors.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
+        internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Look.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
 
         internal string VoiceNoteText { get { return voiceNote.Text; } }
         internal bool VoiceNoteWarning { get { return voiceNote.ForeColor == Hot; } }
@@ -5642,7 +5642,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             internal void Pick(bool on) { Picked = on; AccessibilityNotifyClients(AccessibleEvents.StateChange, -1); Invalidate(); }
@@ -5842,7 +5842,7 @@ namespace CapriDesktop
             protected override void OnMouseMove(MouseEventArgs e)
             {
                 bool over = OnChevron(e.X);
-                Cursor = over ? Cursors.Hand : Cursors.IBeam;
+                Cursor = over ? Look.Hand : Cursors.IBeam;
                 if (over != hot) { hot = over; Invalidate(); }
                 base.OnMouseMove(e);
             }
@@ -8217,7 +8217,7 @@ namespace CapriDesktop
                 this.labels = labels;
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable | ControlStyles.ResizeRedraw, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 TabStop = true;
                 AccessibleRole = AccessibleRole.Slider;
             }
@@ -8437,7 +8437,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
@@ -8508,7 +8508,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 AutoCheck = false;
             }
 

@@ -27,7 +27,7 @@ namespace CapriDesktop
         private static readonly PrivateFontCollection fonts = new PrivateFontCollection();
         private static IntPtr fontMemory;
         private static readonly FontFamily embedded = Embedded("Capri.Font.Mono.ttf");
-        private static Cursor pointer;
+        [DllImport("user32.dll")] private static extern IntPtr LoadCursor(IntPtr instance, IntPtr name);
 
         [StructLayout(LayoutKind.Sequential)] private struct IconInfo { internal bool Icon; internal int X; internal int Y; internal IntPtr Mask; internal IntPtr Colour; }
         [DllImport("user32.dll")] private static extern bool GetIconInfo(IntPtr icon, ref IconInfo info);
@@ -35,29 +35,163 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr icon);
         [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr value);
 
-        internal static Cursor Pointer
+        // Her pointer at the main screen's scale, for SetSystemCursor, which takes one size for every screen.
+        internal static Cursor Pointer { get { return PointerFor(SystemDpi); } }
+
+        // Windows' own hand. WinForms' Cursors.Hand is a fixed 32 px cursor of its own, so it shows at half size on a 200%
+        // screen; this one Windows sizes for each screen and for their cursor size setting.
+        internal static Cursor Hand
         {
             get
             {
-                if (pointer != null) return pointer;
-                float scale;
-                using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) scale = Math.Max(1f, screen.DpiX / 96f);
-                int size = (int)Math.Round(32 * scale);
-                using (Bitmap art = PointerArt(size))
+                if (hand != null) return hand;
+                IntPtr shared = LoadCursor(IntPtr.Zero, new IntPtr(32649));
+                hand = shared == IntPtr.Zero ? Cursors.Hand : new Cursor(shared);
+                return hand;
+            }
+        }
+        private static Cursor hand;
+
+        // Her pointer drawn as big as Windows draws its own at this DPI: their cursor size (32 px unless they changed it in
+        // Accessibility) times the screen's scale. Each size is made once.
+        internal static Cursor PointerFor(int dpi)
+        {
+            if (dpi <= 0) dpi = 96;
+            int size = (int)Math.Round(BaseSize * dpi / 96.0);
+            lock (pointers)
+            {
+                Cursor made;
+                if (pointers.TryGetValue(size, out made)) return made;
+                made = MakePointer(size);
+                if (made == null) return Hand;
+                pointers[size] = made;
+                return made;
+            }
+        }
+        private static readonly Dictionary<int, Cursor> pointers = new Dictionary<int, Cursor>();
+        private static int baseSize;
+        private static bool noWindowDpi;
+
+        private static int BaseSize
+        {
+            get
+            {
+                if (baseSize == 0) baseSize = CursorBaseSize();
+                return baseSize;
+            }
+        }
+
+        internal static bool IsPointer(Cursor cursor)
+        {
+            lock (pointers) return cursor != null && pointers.ContainsValue(cursor);
+        }
+
+        // Gives a window her pointer at its own screen's scale, and again whenever it moves to a screen with another one.
+        // WinForms only raises Form.DpiChanged when app.config opts in, so WM_DPICHANGED is watched on the window itself, and
+        // a hidden window placed on another screen may get none, so moving or showing it checks too.
+        internal static void UsePointer(Form form)
+        {
+            form.Cursor = PointerFor(DpiOf(form));
+            DpiWatch watch = new DpiWatch(form);
+            EventHandler created = delegate
+            {
+                Rescale(form, DpiOf(form));
+                if (watch.Handle != form.Handle) watch.AssignHandle(form.Handle);
+            };
+            if (form.IsHandleCreated) created(form, EventArgs.Empty);
+            form.HandleCreated += created;
+            form.HandleDestroyed += delegate { watch.ReleaseHandle(); };
+            form.LocationChanged += delegate { Rescale(form, DpiOf(form)); };
+            form.VisibleChanged += delegate { Rescale(form, DpiOf(form)); };
+        }
+
+        private sealed class DpiWatch : NativeWindow
+        {
+            private readonly Form form;
+
+            internal DpiWatch(Form watched) { form = watched; }
+
+            protected override void WndProc(ref Message message)
+            {
+                base.WndProc(ref message);
+                if (message.Msg == 0x02E0) Rescale(form, (int)(message.WParam.ToInt64() & 0xFFFF));
+                // Their cursor size changing in Accessibility arrives as a setting change.
+                if (message.Msg == 0x001A) { baseSize = 0; Rescale(form, DpiOf(form)); }
+            }
+        }
+
+        internal static Cursor PointerFor(Control control) { return PointerFor(DpiOf(control)); }
+
+        private static void Rescale(Control control, int dpi)
+        {
+            if (!IsPointer(control.Cursor)) return;
+            Cursor wanted = PointerFor(dpi);
+            if (control.Cursor != wanted) control.Cursor = wanted;
+        }
+
+        private static int DpiOf(Control control)
+        {
+            if (control.IsHandleCreated && !noWindowDpi)
+            {
+                try { int dpi = Native.GetDpiForWindow(control.Handle); if (dpi > 0) return dpi; }
+                catch (EntryPointNotFoundException) { noWindowDpi = true; }
+            }
+            return SystemDpi;
+        }
+
+        private static int SystemDpi
+        {
+            get { using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) return (int)Math.Round(Math.Max(96f, screen.DpiX)); }
+        }
+
+        internal static int CursorBaseSize()
+        {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\Cursors"))
                 {
-                    IntPtr icon = art.GetHicon();
-                    IconInfo info = new IconInfo();
-                    GetIconInfo(icon, ref info);
-                    info.Icon = false;
-                    info.X = (int)Math.Round(2 * scale);
-                    info.Y = (int)Math.Round(2 * scale);
-                    IntPtr handle = CreateIconIndirect(ref info);
-                    DeleteObject(info.Mask);
-                    DeleteObject(info.Colour);
-                    DestroyIcon(icon);
-                    pointer = handle == IntPtr.Zero ? Cursors.Hand : new Cursor(handle);
+                    object value = key == null ? null : key.GetValue("CursorBaseSize");
+                    if (value is int && (int)value >= 32 && (int)value <= 256) return (int)value;
                 }
-                return pointer;
+            }
+            catch (System.Security.SecurityException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (System.IO.IOException) { }
+            return 32;
+        }
+
+        internal static int Pixels(Cursor cursor)
+        {
+            IconInfo info = new IconInfo();
+            if (cursor == null || !GetIconInfo(cursor.Handle, ref info)) return 0;
+            try { using (Bitmap mask = Image.FromHbitmap(info.Mask)) return mask.Width; }
+            finally
+            {
+                if (info.Mask != IntPtr.Zero) DeleteObject(info.Mask);
+                if (info.Colour != IntPtr.Zero) DeleteObject(info.Colour);
+            }
+        }
+
+        internal static bool IsWindowsHand(Cursor cursor)
+        {
+            return cursor != null && cursor != Cursors.Hand && cursor.Handle == LoadCursor(IntPtr.Zero, new IntPtr(32649));
+        }
+
+        private static Cursor MakePointer(int size)
+        {
+            using (Bitmap art = PointerArt(size))
+            {
+                IntPtr icon = art.GetHicon();
+                IconInfo info = new IconInfo();
+                GetIconInfo(icon, ref info);
+                info.Icon = false;
+                info.X = (int)Math.Round(2.0 * size / 32);
+                info.Y = (int)Math.Round(2.0 * size / 32);
+                IntPtr handle = CreateIconIndirect(ref info);
+                DeleteObject(info.Mask);
+                DeleteObject(info.Colour);
+                DestroyIcon(icon);
+                return handle == IntPtr.Zero ? null : new Cursor(handle);
             }
         }
 
@@ -876,7 +1010,7 @@ namespace CapriDesktop
 
         internal TalkPill() : base("Talk to Capri")
         {
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             ticks.Interval = 45;
             ticks.Tick += delegate
             {
@@ -3414,7 +3548,7 @@ namespace CapriDesktop
         private const int Columns = 34;
         private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
 
-        internal SpeechBox() : base("Capri says") { Cursor = Look.Pointer; }
+        internal SpeechBox() : base("Capri says") { Look.UsePointer(this); }
 
         internal Rectangle PanelOnScreen { get { return panelOnScreen; } }
         internal bool Scrollable { get { return totalLines > visibleLines; } }

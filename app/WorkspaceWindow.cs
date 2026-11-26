@@ -991,7 +991,7 @@ namespace CapriDesktop
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            Cursor want = chat != null && titleBox.Contains(e.Location) ? Cursors.IBeam : chat != null && folderBox.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+            Cursor want = chat != null && titleBox.Contains(e.Location) ? Cursors.IBeam : chat != null && folderBox.Contains(e.Location) ? Look.Hand : Cursors.Default;
             if (Cursor != want) Cursor = want;
         }
 
@@ -1453,7 +1453,7 @@ namespace CapriDesktop
                     return;
                 }
                 int over = At(e.Location);
-                Cursor = over >= 0 ? Cursors.Hand : Cursors.Default;
+                Cursor = over >= 0 ? Look.Hand : Cursors.Default;
                 if (over != hover) { hover = over; Invalidate(); }
             }
 
@@ -1709,7 +1709,7 @@ namespace CapriDesktop
             {
                 base.OnMouseMove(e);
                 int over = ChipAt(e.Location);
-                Cursor = over >= 0 ? Cursors.Hand : e.Y < Input.Bottom ? Cursors.IBeam : Cursors.Default;
+                Cursor = over >= 0 ? Look.Hand : e.Y < Input.Bottom ? Cursors.IBeam : Cursors.Default;
                 if (over != hover) { hover = over; Invalidate(); }
             }
 
@@ -4077,7 +4077,7 @@ namespace CapriDesktop
                 CopyHover(e.Location);
                 bool key = !copyKey.IsEmpty && copyKey.Contains(new Point(e.X, e.Y + Offset));
                 string page = LinkAt(new Point(e.X, e.Y + Offset));
-                Cursor = head || link || more || key || page != null ? Cursors.Hand : OnText(new Point(e.X, e.Y + Offset)) ? Cursors.IBeam : Cursors.Default;
+                Cursor = head || link || more || key || page != null ? Look.Hand : OnText(new Point(e.X, e.Y + Offset)) ? Cursors.IBeam : Cursors.Default;
                 if (page != null) { if (page != tipShown) { tipShown = page; tips.SetToolTip(this, page); } return; }
                 Block hot = head || link && Row(over) ? over : null;
                 if (hot != hovered || head != hoveredHead)

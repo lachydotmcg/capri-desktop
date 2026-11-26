@@ -431,7 +431,7 @@ namespace CapriDesktop
             Bitmap picture = SearchPicture(searchFound, searchPicked, Unit(), layoutFallback, out searchRows, out margin, out crowded);
             if (searchList == null || searchList.IsDisposed)
             {
-                searchList = new Overlay("Search settings") { Above = false, Cursor = Cursors.Hand };
+                searchList = new Overlay("Search settings") { Above = false, Cursor = Look.Hand };
                 searchList.Owner = this;
                 searchList.MouseMove += delegate(object sender, MouseEventArgs e)
                 {

@@ -1184,7 +1184,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 TabStop = true;
                 AccessibleRole = AccessibleRole.RadioButton;
             }
@@ -1317,7 +1317,7 @@ namespace CapriDesktop
             internal Swatch()
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable, true);
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 TabStop = true;
             }
 
@@ -1459,7 +1459,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 UseMnemonic = false;
             }
 

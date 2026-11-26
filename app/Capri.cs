@@ -3202,7 +3202,7 @@ namespace CapriDesktop
             StartPosition = FormStartPosition.Manual;
             TopMost = preferences.OnTop;
             Layer();
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             AutoScaleMode = AutoScaleMode.None;
             menu = new ContextMenuStrip();
             // Before her look's own Opening, which measures the words with the fonts they'll open with.
@@ -7529,6 +7529,46 @@ namespace CapriDesktop
         {
             preferences.MainframeSize = Preferences.FrameSize(size);
             SavePreferences();
+        }
+
+        private void SmokeCursorScale(List<string> checks)
+        {
+            int baseSize = Look.CursorBaseSize();
+            foreach (int dpi in new[] { 96, 144, 192 })
+            {
+                int want = (int)Math.Round(baseSize * dpi / 96.0), got = Look.Pixels(Look.PointerFor(dpi));
+                if (got != want) throw new Exception("Her pointer at " + dpi + " DPI is " + got + " px, not " + want + " px like Windows' own cursors.");
+            }
+            Control import = null;
+            Stack<Control> left = new Stack<Control>();
+            left.Push(mainframe);
+            while (left.Count > 0 && import == null)
+            {
+                Control control = left.Pop();
+                if (control is Button && control.Text == "Import mod") import = control;
+                foreach (Control child in control.Controls) left.Push(child);
+            }
+            if (import == null) throw new Exception("The Mods page's Import mod button wasn't found.");
+            using (Plate plate = new Plate())
+                if (!Look.IsWindowsHand(import.Cursor) || !Look.IsWindowsHand(plate.Cursor)) throw new Exception("Her buttons use WinForms' fixed 32 px hand, which shows at half size on a 200% screen.");
+            using (Form moved = new Form { ShowInTaskbar = false, FormBorderStyle = FormBorderStyle.None })
+            {
+                Look.UsePointer(moved);
+                IntPtr handle = moved.Handle;
+                IntPtr suggested = Marshal.AllocHGlobal(16);
+                try
+                {
+                    foreach (int dpi in new[] { 192, 144, 96, 192 })
+                    {
+                        Marshal.WriteInt32(suggested, 0, 0); Marshal.WriteInt32(suggested, 4, 0); Marshal.WriteInt32(suggested, 8, 100); Marshal.WriteInt32(suggested, 12, 100);
+                        Native.SendMessage(handle, 0x02E0, new IntPtr(dpi | dpi << 16), suggested);
+                        int want = (int)Math.Round(baseSize * dpi / 96.0), got = Look.Pixels(moved.Cursor);
+                        if (got != want) throw new Exception("A window moved to a " + dpi + " DPI screen kept a " + got + " px pointer, not " + want + " px.");
+                    }
+                }
+                finally { Marshal.FreeHGlobal(suggested); }
+            }
+            checks.Add("PASS her pointer is Windows' cursor size at 96, 144 and 192 DPI and follows a window to another screen's scale, and her buttons use Windows' own hand, not WinForms' fixed 32 px one");
         }
 
         private void SmokeMainframeColours(List<string> checks, string output)
@@ -47619,6 +47659,7 @@ namespace CapriDesktop
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeSettingsSearch", delegate { mainframe.CheckSearch(checks, output); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
+            Section(checks, "SmokeCursorScale", delegate { SmokeCursorScale(checks); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
             Section(checks, "SmokeModDrop", delegate { SmokeModDrop(checks, output); });
             Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
@@ -55603,7 +55644,7 @@ namespace CapriDesktop
                             if (!late.StartsWith("NVIDIA didn't answer in time.", StringComparison.Ordinal) || late.IndexOf("pick another model", StringComparison.Ordinal) < 0) throw new Exception("A slow NVIDIA reply was not explained: " + late);
                             checks.Add("PASS error details: brain errors are logged with the endpoint and time, Copy error details includes them, and a slow cloud brain says to pick another model");
                             using (Bitmap pointerArt = Look.PointerArt(128)) pointerArt.Save(Path.Combine(output, "cursor.png"), ImageFormat.Png);
-                            if (Cursor != Look.Pointer || Look.Pointer == Cursors.Hand || pill.Cursor != Look.Pointer || box.Cursor != Look.Pointer) throw new Exception("Her pink cursor did not load.");
+                            if (!Look.IsPointer(Cursor) || Look.Pointer == Look.Hand || !Look.IsPointer(pill.Cursor) || !Look.IsPointer(box.Cursor)) throw new Exception("Her pink cursor did not load.");
                             checks.Add("PASS cursor: her pink glitch pointer shows over her, her pill and her bubble");
                             System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
                             System.Collections.Generic.List<byte> tapped = new System.Collections.Generic.List<byte>();
