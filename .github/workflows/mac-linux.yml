@@ -63,9 +63,10 @@ jobs:
           test -n "$identity"
           for arch in arm64 x64; do
             app=dist/$arch/Capri.app
-            find $app/Contents/MacOS -type f ! -name Capri | while read -r part; do
+            find $app/Contents/MacOS -type f ! -name Capri ! -name capri-mic | while read -r part; do
               if file -b "$part" | grep -q Mach-O; then codesign --force --timestamp --options runtime --sign "$identity" "$part"; fi
             done
+            codesign --force --timestamp --options runtime --entitlements cross/mac/Mic.entitlements --sign "$identity" $app/Contents/MacOS/capri-mic
             codesign --force --timestamp --options runtime --entitlements cross/mac/Capri.entitlements --sign "$identity" $app/Contents/MacOS/Capri
             codesign --force --timestamp --options runtime --entitlements cross/mac/Capri.entitlements --sign "$identity" $app
             codesign --verify --strict --verbose=2 $app
@@ -79,16 +80,18 @@ jobs:
       - name: Smoke test, Apple Silicon
         timeout-minutes: 8
         run: |
-          dist/arm64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-arm64" || true
-          cat smoke/mac-arm64/smoke-test.txt
-          if grep -q '^FAIL' smoke/mac-arm64/smoke-test.txt; then exit 1; fi
+          rm -f smoke/mac-arm64/smoke-test.txt
+          rc=0
+          dist/arm64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-arm64" || rc=$?
+          bash ci/smoke-gate.sh smoke/mac-arm64/smoke-test.txt 0 "$rc"
       - name: Smoke test, Intel through Rosetta
-        timeout-minutes: 8
+        timeout-minutes: 14
         run: |
           if arch -x86_64 /usr/bin/true 2>/dev/null; then
-            arch -x86_64 dist/x64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-x64" || true
-            cat smoke/mac-x64/smoke-test.txt
-            if grep -q '^FAIL' smoke/mac-x64/smoke-test.txt; then exit 1; fi
+            rm -f smoke/mac-x64/smoke-test.txt
+            rc=0
+            arch -x86_64 dist/x64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-x64" || rc=$?
+            bash ci/smoke-gate.sh smoke/mac-x64/smoke-test.txt 0 "$rc"
           else
             echo "No Rosetta on this runner"
           fi
@@ -112,8 +115,25 @@ jobs:
           path: smoke
 
   linux:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+            appimage: x86_64
+            tool: ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+            runtime: 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            appimage: aarch64
+            tool: f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+            runtime: 00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    env:
+      TARGET: linux-${{ matrix.arch }}
+      APPIMAGE_ARCH: ${{ matrix.appimage }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -129,23 +149,25 @@ jobs:
           fi
           sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
       - name: Build
-        run: bash ci/build-linux.sh "$PWD/out/Capri"
+        run: bash ci/build-linux.sh "$PWD/out/Capri" "$TARGET"
       - name: Install a test desktop
         timeout-minutes: 15
         run: |
           sudo apt-get update -q
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1
       - name: Smoke test
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/Capri/Capri --smoke "$PWD/smoke/linux"' || true
-          cat smoke/linux/smoke-test.txt
-          if grep -q '^FAIL' smoke/linux/smoke-test.txt; then exit 1; fi
+          rm -f smoke/linux/smoke-test.txt
+          rc=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/Capri/Capri --smoke "$PWD/smoke/linux"' || rc=$?
+          bash ci/smoke-gate.sh smoke/linux/smoke-test.txt 0 "$rc"
       - name: Pack
-        run: tar -czf Capri-linux-x64.tar.gz -C out Capri
-      # The AppImage wraps the same Capri the tarball has, and goes in the linux artifact beside it, so a release puts both
-      # in SHA256SUMS.txt and uploads them together. appimagetool would fetch the newest AppImage runtime at build time,
-      # and that runtime is the first code that runs on their PC, so the tool and the runtime are both pinned by sha256.
+        run: tar -czf "Capri-$TARGET.tar.gz" -C out Capri
+      # The AppImage wraps the same Capri the tarball has. Both CPUs' files are merged into the linux artifact below, so a
+      # release puts all four in SHA256SUMS.txt and uploads them together. appimagetool would fetch the newest AppImage runtime
+      # at build time, and that runtime is the first code that runs on their PC, so the tool and the runtime are both pinned
+      # by sha256, one pair per CPU from the same releases.
       - name: Pack the AppImage
         run: |
           set -e
@@ -155,30 +177,41 @@ jobs:
           cp cross/icon.png AppDir/capri-desktop.png
           printf '%s\n' '#!/bin/sh' 'HERE="$(dirname "$(readlink -f "$0")")"' 'exec "${APPDIR:-$HERE}/usr/bin/Capri" "$@"' > AppDir/AppRun
           chmod +x AppDir/AppRun
-          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
-          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo runtime-x86_64 https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
-          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  appimagetool" | sha256sum -c -
-          echo "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  runtime-x86_64" | sha256sum -c -
+          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo appimagetool "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-$APPIMAGE_ARCH.AppImage"
+          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo "runtime-$APPIMAGE_ARCH" "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-$APPIMAGE_ARCH"
+          echo "${{ matrix.tool }}  appimagetool" | sha256sum -c -
+          echo "${{ matrix.runtime }}  runtime-$APPIMAGE_ARCH" | sha256sum -c -
           chmod +x appimagetool
-          ARCH=x86_64 ./appimagetool --appimage-extract-and-run --runtime-file runtime-x86_64 AppDir Capri-linux-x64.AppImage
-          sha256sum Capri-linux-x64.tar.gz Capri-linux-x64.AppImage | tee -a "$GITHUB_STEP_SUMMARY"
+          ARCH="$APPIMAGE_ARCH" ./appimagetool --appimage-extract-and-run --runtime-file "runtime-$APPIMAGE_ARCH" AppDir "Capri-$TARGET.AppImage"
+          sha256sum "Capri-$TARGET.tar.gz" "Capri-$TARGET.AppImage" | tee -a "$GITHUB_STEP_SUMMARY"
       # The runner has no FUSE, so the image runs through its extract-and-run mode, which still sets APPIMAGE and APPDIR.
       - name: Smoke test the AppImage
         timeout-minutes: 10
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; ./Capri-linux-x64.AppImage --appimage-extract-and-run --smoke "$PWD/smoke/appimage"' || true
-          cat smoke/appimage/smoke-test.txt
-          if grep -q '^FAIL' smoke/appimage/smoke-test.txt; then exit 1; fi
-          test "$(grep -c '^PASS' smoke/appimage/smoke-test.txt)" -ge 20
+          rm -f smoke/appimage/smoke-test.txt
+          rc=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; "./Capri-$TARGET.AppImage" --appimage-extract-and-run --smoke "$PWD/smoke/appimage"' || rc=$?
+          bash ci/smoke-gate.sh smoke/appimage/smoke-test.txt 20 "$rc"
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-${{ matrix.arch }}
           path: |
-            Capri-linux-x64.tar.gz
-            Capri-linux-x64.AppImage
+            Capri-linux-${{ matrix.arch }}.tar.gz
+            Capri-linux-${{ matrix.arch }}.AppImage
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-linux
+          name: smoke-linux-${{ matrix.arch }}
           path: smoke
+
+  # One linux artifact with the x64 and arm64 tarballs and AppImages, as the release takes it.
+  linux-release:
+    needs: linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/upload-artifact/merge@v4
+        with:
+          name: linux
+          pattern: linux-*

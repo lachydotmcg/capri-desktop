@@ -164,6 +164,17 @@ namespace CapriDesktop
         private const string Sounds = "emphasis|gasping|yawning|snoring|clear throat|clears throat|long-break|break|laughs?|giggl(?:e|es|ing)|chuckles?|sighs?|gasps?|whispers?|sobs?|cr(?:ying|ies)|sniffl(?:e|es|ing)|groans?|yawns?|scoff(?:s|ing)?|snorts?|hum(?:s|ming)?|pauses?|teasing(?:ly)?|playful(?:ly)?|smug(?:ly)?|flirt(?:y|atious|atiously)|sweetly|softly|warm(?:ly)?|cheerful(?:ly)?|mischievous(?:ly)?|annoyed|pout(?:s|ing)?|gentl(?:e|y)|shy(?:ly)?|sleepy|tired|dramatic(?:ally)?|mock(?:ing|ingly)?|sing(?:s|ing)|cheeky|deadpan|quietly|loudly|evil";
         internal static readonly Regex Cue = new Regex(@"\[\s*(?<cue>(?:(?:very|slightly|extremely|really|super|so|quite|a bit|a little|kind of|kinda)\s+)?(?:" + Feelings + "|" + Sounds + @")(?:[\s-]+[a-z']+){0,3})\s*\](?!\()|\(\s*(?<cue>(?!moved\b)(?:" + Feelings + @"))\s*\)", RegexOptions.IgnoreCase);
 
+        internal static string FeelingOf(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            try
+            {
+                Match found = Cue.Match(text);
+                return found.Success ? found.Groups["cue"].Value.Trim().ToLowerInvariant() : null;
+            }
+            catch (Exception) { return null; }
+        }
+
         // What she says without its cues: her bubble, her history and every voice but Fish Audio's. A cue takes the space after
         // it, or the one before it when it ends a sentence, so the words around it close up.
         internal static string Uncued(string text)
@@ -378,8 +389,29 @@ namespace CapriDesktop
 
         internal byte[] Speak(string text)
         {
+            string own = VoiceId, pack = CompanionPack.ElevenLabs;
+            if (pack == null || pack == own || own != null && pack == packFailed) return Speak(text, own);
+            try { return Speak(text, pack); }
+            catch (VoiceException error)
+            {
+                if (own == null || !PackVoiceOnly(error)) throw;
+                if (error.Status != 400 && error.Status != 422) packFailed = pack;
+                Brain.Log("voice", -1, "The companion pack's ElevenLabs voice didn't work with this key, so their own voice said it: " + error.Message);
+                return Speak(text, own);
+            }
+        }
+
+        private volatile string packFailed;
+
+        internal static bool PackVoiceOnly(VoiceException error)
+        {
+            string said = error.Message ?? "";
+            return error.Status == 400 || error.Status == 404 || error.Status == 422 || said == LibraryVoice || said.StartsWith("Voice not found", StringComparison.Ordinal) || said.StartsWith("That voice is still training", StringComparison.Ordinal);
+        }
+
+        private byte[] Speak(string text, string id)
+        {
             string key = Key;
-            string id = VoiceId;
             string model = Model;
             if (key == null || id == null) throw new VoiceException("No voice picked.");
             string said = Sayable(text);
@@ -642,7 +674,7 @@ namespace CapriDesktop
     }
 
     // Bonk is her thud when she's thrown into an edge of her screen or the taskbar.
-    internal enum Cue { Arrive, Leave, Hop, Click, Bonk }
+    internal enum Cue { Arrive, Leave, Hop, Click, Bonk, Clap }
 
     internal static class Sfx
     {
@@ -716,8 +748,34 @@ namespace CapriDesktop
                 case Cue.Leave: return Sweep(0.36, 880, 250, 0.012, level);
                 case Cue.Hop: return Sweep(0.16, 520, 1240, 0.008, level);
                 case Cue.Bonk: return Sweep(0.13, 420, 120, 0.002, level * 4 / 5);
+                case Cue.Clap: return Clap(level);
                 default: return Sweep(0.05, 1600, 1350, 0.003, level * 3 / 4);
             }
+        }
+
+        private static short[] Clap(int level)
+        {
+            int count = (int)(0.16 * Rate);
+            short[] samples = new short[count];
+            Random noise = new Random(5);
+            double peak = 0.3 * Math.Max(0, Math.Min(100, level)) / 100.0;
+            double low = 0, band = 0;
+            double[] bursts = { 0, 0.009, 0.019 };
+            for (int i = 0; i < count; i++)
+            {
+                double t = (double)i / Rate;
+                double envelope = 0;
+                foreach (double start in bursts)
+                {
+                    double since = t - start;
+                    if (since >= 0) envelope = Math.Max(envelope, Math.Min(1, since / 0.0008) * Math.Exp(-since / (start == bursts[bursts.Length - 1] ? 0.03 : 0.004)));
+                }
+                double white = noise.NextDouble() * 2 - 1;
+                low += (white - low) * 0.35;
+                band += ((white - low) - band) * 0.6;
+                samples[i] = (short)(Math.Max(-1, Math.Min(1, band * envelope * 1.6)) * peak * 32767);
+            }
+            return samples;
         }
 
         private static short[] Sweep(double seconds, double from, double to, double attack, int level)
@@ -739,6 +797,72 @@ namespace CapriDesktop
                 samples[i] = (short)(Math.Max(-1, Math.Min(1, smooth * envelope / 1.4)) * peak * 32767);
             }
             return samples;
+        }
+    }
+
+    internal static class VoiceFeel
+    {
+        private static readonly object[,] Moves =
+        {
+            { "excited", 2, 112, 104 }, { "thrilled", 2, 114, 105 }, { "elated", 2, 112, 104 },
+            { "hyper", 3, 122, 106 }, { "giddy", 3, 118, 104 }, { "eager", 2, 110, 103 },
+            { "happy", 2, 106, 102 }, { "joyful", 2, 108, 103 }, { "delighted", 2, 107, 103 },
+            { "laughing", 2, 108, 103 }, { "giggling", 2, 110, 102 }, { "chuckling", 1, 104, 100 },
+            { "playful", 2, 106, 102 }, { "cheeky", 2, 105, 102 }, { "mischievous", 2, 104, 101 },
+            { "surprised", 3, 116, 106 }, { "gasping", 3, 118, 106 },
+            { "sad", -2, 90, 96 }, { "unhappy", -2, 92, 96 }, { "disappointed", -1, 92, 96 },
+            { "mournful", -2, 86, 93 }, { "wistful", -1, 90, 95 }, { "lonely", -2, 88, 93 },
+            { "depressed", -2, 85, 91 }, { "resigned", -1, 90, 94 }, { "bored", -1, 96, 96 },
+            { "sleepy", -1, 84, 94 }, { "tired", -1, 86, 95 }, { "yawning", -1, 82, 93 },
+            { "sighing", -1, 92, 95 }, { "sobbing", 1, 92, 96 }, { "crying loudly", 1, 96, 108 },
+            { "wanting", 1, 92, 97 }, { "needy", 1, 94, 97 }, { "longing", 0, 90, 95 },
+            { "breathless", 1, 104, 95 }, { "tender", 1, 94, 97 }, { "affectionate", 1, 96, 99 },
+            { "loving", 1, 95, 99 }, { "flirty", 1, 96, 99 }, { "sweetly", 1, 97, 99 },
+            { "warmly", 1, 97, 100 }, { "gently", 0, 94, 96 }, { "softly", 0, 94, 88 },
+            { "whispering", 0, 94, 70 }, { "soft tone", 0, 95, 82 }, { "quietly", 0, 96, 78 },
+            { "shouting", 1, 108, 128 }, { "screaming", 2, 112, 132 }, { "loudly", 1, 104, 122 },
+            { "angry", -1, 108, 112 }, { "furious", -1, 112, 118 }, { "frustrated", -1, 106, 108 },
+            { "upset", 1, 104, 104 }, { "disgusted", -1, 98, 102 }, { "contemptuous", -1, 96, 102 },
+            { "nervous", 1, 110, 97 }, { "anxious", 1, 110, 97 }, { "worried", 1, 104, 98 },
+            { "scared", 2, 112, 98 }, { "embarrassed", 1, 102, 94 }, { "flustered", 2, 110, 97 },
+            { "sarcastic", -1, 96, 100 }, { "smug", -1, 97, 101 }, { "teasing", 0, 98, 101 },
+            { "deadpan", -1, 96, 99 }, { "mocking", 0, 100, 101 }, { "indifferent", -1, 97, 97 },
+            { "proud", 0, 102, 106 }, { "confident", 0, 102, 105 }, { "determined", 0, 104, 106 },
+            { "curious", 1, 104, 100 }, { "hopeful", 1, 103, 100 }, { "grateful", 1, 99, 100 },
+            { "calm", 0, 95, 98 }, { "relaxed", 0, 94, 98 }
+        };
+
+        private static readonly string[] More = { "extremely", "really", "very", "super", "so" };
+        private static readonly string[] Less = { "slightly", "a bit", "a little", "kind of", "kinda", "quite" };
+
+        internal static bool Shift(string cue, out int pitch, out int pace, out int loud)
+        {
+            pitch = 0;
+            pace = 100;
+            loud = 100;
+            if (string.IsNullOrEmpty(cue)) return false;
+            string said = cue.Trim().ToLowerInvariant();
+            double strength = 1;
+            foreach (string word in More) if (said.StartsWith(word + " ", StringComparison.Ordinal)) { strength = 1.5; said = said.Substring(word.Length + 1); break; }
+            if (strength == 1)
+                foreach (string word in Less) if (said.StartsWith(word + " ", StringComparison.Ordinal)) { strength = 0.5; said = said.Substring(word.Length + 1); break; }
+
+            int found = -1;
+            for (int at = 0; at < Moves.GetLength(0); at++)
+            {
+                string name = (string)Moves[at, 0];
+                if (!said.Equals(name, StringComparison.Ordinal) && !said.StartsWith(name + " ", StringComparison.Ordinal)) continue;
+                found = at;
+                break;
+            }
+            if (found < 0) return false;
+            pitch = (int)Math.Round((int)Moves[found, 1] * strength);
+            pace = 100 + (int)Math.Round(((int)Moves[found, 2] - 100) * strength);
+            loud = 100 + (int)Math.Round(((int)Moves[found, 3] - 100) * strength);
+            pitch = Math.Max(-3, Math.Min(3, pitch));
+            pace = Math.Max(70, Math.Min(140, pace));
+            loud = Math.Max(55, Math.Min(140, loud));
+            return pitch != 0 || pace != 100 || loud != 100;
         }
     }
 
@@ -2316,6 +2440,15 @@ namespace CapriDesktop
             return code == "cmn" ? "zh" : code == "nb" || code == "nn" ? "no" : code == "tl" ? "fil" : code;
         }
 
+        internal static bool LatinScript(string language)
+        {
+            string code = Code(language);
+            if (code.Length == 0) return false;
+            for (int i = 0; i < Scripts.GetLength(0); i++)
+                if ((" " + Scripts[i, 0] + " ").Contains(" " + code + " ")) return false;
+            return true;
+        }
+
         internal static bool Reads(string text, string language)
         {
             string alphabet = Latin;
@@ -2511,6 +2644,95 @@ namespace CapriDesktop
         }
     }
 
+    internal static class VoiceTongues
+    {
+        internal static string Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/espeak-ng-data.tar.bz2";
+        internal static string Sha = "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533";
+        internal static long Size = 7252012;
+        internal const string Label = "her voice's languages";
+        private static readonly string[,] Spoken =
+        {
+            { "fr", "fr", "e399ab924c4d10beef1fc310b30ea56e4ddfd8b4b64b8ed978e9c65394d49b2d" },
+            { "es", "es", "3fa93e251eab80838a2d6207ee58c9c847270a65fe3fae98850e0185b5a2186c" },
+            { "it", "it", "111f968359c9ebe36b107a2565ba9f258bab337d3cbe37e44871980a8f21ce6b" },
+            { "pt", "pt-br", "7e8398f15fa4a21db39a213381f28ec0d302b22663c644e865abb61a09c1b004" },
+            { "hi", "hi", "5a68c9532624e57ac845b26ce1e2e5034c4f6353bede46ecbe57e583ec8effd6" }
+        };
+
+        private static int Row(string code)
+        {
+            for (int i = 0; i < Spoken.GetLength(0); i++) if (Spoken[i, 0] == code) return i;
+            return -1;
+        }
+
+        internal static bool Knows(string code) { return Row(code) >= 0; }
+
+        internal static string Lang(string code) { int row = Row(code); return row < 0 ? null : Spoken[row, 1]; }
+
+        internal static int Native(string code)
+        {
+            switch (code)
+            {
+                case "es": return 28;
+                case "fr": return 30;
+                case "hi": return 31;
+                case "it": return 35;
+                case "pt": return 42;
+                default: return -1;
+            }
+        }
+
+        private static string Dict(string folder, string code) { return Path.Combine(Path.Combine(folder, "espeak-ng-data"), code + "_dict"); }
+
+        internal static bool Ready(string folder, string code)
+        {
+            if (!Knows(code)) return false;
+            FileInfo file = new FileInfo(Dict(folder, code));
+            return file.Exists && file.Length > 0;
+        }
+
+        internal static bool Missing(string folder)
+        {
+            for (int i = 0; i < Spoken.GetLength(0); i++) if (!Ready(folder, Spoken[i, 0])) return true;
+            return false;
+        }
+
+        internal static void Fetch(string folder, Action<string, long, long> progress, Func<bool> stopped)
+        {
+            if (!Missing(folder)) return;
+            string archive = folder + ".tongues.tar.bz2", staging = folder + ".tongues";
+            Engine.Fetch(Url, archive, Size, Sha, Label, progress, stopped);
+            try
+            {
+                TarReader.Clean(staging);
+                using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
+                using (Stream plain = Bunzip.Open(packed))
+                {
+                    TarReader.Unpack(plain, staging, true);
+                    plain.CopyTo(Stream.Null);
+                }
+                for (int i = 0; i < Spoken.GetLength(0); i++)
+                {
+                    string code = Spoken[i, 0], from = Dict(staging, code), into = Dict(folder, code);
+                    if (Ready(folder, code)) continue;
+                    if (!File.Exists(from) || !string.Equals(Engine.Hash(from), Spoken[i, 2], StringComparison.OrdinalIgnoreCase)) throw new IOException(Engine.Unmatched(Label));
+                    Directory.CreateDirectory(Path.GetDirectoryName(into));
+                    string part = into + ".part";
+                    File.Copy(from, part, true);
+                    if (File.Exists(into)) File.Delete(into);
+                    File.Move(part, into);
+                }
+            }
+            finally
+            {
+                TarReader.Clean(staging);
+                try { File.Delete(archive); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+    }
+
     internal sealed class FreeStyle
     {
         internal readonly string Name;
@@ -2546,7 +2768,7 @@ namespace CapriDesktop
         private readonly string folder;
         private readonly object gate = new object();
         private IntPtr tts;
-        private bool british;
+        private string lang;
         internal volatile FreeStyle Style = Styles[0];
         internal volatile bool Cancel;
 
@@ -2578,6 +2800,7 @@ namespace CapriDesktop
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+            VoicePack.Seal(staging);
             if (!Complete(staging)) throw new IOException("The voice download is missing files.");
             lock (gate)
             {
@@ -2586,6 +2809,15 @@ namespace CapriDesktop
                 else Directory.Move(staging, folder);
             }
             File.Delete(zip);
+        }
+
+        internal long Remove()
+        {
+            lock (gate)
+            {
+                Close();
+                return Directory.Exists(folder) ? VoicePack.Remove(folder) : 0;
+            }
         }
 
         // A new pack goes into her folder file by file. Deleting the folder first failed on onnxruntime.dll once her voice, ears or
@@ -2612,24 +2844,38 @@ namespace CapriDesktop
         internal void Warm()
         {
             FreeStyle style = Style;
-            lock (gate) Open(style.British);
+            string code = Brain.LanguageCode(Brain.Language);
+            lock (gate) Open(style.British, Speaks(code) ? code : null);
         }
 
-        internal byte[] Speak(string text)
+        internal bool Speaks(string code) { return VoiceTongues.Ready(folder, code); }
+
+        internal int Native(string code) { int row = VoiceTongues.Native(code); return VoicePack.Has(folder, row) ? row : -1; }
+
+        internal void AddTongues(Action<string, long, long> progress, Func<bool> stopped) { VoiceTongues.Fetch(folder, progress, stopped); }
+
+        internal byte[] Speak(string text) { return Speak(text, null); }
+
+        internal byte[] Speak(string text, string code) { return Speak(text, code, -1); }
+
+        internal byte[] Speak(string text, string code, int voice)
         {
-            if (!VoiceLanguage.Reads(text, "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
+            if (code != null && !Speaks(code)) throw new VoiceException("Her free voice doesn't have that language yet.");
+            if (!VoiceLanguage.Reads(text, code ?? "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
             FreeStyle style = Style;
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.Robot, glitch = VoiceFx.Glitch, rate;
             VoiceFx.Layering layers = VoiceFx.Layers;
             short[] pcm;
             lock (gate)
             {
-                Open(style.British);
+                Open(style.British, code);
                 IntPtr words = Utf8(text);
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
-                    audio = SherpaOnnxOfflineTtsGenerate(tts, words, style.Speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
+                    int speaker = voice >= 0 ? voice : style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
+                    if (speaker < 0 || speaker >= speakers) speaker = 0;
+                    audio = SherpaOnnxOfflineTtsGenerate(tts, words, speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
                     Generated made = (Generated)Marshal.PtrToStructure(audio, typeof(Generated));
                     float[] samples = new float[Math.Max(0, made.Count)];
@@ -2647,9 +2893,10 @@ namespace CapriDesktop
             return Voice.Wave(VoiceFx.Kokoro(pcm, rate, pitch, robot, glitch, VoiceFx.Seed(text), layers), rate);
         }
 
-        private void Open(bool gb)
+        private void Open(bool gb, string code)
         {
-            if (tts != IntPtr.Zero && british == gb) return;
+            string wanted = code == null ? (gb ? "en" : "en-us") : VoiceTongues.Lang(code);
+            if (tts != IntPtr.Zero && lang == wanted) return;
             if (IntPtr.Size != 8) throw new VoiceException("Her free voice needs 64-bit Windows.");
             if (!Installed) throw new VoiceException("Set up her free voice in Capri Mainframe.");
             Load(folder);
@@ -2665,8 +2912,8 @@ namespace CapriDesktop
                 config.Model.Kokoro.Voices = keep(Path.Combine(folder, "voices.bin"));
                 config.Model.Kokoro.Tokens = keep(Path.Combine(folder, "tokens.txt"));
                 config.Model.Kokoro.Data = keep(Path.Combine(folder, "espeak-ng-data"));
-                config.Model.Kokoro.Lexicon = keep(Path.Combine(folder, gb ? "lexicon-gb-en.txt" : "lexicon-us-en.txt"));
-                config.Model.Kokoro.Lang = keep(gb ? "en" : "en-us");
+                config.Model.Kokoro.Lexicon = code == null ? keep(Path.Combine(folder, gb ? "lexicon-gb-en.txt" : "lexicon-us-en.txt")) : IntPtr.Zero;
+                config.Model.Kokoro.Lang = keep(wanted);
                 config.MaxSentences = 1;
                 // sherpa-onnx ends the process on a file it can't read, with no exception to catch. The marker only exists while it opens,
                 // so finding one means that's how she went down last time: it goes in errors.txt and she skips her free voice this once.
@@ -2684,7 +2931,7 @@ namespace CapriDesktop
             catch (IOException error) { throw new VoiceException(Told(error)); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("Her free voice wouldn't start.");
-            british = gb;
+            lang = wanted;
         }
 
         // sherpa-onnx takes a folder with a letter like ś for no folder at all and then ends the whole process, with nothing in
@@ -2838,10 +3085,18 @@ namespace CapriDesktop
     internal static class ModelFile
     {
         internal const string Missing = "That's no voice model Capri can run. Pick a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx: its .tar.bz2, or the .onnx in its folder.";
+        internal const string Damaged = "That voice archive is damaged.";
+        internal const string NoRoom = "There isn't enough room to unpack that voice model.";
+        internal const string Unwritten = "Couldn't read the archive or write the voice model files.";
+        internal const string Empty = "Nothing in that archive is a voice model Capri can run.";
+        internal const string Inside = "Move that archive out of this model's folder and try again.";
+        internal const string Format = "Capri can't unpack that format. Use .tar.bz2, .tar.gz, .tar or .zip.";
         internal const string Unopened = "Capri can't open that clip. Press the arrow in the Speaker or clip box to pick it.";
         // Her free voice's folder, where sherpa-onnx is, and the folder models from an archive are unpacked into. Set at startup.
         internal static string Engine;
         internal static string Shelf;
+        // Where an unpacked file is written. The smoke test swaps in a disk that fills up.
+        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
         internal delegate short[] Generate(string folder, string language, string speaker, string text, out int rate);
         internal static Generate Run;
         private static readonly object gate = new object();
@@ -2998,59 +3253,109 @@ namespace CapriDesktop
         // A .tar.bz2 or .zip they picked, unpacked into her models folder. Returns the model's folder.
         internal static string Unpack(string archive)
         {
-            // Its folder is named after the archive, and only ever sits inside her models folder: an archive named ".zip" or
-            // "...zip" must never point it at the models folder itself or the one above.
-            string name = Regex.Replace(Path.GetFileName(archive), @"\.(tar\.bz2|tar\.gz|tgz|tar|zip)$", "", RegexOptions.IgnoreCase).Trim().TrimEnd('.', ' ');
-            if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) name = "voice-model";
-            string target = Path.Combine(Shelf, name);
-            string staging = target + ".new";
-            if (Directory.Exists(staging)) Directory.Delete(staging, true);
-            Directory.CreateDirectory(staging);
+            string staging = null;
+            bool clean = false;
             try
             {
-                if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ZipFile.ExtractToDirectory(archive, staging);
-                else
+                string name = Regex.Replace(Path.GetFileName(archive), @"\.(tar\.bz2|tar\.gz|tgz|tbz2?|tar|zip)$", "", RegexOptions.IgnoreCase).Trim().TrimEnd('.', ' ');
+                if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) name = "voice-model";
+                string target = Path.GetFullPath(Path.Combine(Shelf, name));
+                staging = target + ".new";
+                using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
                 {
-                    // Windows' own tar unpacks .tar.bz2, as sherpa-onnx ships its models.
-                    ProcessStartInfo start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe"), "-xf \"" + archive + "\" -C \"" + staging + "\"");
-                    start.UseShellExecute = false;
-                    start.CreateNoWindow = true;
-                    using (Process unpacking = Process.Start(start))
+                    if (Within(archive, target) || Within(archive, staging)) throw new VoiceException(Inside);
+                    if (archive.EndsWith(".xz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".zst", StringComparison.OrdinalIgnoreCase)) throw new VoiceException(Format);
+                    if (Directory.Exists(staging)) Directory.Delete(staging, true);
+                    clean = true;
+                    Directory.CreateDirectory(staging);
+                    if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (!unpacking.WaitForExit(600000))
+                        try
                         {
-                            try { unpacking.Kill(); unpacking.WaitForExit(5000); }
-                            catch (Exception) { }
-                            throw new VoiceException("Windows took too long to unpack " + Path.GetFileName(archive) + ".");
+                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true))
+                            {
+                                // .NET Framework's own check would let "../<name>.newer/x" through.
+                                string root = Path.GetFullPath(staging).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                                foreach (ZipArchiveEntry entry in zip.Entries)
+                                {
+                                    string path;
+                                    try { path = Path.GetFullPath(Path.Combine(root, entry.FullName)); }
+                                    catch (ArgumentException problem) { throw new ArchiveException(problem.Message); }
+                                    catch (NotSupportedException problem) { throw new ArchiveException(problem.Message); }
+                                    if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                                        throw new ArchiveException("A zip entry would land outside its folder: " + entry.FullName);
+                                }
+                                zip.ExtractToDirectory(staging);
+                            }
                         }
-                        if (unpacking.ExitCode != 0) throw new VoiceException("Windows couldn't unpack " + Path.GetFileName(archive) + ".");
+                        catch (IOException problem)
+                        {
+                            // An entry outside the folder, a folder entry with data, or two entries with one name.
+                            if (problem.HResult == unchecked((int)0x80131620) || problem.HResult == unchecked((int)0x80070050)) throw new ArchiveException(problem.Message);
+                            throw;
+                        }
                     }
+                    else if (archive.EndsWith(".bz2", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (Stream plain = Bunzip.Open(packed))
+                        {
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
+                        }
+                    }
+                    else if (archive.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (GZipStream plain = new GZipStream(packed, CompressionMode.Decompress, true))
+                        {
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
+                        }
+                    }
+                    else TarReader.Unpack(packed, staging, true, Write);
+                    string inside = staging;
+                    string[] folders = Directory.GetDirectories(staging);
+                    if (Kind(staging) == null && folders.Length == 1 && Directory.GetFiles(staging).Length == 0) inside = folders[0];
+                    if (Kind(inside) == null) throw new VoiceException(Empty);
+                    lock (gate)
+                    {
+                        if (opened != null && opened.StartsWith(target + "|", StringComparison.OrdinalIgnoreCase)) Close();
+                        if (Directory.Exists(target)) Directory.Delete(target, true);
+                        Directory.Move(inside, target);
+                    }
+                    return target;
                 }
             }
-            catch (Exception)
+            catch (VoiceException) { throw; }
+            catch (ArchiveException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (EndOfStreamException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (InvalidDataException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (IOException problem)
             {
-                // A failed unpack leaves nothing half-made behind.
-                try { Directory.Delete(staging, true); }
-                catch (Exception) { }
-                throw;
+                int code = problem.HResult;
+                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x8007050F);
+                throw new VoiceException(full ? NoRoom : Unwritten, problem.Message);
             }
-            // Its archive holds one folder with the model in it.
-            string inside = staging;
-            string[] folders = Directory.GetDirectories(staging);
-            if (Kind(staging) == null && folders.Length == 1 && Directory.GetFiles(staging).Length == 0) inside = folders[0];
-            if (Kind(inside) == null)
+            catch (UnauthorizedAccessException problem) { throw new VoiceException(Unwritten, problem.Message); }
+            catch (System.Security.SecurityException problem) { throw new VoiceException(Unwritten, problem.Message); }
+            finally { if (clean) TarReader.Clean(staging); }
+        }
+
+        // Through a short name, junction or subst drive as well, so cleaning up never deletes the archive they picked.
+        private static bool Within(string file, string folder)
+        {
+            for (int pass = 0; pass < 2; pass++)
             {
-                Directory.Delete(staging, true);
-                throw new VoiceException(Missing);
+                string from, inside;
+                try
+                {
+                    from = pass == 0 ? Path.GetFullPath(file) : WorkspacePaths.Final(file);
+                    inside = (pass == 0 ? Path.GetFullPath(folder) : WorkspacePaths.Final(folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                if (from.StartsWith(inside + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return true;
             }
-            lock (gate)
-            {
-                if (opened != null && opened.StartsWith(target + "|", StringComparison.OrdinalIgnoreCase)) Close();
-                if (Directory.Exists(target)) Directory.Delete(target, true);
-                Directory.Move(inside, target);
-            }
-            if (inside != staging) Directory.Delete(staging, true);
-            return target;
+            return false;
         }
 
         // Its sound for the words at its own rate. `lang` is a Kokoro model's language, like en-us or es. `voice` is a speaker
@@ -3727,7 +4032,7 @@ namespace CapriDesktop
         internal static readonly Service[] Services =
         {
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
-                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization. " + FishFree + " is its free tier."),
+                FishFree + " has a free window advertised through 30 November 2026; availability after that is unconfirmed. Capri does not automatically switch to a paid model if it fails. Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
                 "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip you pick."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",
@@ -3735,7 +4040,7 @@ namespace CapriDesktop
             new Service("Kokoro · on your PC", OpenAi, Address, "kokoro", "af_heart", "Optional", "Optional",
                 "Kokoro-FastAPI running on your PC, with voices like af_heart, af_bella and am_adam."),
             new Service("OpenAI · cloud", OpenAi, OpenAiCloud, "gpt-4o-mini-tts", "marin", "Optional", "Paste your OpenAI key",
-                "OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
+                "This Speech model shuts down 6 January 2027. Continuing with OpenAI needs a separate Realtime migration; changing the model here cannot migrate it. Capri does not automatically switch to a paid alternative if it fails. OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
             new Service("Any OpenAI-style server", OpenAi, null, null, null, "Optional", "Optional",
                 "Any speech model you run whose server speaks OpenAI's speech API, like Qwen3-TTS through vLLM-Omni, AllTalk or LocalAI.")
         };

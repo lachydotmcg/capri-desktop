@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -7,16 +8,17 @@ namespace CapriDesktop
 {
     // Her look, shared by Capri and her installer: her Mainframe's ground with a wine glow at the top, corners clipped big at
     // the top left and bottom right with a red rim and hot red strokes over the two big corners, rose titles and Windows' own
-    // Bahnschrift. The Mainframe, her menus, her type box, the installer and her notices all draw from here.
+    // Bahnschrift. The Mainframe, her menus, her type box, her bubble, her music player, the installer and her notices all
+    // draw from here.
     internal static class Neon
     {
         internal static readonly string[] LookNames = { "Night City", "Black", "White", "Grey" };
         private static readonly Color[][] Looks =
         {
-            new[] { Color.FromArgb(10, 10, 16), Color.FromArgb(54, 14, 26), Color.FromArgb(16, 12, 20), Color.FromArgb(44, 122, 134), Color.FromArgb(255, 93, 102), Color.FromArgb(236, 236, 241), Color.FromArgb(146, 130, 140), Color.FromArgb(17, 16, 28), Color.FromArgb(30, 20, 36), Color.FromArgb(46, 22, 38), Color.FromArgb(92, 24, 36), Color.FromArgb(232, 66, 70), Color.FromArgb(94, 240, 246), Color.FromArgb(9, 30, 33), Color.FromArgb(40, 120, 132), Color.FromArgb(6, 14, 18), Color.FromArgb(78, 28, 40), Color.FromArgb(245, 90, 86), Color.FromArgb(120, 30, 44), Color.FromArgb(12, 11, 20), Color.FromArgb(72, 28, 40), Color.FromArgb(244, 214, 70), Color.FromArgb(9, 11, 15), Color.FromArgb(232, 236, 240), Color.FromArgb(122, 128, 138), Color.FromArgb(16, 13, 22) },
-            new[] { Gray(0), Gray(24), Gray(8), Gray(110), Gray(255), Gray(238), Gray(150), Gray(16), Gray(34), Gray(52), Gray(84), Gray(245), Gray(205), Gray(22), Gray(120), Gray(1), Gray(70), Gray(250), Gray(96), Gray(6), Gray(76), Gray(230), Gray(4), Gray(232), Gray(140), Gray(14) },
-            new[] { Gray(255), Gray(236), Gray(248), Gray(120), Gray(0), Gray(20), Gray(96), Gray(244), Gray(230), Gray(214), Gray(170), Gray(30), Gray(64), Gray(238), Gray(110), Gray(254), Gray(190), Gray(10), Gray(150), Gray(250), Gray(180), Gray(60), Gray(252), Gray(26), Gray(104), Gray(243) },
-            new[] { Gray(92), Gray(108), Gray(84), Gray(170), Gray(255), Gray(250), Gray(222), Gray(78), Gray(104), Gray(118), Gray(140), Gray(246), Gray(236), Gray(72), Gray(190), Gray(30), Gray(130), Gray(252), Gray(160), Gray(40), Gray(150), Gray(244), Gray(88), Gray(248), Gray(216), Gray(80) }
+            new[] { Color.FromArgb(10, 10, 16), Color.FromArgb(54, 14, 26), Color.FromArgb(16, 12, 20), Color.FromArgb(44, 122, 134), Color.FromArgb(255, 93, 102), Color.FromArgb(236, 236, 241), Color.FromArgb(146, 130, 140), Color.FromArgb(17, 16, 28), Color.FromArgb(30, 20, 36), Color.FromArgb(46, 22, 38), Color.FromArgb(92, 24, 36), Color.FromArgb(232, 66, 70), Color.FromArgb(94, 240, 246), Color.FromArgb(9, 30, 33), Color.FromArgb(40, 120, 132), Color.FromArgb(6, 14, 18), Color.FromArgb(78, 28, 40), Color.FromArgb(245, 90, 86), Color.FromArgb(120, 30, 44), Color.FromArgb(12, 11, 20), Color.FromArgb(72, 28, 40), Color.FromArgb(244, 214, 70), Color.FromArgb(9, 11, 15), Color.FromArgb(232, 236, 240), Color.FromArgb(122, 128, 138), Color.FromArgb(16, 13, 22), Color.FromArgb(58, 214, 235), Color.FromArgb(232, 36, 64), Color.FromArgb(56, 176, 255), Color.FromArgb(255, 46, 136) },
+            new[] { Gray(0), Gray(24), Gray(8), Gray(110), Gray(255), Gray(238), Gray(150), Gray(16), Gray(34), Gray(52), Gray(84), Gray(245), Gray(205), Gray(22), Gray(120), Gray(1), Gray(70), Gray(250), Gray(96), Gray(6), Gray(76), Gray(230), Gray(4), Gray(232), Gray(140), Gray(14), Gray(210), Gray(160), Gray(225), Gray(248) },
+            new[] { Gray(255), Gray(236), Gray(248), Gray(120), Gray(0), Gray(20), Gray(96), Gray(244), Gray(230), Gray(214), Gray(170), Gray(30), Gray(64), Gray(238), Gray(110), Gray(254), Gray(190), Gray(10), Gray(150), Gray(250), Gray(180), Gray(60), Gray(252), Gray(26), Gray(104), Gray(243), Gray(6), Gray(100), Gray(40), Gray(16) },
+            new[] { Gray(92), Gray(108), Gray(84), Gray(170), Gray(255), Gray(250), Gray(222), Gray(78), Gray(104), Gray(118), Gray(140), Gray(246), Gray(236), Gray(72), Gray(190), Gray(30), Gray(130), Gray(252), Gray(160), Gray(40), Gray(150), Gray(244), Gray(88), Gray(248), Gray(216), Gray(80), Gray(254), Gray(210), Gray(240), Gray(253) }
         };
         private static Color[] now = Looks[0];
         private static int shade;
@@ -60,6 +62,10 @@ namespace CapriDesktop
         internal static Color SheetInk { get { return now[23]; } }
         internal static Color SheetDim { get { return now[24]; } }
         internal static Color MenuBack { get { return now[25]; } }
+        internal static Color SpeechCyan { get { return now[26]; } }
+        internal static Color SpeechRed { get { return now[27]; } }
+        internal static Color SpeechBlue { get { return now[28]; } }
+        internal static Color SpeechPink { get { return now[29]; } }
 
         private static Color Gray(int v) { return Color.FromArgb(v, v, v); }
 
@@ -187,6 +193,19 @@ namespace CapriDesktop
             return Narrow != null ? new Font(Narrow, size, FontStyle.Regular, unit) : new Font("Segoe UI Semibold", size - 2f, FontStyle.Regular, unit);
         }
 
+        // A point font in pixels for a screen at this DPI. .NET Framework draws points at the main screen's scale on every
+        // screen, so her menu on a 100% screen beside a 200% one came out twice too big. Each is made once and kept, so a
+        // menu never holds one that was disposed (#78).
+        private static readonly Dictionary<string, Font> atDpi = new Dictionary<string, Font>();
+
+        internal static Font AtDpi(Font font, int dpi)
+        {
+            string key = font.FontFamily.Name + "|" + font.SizeInPoints + "|" + font.Style + "|" + dpi;
+            Font made;
+            if (!atDpi.TryGetValue(key, out made)) atDpi[key] = made = new Font(font.FontFamily, font.SizeInPoints * dpi / 72f, font.Style, GraphicsUnit.Pixel);
+            return made;
+        }
+
         // A box with each corner clipped by its own amount, top left first and on round the clock.
         internal static GraphicsPath Cut(RectangleF box, float topLeft, float topRight, float bottomRight, float bottomLeft)
         {
@@ -257,8 +276,41 @@ namespace CapriDesktop
             graphics.Restore(state);
         }
 
+        internal static void Reword()
+        {
+            List<Form> open = new List<Form>();
+            foreach (Form form in Application.OpenForms) open.Add(form);
+            foreach (Form form in open)
+            {
+                if (form.IsDisposed) continue;
+                Resize(form);
+                form.Invalidate(true);
+            }
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, object> Translated = new System.Runtime.CompilerServices.ConditionalWeakTable<Control, object>();
+
+        private static void Resize(Control parent)
+        {
+            bool sized = false;
+            foreach (Control child in parent.Controls)
+            {
+                Resize(child);
+                Label label = child as Label;
+                if (label == null || !label.AutoSize) continue;
+                object mark;
+                bool now = Lingo.Has(label.Text), before = Translated.TryGetValue(label, out mark);
+                if (!now && !before) continue;
+                Translated.Remove(label);
+                if (now) Translated.Add(label, null);
+                label.Size = label.GetPreferredSize(Size.Empty);
+                sized = true;
+            }
+            if (sized) parent.PerformLayout();
+        }
+
         // A label that lets the mouse through to its window, so the window drags from anywhere that isn't a control.
-        internal sealed class Caption : Label
+        internal sealed class Caption : Lettering
         {
             internal Caption()
             {
@@ -312,6 +364,7 @@ namespace CapriDesktop
         internal Color Accent = Neon.Rose;
         internal bool Solid;
         internal int Glyph;
+        internal float Unit;
         private bool hot;
         private bool down;
 
@@ -335,7 +388,7 @@ namespace CapriDesktop
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            float s = DeviceDpi / 96f;
+            float s = Unit > 0 ? Unit : DeviceDpi / 96f;
             Graphics graphics = e.Graphics;
             Neon.Behind(graphics, this, 210 * s);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -374,7 +427,42 @@ namespace CapriDesktop
                 using (GraphicsPath inner = Neon.Cut(RectangleF.Inflate(box, -3 * s, -3 * s), 0, 0, 4 * s, 0))
                 using (Pen pen = new Pen(Neon.OnInk, line))
                     graphics.DrawPath(pen, inner);
-            TextRenderer.DrawText(graphics, Text, Font, ClientRectangle, ink, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, ClientRectangle, ink, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+        }
+    }
+
+    internal class Lettering : Label
+    {
+        private TextFormatFlags Flags(bool wrap)
+        {
+            TextFormatFlags flags = TextFormatFlags.TextBoxControl | (wrap ? TextFormatFlags.WordBreak : TextFormatFlags.SingleLine);
+            ContentAlignment align = TextAlign;
+            if (align == ContentAlignment.MiddleLeft || align == ContentAlignment.MiddleCenter || align == ContentAlignment.MiddleRight) flags |= TextFormatFlags.VerticalCenter;
+            else if (align == ContentAlignment.BottomLeft || align == ContentAlignment.BottomCenter || align == ContentAlignment.BottomRight) flags |= TextFormatFlags.Bottom;
+            if (align == ContentAlignment.TopCenter || align == ContentAlignment.MiddleCenter || align == ContentAlignment.BottomCenter) flags |= TextFormatFlags.HorizontalCenter;
+            else if (align == ContentAlignment.TopRight || align == ContentAlignment.MiddleRight || align == ContentAlignment.BottomRight) flags |= TextFormatFlags.Right;
+            if (AutoEllipsis) flags |= TextFormatFlags.EndEllipsis;
+            if (!UseMnemonic) flags |= TextFormatFlags.NoPrefix;
+            if (RightToLeft == RightToLeft.Yes) flags |= TextFormatFlags.RightToLeft;
+            return flags;
+        }
+
+        public override Size GetPreferredSize(Size proposed)
+        {
+            string shown = Lingo.Of(Text);
+            if (shown == Text) return base.GetPreferredSize(proposed);
+            int width = MaximumSize.Width > 0 ? MaximumSize.Width : AutoSize ? 0 : proposed.Width;
+            Size room = width > Padding.Horizontal ? new Size(width - Padding.Horizontal, int.MaxValue) : Size.Empty;
+            Size words = TextRenderer.MeasureText(shown, Font, room, Flags(room.Width > 0));
+            return new Size(words.Width + Padding.Horizontal, words.Height + Padding.Vertical);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            string shown = Lingo.Of(Text);
+            if (shown == Text || Image != null) { base.OnPaint(e); return; }
+            Rectangle area = new Rectangle(Padding.Left, Padding.Top, Math.Max(0, ClientSize.Width - Padding.Horizontal), Math.Max(0, ClientSize.Height - Padding.Vertical));
+            TextRenderer.DrawText(e.Graphics, shown, Font, area, Enabled ? ForeColor : Neon.Faint, Flags(true));
         }
     }
 }

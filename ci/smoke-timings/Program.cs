@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using CapriDesktop;
 
@@ -18,6 +19,9 @@ internal static class Program
             Run(Path.Combine(args[0], "all"), new[] { "--no-steps" }, false);
             Run(Path.Combine(args[0], "only"), new[] { "--only", "SmokeReactQuick" }, true);
             Steps(Path.Combine(args[0], "steps"));
+            Shards(Path.Combine(args[0], "shards"));
+            Groups(Path.Combine(args[0], "groups"));
+            SingleStep(Path.Combine(args[0], "single-step"));
             Unavailable(Path.Combine(args[0], "unavailable"));
             if (!behaviorOnly)
             {
@@ -88,11 +92,158 @@ internal static class Program
         Check(!SmokeRun.EnterSection("BeforeStep"), "--steps must skip sections outside a step.");
         SmokeRun.Begin("step", "0", 60);
         Check(SmokeRun.EnterSection("InsideStep"), "Sections inside a step must still run.");
+        Check(SmokeRun.EnterSection("DeepInsideStep"), "A section inside a step's section must run too.");
         List<string> checks = new List<string>(new[] { "PASS step unchanged" });
+        SmokeRun.LeaveSection("DeepInsideStep", checks);
         SmokeRun.LeaveSection("InsideStep", checks);
         SmokeRun.Complete(checks);
         Report(folder, checks);
-        if (!behaviorOnly) Check(Timings(folder, 1)[0][0] == "InsideStep", "Skipped sections must not get timing rows.");
+        if (!behaviorOnly)
+        {
+            string[][] rows = Timings(folder, 2);
+            Check(rows[0][0] == "DeepInsideStep" && rows[1][0] == "InsideStep", "Skipped sections must not get timing rows.");
+        }
+    }
+
+    private static void Shards(string folder)
+    {
+        string[] names = { "CheckOcr", "SmokeSounds", "SmokeCamera", "SmokeLookout", "SmokeFetch", "SmokeEmotes", "SmokePerf", "SmokeFirstRun", "SmokeReactions", "SmokeThrows", "SmokeCloudPicker", "SmokeMods", "SmokeLeaks" };
+        int[] owners = new int[names.Length];
+        for (int part = 0; part < 4; part++)
+        {
+            string shard = Path.Combine(folder, part.ToString(CultureInfo.InvariantCulture));
+            Directory.CreateDirectory(shard);
+            SmokeOptions settings = Settings(shard, new[] { "--no-steps", "--shard", part + "/4" });
+            Check(!settings.RunSteps, "A shard must not run steps.");
+            SmokeRun.Start(shard, settings);
+            List<string> checks = new List<string>();
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (!SmokeRun.EnterSection(names[i])) continue;
+                owners[i]++;
+                Check(SmokeRun.EnterSection("Inside" + names[i]), "A section inside a shard's section must run with it.");
+                SmokeRun.LeaveSection("Inside" + names[i], checks);
+                checks.Add("PASS " + names[i]);
+                SmokeRun.LeaveSection(names[i], checks);
+            }
+            SmokeRun.ValidateSelection(checks);
+            SmokeRun.Complete(checks);
+            Report(shard, checks);
+        }
+        for (int i = 0; i < names.Length; i++) Check(owners[i] == 1, names[i] + " ran in " + owners[i] + " shards instead of one.");
+        Check(SmokeRun.ShardOf("SmokeSounds", 4) == SmokeRun.ShardOf("smokesounds", 4), "A shard must not depend on letter case.");
+        foreach (string[] bad in new[] { new[] { "--shard", "4/4", "--no-steps" }, new[] { "--shard", "0/0", "--no-steps" }, new[] { "--shard", "1", "--no-steps" }, new[] { "--shard", "-1/4", "--no-steps" }, new[] { "--shard", "0/4" }, new[] { "--shard", "0/4", "--no-steps", "--only", "SmokeSounds" } })
+        {
+            bool refused = false;
+            try { Settings(folder, bad); }
+            catch (ArgumentException) { refused = true; }
+            Check(refused, "--shard must refuse " + string.Join(" ", bad) + ".");
+        }
+        Console.WriteLine("PASS every section runs in exactly one of four shards");
+    }
+
+    private static string FindCapriSource()
+    {
+        foreach (string start in new[] { Directory.GetCurrentDirectory(), AppDomain.CurrentDomain.BaseDirectory })
+        {
+            DirectoryInfo dir = new DirectoryInfo(start);
+            while (dir != null)
+            {
+                string candidate = Path.Combine(Path.Combine(dir.FullName, "app"), "Capri.cs");
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
+        }
+        return null;
+    }
+
+    private static void Groups(string folder)
+    {
+        Dictionary<string, string> owner = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        KeyValuePair<string, string[]>[] groups = SmokeRun.AllGroups();
+        Check(groups.Length >= 5, "Expected smoke groups.");
+        foreach (KeyValuePair<string, string[]> group in groups)
+        {
+            Check(group.Value.Length > 0, "Group " + group.Key + " must not be empty.");
+            foreach (string section in group.Value)
+            {
+                Check(!string.IsNullOrEmpty(section), "Group " + group.Key + " contains an empty section.");
+                Check(!owner.ContainsKey(section), "Section " + section + " is listed in more than one group.");
+                owner[section] = group.Key;
+                Check(string.Equals(SmokeRun.GroupOf(section), group.Key, StringComparison.OrdinalIgnoreCase), "GroupOf(" + section + ") returned the wrong group.");
+            }
+        }
+        string capriPath = FindCapriSource();
+        Check(capriPath != null, "Could not locate app/Capri.cs to verify group coverage.");
+        string source = File.ReadAllText(capriPath);
+        int start = source.IndexOf("private void RunSmokeSections(", StringComparison.Ordinal);
+        int end = source.IndexOf("private static void SmokeRedaction(", start, StringComparison.Ordinal);
+        Check(start > 0 && end > start, "Could not locate RunSmokeSections in app/Capri.cs.");
+        HashSet<string> inSource = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        inSource.Add("CheckOcr");
+        foreach (Match match in Regex.Matches(source.Substring(start, end - start), @"Section\s*\(\s*checks\s*,\s*""([^""]+)"""))
+            inSource.Add(match.Groups[1].Value);
+        foreach (string section in inSource)
+            Check(owner.ContainsKey(section), "Smoke section " + section + " is missing from SmokeRun groups.");
+        foreach (string section in owner.Keys)
+            Check(inSource.Contains(section), "SmokeRun group lists unknown or removed section " + section + ".");
+
+        string voiceFolder = Path.Combine(folder, "voice");
+        Directory.CreateDirectory(voiceFolder);
+        SmokeOptions voiceOptions = Settings(voiceFolder, new[] { "--group", "voice" });
+        Check(!voiceOptions.RunSteps && voiceOptions.Groups.Length == 1, "--group must disable steps.");
+        SmokeRun.Start(voiceFolder, voiceOptions);
+        Check(SmokeRun.EnterSection("SmokeVoiceDetails"), "A section in the picked group must run.");
+        List<string> checks = new List<string>();
+        checks.Add("PASS voice group selected");
+        SmokeRun.LeaveSection("SmokeVoiceDetails", checks);
+        Check(!SmokeRun.EnterSection("SmokeMods"), "A section outside the picked group must not run.");
+        SmokeRun.Complete(checks);
+        Check(SmokeRun.GroupSections("Voice").Length > 0, "Expected Voice group sections.");
+        SmokeOptions combined = Settings(voiceFolder, new[] { "--group", "Mods,Remote", "--only", "SmokeMods,SmokeTips" });
+        Check(combined.Only.Length == 11, "--group and --only must merge without duplicates: got " + combined.Only.Length + ".");
+        foreach (string[] bad in new[] { new[] { "--group", "Missing" }, new[] { "--group", "Voice," }, new[] { "--group", "Voice", "--steps" }, new[] { "--group", "Voice", "--no-steps", "--shard", "0/4" } })
+        {
+            bool refused = false;
+            try { Settings(folder, bad); }
+            catch (ArgumentException) { refused = true; }
+            Check(refused, "--group must refuse " + string.Join(" ", bad) + ".");
+        }
+        Console.WriteLine("PASS every smoke section belongs to one group and --group selects only its sections");
+    }
+
+    private static void SingleStep(string folder)
+    {
+        Directory.CreateDirectory(folder);
+        SmokeOptions step14 = Settings(folder, new[] { "--step", "14" });
+        Check(step14.RunSteps && step14.Step == 14, "--step 14 must run steps up to 14.");
+        SmokeRun.Start(folder, step14);
+        Check(SmokeRun.StartStep(0) == 0 && SmokeRun.StartStep(3) == 0 && SmokeRun.StartStep(14) == 14 && SmokeRun.StartStep(16) == 14 && SmokeRun.StartStep(17) == 17 && SmokeRun.StartStep(22) == 17, "StartStep must resolve each root prerequisite.");
+        Check(SmokeRun.LastStep == 14, "LastStep must stop at the requested step.");
+        Check(!SmokeRun.EnterSection("SmokeMods"), "--step must skip standalone sections outside steps.");
+        SmokeRun.Begin("step", "14", 60);
+        Check(SmokeRun.EnterSection("InsideStep14"), "Sections inside the requested step must run.");
+        List<string> checks = new List<string>(new[] { "PASS single step" });
+        SmokeRun.LeaveSection("InsideStep14", checks);
+        SmokeRun.StepDone(14, true, checks);
+        Check(SmokeRun.StartStep(15) == 15, "Resume after passing prerequisite must start at the next step.");
+        SmokeRun.Complete(checks);
+        foreach (string[] bad in new[] { new[] { "--step", "-1" }, new[] { "--step", "23" }, new[] { "--step", "abc" }, new[] { "--step", "0", "--steps" }, new[] { "--step", "0", "--no-steps" }, new[] { "--step", "0", "--only", "SmokeMods" }, new[] { "--step", "0", "--group", "Voice" }, new[] { "--step", "0", "--shard", "0/4" } })
+        {
+            bool refused = false;
+            try { Settings(folder, bad); }
+            catch (ArgumentException) { refused = true; }
+            Check(refused, "--step must refuse " + string.Join(" ", bad) + ".");
+        }
+        foreach (int step in new[] { 14, 17 })
+        {
+            string recovered = Path.Combine(folder, "recover-" + step);
+            Directory.CreateDirectory(recovered);
+            File.WriteAllText(Path.Combine(recovered, "steps-done.txt"), "FAIL " + step + "\n");
+            SmokeRun.Start(recovered, Settings(recovered, new[] { "--step", step.ToString() }));
+            Check(SmokeRun.NextStep > SmokeRun.LastStep, "A worker already recorded step " + step + " as failed.");
+        }
+        Console.WriteLine("PASS --step runs a single step chain and skips recorded failures on recovery");
     }
 
     private static void Unavailable(string folder)

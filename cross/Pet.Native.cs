@@ -46,7 +46,10 @@ namespace CapriDesktop
 
         private void InitializeNativeAdapters()
         {
-            if (!TerminalJobs.Supported || Program.Smoke != null) return;
+            if (!TerminalJobs.Supported) return;
+            // The chime gate is also needed in smoke, where the native adapters stay off.
+            Chimes.BeforePlay = delegate { if (Saved.ListenCapri) nameEars.GateForPlayback(); };
+            if (Program.Smoke != null) return;
             TerminalJobs.Context = () => (Brain.Provider?.Identity ?? Brain.Model ?? "") + "|" + HyprlandDesktop.Current?.SessionId + "|" + HyprlandDesktop.Current?.Snapshot?.Locked + "|" + Security.Saved;
             if (OperatingSystem.IsLinux())
             {
@@ -67,7 +70,7 @@ namespace CapriDesktop
                     catch (Exception error) { Saved.NativePlan = false; frameProblem = error.Message; }
                 }
             }
-            if (OperatingSystem.IsLinux()) InitializeNameListening();
+            InitializeNameListening();
             Closed += (_, _) => { TerminalJobs.Shutdown(); CancelAccountConnection(); ComputerJobs.Stop(); ownedVoice.Dispose(); StopNativeListening(); SpeechAudio.Stop(); };
         }
 
@@ -75,6 +78,7 @@ namespace CapriDesktop
         {
             if (string.IsNullOrEmpty(Saved.PlanAccounts) || string.IsNullOrEmpty(Saved.PlanModel) || !File.Exists(Saved.PlanPython))
                 throw new BrainException("Configure the retained ChatGPT account and Python runtime before selecting ChatGPT plan.");
+            RemoteBrainTakenOver();
             TerminalJobs.StopAll();
             ComputerJobs.Stop();
             StopNativeListening();

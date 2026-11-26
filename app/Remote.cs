@@ -12,6 +12,116 @@ namespace CapriDesktop
     // envelopes. This file is the PC's protocol plumbing with no window or brain in it, so app/RemoteTests can run it on its
     // own against the real relay: JSON, the messages and what's kept in settings. The connection is app/RemoteLink.cs.
 
+    internal sealed class RemotePicture
+    {
+        internal readonly string Mime;
+        internal readonly byte[] Bytes;
+
+        private RemotePicture(string mime, byte[] bytes) { Mime = mime; Bytes = bytes; }
+
+        internal static bool Read(RemoteJson.Map message, out RemotePicture picture)
+        {
+            if (!Header(message, out picture)) return false;
+            if (picture == null || picture.Confirm()) return true;
+            picture = null;
+            return false;
+        }
+
+        internal static bool Header(RemoteJson.Map message, out RemotePicture picture)
+        {
+            picture = null;
+            if (message.PlainBytes >= 60000) return false;
+            if (!message.ContainsKey("picture")) return true;
+            RemoteJson.Map map = message.Child("picture");
+            if (map == null) return false;
+            string mime = map.Text("mime"), data = map.Text("data");
+            if ((mime != "image/jpeg" && mime != "image/png") || data == null || data.Length == 0 || data.Length >= 60000) return false;
+            byte[] bytes = RemoteCrypto.FromB64u(data);
+            if (bytes == null) return false;
+            bool jpeg = bytes.Length >= 4 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255;
+            bool png = bytes.Length >= 8 && bytes[0] == 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71 && bytes[4] == 13 && bytes[5] == 10 && bytes[6] == 26 && bytes[7] == 10;
+            if (mime == "image/jpeg" ? !jpeg : !png) return false;
+            int width, height;
+            if (!Size(bytes, jpeg, out width, out height) || width < 1 || height < 1 || width > 1568 || height > 1568) return false;
+            picture = new RemotePicture(mime, bytes);
+            return true;
+        }
+
+        private static bool Size(byte[] bytes, bool jpeg, out int width, out int height)
+        {
+            width = height = 0;
+            if (!jpeg)
+            {
+                if (bytes.Length < 33 || bytes[8] != 0 || bytes[9] != 0 || bytes[10] != 0 || bytes[11] != 13 || bytes[12] != 73 || bytes[13] != 72 || bytes[14] != 68 || bytes[15] != 82) return false;
+                if (bytes[16] != 0 || bytes[17] != 0 || bytes[20] != 0 || bytes[21] != 0) return false;
+                width = bytes[18] * 256 + bytes[19];
+                height = bytes[22] * 256 + bytes[23];
+                return true;
+            }
+            int at = 2;
+            while (at < bytes.Length)
+            {
+                if (bytes[at++] != 255) return false;
+                while (at < bytes.Length && bytes[at] == 255) at++;
+                if (at >= bytes.Length) return false;
+                int marker = bytes[at++];
+                if (marker == 0 || marker == 216 || marker == 217 || marker == 218) return false;
+                if (marker == 1 || marker >= 208 && marker <= 215) continue;
+                if (bytes.Length - at < 2) return false;
+                int length = bytes[at] * 256 + bytes[at + 1];
+                if (length < 2 || length > bytes.Length - at) return false;
+                if (marker >= 192 && marker <= 207 && marker != 196 && marker != 200 && marker != 204)
+                {
+                    if (length < 8 || length != 8 + 3 * bytes[at + 7]) return false;
+                    height = bytes[at + 3] * 256 + bytes[at + 4];
+                    width = bytes[at + 5] * 256 + bytes[at + 6];
+                    return true;
+                }
+                at += length;
+            }
+            return false;
+        }
+
+        internal bool Confirm()
+        {
+#if CROSS
+            try
+            {
+                bool jpeg = Mime == "image/jpeg";
+                int width, height;
+                if (!Size(Bytes, jpeg, out width, out height) || width < 1 || height < 1 || width > 1568 || height > 1568) return false;
+                using (System.IO.MemoryStream input = new System.IO.MemoryStream(Bytes, false))
+                using (SkiaSharp.SKCodec codec = SkiaSharp.SKCodec.Create(input))
+                {
+                    if (codec == null || codec.Info.Width != width || codec.Info.Height != height) return false;
+                    if (codec.EncodedFormat != (jpeg ? SkiaSharp.SKEncodedImageFormat.Jpeg : SkiaSharp.SKEncodedImageFormat.Png)) return false;
+                    SkiaSharp.SKImageInfo info = new SkiaSharp.SKImageInfo(width, height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Unpremul);
+                    using (SkiaSharp.SKBitmap decoded = new SkiaSharp.SKBitmap(info))
+                        return decoded.GetPixels() != IntPtr.Zero && codec.GetPixels(info, decoded.GetPixels()) == SkiaSharp.SKCodecResult.Success;
+                }
+            }
+            catch (Exception) { return false; }
+#else
+            try
+            {
+                bool jpeg = Mime == "image/jpeg";
+                int width, height;
+                if (!Size(Bytes, jpeg, out width, out height)) return false;
+                using (System.IO.MemoryStream input = new System.IO.MemoryStream(Bytes, false))
+                using (System.Drawing.Image image = System.Drawing.Image.FromStream(input, false, true))
+                {
+                    if (image.Width != width || image.Height != height || image.Width < 1 || image.Height < 1 || image.Width > 1568 || image.Height > 1568) return false;
+                    if (image.RawFormat.Guid != (jpeg ? System.Drawing.Imaging.ImageFormat.Jpeg.Guid : System.Drawing.Imaging.ImageFormat.Png.Guid)) return false;
+                    using (System.Drawing.Bitmap decoded = new System.Drawing.Bitmap(image.Width, image.Height))
+                    using (System.Drawing.Graphics draw = System.Drawing.Graphics.FromImage(decoded)) draw.DrawImage(image, 0, 0, image.Width, image.Height);
+                }
+            }
+            catch (Exception) { return false; }
+            return true;
+#endif
+        }
+    }
+
     // A small strict JSON reader and writer. Objects come back as Map, arrays as List<object>, numbers as double. The writer
     // escapes like JSON.stringify, so the messages match the test vectors byte for byte.
     internal static class RemoteJson
@@ -19,6 +129,8 @@ namespace CapriDesktop
         internal sealed class Map : Dictionary<string, object>
         {
             internal Map() : base(StringComparer.Ordinal) { }
+
+            internal int PlainBytes;
 
             internal string Text(string name) { object value; return TryGetValue(name, out value) ? value as string : null; }
 
@@ -62,6 +174,7 @@ namespace CapriDesktop
             try { text = Strict.GetString(utf8); }
             catch (ArgumentException) { return null; }
             Map map = ParseMap(text);
+            if (map != null) map.PlainBytes = utf8.Length;
             return map != null && map.Text("type") != null ? map : null;
         }
 
@@ -339,10 +452,19 @@ namespace CapriDesktop
             return reply.Text("text", text).Flag("done", done).ToString();
         }
 
-        internal static string Tool(string id, string name, string summary, string state, string re)
+        internal static string ToolMove(string tool, string action, string name)
+        {
+            if (tool == "animate" && name == "heart") return "heart";
+            if (tool != "move_yourself") return null;
+            if (action == "lie_down") return "lie_down";
+            return action == "sit" || action == "sit_on" || action == "sit_up" ? "sit" : null;
+        }
+
+        internal static string Tool(string id, string name, string summary, string state, string re, string move = null)
         {
             RemoteJson.Writer tool = Typed("chat.tool").Text("id", id).Text("name", name).Text("summary", summary).Text("state", state);
             if (re != null) tool.Text("re", re);
+            if (state == "done" && (move == "sit" || move == "lie_down" || move == "heart")) tool.Text("move", move);
             return tool.ToString();
         }
 
@@ -362,10 +484,11 @@ namespace CapriDesktop
             return info;
         }
 
-        internal static string JobState(string id, string task, string state, int steps, long started, long ended, string ask, string re)
+        internal static string JobState(string id, string task, string state, int steps, long started, long ended, string ask, string re, string askId = null)
         {
             RemoteJson.Writer info = JobInfo(id, task, state, steps, started, ended).Text("type", "job.state");
             if (state == "asking") info.Text("ask", Clip(ask, 200));
+            if (state == "asking" && askId != null) info.Text("ask_id", askId);
             if (re != null) info.Text("re", re);
             return info.ToString();
         }
@@ -376,6 +499,18 @@ namespace CapriDesktop
         }
 
         internal static string JobRecent(IEnumerable<RemoteJson.Writer> list) { return Typed("job.recent").Objects("list", list).ToString(); }
+
+        internal static string PushState(string key, bool on, bool web, bool app) { return Typed("push.state").Text("key", key).Flag("on", on).Flag("web", web).Flag("app", app).ToString(); }
+
+        internal static string PushResult(string re, bool ok, string code) { return Typed("push.result").Text("re", re).Flag("ok", ok).Text("code", code).ToString(); }
+
+        internal static string Notify(string id, string kind, string title, string body, long at, string job, string askId)
+        {
+            RemoteJson.Writer note = Typed("notify").Text("id", id).Text("kind", kind).Text("title", CleanText(title, 60)).Text("body", CleanText(body, 200)).Number("at", at);
+            if (job != null) note.Text("job", job);
+            if (askId != null) note.Text("ask_id", askId);
+            return note.ToString();
+        }
 
         // Ids are 1 to 64 of A-Z a-z 0-9 _ - (PROTOCOL.md section 8).
         internal static bool IdOk(string id)
@@ -448,6 +583,12 @@ namespace CapriDesktop
         // The paired phone whose pairing link added this one with no Allow (PROTOCOL.md 5.1), by name, or null.
         internal string From;
         internal string Parent;
+        internal bool PushApp;
+        internal string PushEndpoint;
+        internal byte[] PushP256dh, PushAuth;
+
+        internal bool PushOn { get { return PushApp || PushEndpoint != null; } }
+        internal bool PushWeb { get { return PushEndpoint != null && PushP256dh != null && PushAuth != null; } }
 
         internal byte[] IdBytes { get { return RemoteCrypto.FromB64u(Id, 16); } }
     }
@@ -459,6 +600,7 @@ namespace CapriDesktop
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Capri.Remote");
         internal string Room, Token;
         internal bool Used;
+        internal byte[] PushKey;
         internal readonly List<RemoteDevice> Devices = new List<RemoteDevice>();
 
         internal static RemoteState Fresh()
@@ -475,7 +617,8 @@ namespace CapriDesktop
             copy.Room = Room;
             copy.Token = Token;
             copy.Used = Used;
-            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent });
+            copy.PushKey = PushKey == null ? null : (byte[])PushKey.Clone();
+            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent, PushApp = device.PushApp, PushEndpoint = device.PushEndpoint, PushP256dh = device.PushP256dh == null ? null : (byte[])device.PushP256dh.Clone(), PushAuth = device.PushAuth == null ? null : (byte[])device.PushAuth.Clone() });
             return copy;
         }
 
@@ -493,9 +636,13 @@ namespace CapriDesktop
                 RemoteJson.Writer saved = new RemoteJson.Writer().Text("id", device.Id).Text("key", RemoteCrypto.B64u(device.Key)).Text("name", device.Name).Text("added", device.Added.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
                 if (device.From != null) saved.Text("from", device.From);
                 if (device.Parent != null) saved.Text("parent", device.Parent);
+                if (device.PushApp) saved.Flag("push_app", true);
+                if (device.PushWeb) saved.Text("push_endpoint", device.PushEndpoint).Text("push_p256dh", RemoteCrypto.B64u(device.PushP256dh)).Text("push_auth", RemoteCrypto.B64u(device.PushAuth));
                 devices.Add(saved);
             }
-            return new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used).Objects("devices", devices).ToString();
+            RemoteJson.Writer all = new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used);
+            if (PushKey != null) all.Text("push_key", RemoteCrypto.B64u(PushKey));
+            return all.Objects("devices", devices).ToString();
         }
 
         internal static RemoteState FromJson(string json)
@@ -506,6 +653,7 @@ namespace CapriDesktop
             state.Room = map.Text("room");
             state.Token = map.Text("token");
             state.Used = map.Is("used", true);
+            state.PushKey = RemoteCrypto.FromB64u(map.Text("push_key"), 32);
             List<object> devices = map.Items("devices");
             if (devices != null)
                 foreach (object item in devices)
@@ -517,11 +665,21 @@ namespace CapriDesktop
                     if (!DateTime.TryParse(device.Text("added"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out added)) added = DateTime.UtcNow;
                     string linkedBy = device.Text("from") == null ? null : RemoteMessages.CleanName(device.Text("from"));
                     string parent = RemoteCrypto.FromB64u(device.Text("parent"), 16) == null ? null : device.Text("parent");
-                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy, Parent = parent });
+                    RemoteDevice kept = new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy, Parent = parent, PushApp = device.Is("push_app", true) };
+                    byte[] p256dh = RemoteCrypto.FromB64u(device.Text("push_p256dh"), 65), auth = RemoteCrypto.FromB64u(device.Text("push_auth"), 16);
+                    string endpoint = device.Text("push_endpoint");
+                    if (endpoint != null && p256dh != null && auth != null && RemotePush.EndpointOk(endpoint))
+                    {
+                        kept.PushEndpoint = endpoint;
+                        kept.PushP256dh = p256dh;
+                        kept.PushAuth = auth;
+                    }
+                    state.Devices.Add(kept);
                 }
             return state;
         }
 
+#if !CROSS
         internal string Seal()
         {
             byte[] plain = Encoding.UTF8.GetBytes(ToJson());
@@ -543,5 +701,6 @@ namespace CapriDesktop
             catch (FormatException) { return null; }
             finally { if (plain != null) Array.Clear(plain, 0, plain.Length); }
         }
+#endif
     }
 }

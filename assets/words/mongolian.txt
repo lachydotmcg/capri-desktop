@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Дахин будсан хяналт зурагт дахин зурагдаагүй байв.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA эсвэл OpenRouter-ээс үнэгүй түлхүүр. Татах зүйл байхгүй. Интернэт хэрэгтэй.
+A held trackpad scroll got a flick's long ease:	Трекпадын удаан гүйлгэлт шуурхай хөдөлгөөний урт удаашралыг авав:
+A layout change during a slide put the page at	Слайдын үед байрлалын өөрчлөлт хуудсыг дараах байрлалд тавив:
+A layout change left the picture up.	Байрлалын өөрчлөлт зургийг дээр үлдээв.
+A model in Ollama, on your local server or on your key.	Ollama дахь загвар, таны локал сервер дээр эсвэл таны түлхүүрээр.
+A paid key goes under MAX INTELLIGENCE by itself.	Төлбөртэй түлхүүр өөрөө MAX INTELLIGENCE-ийн доор орно.
+A plan you already pay for, a key of your own, or Ollama.	Та аль хэдийн төлж буй төлөвлөгөө, өөрийн түлхүүр, эсвэл Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Дуун самбарын цэс самбарын фонтын өөрийн хуулбарыг агуулдаггүй.
+A wheel turn right after a slide ended froze the picture.	Слайд дууссаны дараа дугуйг эргүүлэхэд зураг хөлдөв.
+ALLOW THIS PHONE?	ЭНЭ УТСЫГ ЗӨВШӨӨРӨХ ҮҮ?
+ALMOST THERE >	БАГА ЛАА >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ӨӨР CAPRI ХЯНАЛТАА АВЛАА · УНТРААГААД ДАХИН АСААНА УУ
+API key	API түлхүүр
+API key, Claude plan or ChatGPT plan	API түлхүүр, Claude төлөвлөгөө эсвэл ChatGPT төлөвлөгөө
+Add	Нэмэх
+Address	Хаяг
+Address and key saved. Use saved to reconnect.	Хаяг ба түлхүүр хадгалагдлаа. Дахин холбогдохын тулд хадгалагдсаныг ашигла.
+Advanced Settings	Нарийвчилсан тохиргоо
+All	Бүгд
+All screens	Бүх дэлгэц
+Allow	Зөвшөөрөх
+Almost there. I'll say hi the second my brain's in.	Бараг л бэлэн. Миний тархи ормогц мэндлэнэ.
+Always	Үргэлж
+Always on top	Үргэлж дээд талд
+Any Google account works. I opened the page in your browser.	Ямар ч Google акаунт болно. Би хуудсыг таны хөтөч дээр нээсэн.
+Applies to every voice	Бүх дуунд хамаарна
+Apps she may close	Хаж болох апп-ууд
+Ask Capri for more	Capri-гаас илүү асуух
+Asking your server...	Таны серверээс асууж байна...
+Asks before closing only the apps you choose.	Зөвхөн таны сонгосон апп-уудыг хаахаас өмнө асууна.
+Auto	Автомат
+Auto (match what I say)	Автомат (миний хэлснээр)
+Automatic: VB-CABLE, else Steam's	Автомат: VB-CABLE, эсвэл Steam-ийнх
+BAD RELAY HOST	БУРУУ RELAY ХОСТ
+BIG Z open notepad	BIG Z notepad нээ
+BRAIN	ТАРХИ
+BRAIN >	ТАРХИ >
+BRAIN ONLINE >	ТАРХИ ОНЛАЙН >
+BRAIN PROVIDER >	ТАРХИНЫ ҮЙЛЧИЛГЭЭ >
+BRAIN VOICE CAPRI	ТАРХИНЫ ДУУ CAPRI
+Back	Буцах
+Back on your saved API key.	Хадгалсан API түлхүүрт буцлаа.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Энэ компьютерт хамгийн тохиромжтой:
+Black	Хар
+Blank key means no key.	Хоосон түлхүүр гэдэг нь түлхүүр байхгүй гэсэн үг.
+Brain API key	Тархины API түлхүүр
+Brain model	Тархины загвар
+Brain provider	Тархины үйлчилгээ үзүүлэгч
+Bring here	Энд авчир
+Bring to this screen	Энэ дэлгэц рүү авчир
+Browse	Үзэх
+Browse mods	Модуудыг үзэх
+Browse to a voice model	Дууны загвар руу үз
+Browse...	Үзэх...
+Bubble	Бөмбөлөг
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, чи байна уу
+CAN'T REACH THE RELAY · RETRYING	RELAY-д ХҮРЧ ЧАДАХГҮЙ · ДАХИН ОРОЛДЖ БАЙНА
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI ДУУ ТАРХИ
+CHANGED, approve it again.	ӨӨРЧЛӨГДСӨН, дахин батална уу.
+CLIPS >	КЛИПҮҮД >
+CLOUD VOICE	ҮҮЛЭН ДУУ
+CODE	КОД
+COLORS >	ӨНГӨ >
+CONNECTED	ХОЛБОГДСОН
+CONNECTING	ХОЛБОЖ БАЙНА
+CUSTOM LOCAL	ӨӨРИЙН ЛОКАЛ
+Call mode (beta)	Дуудлагын горим (бета)
+Call mode does not fit.	Дуудлагын горим тохирохгүй байна.
+Call mode is outside its space.	Дуудлагын горим өөрийн зайнаас гадуур байна.
+Cancel	Цуцлах
+Cancel keys	Товчлуурыг цуцлах
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri код:
+Capri mods (*	Capri модууд (*
+Capri, hello	Capri, сайн байна уу
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Уурласан үед хаос
+Chat with Capri from your phone	Утаснаасаа Capri-тэй чатлаарай
+ChatGPT plan	ChatGPT төлөвлөгөө
+Check for updates	Шинэчлэлт шалгах
+Check in on me	Намайг шалгах
+Check in on me is hidden	Намайг шалгах нуугдсан байна
+Check in on me still decides whether she visits.	Намайг шалгах хэвээр л тэр очих эсэхээ шийднэ.
+Check in on me's tip missed	Намайг шалгах зөвлөмж алдагдлаа
+Chess	Шатар
+Choose apps	Апп сонгох
+Choose folder...	Хавтас сонгох...
+Choose where future Capri clips are saved	Ирээдүйн Capri клипүүд хаана хадгалагдахыг сонго
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude эсвэл ChatGPT төлөвлөгөө, төлбөртэй түлхүүр (OpenAI, Claude, DeepSeek), эсвэл Ollama.
+Claude plan	Claude төлөвлөгөө
+Clear	Цэвэрлэх
+Cleared.	Цэвэрлэгдлээ.
+Click Confirm to keep Down, or press Esc.	Down-ийг үлдээхийн тулд Баталгаажуулах дээр дар, эсвэл Esc дарна уу.
+Click to open it.	Нээхийн тулд дарна уу.
+Clip my games	Миний тоглоомыг клипээр бичих
+Clips	Клипүүд
+Close	Хаах
+Close other AIs for me	Миний төлөө бусад AI-г хаах
+Cloud voice	Үүлэн дуу
+Cloud voice service	Үүлэн дууны үйлчилгээ
+Cloud voice setup	Үүлэн дууны тохируулга
+Code mods can reach your whole PC. Only trusted ones.	Кодын модууд таны бүх компьютерт хүрч чадна. Зөвхөн найдвартай нь.
+Code/Husk Mode	Код/Husk горим
+Codex	Codex
+Commands	Командууд
+Comment on my games	Миний тоглоомд сэтгэгдэл бичих
+Comments	Сэтгэгдлүүд
+Confirm	Баталгаажуулах
+Confirm keys	Товчлуурыг баталгаажуулах
+Connect	Холбох
+Connect / Forget brain key	Холбох / Тархины түлхүүрийг мартах
+Connect / Forget voice key	Холбох / Дуун түлхүүрийг мартах
+Connect four	Дөрвөн мөр
+Controls	Удирдлага
+Copri, what time is it	Copri, одоо хэдэн цаг вэ
+Copy error details	Алдааны дэлгэрэнгүйг хуулах
+Copy the key	Түлхүүрийг хуулах
+Copy the key from the page, then press Paste.	Хуудаснаас түлхүүрийг хуулаад, дараа нь Буулгах дарна уу.
+Couldn't open that page:	Тэр хуудсыг нээж чадсангүй:
+Couldn't open that:	Үүнийг нээж чадсангүй:
+Couldn't open the mods folder:	Модын хавтсыг нээж чадсангүй:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M аль хэдийн түүний Mainframe товчлуур байна.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N микрофоныг дуугүй болгоно
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V аль хэдийн түүний ярих товчлуур байна.
+Ctrl + Alt + V to talk	Ярихын тулд Ctrl + Alt + V
+Custom local voice	Өөрийн локал дуу
+Custom model name	Өөрийн загварын нэр
+Dance	Бүжиглэх
+Dance to music	Хөгжимд бүжиглэх
+Default	Үндсэн
+Default (follows Windows)	Үндсэн (Windows-ийг дагана)
+Default duration for clip that and automatic clips	"Үүнийг клипээр бичих" болон автомат клипүүдийн үндсэн урт
+Default length	Үндсэн урт
+Default model	Үндсэн загвар
+Delay	Саатал
+Deny	Татгалзах
+Discard	Хаях
+Discard + reload	Хаяад дахин ачаалах
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Хүлээхийг хүсэхгүй байна уу? Үнэгүй түлхүүр намайг нэг минутын дотор ярьуулна.
+Done	Дууссан
+EXTRA REQUEST JSON >	НЭМЭЛТ ХҮСЭЛТИЙН JSON >
+EXTRAS >	НЭМЭЛТ >
+Edit	Засах
+Edit check-in lines	Шалгах мөрүүдийг засах
+Edit check-in lines has the wrong view or dimming	Шалгах мөрүүдийг засах хэсэгт буруу харагдац эсвэл бүдгэрэлт байна
+Edit check-in lines is out of place	Шалгах мөрүүдийг засах хэсэг буруу байрлалтай байна
+Edit controls	Удирдлагыг засах
+ElevenLabs API key	ElevenLabs API түлхүүр
+ElevenLabs voice ID	ElevenLabs дууны ID
+English	Англи
+Enter the game's name first.	Эхлээд тоглоомын нэрийг оруул.
+Every	Бүр
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Модын бүрийг байршуулахаас өмнө вирусэд шалгадаг. Кодын модууд ажиллахаасаа өмнө асууна.
+Explore after	Дараа нь судлах
+Explore while I'm away	Би хол байхад судлах
+Extra request JSON	Нэмэлт хүсэлтийн JSON
+Extras	Нэмэлтүүд
+FREE KEY	ҮНЭГҮЙ ТҮЛХҮҮР
+FREE KEY >	ҮНЭГҮЙ ТҮЛХҮҮР >
+Fast hands in games	Тоглоомд хурдан гар
+File editor	Файл засагч
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs болон бусад нь Mainframe дээр ДУУ-ны доор байна.
+Follow-up messages	Дараагийн мессежүүд
+Forget	Мартах
+Fork capri-mods	capri-mods-ийг fork хийх
+Frame rate	Фреймийн хурд
+Free	Үнэгүй
+Free and private, works offline. Downloads	Үнэгүй ба хувийн, офлайнаар ажилладаг. Татна
+Free and private, works offline. Downloads the best model for this PC.	Үнэгүй ба хувийн, офлайнаар ажилладаг. Энэ компьютерт хамгийн сайн загварыг татна.
+Free key	Үнэгүй түлхүүр
+Free key providers	Үнэгүй түлхүүрийн үйлчилгээ үзүүлэгчид
+Free keys can be rate limited and slow.	Үнэгүй түлхүүрүүд хязгаартай, удаан байж болно.
+Free voice in games	Тоглоомд үнэгүй дуу
+Free voice style	Үнэгүй дууны загвар
+Free voice:	Үнэгүй дуу:
+Free voice: Her own	Үнэгүй дуу: Өөрийнх нь
+Free · local model	Үнэгүй · локал загвар
+GAMES >	ТОГЛООМ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Тоглоомын сэтгэгдлүүд Миний дэлгэцийг хар-оос тусдаа ажилладаг. Унтраавал зогсоно, тоглоомын горимд ч; Зөвхөн үйл явдал ба Яриатай нь таны тоглоомыг харах боломж олгоно
+Game controls	Тоглоомын удирдлага
+Game name	Тоглоомын нэр
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Тоглоомын дууны мэдрэмж. Чихэвч бага байвал, гэвч Windows {0}% байвал, тэр бүх дууг хариулдаг бол буулгана; Унтраавал тоглоомын дууг үл тооцно
+Game sounds	Тоглоомын дуу
+Games	Тоглоомууд
+Gaming Mode	Тоглоомын горим
+Gaming Mode key	Тоглоомын горимын товчлуур
+Gaming Mode:	Тоглоомын горим:
+Gaming Mode: Ctrl + Alt + G	Тоглоомын горим: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE авах
+Get VB-CABLE (free)...	VB-CABLE авах (үнэгүй)...
+Get free voice	Үнэгүй дуу авах
+Getting your Fish Audio voices...	Таны Fish Audio дууг авч байна...
+Giant	Аварга
+Glitch	Алдаа
+Glitch in at startup	Эхлэхэд алдаа
+Go to sleep	Унтахаар яв
+Go to the next screen	Дараагийн дэлгэц рүү шилжих
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · үнэгүй түвшин · хязгаартай
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude эсвэл ChatGPT төлөвлөгөө, эсвэл өөрийн түлхүүр байна уу? Сонгоод өг, би холбогдоно.
+Got it, just me. Right-click me any time for Capri Mainframe.	Ойлголоо, зөвхөн би. Capri Mainframe-ийг хүссэн үедээ намайг хулганы баруун товчоор дарж нээ.
+Grey	Саарал
+H.{0} video bitrate target; higher values make larger files	H.{0} видеоны битрейтийн зорилт; өндөр утга том файл үүсгэнэ
+HABITS >	ЗАН ТААЛАЛ >
+HER HANDS >	ТҮҮНИЙ ГАРУУД >
+HER JOBS >	ТҮҮНИЙ АЖЛУУД >
+HER MEMORY >	ТҮҮНИЙ ЯНЗ БУУРАН >
+HER MODS >	ТҮҮНИЙ МОДУУД >
+HH:mm	HH:mm
+HOW I SOUND >	БИ ЯАЖ ДУУГАРДАГ >
+Hang here	Энд унжих
+Have Ollama? Open it, then press Refresh.	Ollama байна уу? Нээгээд, Шинэчлэх дарна уу.
+Head pats	Толгой илбэх
+Hearing	Сонсгол
+Hearing engine	Сонсголын хөдөлгүүр
+Hearing fix	Сонсголын засвар
+Hearing status	Сонсголын статус
+Help	Тусламж
+Help page	Тусламжийн хуудас
+Her colors	Түүний өнгөнүүд
+Her folder	Түүний хавтас
+Her memories	Түүний дурсамжууд
+Her own colors are back.	Түүний өөрийн өнгөнүүд буцаж ирлээ.
+Her own notes (no vault)	Түүний өөрийн тэмдэглэлүүд (сан байхгүй)
+Her perch frames per second	Түүний суудлын фрейм секундэд
+Her personality	Түүний зан чанар
+Her size	Түүний хэмжээ
+Her speaker	Түүний чанга яригч
+Her speaker is hidden or outside VOICE	Түүний чанга яригч нуугдсан эсвэл ДУУ-ны гадна байна
+Her speaker overlaps the mic or hearing row	Түүний чанга яригч микрофон эсвэл сонсголын мөртэй давхцаж байна
+Her speaker:	Түүний чанга яригч:
+Her speaker: Default	Түүний чанга яригч: Үндсэн
+Her voice in your mic	Түүний дуу таны микрофонд
+Her voice in your mic: loudness	Түүний дуу таны микрофонд: чанга байдал
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Түүний дуу өөрөө. Түүний өндөр нь Тохиргоо > ДУУ > Өндөр, тэд хамт хөдөлнө.
+Her voice joins your mic only in call mode.	Түүний дуу зөвхөн дуудлагын горимд таны микрофонд орно.
+Her voice volume	Түүний дууны чанга байдал
+Her voice's pitch	Түүний дууны өндөр
+Her voice's pitch, the same as Settings > VOICE > Pitch	Түүний дууны өндөр, Тохиргоо > ДУУ > Өндөртэй адил
+Her voice's speed	Түүний дууны хурд
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Түүний дуу, доор нь хольсон хоёр хуулбар, тус бүр өөрийн өндөр ба саатал бүхий.
+Her voices · free	Түүний дуунууд · үнэгүй
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Сайн байна уу, choom. Би Capri. Хариулахаасаа өмнө тархи хэрэгтэй. Нэгийг сонгоорой.
+Hide / Show Capri	Capri-г нуух / харуулах
+Hide / Show key	Нуух / харуулах товчлуур
+Hide Capri	Capri-г нуух
+Hide for now	Одоохондоо нуух
+Hide her	Түүнийг нуух
+Hide in full screen	Бүтэн дэлгэцэд нуух
+Hide this	Үүнийг нуух
+Hide, keep player	Нуух, тоглуулагчийг үлдээх
+Hide/show:	Нуух/харуулах:
+Hide/show: Ctrl + Alt + H	Нуух/харуулах: Ctrl + Alt + H
+Hologram	Голограм
+Hop off	Бууж ир
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Идэвхгүй компьютер түүнийг унтуулахад хэр удаан байхыг; таван минут хэвээр таныг хол байна гэж ойлгоно
+How long a stroke over her a head pat needs	Толгой илбэх гэж тооцогдохын тулд түүний дээгүүр хэр удаан илбэх хэрэгтэй
+How long her replies stay up	Түүний хариултууд хэр удаан дэлгэцэнд үлдэх
+How long you are away before she scrolls a browser or reader	Тэр хөтөч эсвэл уншигчийг гүйлгэхээс өмнө та хэр удаан хол байх
+How much her voice glitches	Түүний дуу хэр их алдаатай байх
+How much of the chat she keeps	Чатын хэр их хэсгийг хадгалах
+How much she wanders	Тэр хэр их тэнүүчлэх
+How often she pops in to say hi	Мэндлэхээр хэр олон удаа орж ирэх
+How robotic her voice sounds	Түүний дуу хэр роботжсон сонсогдох
+How to	Яаж
+Huge	Асар том
+I can hear you.	Би чамайг сонсож байна.
+I glance at your screen and comment. Costs a little on a paid brain.	Би таны дэлгэцийг хараад сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
+I keep listening. Say my name, then just talk.	Би сонсож байна. Миний нэрийг хэлээд зүгээр л яриарай.
+I speak	Би ярьдаг
+I talk about your game as you play. Costs a little on a paid brain.	Таны тоглоомын тухай тоглож байхад нь ярина. Төлбөртэй тархинд бага зардал гарна.
+I type my replies and stay quiet.	Би хариултаа бичээд чимээгүй байна.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Би хариулахгүй, юу ч хаашаа ч илгээгдэхгүй. Би хэвээр хамт байж, таны хөгжимд бүжиглэж, хурдан асуусан зүйлсийг хийнэ, жишээ нь дууны түвшин.
+I'll talk in	Би ярина
+IN DISCORD >	DISCORD ДЭЭР >
+INSTALLED >	СУУЛГАСАН >
+Import a Capri mod	Capri мод импорт хийх
+Import mod	Мод импорт хийх
+In full screen	Бүтэн дэлгэцэд
+In games	Тоглоомд
+Input	Оролт
+Input, Output or How to overlaps a row	Оролт, гаралт эсвэл Яаж мөр давхцаж байна
+Input:	Оролт:
+Input: default	Оролт: үндсэн
+Install	Суулгах
+Install mod	Мод суулгах
+Installed.	Суулгагдсан.
+It may ask for a phone number. I opened the page in your browser.	Утасны дугаар асууж магадгүй. Би хуудсыг таны хөтөч дээр нээсэн.
+It still does its own job in other apps too.	Бусад аппд ч өөрийн ажлаа хэвээр хийнэ.
+It won't type in other apps while she runs.	Тэр ажиллаж байхад бусад аппд бичихгүй.
+JUST ME >	ЗӨВХӨН БИ >
+Jealous of other AIs	Бусад AI-д атаархах
+Join the Discord	Discord-д нэгдэх
+KB.	KB.
+KEYS	ТҮЛХҮҮРҮҮД
+KEYS >	ТҮЛХҮҮРҮҮД >
+Keep PC awake for jobs	Ажилд зориулж компьютерийг сэрүүн байлгах
+Keep player	Тоглуулагчийг үлдээх
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Таны тоглоомын сүүлийн хоёр минутыг санах ойд хадгална. Хадгалахын тулд "үүнийг клипээр бичих" гэж хэл.
+Key	Түлхүүр
+Key cleared: a model file needs none.	Түлхүүр цэвэрлэгдлээ: загварын файлд түлхүүр хэрэггүй.
+Key cleared: paste the key for	Түлхүүр цэвэрлэгдлээ: түлхүүрийг буулгана уу
+Key forgotten.	Түлхүүрийг мартсан.
+Key. It goes only to this server, as a Bearer key	Түлхүүр. Зөвхөн энэ серверт Bearer түлхүүрээр илгээгдэнэ
+Kokoro only, like es	Зөвхөн Kokoro, es шиг
+LAST THING >	СҮҮЛИЙН ЗҮЙЛ >
+LISTENING >	СОНСОЖ БАЙНА >
+Language	Хэл
+Large	Том
+Last thing. These cost a little or use your mic, so they're your pick.	Сүүлийн зүйл. Эдгээр нь бага зардал гаргадаг эсвэл микрофон ашигладаг тул сонголт таных.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Сүүлийн зүйл. Эдгээр нь бага зардал гаргадаг эсвэл микрофон ашигладаг тул сонголт таных. Дараа нь таныг яаж дуудах ёстойг мэдмээр байна.
+Layers	Давхаргууд
+Learn more	Дэлгэрэнгүй
+Leaving Settings threw its picture away straight away.	Тохиргооноос гарахад зураг нь тэр даруй хаягдсан.
+Legacy stand	Хуучин тавцан
+Lie down	Хэвтэх
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Хамтдаа үзэх үед санах ойд хадгалагдах компьютерийн диалогийн мөрүүд. "Тэр юу харснаа санах" асаалттай үед хамгийн эхний хагас тэмдэглэл болно
+Listen for Capri	Capri-г сонсох
+Live reactions	Шууд хариу үйлдэл
+Local server address	Локал серверийн хаяг
+Long	Урт
+Longest wait (minutes)	Хамгийн урт хүлээлт (минут)
+Looking at this PC...	Энэ компьютерийг шалгаж байна...
+Looking for Ollama. Open it if it isn't running.	Ollama хайж байна. Ажиллахгүй бол нээ.
+Looking for a brain...	Тархи хайж байна...
+Looking in the mods directory for updates...	Модын санд шинэчлэлт хайж байна...
+Looking in the mods directory...	Модын санд хайж байна...
+Looking...	Хайж байна...
+MAIN >	ҮНДСЭН >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ДУНД ОЮУН УХААН
+MEMORY VAULT >	САНАХ ОЙН САН >
+MODS	МОДУУД
+MODS >	МОДУУД >
+MODS DIRECTORY >	МОДЫН САН >
+MODS INSTALLED COLORS	СУУЛГАСАН МОДЫН ӨНГӨНҮҮД
+MOVES >	ХӨДӨЛГӨӨН >
+MY BRAIN	МИНИЙ ТАРХИ
+MY FREE VOICE	МИНИЙ ҮНЭГҮЙ ДУУ
+MY PLAN OR KEY	МИНИЙ ТӨЛӨВЛӨГӨӨ ЭСВЭЛ ТҮЛХҮҮР
+MY PLAN OR KEY >	МИНИЙ ТӨЛӨВЛӨГӨӨ ЭСВЭЛ ТҮЛХҮҮР >
+Made your Fish Audio voice. Press Test to hear it.	Таны Fish Audio дууг үйлдлээ. Сонсохын тулд Туршилт дарна уу.
+Mainframe colours	Mainframe-ийн өнгө
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe-ийн өнгө. Night City улаан ба цэнхэр-ногоон; Хар, Цагаан ба Саарал нь Mainframe, түүний цэсүүд, бичих хайрцаг ба тэмдэглэлийг өөрчилнө
+Mainframe frames	Mainframe-ийн хүрээ
+Mainframe key	Mainframe товчлуур
+Mainframe size	Mainframe-ийн хэмжээ
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe-ийн хэмжээ. Virtual Super Resolution эсвэл DSR том ширээний тавцанг жижиг дэлгэцэнд багасгахад Автомат үүнийг том болгоно
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Таны Fish Audio дууг үүсгэж байна...
+Max reply	Хамгийн их хариулт
+Maximum clip resolution, keeping the game's shape without upscaling	Клипийн хамгийн их нарийвчлал, тоглоомын хэлбэрийг томруулахгүйгээр хадгална
+Medium	Дунд
+Memory	Санах ой
+Memory size	Санах ойн хэмжээ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama болон түүний суурилуулсан тархины токен дэх санах ойн хэмжээ. Асуулт илүү шаардвал Автомат өснө
+Mg	Mg
+Mic level:	Микрофоны түвшин:
+Mic test finished. Sound is reaching Capri.	Микрофоны туршилт дууслаа. Дуу Capri-д хүрч байна.
+Mic:	Микрофон:
+Mic: default	Микрофон: үндсэн
+Microphone	Микрофон
+Mini player	Жижиг тоглуулагч
+Mini player over full screen	Жижиг тоглуулагч бүтэн дэлгэцийн дээр
+Mini-games	Жижиг тоглоомууд
+Minimising the Mainframe left it sliding.	Mainframe-ийг багасгахад тэр гулсаж үлдсэн.
+Minimize	Багасгах
+Mod filter	Модын шүүлтүүр
+Mod options	Модын сонголтууд
+Mod pages	Модын хуудсууд
+Mod rules	Модын дүрмүүд
+Mod sort	Модын эрэмбэлэлт
+Mod switch	Модын шилжүүлэгч
+Model	Загвар
+Model folder	Загварын хавтас
+Model name, optional	Загварын нэр, заавал биш
+Mods	Модууд
+Mods directory	Модын сан
+Mods folder	Модын хавтас
+Most NVIDIA models can't see your screen.	Ихэнх NVIDIA загварууд таны дэлгэцийг харж чадахгүй.
+Mouse wheel notches got a flick's long ease:	Хулганы дугуйн шүргүүр шуурхай хөдөлгөөний урт удаашралыг авав:
+Move	Зөөх
+Move key to MAX INTELLIGENCE	Товчлуурыг MAX INTELLIGENCE руу зөөх
+Move to MAX	MAX руу зөөх
+Music	Хөгжим
+Music app	Хөгжмийн апп
+Music app: where she plays music when you don't name an app	Хөгжмийн апп: апп нэрлээгүй үед тэр хөгжим тоглуулдаг газар
+Mute	Дуугүй болгох
+Mute her	Түүнийг дуугүй болгох
+Mute mic key	Микрофоныг дуугүй болгох товчлуур
+Mute mic:	Микрофоныг дуугүй болгох:
+Mute mic: Ctrl + Alt + N	Микрофоныг дуугүй болгох: Ctrl + Alt + N
+My brain	Миний тархи
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Миний тархи буугаад байна. Ормогц мэндлэнэ, тэгээд чи надтай ярьж болно.
+My brain's on its way. While it comes down, let's sort out how I sound.	Миний тархи замдаа байна. Буух хооронд би яаж дуугарахыг тохируулъя.
+My provider	Миний үйлчилгээ үзүүлэгч
+NO AI	AI БАЙХГҮЙ
+NO PHONES CONNECTED	УТАС ХОЛБОГДООГҮЙ
+NO PREVIEW	УРЬДЧИЛАН ХАРАХ БОЛОМЖГҮЙ
+NORMAL	ХЭВИЙН
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · үнэгүй · завгүй үед ихэвчлэн удаан
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-гийн үнэгүй API ихэвчлэн удаан, ялангуяа завгүй үед.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) эсвэл OpenRouter API түлхүүр
+Names:	Нэрс:
+Needs a key	Түлхүүр хэрэгтэй
+Never	Хэзээ ч үгүй
+New code	Шинэ код
+New voice from a clip...	Клипээс шинэ дуу...
+Next	Дараах
+Night City	Night City
+No AI	AI байхгүй
+No AI · no brain at all	AI байхгүй · огт тархи байхгүй
+No brain runs, and nothing is sent anywhere.	Тархи ажиллахгүй, юу ч хаашаа ч илгээгдэхгүй.
+No brain yet	Одоохондоо тархи байхгүй
+No code open	Нээлттэй код байхгүй
+No limit	Хязгааргүй
+No mic found	Микрофон олдсонгүй
+No mods in the directory yet.	Санд одоохондоо модууд байхгүй.
+No mods match that.	Үүнтэй таарах модууд байхгүй.
+No mods match.	Таарах модууд байхгүй.
+No phones yet	Одоохондоо утас байхгүй
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Одоохондоо виртуал микрофон байхгүй. Гаралтыг сонгоод, дараа нь VB-CABLE авах (үнэгүй) сонго.
+None yet: pick to get VB-CABLE (free)	Одоохондоо байхгүй: VB-CABLE (үнэгүй) авахын тулд сонго
+Normal	Хэвийн
+Not a relay host	Relay хост биш
+Not imported. Nothing ran.	Импорт хийгдээгүй. Юу ч ажиллаагүй.
+Not updated. The old one is still in.	Шинэчлэгдээгүй. Хуучин нь хэвээрээ байна.
+Nothing needed updating.	Шинэчлэх зүйл байсангүй.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Татах зүйл байхгүй, юу ч хаашаа ч илгээгдэхгүй. Би хариулахгүй. Mainframe-д хүссэн үедээ тархи нэмж болно.
+Nothing to show from the mods directory.	Модын санд харуулах зүйл байхгүй.
+Nothing? Windows Settings > Privacy & security > Microphone.	Юу ч биш үү? Windows-ийн тохиргоо > Нууцлал ба аюулгүй байдал > Микрофон.
+Nous Portal keys aren't supported yet.	Nous Portal түлхүүрүүдийг одоохондоо дэмждэггүй.
+OBS	OBS
+OFF	УНТРААСАН
+OLLAMA	OLLAMA
+ON	АСААСАН
+ON THIS PC	ЭНЭ КОМПЬЮТЕРТ
+OR A KEY	ЭСВЭЛ ТҮЛХҮҮР
+Obsidian memory vault	Obsidian санах ойн сан
+Off	Унтраах
+Off. Turn on Her voice in your mic above.	Унтраасан. Дээрх микрофондоо Түүний дууг асаа.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Унтраасан: тэр өмнөх шигээ дуугарна. Асаасан: түүний бүх дуу, ElevenLabs ч гэсэн.
+Often	Ихэвчлэн
+On	Асаах
+On / Off	Асаах / Унтраах
+On: your mic and her voice are going in.	Асаасан: таны микрофон ба түүний дуу орж байна.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Энэ тархины илгээх хүсэлт бүрт нэмэгдэх нэг JSON объект. Хуваалцсан нэр бүрт Capri-ийн утгыг орлуулна, загвараар шалгагддаггүй.
+Online speech recognition	Онлайн яриа таних
+Open Capri Mainframe	Capri Mainframe нээх
+Open Ollama, I'll find it	Ollama нээ, би олно
+Open clips folder	Клипийн хавтас нээх
+Open her memories	Түүний дурсамжийг нээх
+Open her notes	Түүний тэмдэглэлийг нээх
+Open mods folder	Модын хавтас нээх
+Open the page again	Хуудсыг дахин нээх
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA эсвэл OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-тай нийцтэй сервер эсвэл үйлчилгээ үзүүлэгч.
+OpenRouter · free models only	OpenRouter · зөвхөн үнэгүй загварууд
+Optional	Заавал биш
+Optional. Blank means no key.	Заавал биш. Хоосон нь түлхүүр байхгүй гэсэн үг.
+Options	Сонголтууд
+Out of the box a little higher, just behind her.	Үндсэн байдлаараа бага зэрэг дээгүүр, яг түүний ард.
+Out of the box lower, just behind her.	Үндсэн байдлаараа доогуур, яг түүний ард.
+Output	Гаралт
+Output:	Гаралт:
+Output: none	Гаралт: байхгүй
+PHONE CONNECTED	УТАС ХОЛБОГДСОН
+PHONES >	УТАСНУУД >
+PHONES CONNECTED	УТАСНУУД ХОЛБОГДСОН
+PREBUILT LOCAL	БЭЛЭН ЛОКАЛ
+PUBLISH MOD >	МОД НИЙТЛЭХ >
+Pair a phone	Утсыг холбох
+Paste	Буулгах
+Paste API key	API түлхүүр буулгах
+Paste a brain API key	Тархины API түлхүүр буулгах
+Paste reads your clipboard once, when you press it.	Буулгах дарахад таны буферийг нэг удаа уншина.
+Paste your key here	Түлхүүрээ энд буулгана уу
+Pat stroke	Илбэлт
+Perch	Суудал
+Perch over {0} fps uses more CPU	{0} fps-ээс дээш суудал илүү CPU ашиглана
+Pick Output to get it.	Авахын тулд Гаралтыг сонго.
+Pick a brain so I can talk back. You can change it any time.	Хариулах боломжтой болохын тулд тархи сонго. Хүссэн үедээ солиж болно.
+Pick a clip of a voice you have the rights and consent to use	Таны эрх ба зөвшөөрөлтэй дууны клипийг сонго
+Pick a free model. I opened the page in your browser.	Үнэгүй загвар сонго. Би хуудсыг таны хөтөч дээр нээсэн.
+Pick a new clip of you...	Өөрийн шинэ клипийг сонго...
+Pick a voice model...	Дууны загвар сонго...
+Pick one. Only one brain runs at a time.	Нэгийг сонго. Нэг дор зөвхөн нэг тархи ажиллана.
+Pick the note her memories go in	Түүний дурсамж орох тэмдэглэлийг сонго
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Таны эрх ба зөвшөөрөлтэй дууны {0}-с {1} секундийг сонго
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Таны ярьж буй {0}-с {1} секундийг, эсвэл таны эрх ба зөвшөөрөлтэй дууг сонго
+Pitch	Өндөр
+Play	Тоглуулах
+Play...	Тоглуулах...
+Player only	Зөвхөн тоглуулагч
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS загварууд энэ клипийн дууг хуулдаг. Сонсохын тулд Туршилт дарна уу.
+Pop-in times	Орж ирэх хугацаа
+Pop-ins	Орж ирэлтүүд
+Power saver	Эрчим хүч хэмнэгч
+Power saver: how lightly she runs in games, or always	Эрчим хүч хэмнэгч: тоглоомд тэр хэр хөнгөн ажиллах, эсвэл үргэлж
+Preset	Урьдчилсан тохиргоо
+Press Create API key	API түлхүүр үүсгэх дарна уу
+Press Create Key	Түлхүүр үүсгэх дарна уу
+Press Generate API Key	API түлхүүр гаргах дарна уу
+Press Test and say something, so I know I can hear you.	Туршилт дарж ямар нэг зүйл хэл, би чамайг сонсож байгаагаа мэдэх болно.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Товчлуур дарна уу, ганцаараа эсвэл Ctrl, Alt, Shift эсвэл Win-тэй хамт.
+Press new keys, then Confirm	Шинэ товчлуур дарж, дараа нь Баталгаажуулах
+Provider	Үйлчилгээ үзүүлэгч
+Provider API key, optional	Үйлчилгээ үзүүлэгчийн API түлхүүр, заавал биш
+Provider base URL	Үйлчилгээ үзүүлэгчийн үндсэн URL
+Provider forgotten.	Үйлчилгээ үзүүлэгчийг мартлаа.
+Provider overlaps the brain name or note	Үйлчилгээ үзүүлэгч тархины нэр эсвэл тэмдэглэлтэй давхцаж байна
+Publish	Нийтлэх
+Publish mod	Модыг нийтлэх
+Push to talk is off.	Ярихын тулд дарах унтраалттай.
+Push to talk key	Ярихын тулд дарах товчлуур
+Push to talk:	Ярихын тулд дарах:
+Push to talk: not set	Ярихын тулд дарах: тохируулаагүй
+QR CODE >	QR КОД >
+QR hidden while streaming	Дамжуулалтын үед QR нуугдсан
+Quick	Хурдан
+Quiet key	Чимээгүй товчлуур
+Quiet:	Чимээгүй:
+Quiet: Ctrl + Alt + P	Чимээгүй: Ctrl + Alt + P
+Quit Capri	Capri-г гарах
+RELAY >	RELAY >
+REMOTE >	ЗАЙ ХЯНАЛТ >
+RUNS CODE.	КОД АЖИЛЛУУЛДАГ.
+Rarely	Ховор
+Rate mod	Модыг үнэлэх
+Reading its README...	README-г уншиж байна...
+Refresh	Шинэчлэх
+Reinstall	Дахин суулгах
+Reload	Дахин ачаалах
+Reloaded.	Дахин ачаалагдлаа.
+Remember our chats	Бидний чатуудыг санах
+Remember what she sees	Тэр юу харснаа санах
+Remote	Зай хяналт
+Remote off	Зай хяналт унтраасан
+Remote on	Зай хяналт асаасан
+Remove	Устгах
+Remove all phones	Бүх утсыг устгах
+Replies	Хариултууд
+Reply length	Хариултын урт
+Report a problem	Асуудал мэдээлэх
+Reset colors	Өнгийг шинэчлэх
+Reset to her default	Түүний үндсэн рүү шинэчлэх
+Resolution	Нарийвчлал
+Restart to update	Шинэчлэхийн тулд дахин эхлүүлэх
+Restless	Тайван бус
+Revoke	Хүчингүй болгох
+Revoke also removes the phones its links added	Хүчингүй болгох нь мөн түүний холбоосууд нэмсэн утсыг устгана
+Ride cursor	Курсороор унах
+Ride cursor / Hop off	Курсороор унах / Бууж ир
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe-д хүссэн үедээ намайг хулганы баруун товчоор дар. ТАРХИ доор тархи асна.
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Тусламж ба Discord-д хүссэн үедээ намайг хулганы баруун товчоор дар.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox эсвэл бусад апп: сонго
+Robot	Робот
+Rock, paper, scissors	Чулуу, даавуу, ханцуй
+Run this code mod?	Энэ кодын модыг ажиллуулах уу?
+Running on this PC	Энэ компьютер дээр ажиллаж байна
+Running on this PC · :	Энэ компьютер дээр ажиллаж байна · :
+Runs Claude Code or Codex on this PC, signed in.	Энэ компьютер дээр нэвтэрсэн Claude Code эсвэл Codex-ийг ажиллуулна.
+Runs on your PC. No key, no credits.	Таны компьютер дээр ажиллана. Түлхүүр байхгүй, кредит байхгүй.
+SCAN WITH YOUR PHONE · EXPIRES	УТСААРАА СКАНЛА · ДУУСНА
+SECURITY >	АЮУЛГҮЙ БАЙДАЛ >
+SKILL.	ЧАДВАР.
+SKIN.	АРХИ.
+SORT BY	ЭРЭМБЭЛЭХ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДУУНУУД ЗАН ТААЛАЛ ТАРХИ ХАРАХ CAPRI DOOMSCROLL ЦАГ АГААР КЛИПҮҮД ТОГЛООМ ТҮЛХҮҮРҮҮД ХӨДӨЛГӨӨН ДУУ ТА
+Same as I speak	Миний хэлтэй адил
+Same as her ears (VOICE > Mic)	Түүний чихтэй адил (ДУУ > Микрофон)
+Same code on the phone?	Утсан дээрх ижил код үү?
+Save	Хадгалах
+Save big moments	Том мөчүүдийг хадгалах
+Save folder	Хадгалах хавтас
+Save your changes, or press Discard + reload.	Өөрчлөлтөө хадгална уу, эсвэл Хаяад дахин ачаалах дарна уу.
+Save your changes, or press Discard.	Өөрчлөлтөө хадгална уу, эсвэл Хаях дарна уу.
+Saved.	Хадгалагдлаа.
+Saved. Ctrl + Alt + O opens her Mainframe.	Хадгалагдлаа. Ctrl + Alt + O түүний Mainframe-ийг нээнэ.
+Saving your rating...	Таны үнэлгээг хадгалж байна...
+Say her name anywhere to chat	Чатлахын тулд хаана ч түүний нэрийг хэл
+Screens	Дэлгэцүүд
+Screens is hidden or outside WATCH	Дэлгэцүүд нуугдсан эсвэл ХАРАХ-аас гадна байна
+Screens overlaps a WATCH row	Дэлгэцүүд ХАРАХ мөртэй давхцаж байна
+Screens to watch	Харах дэлгэцүүд
+Sealed end to end	Үзүүрээс үзүүр хүртэл шифрлэгдсэн
+Search by name or author	Нэр эсвэл зохиогчоор хайх
+Search installed mods	Суулгасан модуудаас хайх
+Search mods	Модуудаас хайх
+Search name, author or description	Нэр, зохиогч эсвэл тайлбараар хайх
+Security	Аюулгүй байдал
+Security:	Аюулгүй байдал:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Тохируулах
+Set up her brain	Түүний тархийг тохируулах
+Set up your voice model	Дууны загвараа тохируулах
+Setting up her brain	Түүний тархийг тохируулж байна
+Settings	Тохиргоо
+Settings / Back	Тохиргоо / Буцах
+Settings folds the wrong rows above BRAIN	Тохиргоо ТАРХИ дээрх буруу мөрүүдийг хаасан
+Settings had nothing to watch.	Тохиргоонд харах зүйл байсангүй.
+Settings lost keyboard focus during the Tab walk	Tab алхалтын үед Тохиргоо гар дээрх фокусаа алдсан
+Setup guide	Тохируулгын заавар
+Setup stopped	Тохируулга зогсло
+She answers in	Тэр хариулдаг
+She can read it when it fits.	Тохирох үед тэр уншиж чадна.
+She glances at your screen and comments. Costs a little on a paid brain.	Тэр таны дэлгэцийг харж сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
+She keeps listening. Say her name, then just talk.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь яриарай.
+She reacts to your game until you close it.	Таны тоглоомыг хаах хүртэл тэр хариу үйлдэл үзүүлнэ.
+She reads these controls before each game job.	Тэр тоглоомын ажил бүрийн өмнө эдгээр удирдлагыг уншина.
+She talks about your game as you play. Costs a little on a paid brain.	Таны тоглож байх үед тэр таны тоглоомын тухай ярина. Төлбөртэй тархинд бага зардал гарна.
+She uses it when she plays	Тоглох үедээ ашигладаг
+Short	Богино
+Shortest wait (minutes)	Хамгийн богино хүлээлт (минут)
+Show Capri	Capri харуулах
+Show QR	QR харуулах
+Show my mod file	Миний модын файлыг харуулах
+Show on Discord	Discord дээр харуулах
+Shum, what time is it	Shum, одоо хэдэн цаг вэ
+Sign in	Нэвтрэх
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Нэвтэрч, түлхүүр үүсгээд хуулна уу. Дараа нь Буулгах дарвал би холбогдоно.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Нэвтэрч, API түлхүүр үүсгэх дарж хуулна уу. Дараа нь Буулгах дарвал би холбогдоно.
+Silent · text only	Чимээгүй · зөвхөн текст
+Simple / Advanced Settings	Энгийн / Нарийвчилсан тохиргоо
+Simple Settings	Энгийн тохиргоо
+Simple Settings left a gap under Check in on me	Энгийн тохиргоо Намайг шалгах доор зай үлдээсэн
+Sit here	Энд суу
+Sit on windows	Цонхон дээр суу
+Size	Хэмжээ
+Skip	Алгасах
+Skip all	Бүгдийг алгасах
+Skip for now	Одоохондоо алгасах
+Sleep	Унтах
+Small	Жижиг
+Sometimes	Заримдаа
+Sound effects volume	Дуны эффектийн чанга байдал
+Sound sensitivity	Дууны мэдрэмж
+Sounds	Дуунууд
+Speaker or clip	Чанга яригч эсвэл клип
+Speech model	Яриаг таних загвар
+Speed	Хурд
+Start with Windows	Windows-ээр эхлүүлэх
+Start with this!	Үүгээр эхлэ!
+Starting...	Эхлүүлж байна...
+Stay	Үлдэх
+Stay on my model	Миний загварт үлдэх
+Still checking your mics...	Таны микрофонуудыг шалгасаар байна...
+Still checking your speakers...	Таны чанга яригчдыг шалгасаар байна...
+Still checking your virtual mics...	Таны виртуал микрофонуудыг шалгасаар байна...
+Stop	Зогсоох
+Stopped using it. Couldn't remove the saved provider.	Хэрэглэхээ зогсоолоо. Хадгалсан үйлчилгээ үзүүлэгчийг устгаж чадсангүй.
+Support	Дэмжлэг
+Sure?	Итгэлтэй юу?
+Sure? moved to a different phone	Итгэлтэй юу? өөр утас руу шилжүүлсэн
+TALK TO ME	НАДТАЙ ЯРИ
+TEXT ONLY	ЗӨВХӨН ТЕКСТ
+Tab landed past the first option of	Tab эхний сонголтоос хойш газарджээ
+Tab never reached the quiet key	Tab чимээгүй товчлуурт хүрсэнгүй
+Tab reached nothing	Tab юунд ч хүрсэнгүй
+Tab selected a control without moving keyboard focus	Tab гар дээрх фокусыг шилжүүлэлгүйгээр удирдлагыг сонгосон
+Talk	Ярих
+Talk key	Ярих товчлуур
+Talk:	Ярих:
+Talk: Ctrl + Alt + V	Ярих: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Зорилтот барих фреймийн хурд; ачаалал эсвэл санах ойн төсөвт унаж магадгүй
+Teases when another AI comes to the front.	Өөр AI урд гарч ирэхэд шоолдог.
+Test	Туршилт
+That address doesn't work. Try https://... or http://localhost:{0}.	Тэр хаяг ажиллахгүй байна. https://... эсвэл http://localhost:{0} туршина уу.
+That code expired	Тэр код хугацаа дууссан
+That mod is no longer installed. The list is updated.	Тэр мод одоо суулгагдаагүй байна. Жагсаалт шинэчлэгдлээ.
+That's a paid key: it goes under MAX INTELLIGENCE.	Энэ төлбөртэй түлхүүр: MAX INTELLIGENCE доор орно.
+The Mainframe stayed composited while sliding.	Гулсаж байхад Mainframe нийлмэл хэвээр байв.
+The Mainframe stayed uncomposited after the slide.	Гулссаны дараа Mainframe нийлмэлгүй хэвээр байв.
+The controls moved while the picture was sliding.	Зураг гулсаж байх үед удирдлага шилжсэн.
+The cover stayed visible after the slide ended.	Слайд дууссаны дараа хавтас харагдсаар байв.
+The frame thread kept running after the page settled.	Хуудас тогтсоны дараа фреймийн урсгал ажилласаар байв.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Тэрийн өгч чадах хамгийн урт хариулт, токеноор. Автомат дээрх Хариултуудад нийцнэ; {0}K эсвэл {1}K нь үргэлжлүүлэхийг зөвшөөрнө. Ажлууд хэрэгтэй үед илүү зай хадгална
+The longest wait must be at least the shortest wait.	Хамгийн урт хүлээлт хамгийн богинотой дор хаяж адил байх ёстой.
+The picture doesn't match the scrolled page:	Зураг гүйлгэсэн хуудастай тохирохгүй байна:
+The picture of Settings doesn't match the page:	Тохиргооны зураг хуудастай тохирохгүй байна:
+The picture stayed up after the slide ended.	Слайд дууссаны дараа зураг дээр үлдсэн.
+The picture wasn't showing while it slid.	Гулсаж байх үед зураг харагдаагүй.
+The provider sheet is crowded:	Үйлчилгээ үзүүлэгчийн хуудас хэт дүүрсэн:
+The voice panel has no screen DPI.	Дуун самбарт дэлгэцийн DPI байхгүй.
+The voice panel's menus share one font.	Дуун самбарын цэсүүд нэг фонтыг хуваалцана.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Таны буферт одоохондоо түлхүүр байхгүй. Хуудаснаас хуулаад, дараа нь Буулгах дарна уу.
+These start off. Each costs a little or uses your mic.	Эдгээр унтраалттай эхэлдэг. Бүр нь бага зардал гаргадаг эсвэл микрофонийг ашигладаг.
+These start off. Turn on what you want. They're all in Settings too.	Эдгээр унтраалттай эхэлдэг. Хүссэнээ асаа. Бүгд мөн Тохиргоонд байна.
+They can also call you Big Z, Capricorn or Nova	Тэд мөн таныг Big Z, Capricorn эсвэл Nova гэж дуудаж болно
+They can also call you Nova, Big Z or Capricorn	Тэд мөн таныг Nova, Big Z эсвэл Capricorn гэж дуудаж болно
+Thinking	Бодож байна
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Энэ бол миний үнэгүй дуу. Туршилт дарж ямар нэг зүйл хэл, би чамайг сонсож байгааг харуулна.
+This mod has no description yet.	Энэ модонд одоохондоо тайлбар байхгүй.
+Tic-tac-toe	Тик-так-тоу
+Time between glances	Харцуудын хоорондох хугацаа
+Tiny	Маш жижиг
+Try again	Дахин оролдох
+Turn Remote on first	Эхлээд Зай хяналтыг асаа
+Turn off mini player	Жижиг тоглуулагчийг унтраах
+Turn push to talk off	Ярихын тулд дарахыг унтраах
+Turning the wheel the other way kept the page heading the old way, to	Дугуйг эсрэг тийш эргүүлэхэд хуудас хуучин замаараа үргэлжилсэн, хүртэл
+Type	Бичих
+Type key	Бичих товчлуур
+Type to me	Надад бичээрэй
+Type:	Бичих:
+Type: Ctrl + Alt + T	Бичих: Ctrl + Alt + T
+Typing sound	Бичих дуу
+Unpacked. Press Test to hear it.	Задлагдлаа. Сонсохын тулд Туршилт дарна уу.
+Unsaved changes.	Хадгалаагүй өөрчлөлтүүд.
+Up to {0} fps	{0} fps хүртэл
+Up to {0}p	{0}p хүртэл
+Update	Шинэчлэх
+Update available.	Шинэчлэлт байна.
+Update mods	Модуудыг шинэчлэх
+Updating...	Шинэчилж байна...
+Use	Ашиглах
+Use her cursor	Түүний курсорыг ашиглах
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Өөр газрын үйлчилгээ үзүүлэгчид https:// ашигла. Энгийн http дээрх түлхүүр аюултай.
+Use preset	Урьдчилсан тохиргоог ашиглах
+Use saved	Хадгалсаныг ашиглах
+Use this server	Энэ серверийг ашиглах
+Using your provider with a key	Таны үйлчилгээ үзүүлэгчийг түлхүүртэй ашиглаж байна
+Using your server with no key	Таны серверийг түлхүүргүйгээр ашиглаж байна
+VIEW MOD >	МОДЫГ ХАРАХ >
+VOICE >	ДУУ >
+VOICE IN YOUR MIC >	МИКРОФОНЫ ДУУ >
+VOICE LAYERS >	ДУУНЫ ДАВХАРГА >
+Verbosity	Дэлгэрэнгүй байдал
+Video bitrate	Видеоны битрейт
+View	Харагдац
+View mod	Модыг харах
+Voice	Дуу
+Voice ID	Дууны ID
+Voice from	Дууны эх сурвалж
+Voice layers	Дууны давхарга
+Voice model	Дууны загвар
+Voice model:	Дууны загвар:
+Voice name or ID, optional	Дууны нэр эсвэл ID, заавал биш
+Voice server address, or a voice model's folder	Дууны серверийн хаяг, эсвэл дууны загварын хавтас
+Voice status	Дууны статус
+Voice, key and model...	Дуу, түлхүүр ба загвар...
+Volume	Дуу
+WAKE ME UP >	МАНДАХ >
+WATCH >	ХАРАХ >
+Waiting for the relay	Relay-г хүлээж байна
+Wake her up	Түүнийг сэрээх
+Waking her up	Түүнийг сэрээж байна
+Wander	Тэнүүчлэх
+Wander around	Тойрон тэнүүчлэх
+Watch my screen	Миний дэлгэцийг харах
+Watch-along memory	Хамтдаа үзсэн дурсамж
+Weather	Цаг агаар
+Weather city	Цаг агаарын хот
+Welcome back, choom. Let's finish setting me up.	Тавтай морил, choom. Намайг тохируулж дуусгацгаая.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Тэр таны компьютер дээр асуулгүйгээр юу хийдэг. Унтраалттай үед эхлээд асууж, та тийм гэвэл хийнэ.
+What should she call you?	Тэр таныг яаж дуудах ёстой вэ?
+When she types	Бичиж байхад
+White	Цагаан
+Windows default	Windows-ийн үндсэн
+Windows did not give Settings keyboard focus	Windows Тохиргоонд гар дээрх фокус өгсөнгүй
+Windows did not return keyboard focus to Back	Windows Буцах руу гар дээрх фокусыг буцаасангүй
+With no picture the wheel still tried to slide.	Зураггүйгээр дугуй гулсах гэж оролдсоор байв.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE дээр хамгийн сайн ажиллана.
+YOU	ТА
+YOU >	ТА >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ТА ДУУ ХӨДӨЛГӨӨН ТҮЛХҮҮРҮҮД ТОГЛООМ КЛИПҮҮД ЦАГ АГААР DOOMSCROLL CAPRI ХАРАХ ТАРХИ ЗАН ТААЛАЛ ДУУНУУД
+YOUR KEY	ТАНЫ ТҮЛХҮҮР
+YOUR MIC	ТАНЫ МИКРОФОН
+YOUR PLAN	ТАНЫ ТӨЛӨВЛӨГӨӨ
+Yokapri what's up	Yokapri, юу болж байна
+You can hide this. It keeps going, and the Mainframe shows it too.	Та үүнийг нуугаж болно. Энэ үргэлжилсээр байна, Mainframe ч мөн харуулдаг.
+Your mic and her voice go into one virtual mic, and	Таны микрофон ба түүний дуу нэг виртуал микрофонд орно, мөн
+Your mic is muted. Unmute it to test.	Таны микрофон дуугүй байна. Туршихын тулд дууг нь асаа.
+Your mods are up to date.	Таны модууд шинэ байна.
+Your name or a nickname	Таны нэр эсвэл хочлол
+Your own model	Таны өөрийн загвар
+Your personality	Таны зан чанар
+Your voice	Таны дуу
+Your voice (HD)	Таны дуу (HD)
+Your voice (HD) · pick a clip of you...	Таны дуу (HD) · өөрийн клипийг сонго...
+Your voice model	Таны дууны загвар
+as its mic.	түүний микрофон шиг.
+changed. Saved as My Colors, so you can share it.	өөрчлөгдсөн. Хуваалцахын тулд "Миний өнгөнүүд" нэрээр хадгалагдлаа.
+choice	сонголт
+clips the input line	оролтын мөрийг таслана
+cue	дохио
+doesn't yet.	одоохондоо үгүй.
+download	татах
+file.	файл.
+flag	тугдаг
+fps	fps
+hear	сонсох
+hears	сонсдог
+hears that.	үүнийг сонсдог.
+hides or shows her.	түүнийг нуух эсвэл харуулна.
+hint	зөвлөмж
+in the Mainframe.	Mainframe дээр.
+in the mods directory with a pull request.	модын санд pull request-ээр.
+in the picture wasn't noticed.	зураг дээр анзаарагдаагүй.
+is already her push-to-talk key.	аль хэдийн түүний ярихын тулд дарах товчлуур байна.
+is off.	унтраалттай байна.
+is on and running.	асаалттай, ажиллаж байна.
+is on, at the bottom, under	асаалттай, доор, доор
+is on.	асаалттай байна.
+is on. She now answers to	асаалттай байна. Тэр одоо хариулдаг
+is removed.	устгагдсан.
+is taken	эзлэгдсэн байна
+is taken by another app. Try another.	өөр апп эзэлсэн байна. Өөрийгөө туршина уу.
+is updated	шинэчлэгдсэн
+isn't hearing it yet: do {0} and {1}, then join a call.	одоохондоо сонсохгүй байна: {0} ба {1}-ийг хийгээд дуудлагад нэгдээрэй.
+it now.	одоо.
+keeps her quiet, and lets her talk again.	түүнийг чимээгүй байлгаад, дахин ярих боломж олгоно.
+key	түлхүүр
+key.	түлхүүр.
+min	мин
+more.	илүү.
+ms.	ms.
+mutes mic	микрофоныг дуугүй болгоно
+mutes your mic.	таны микрофоныг дуугүй болгоно.
+name	нэр
+off	унтраалттай
+on this PC	энэ компьютер дээр
+opens her Mainframe.	түүний Mainframe-ийг нээнэ.
+opens her typing box.	түүний бичих хайрцгийг нээнэ.
+phone	утас
+phone pixels	утасны пикселүүд
+phones	утаснууд
+pixels	пикселүүд
+pixels)	пикселүүд)
+star.	од.
+stars.	од.
+starts voice chat.	дууны чатыг эхлүүлнэ.
+stays off. Nothing ran.	унтраалттай хэвээр. Юу ч ажиллаагүй.
+still does its own job in other apps too. Confirm to keep it.	бусад аппд ч өөрийн ажлаа хийсээр байна. Хадгалахын тулд баталгаажуул.
+tall	өндөр
+time	цаг
+to talk	ярихад
+to talk to her, with a game in front too.	түүнтэй ярихын тулд, урд нь тоглоом байсан ч.
+too.	ч мөн.
+turns Gaming Mode on and off.	Тоглоомын горимыг асаана ба унтраана.
+with Ollama	Ollama-тай
+won't type in other apps while she runs. Confirm to keep it.	тэр ажиллаж байхад бусад аппд бичихгүй. Хадгалахын тулд баталгаажуул.
+{0}   Echo Cancellation: Off	{0}   Эхо арилгалт: Унтраасан
+{0}   If her voice cuts off, turn off noise filtering	{0}   Түүний дуу тасрах бол дуу шүүлтийг унтраа
+{0}   Input Device:	{0}   Оролтын төхөөрөмж:
+{0}   Join the call and check they hear both of you	{0}   Дуудлагад нэгдээд, тэд та хоёрыг хоёуланг нь сонсож байгаа эсэхийг шалга
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Микрофоны туршилт > Let's Check: та өөрийгөө, ярих үед түүнийг сонсох болно
+{0}   Microphone:	{0}   Микрофон:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Дуу дарах: Байхгүй. Хоёулаа эхний мөрийн дараа түүний дууг таслаж болно.
+{0}   Open the call or meeting's audio settings	{0}   Дуудлага эсвэл хурлын аудио тохиргоог нээ
+{0}   Output Device: your headphones, like before	{0}   Гаралтын төхөөрөмж: өмнөх шигээ таны чихэвч
+{0}   Speaker: your headphones, like before	{0}   Чанга яригч: өмнөх шигээ таны чихэвч
+{0}   Try a mic test in your call app	{0}   Дуудлагын аппдаа микрофоны туршилт хий
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Хэрэглэгчийн тохиргоо (нэрийнхээ дэргэдэх араа) > Дуу ба видео
+{0} Mbps	{0} Mbps
+{0} lines	{0} мөр
+{0} min	{0} мин
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· энэ компьютер дээр
+· server	· сервер
+Edit as text	Текстээр засах
+What Capri remembers about you. It stays on this computer.	Capri чамайг хэрхэн санаж байна. Энэ компьютер дээр үлдэнэ.
+Tell her something to remember	Түүнд санах нэг зүйл хэл
+Search her memory	Түүний ой санамжаас хайх
+That day isn't there any more.	Тэр өдөр байхгүй болсон.
+Undo	Буцаах
+Remember our chats is off, so she isn't keeping new chat memories.	Бидний яриаг санах нь унтарсан тул шинэ ярианы дурсамж хадгалахгүй.
+ABOUT YOU	ЧАМАЙН ТУХАЙ
+FROM YOUR CHATS	ЧИНИЙ ЯРИАНААС
+GAMES	ТОГЛООМ
+CHAT LOGS	ЯРИАНЫ БҮРТГЭЛ
+CHAT LOG	ЯРИАНЫ БҮРТГЭЛ
+Nothing matches.	Юу ч тохирохгүй байна.
+Nothing yet.	Одоохондоо юу ч байхгүй.
+Reading her notes.	Түүний тэмдэглэлийг уншиж байна.
+Click again to forget game notes	Тоглоомын тэмдэглэлийг мартахын тулд дахин дар
+Forget game notes	Тоглоомын тэмдэглэлийг март
+Click again to forget everything about me	Чамайг бүгдийг мартахын тулд дахин дар
+Forget everything about me	Чамайг бүгдийг март
+Click again to forget	Мартахын тулд дахин дар
+Forget this day	Энэ өдрийг март
+Only the start of this day is shown.	Зөвхөн энэ өдрийн эхлэл харагдана.
+Nothing in this day.	Энэ өдөр юу ч байхгүй.
+No chats kept yet.	Одоохондоо яриа хадгалагдаагүй.
+You	Чи
+{0} line	{0} мөр
+SET UP EMAIL >	ИМЭЙЛ ТОХИРУУЛАХ >
+SET UP EMAIL	ИМЭЙЛ ТОХИРУУЛАХ
+Or type your address	Эсвэл хаягаа бич
+Email address	Имэйл хаяг
+Open the page	Хуудсыг нээх
+App password	Аппын нууц үг
+IMAP server	IMAP сервер
+Incoming mail server	Ирж буй имэйлийн сервер
+SMTP server	SMTP сервер
+Outgoing mail server	Явж буй имэйлийн сервер
+An app password is a separate password just for Capri. Your normal password stays yours.	Аппын нууц үг нь зөвхөн Capri-д зориулсан тусдаа нууц үг. Энгийн нууц үг чинь чинийх хэвээр.
+She keeps it only until she closes.	Тэр үүнийг хаагдах хүртэл л хадгална.
+She checks, searches and reads your mail. She asks before she sends any.	Тэр имэйлийг чинь шалгаж, хайж, уншдаг. Ямар нэг юм илгээхээс өмнө асуудаг.
+Watch for new mail	Шинэ имэйлийг ажигла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Имэйл ирэхэд тэр хэлдэг, фишинг мэт санагдвал анхааруулдаг. Юу ч уншсан гэж тэмдэглэгдэхгүй.
+Deal with phishing on her own	Фишингээ өөрөө шийд
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Зөвхөн тэр ажиглаж байх үед. Фишинг гэдэгт итгэлтэй имэйл спам руу явна. Бусад нь чиний тийм гэсэн хариуг хүлээнэ.
+Forget account	Бүртгэлийг март
+Use another email	Өөр имэйл ашигла
+Which email?	Аль имэйл?
+Make an app password	Аппын нууц үг үүсгэ
+Paste it	Үүнийг буулга
+Connecting...	Холбогдож байна...
+She can use your email now.	Тэр одоо имэйлийг чинь ашиглаж чадна.
+She's not watching your inbox.	Тэр ирсэн имэйлийн хайрцгийг чинь ажиглахгүй байна.
+She's watching your inbox and deals with phishing she's sure of.	Тэр хайрцгийг чинь ажиглаж, итгэлтэй фишингээ шийддэг.
+She's watching your inbox and tells you when mail lands.	Тэр хайрцгийг чинь ажиглаж, имэйл ирэхэд хэлдэг.
+She forgot that account and its app password.	Тэр тэр бүртгэл болон аппын нууц үгийг мартсан.
+She forgot that account. Its app password is gone from this PC.	Тэр тэр бүртгэлийг мартсан. Аппын нууц үг нь энэ компьютероос алга болсон.

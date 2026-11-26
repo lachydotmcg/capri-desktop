@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	மீண்டும் வரையப்பட்ட கட்டுப்பாடு படத்தில் மீண்டும் வரையப்படவில்லை.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA அல்லது OpenRouter இலிருந்து இலவச விசை. பதிவிறக்கம் தேவையில்லை. இணையம் தேவை.
+A held trackpad scroll got a flick's long ease:	தொடுதள ஸ்க்ரோல் பிடித்திருந்தபோது ஒரு சுழற்சியின் நீண்ட மெதுவான நகர்வு கிடைத்தது:
+A layout change during a slide put the page at	ஸ்லைடின்போது அமைப்பு மாற்றம் பக்கத்தை இங்கே வைத்தது
+A layout change left the picture up.	அமைப்பு மாற்றம் படத்தை அப்படியே விட்டுவிட்டது.
+A model in Ollama, on your local server or on your key.	Ollama-வில் ஒரு மாதிரி, உங்கள் உள்ளூர் சேவையகத்தில் அல்லது உங்கள் விசையுடன்.
+A paid key goes under MAX INTELLIGENCE by itself.	கட்டண விசை தானாகவே MAX INTELLIGENCE-இன் கீழ் செல்லும்.
+A plan you already pay for, a key of your own, or Ollama.	நீங்கள் ஏற்கனவே செலுத்தும் திட்டம், உங்கள் சொந்த விசை, அல்லது Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	குரல் பலகையின் மெனு பலகையின் எழுத்துருவின் சொந்த நகலை வைத்திருக்கவில்லை.
+A wheel turn right after a slide ended froze the picture.	ஸ்லைடு முடிந்த உடனே சக்கரத்தைத் திருப்பியதால் படம் உறைந்தது.
+ALLOW THIS PHONE?	இந்த ஃபோனை அனுமதிக்கவா?
+ALMOST THERE >	கிட்டத்தட்ட முடிந்தது >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	வேறொரு CAPRI கட்டுப்பாட்டை எடுத்துக்கொண்டது · நிறுத்தி மீண்டும் இயக்கவும்
+API key	API விசை
+API key, Claude plan or ChatGPT plan	API விசை, Claude திட்டம் அல்லது ChatGPT திட்டம்
+Add	சேர்
+Address	முகவரி
+Address and key saved. Use saved to reconnect.	முகவரியும் விசையும் சேமிக்கப்பட்டன. மீண்டும் இணைக்க சேமித்ததைப் பயன்படுத்தவும்.
+Advanced Settings	மேம்பட்ட அமைப்புகள்
+All	அனைத்தும்
+All screens	எல்லா திரைகளும்
+Allow	அனுமதி
+Almost there. I'll say hi the second my brain's in.	கிட்டத்தட்ட வந்துவிட்டேன். என் மூளை இயங்கியதும் வணக்கம் சொல்வேன்.
+Always	எப்போதும்
+Always on top	எப்போதும் மேலே
+Any Google account works. I opened the page in your browser.	எந்த Google கணக்கும் வேலை செய்யும். உங்கள் உலாவியில் பக்கத்தைத் திறந்தேன்.
+Applies to every voice	எல்லா குரல்களுக்கும் பொருந்தும்
+Apps she may close	அவள் மூடக்கூடிய செயலிகள்
+Ask Capri for more	Capri-யிடம் மேலும் கேள்
+Asking your server...	உங்கள் சேவையகத்திடம் கேட்கிறது...
+Asks before closing only the apps you choose.	நீங்கள் தேர்ந்தெடுத்த செயலிகளை மட்டும் மூடும் முன் கேட்கும்.
+Auto	தானியங்கி
+Auto (match what I say)	தானியங்கி (நான் சொல்வதைப் பொறுத்து)
+Automatic: VB-CABLE, else Steam's	தானியங்கி: VB-CABLE, இல்லையெனில் Steam-உடையது
+BAD RELAY HOST	தவறான ரிலே ஹோஸ்ட்
+BIG Z open notepad	BIG Z நோட்பேடைத் திற
+BRAIN	மூளை
+BRAIN >	மூளை >
+BRAIN ONLINE >	மூளை ஆன்லைன் >
+BRAIN PROVIDER >	மூளை வழங்குநர் >
+BRAIN VOICE CAPRI	CAPRI மூளைக் குரல்
+Back	பின்செல்
+Back on your saved API key.	சேமித்த API விசைக்குத் திரும்பிவிட்டீர்கள்.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	இந்தக் கணினிக்கு சிறந்தது:
+Black	கருப்பு
+Blank key means no key.	வெற்று விசை என்றால் விசை இல்லை.
+Brain API key	மூளை API விசை
+Brain model	மூளை மாதிரி
+Brain provider	மூளை வழங்குநர்
+Bring here	இங்கே கொண்டுவா
+Bring to this screen	இந்தத் திரைக்குக் கொண்டுவா
+Browse	உலாவு
+Browse mods	மோட்களை உலாவு
+Browse to a voice model	குரல் மாதிரிக்குச் செல்
+Browse...	உலாவு...
+Bubble	குமிழி
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree நீ இருக்கிறாயா
+CAN'T REACH THE RELAY · RETRYING	ரிலேயை அடைய முடியவில்லை · மீண்டும் முயல்கிறது
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI மூளைக் குரல்
+CHANGED, approve it again.	மாற்றப்பட்டது, மீண்டும் அங்கீகரிக்கவும்.
+CLIPS >	கிளிப்புகள் >
+CLOUD VOICE	மேகக் குரல்
+CODE	குறியீடு
+COLORS >	வண்ணங்கள் >
+CONNECTED	இணைக்கப்பட்டது
+CONNECTING	இணைக்கப்படுகிறது
+CUSTOM LOCAL	தனிப்பயன் உள்ளூர்
+Call mode (beta)	அழைப்பு முறை (பீட்டா)
+Call mode does not fit.	அழைப்பு முறை பொருந்தவில்லை.
+Call mode is outside its space.	அழைப்பு முறை அதன் இடத்திற்கு வெளியே உள்ளது.
+Cancel	ரத்துசெய்
+Cancel keys	விசைகளை ரத்துசெய்
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri ரிமோட்
+Capri code:	Capri குறியீடு:
+Capri mods (*	Capri மோட்கள் (*
+Capri, hello	Capri, வணக்கம்
+CapriDesktop.	CapriDesktop.
+Chaos when upset	கோபத்தில் குழப்பம்
+Chat with Capri from your phone	உங்கள் ஃபோனிலிருந்து Capri-யுடன் பேசுங்கள்
+ChatGPT plan	ChatGPT திட்டம்
+Check for updates	புதுப்பிப்புகளைச் சரிபார்
+Check in on me	என்னைப் பார்த்துக்கொள்
+Check in on me is hidden	என்னைப் பார்த்துக்கொள் மறைக்கப்பட்டுள்ளது
+Check in on me still decides whether she visits.	என்னைப் பார்த்துக்கொள் இன்னும் அவள் வருவாளா என்பதை முடிவு செய்கிறது.
+Check in on me's tip missed	என்னைப் பார்த்துக்கொள் குறிப்பு தவறிவிட்டது
+Chess	சதுரங்கம்
+Choose apps	செயலிகளைத் தேர்ந்தெடு
+Choose folder...	கோப்புறையைத் தேர்ந்தெடு...
+Choose where future Capri clips are saved	எதிர்கால Capri கிளிப்புகள் சேமிக்கப்படும் இடத்தைத் தேர்ந்தெடு
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude அல்லது ChatGPT திட்டம், கட்டண விசை (OpenAI, Claude, DeepSeek) அல்லது Ollama.
+Claude plan	Claude திட்டம்
+Clear	அழி
+Cleared.	அழிக்கப்பட்டது.
+Click Confirm to keep Down, or press Esc.	கீழ் பகுதியை வைத்திருக்க உறுதிசெய் என்பதை அழுத்தவும், அல்லது Esc அழுத்தவும்.
+Click to open it.	திறக்க அழுத்தவும்.
+Clip my games	என் விளையாட்டுகளை கிளிப் செய்
+Clips	கிளிப்புகள்
+Close	மூடு
+Close other AIs for me	எனக்காக மற்ற AI-களை மூடு
+Cloud voice	மேகக் குரல்
+Cloud voice service	மேகக் குரல் சேவை
+Cloud voice setup	மேகக் குரல் அமைப்பு
+Code mods can reach your whole PC. Only trusted ones.	குறியீட்டு மோட்கள் உங்கள் முழு PC-யையும் அணுகலாம். நம்பகமானவற்றை மட்டும் பயன்படுத்துங்கள்.
+Code/Husk Mode	குறியீடு/Husk பயன்முறை
+Codex	Codex
+Commands	கட்டளைகள்
+Comment on my games	என் விளையாட்டுகளைப் பற்றி கருத்து சொல்
+Comments	கருத்துகள்
+Confirm	உறுதிசெய்
+Confirm keys	விசைகளை உறுதிசெய்
+Connect	இணை
+Connect / Forget brain key	இணை / மூளை விசையை மறந்துவிடு
+Connect / Forget voice key	இணை / குரல் விசையை மறந்துவிடு
+Connect four	நான்கு வரிசை
+Controls	கட்டுப்பாடுகள்
+Copri, what time is it	Copri, இப்போது என்ன நேரம்
+Copy error details	பிழை விவரங்களை நகலெடு
+Copy the key	விசையை நகலெடு
+Copy the key from the page, then press Paste.	பக்கத்திலிருந்து விசையை நகலெடுத்து, பின்னர் ஒட்டு என்பதை அழுத்தவும்.
+Couldn't open that page:	அந்தப் பக்கத்தைத் திறக்க முடியவில்லை:
+Couldn't open that:	அதைத் திறக்க முடியவில்லை:
+Couldn't open the mods folder:	மோட்கள் கோப்புறையைத் திறக்க முடியவில்லை:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M ஏற்கனவே அவளுடைய Mainframe விசை.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N மைக்கை ஒலியடக்கும்
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V ஏற்கனவே அவளுடைய பேசும் விசை.
+Ctrl + Alt + V to talk	Ctrl + Alt + V பேச
+Custom local voice	தனிப்பயன் உள்ளூர் குரல்
+Custom model name	தனிப்பயன் மாதிரிப் பெயர்
+Dance	நடனம்
+Dance to music	இசைக்கு நடனமாடு
+Default	இயல்புநிலை
+Default (follows Windows)	இயல்புநிலை (Windows-ஐப் பின்பற்றும்)
+Default duration for clip that and automatic clips	clip that மற்றும் தானியங்கி கிளிப்புகளுக்கான இயல்புநேரம்
+Default length	இயல்புநிலை நீளம்
+Default model	இயல்புநிலை மாதிரி
+Delay	தாமதம்
+Deny	மறு
+Discard	நிராகரி
+Discard + reload	நிராகரி + மீண்டும் ஏற்று
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	காத்திருக்க விருப்பமில்லையா? இலவச விசை சுமார் ஒரு நிமிடத்தில் நான் பேச வைக்கும்.
+Done	முடிந்தது
+EXTRA REQUEST JSON >	கூடுதல் கோரிக்கை JSON >
+EXTRAS >	கூடுதல் >
+Edit	திருத்து
+Edit check-in lines	வரவேற்பு வரிகளைத் திருத்து
+Edit check-in lines has the wrong view or dimming	வரவேற்பு வரிகளைத் திருத்துவதில் தவறான பார்வை அல்லது மங்கல் உள்ளது
+Edit check-in lines is out of place	வரவேற்பு வரிகளைத் திருத்துவது இடம் மாறியுள்ளது
+Edit controls	கட்டுப்பாடுகளைத் திருத்து
+ElevenLabs API key	ElevenLabs API விசை
+ElevenLabs voice ID	ElevenLabs குரல் ID
+English	ஆங்கிலம்
+Enter the game's name first.	முதலில் விளையாட்டின் பெயரை உள்ளிடவும்.
+Every	ஒவ்வொரு
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	பதிவேற்றத்திற்கு முன் ஒவ்வொரு மோடும் தீம்பொருளுக்காகச் சரிபார்க்கப்படும். குறியீட்டு மோட்கள் இயங்குவதற்கு முன் இன்னும் கேட்கும்.
+Explore after	பின்னர் ஆராய்
+Explore while I'm away	நான் இல்லாதபோது ஆராய்
+Extra request JSON	கூடுதல் கோரிக்கை JSON
+Extras	கூடுதல்
+FREE KEY	இலவச விசை
+FREE KEY >	இலவச விசை >
+Fast hands in games	விளையாட்டுகளில் வேகமான கைகள்
+File editor	கோப்புத் திருத்தி
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs மற்றும் பிறவை Mainframe-இல் குரல் கீழ் உள்ளன.
+Follow-up messages	தொடர் செய்திகள்
+Forget	மறந்துவிடு
+Fork capri-mods	capri-mods-ஐ ஃபோர்க் செய்
+Frame rate	பிரேம் வீதம்
+Free	இலவசம்
+Free and private, works offline. Downloads	இலவசம் மற்றும் தனிப்பட்டது, ஆஃப்லைனிலும் வேலை செய்யும். பதிவிறக்கும்
+Free and private, works offline. Downloads the best model for this PC.	இலவசம் மற்றும் தனிப்பட்டது, ஆஃப்லைனிலும் வேலை செய்யும். இந்தக் கணினிக்கு சிறந்த மாதிரியைப் பதிவிறக்கும்.
+Free key	இலவச விசை
+Free key providers	இலவச விசை வழங்குநர்கள்
+Free keys can be rate limited and slow.	இலவச விசைகளுக்கு வேக வரம்பு இருக்கலாம்; மெதுவாகவும் இருக்கலாம்.
+Free voice in games	விளையாட்டுகளில் இலவசக் குரல்
+Free voice style	இலவசக் குரல் பாணி
+Free voice:	இலவசக் குரல்:
+Free voice: Her own	இலவசக் குரல்: அவளுடையது
+Free · local model	இலவசம் · உள்ளூர் மாதிரி
+GAMES >	விளையாட்டுகள் >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	விளையாட்டுக் கருத்துகள் என் திரையைப் பார் என்பதிலிருந்து தனியாக இயங்கும். முடக்கினால் விளையாட்டு முறையிலும் நிற்கும்; நிகழ்வுகள் மட்டும் மற்றும் அரட்டை அடிப்பவள் அவள் உங்கள் விளையாட்டைப் பார்க்க அனுமதிக்கும்
+Game controls	விளையாட்டுக் கட்டுப்பாடுகள்
+Game name	விளையாட்டின் பெயர்
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	விளையாட்டு ஒலி உணர்திறன். ஹெட்செட் குறைவாக இருந்தும் Windows {0}% இல் இருந்து ஒவ்வொரு ஒலிக்கும் அவள் எதிர்வினையாற்றினால் குறைக்கவும்; முடக்கினால் விளையாட்டு ஒலிகள் புறக்கணிக்கப்படும்
+Game sounds	விளையாட்டு ஒலிகள்
+Games	விளையாட்டுகள்
+Gaming Mode	விளையாட்டு முறை
+Gaming Mode key	விளையாட்டு முறை விசை
+Gaming Mode:	விளையாட்டு முறை:
+Gaming Mode: Ctrl + Alt + G	விளையாட்டு முறை: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE பெறு
+Get VB-CABLE (free)...	VB-CABLE பெறு (இலவசம்)...
+Get free voice	இலவசக் குரல் பெறு
+Getting your Fish Audio voices...	உங்கள் Fish Audio குரல்களைப் பெறுகிறது...
+Giant	மிகப் பெரிய
+Glitch	Glitch
+Glitch in at startup	தொடக்கத்தில் Glitch
+Go to sleep	தூங்கச் செல்
+Go to the next screen	அடுத்த திரைக்குச் செல்
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · இலவச அடுக்கு · வேக வரம்பு உண்டு
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude அல்லது ChatGPT திட்டம் உள்ளதா, அல்லது உங்கள் சொந்த விசை உள்ளதா? ஒன்றைத் தேர்ந்தெடுங்கள், நான் இணைக்கிறேன்.
+Got it, just me. Right-click me any time for Capri Mainframe.	சரி, நான் மட்டும். Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள்.
+Grey	சாம்பல்
+H.{0} video bitrate target; higher values make larger files	H.{0} வீடியோ பிட்ரேட் இலக்கு; அதிக மதிப்புகள் பெரிய கோப்புகளை உருவாக்கும்
+HABITS >	பழக்கங்கள் >
+HER HANDS >	அவள் கைகள் >
+HER JOBS >	அவள் வேலைகள் >
+HER MEMORY >	அவள் நினைவு >
+HER MODS >	அவள் மோட்கள் >
+HH:mm	HH:mm
+HOW I SOUND >	நான் எப்படி ஒலிக்கிறேன் >
+Hang here	இங்கே இரு
+Have Ollama? Open it, then press Refresh.	Ollama உள்ளதா? அதைத் திறந்து, பின்னர் புதுப்பி என்பதை அழுத்தவும்.
+Head pats	தலை தடவல்கள்
+Hearing	கேட்பு
+Hearing engine	கேட்கும் இயந்திரம்
+Hearing fix	கேட்கும் திருத்தம்
+Hearing status	கேட்கும் நிலை
+Help	உதவி
+Help page	உதவிப் பக்கம்
+Her colors	அவள் வண்ணங்கள்
+Her folder	அவள் கோப்புறை
+Her memories	அவள் நினைவுகள்
+Her own colors are back.	அவளுடைய சொந்த வண்ணங்கள் திரும்பிவிட்டன.
+Her own notes (no vault)	அவளுடைய சொந்தக் குறிப்புகள் (பெட்டகம் இல்லை)
+Her perch frames per second	அவளுடைய perch பிரேம்கள் ஒரு வினாடிக்கு
+Her personality	அவளுடைய ஆளுமை
+Her size	அவளுடைய அளவு
+Her speaker	அவளுடைய ஸ்பீக்கர்
+Her speaker is hidden or outside VOICE	அவளுடைய ஸ்பீக்கர் மறைக்கப்பட்டுள்ளது அல்லது குரலுக்கு வெளியே உள்ளது
+Her speaker overlaps the mic or hearing row	அவளுடைய ஸ்பீக்கர் மைக் அல்லது கேட்பு வரிசையை மேலெழுதுகிறது
+Her speaker:	அவளுடைய ஸ்பீக்கர்:
+Her speaker: Default	அவளுடைய ஸ்பீக்கர்: இயல்புநிலை
+Her voice in your mic	உங்கள் மைக்கில் அவளுடைய குரல்
+Her voice in your mic: loudness	உங்கள் மைக்கில் அவளுடைய குரல்: ஒலியளவு
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	அவளுடைய குரலே. அதன் சுருதி அமைப்புகள் > குரல் > சுருதி, இரண்டும் ஒன்றாக நகரும்.
+Her voice joins your mic only in call mode.	அழைப்பு முறையில் மட்டுமே அவளுடைய குரல் உங்கள் மைக்கில் சேரும்.
+Her voice volume	அவளுடைய குரல் ஒலியளவு
+Her voice's pitch	அவளுடைய குரலின் சுருதி
+Her voice's pitch, the same as Settings > VOICE > Pitch	அவளுடைய குரலின் சுருதி, அமைப்புகள் > குரல் > சுருதி போலவே
+Her voice's speed	அவளுடைய குரலின் வேகம்
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	அவளுடைய குரல், அதன் கீழ் கலக்கப்பட்ட இரண்டு நகல்களுடன், ஒவ்வொன்றும் அதன் சொந்த சுருதி மற்றும் தாமதத்துடன்.
+Her voices · free	அவளுடைய குரல்கள் · இலவசம்
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	வணக்கம், choom. நான் Capri. நான் பதில் சொல்ல மூளை தேவை. ஒன்றைத் தேர்ந்தெடுங்கள்.
+Hide / Show Capri	Capri-ஐ மறை / காட்டு
+Hide / Show key	மறை / காட்டு விசை
+Hide Capri	Capri-ஐ மறை
+Hide for now	இப்போதைக்கு மறை
+Hide her	அவளை மறை
+Hide in full screen	முழுத்திரையில் மறை
+Hide this	இதை மறை
+Hide, keep player	மறை, பிளேயரை வை
+Hide/show:	மறை/காட்டு:
+Hide/show: Ctrl + Alt + H	மறை/காட்டு: Ctrl + Alt + H
+Hologram	ஹோலோகிராம்
+Hop off	இறங்கு
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	அசையாத PC அவளை உறங்கவைக்க எவ்வளவு நேரம் எடுக்கும்; ஐந்து நிமிடம் இன்னும் நீங்கள் விலகி இருப்பதாகவே கருதப்படும்
+How long a stroke over her a head pat needs	தலை தடவலுக்கு அவளுடைய தலைக்கு மேல் ஒரு தடவல் எவ்வளவு நேரம் நீடிக்க வேண்டும்
+How long her replies stay up	அவளுடைய பதில்கள் எவ்வளவு நேரம் தெரியும்
+How long you are away before she scrolls a browser or reader	நீங்கள் எவ்வளவு நேரம் விலகி இருந்தால் அவள் உலாவியையோ வாசிப்பானையோ உருட்டுவாள்
+How much her voice glitches	அவளுடைய குரல் எவ்வளவு குழம்புகிறது
+How much of the chat she keeps	அரட்டையில் எவ்வளவு வைத்திருக்கிறாள்
+How much she wanders	அவள் எவ்வளவு அலைகிறாள்
+How often she pops in to say hi	வணக்கம் சொல்ல எவ்வளவு அடிக்கடி வருகிறாள்
+How robotic her voice sounds	அவளுடைய குரல் எவ்வளவு இயந்திரம் போல் ஒலிக்கிறது
+How to	எப்படி
+Huge	மிகப் பெரிய
+I can hear you.	நான் உன்னைக் கேட்கிறேன்.
+I glance at your screen and comment. Costs a little on a paid brain.	உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
+I keep listening. Say my name, then just talk.	நான் தொடர்ந்து கேட்கிறேன். என் பெயரைச் சொல்லுங்கள், பின்னர் பேசுங்கள்.
+I speak	நான் பேசுவது
+I talk about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றிப் பேசுகிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
+I type my replies and stay quiet.	நான் என் பதில்களை தட்டச்சு செய்துவிட்டு அமைதியாக இருக்கிறேன்.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	நான் திருப்பிப் பேச மாட்டேன், எதுவும் எங்கும் அனுப்பப்படாது. நான் இன்னும் உங்களுடன் இருப்பேன், உங்கள் இசைக்கு நடனமாடுவேன், ஒலியளவு போன்ற விரைவான வேலைகளைச் செய்வேன்.
+I'll talk in	நான் பேசுவேன்
+IN DISCORD >	DISCORD-ல் >
+INSTALLED >	நிறுவப்பட்டது >
+Import a Capri mod	Capri மோடை இறக்குமதி செய்
+Import mod	மோடை இறக்குமதி செய்
+In full screen	முழுத்திரையில்
+In games	விளையாட்டுகளில்
+Input	உள்ளீடு
+Input, Output or How to overlaps a row	உள்ளீடு, வெளியீடு அல்லது எப்படி ஒரு வரிசையை மேலெழுதுகிறது
+Input:	உள்ளீடு:
+Input: default	உள்ளீடு: இயல்புநிலை
+Install	நிறுவு
+Install mod	மோடை நிறுவு
+Installed.	நிறுவப்பட்டது.
+It may ask for a phone number. I opened the page in your browser.	ஃபோன் எண் கேட்கலாம். உங்கள் உலாவியில் பக்கத்தைத் திறந்தேன்.
+It still does its own job in other apps too.	மற்ற செயலிகளிலும் அது தன் வேலையைச் செய்கிறது.
+It won't type in other apps while she runs.	அவள் இயங்கும்போது மற்ற செயலிகளில் தட்டச்சு செய்யாது.
+JUST ME >	நான் மட்டும் >
+Jealous of other AIs	மற்ற AI-களின் மீது பொறாமை
+Join the Discord	Discord-இல் சேர்
+KB.	KB.
+KEYS	விசைகள்
+KEYS >	விசைகள் >
+Keep PC awake for jobs	வேலைகளுக்காக PC விழித்திருக்கட்டும்
+Keep player	பிளேயரை வை
+Keeps the last two minutes of your game in memory. Say clip that to save it.	உங்கள் விளையாட்டின் கடைசி இரண்டு நிமிடங்களை நினைவகத்தில் வைத்திருக்கும். சேமிக்க clip that என்று சொல்லுங்கள்.
+Key	விசை
+Key cleared: a model file needs none.	விசை அழிக்கப்பட்டது: மாதிரி கோப்புக்கு விசை தேவையில்லை.
+Key cleared: paste the key for	விசை அழிக்கப்பட்டது: இதற்கான விசையை ஒட்டவும்:
+Key forgotten.	விசை மறக்கப்பட்டது.
+Key. It goes only to this server, as a Bearer key	விசை. இது இந்தச் சேவையகத்திற்கு மட்டும் Bearer விசையாக அனுப்பப்படும்
+Kokoro only, like es	Kokoro மட்டும், es போல
+LAST THING >	கடைசி ஒன்று >
+LISTENING >	கேட்கிறது >
+Language	மொழி
+Large	பெரிய
+Last thing. These cost a little or use your mic, so they're your pick.	கடைசி ஒன்று. இவை சிறிது செலவாகும் அல்லது உங்கள் மைக்கைப் பயன்படுத்தும், எனவே தேர்வு உங்களுடையது.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	கடைசி ஒன்று. இவை சிறிது செலவாகும் அல்லது உங்கள் மைக்கைப் பயன்படுத்தும், எனவே தேர்வு உங்களுடையது. பிறகு உங்களை எப்படி அழைப்பது என்று தெரிந்துகொள்ள விரும்புகிறேன்.
+Layers	அடுக்குகள்
+Learn more	மேலும் அறிக
+Leaving Settings threw its picture away straight away.	அமைப்புகளிலிருந்து வெளியேறியதும் அவளுடைய படம் உடனே நீக்கப்பட்டது.
+Legacy stand	பழைய நிலைப்படுத்தி
+Lie down	படு
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	ஒன்றாகப் பார்க்கும்போது நினைவகத்தில் வைக்கப்படும் PC உரையாடல் வரிகள். நான் பார்ப்பதை நினைவில் வை இயக்கத்தில் இருந்தால் பழைய பாதி ஒரு குறிப்பாக மாறும்
+Listen for Capri	Capri-யைக் கேள்
+Live reactions	நேரடி எதிர்வினைகள்
+Local server address	உள்ளூர் சேவையக முகவரி
+Long	நீளமான
+Longest wait (minutes)	நீண்ட காத்திருப்பு (நிமிடம்)
+Looking at this PC...	இந்த PC-ஐப் பார்க்கிறது...
+Looking for Ollama. Open it if it isn't running.	Ollama-வைத் தேடுகிறது. இயங்கவில்லையென்றால் திறக்கவும்.
+Looking for a brain...	மூளையைத் தேடுகிறது...
+Looking in the mods directory for updates...	மோட்கள் கோப்புறையில் புதுப்பிப்புகளைத் தேடுகிறது...
+Looking in the mods directory...	மோட்கள் கோப்புறையில் தேடுகிறது...
+Looking...	தேடுகிறது...
+MAIN >	முதன்மை >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	நடுத்தர நுண்ணறிவு
+MEMORY VAULT >	நினைவுப் பெட்டகம் >
+MODS	மோட்கள்
+MODS >	மோட்கள் >
+MODS DIRECTORY >	மோட்கள் கோப்புறை >
+MODS INSTALLED COLORS	நிறுவப்பட்ட மோட் வண்ணங்கள்
+MOVES >	அசைவுகள் >
+MY BRAIN	என் மூளை
+MY FREE VOICE	என் இலவசக் குரல்
+MY PLAN OR KEY	என் திட்டம் அல்லது விசை
+MY PLAN OR KEY >	என் திட்டம் அல்லது விசை >
+Made your Fish Audio voice. Press Test to hear it.	உங்கள் Fish Audio குரல் தயார். கேட்க சோதனை அழுத்தவும்.
+Mainframe colours	Mainframe வண்ணங்கள்
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe வண்ணங்கள். Night City சிவப்பு மற்றும் சியான்; கருப்பு, வெள்ளை, சாம்பல் Mainframe, அவளுடைய மெனுக்கள், தட்டச்சுப் பெட்டி மற்றும் குறிப்புகளை மாற்றும்
+Mainframe frames	Mainframe சட்டங்கள்
+Mainframe key	Mainframe விசை
+Mainframe size	Mainframe அளவு
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe அளவு. Virtual Super Resolution அல்லது DSR பெரிய டெஸ்க்டாப்பைச் சிறிய திரைக்குச் சுருக்கும்போது தானியங்கி அதைப் பெரிதாக்கும்
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: கீழே
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	உங்கள் Fish Audio குரலை உருவாக்குகிறது...
+Max reply	அதிகபட்ச பதில்
+Maximum clip resolution, keeping the game's shape without upscaling	விளையாட்டின் வடிவத்தைப் பராமரித்து, மேம்படுத்தாமல் அதிகபட்ச கிளிப் தெளிவுத்திறன்
+Medium	நடுத்தரம்
+Memory	நினைவகம்
+Memory size	நினைவக அளவு
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama மற்றும் அவளுடைய உள்ளமைந்த மூளைக்கான நினைவக அளவு, டோக்கன்களில். ஒரு கோரிக்கைக்கு அதிகம் தேவைப்படும்போது தானியங்கி வளரும்
+Mg	Mb
+Mic level:	மைக் நிலை:
+Mic test finished. Sound is reaching Capri.	மைக் சோதனை முடிந்தது. ஒலி Capri-யை அடைகிறது.
+Mic:	மைக்:
+Mic: default	மைக்: இயல்புநிலை
+Microphone	மைக்ரோஃபோன்
+Mini player	மினி பிளேயர்
+Mini player over full screen	முழுத்திரைக்கு மேல் மினி பிளேயர்
+Mini-games	மினி-விளையாட்டுகள்
+Minimising the Mainframe left it sliding.	Mainframe-ஐச் சிறிதாக்கியது அதை சறுக்கவிட்டது.
+Minimize	சிறிதாக்கு
+Mod filter	மோட் வடிகட்டி
+Mod options	மோட் விருப்பங்கள்
+Mod pages	மோட் பக்கங்கள்
+Mod rules	மோட் விதிகள்
+Mod sort	மோட் வரிசை
+Mod switch	மோட் மாற்றம்
+Model	மாதிரி
+Model folder	மாதிரிக் கோப்புறை
+Model name, optional	மாதிரிப் பெயர், விருப்பம்
+Mods	மோட்கள்
+Mods directory	மோட்கள் கோப்புறை
+Mods folder	மோட்கள் கோப்புறை
+Most NVIDIA models can't see your screen.	பெரும்பாலான NVIDIA மாதிரிகளால் உங்கள் திரையைப் பார்க்க முடியாது.
+Mouse wheel notches got a flick's long ease:	மவுஸ் சக்கரத்தின் நாட்ச்கள் ஒரு சுழற்சியின் நீண்ட மெதுவான நகர்வு கிடைத்தது:
+Move	நகர்த்து
+Move key to MAX INTELLIGENCE	விசையை MAX INTELLIGENCE-க்கு நகர்த்து
+Move to MAX	MAX-க்கு நகர்த்து
+Music	இசை
+Music app	இசை செயலி
+Music app: where she plays music when you don't name an app	இசை செயலி: நீங்கள் ஒரு செயலியைக் குறிப்பிடாதபோது அவள் இசையை எங்கே இயக்குவாள்
+Mute	ஒலியடக்கு
+Mute her	அவளை ஒலியடக்கு
+Mute mic key	மைக் ஒலியடக்கு விசை
+Mute mic:	மைக்கை ஒலியடக்கு:
+Mute mic: Ctrl + Alt + N	மைக்கை ஒலியடக்கு: Ctrl + Alt + N
+My brain	என் மூளை
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	என் மூளை வருகிறது. அது வந்ததும் வணக்கம் சொல்வேன், அப்போது நீங்கள் என்னுடன் பேசலாம்.
+My brain's on its way. While it comes down, let's sort out how I sound.	என் மூளை வழியில் உள்ளது. அது வரும்வரை, நான் எப்படி ஒலிக்கிறேன் என்பதை அமைப்போம்.
+My provider	என் வழங்குநர்
+NO AI	AI இல்லை
+NO PHONES CONNECTED	இணைக்கப்பட்ட ஃபோன்கள் இல்லை
+NO PREVIEW	முன்னோட்டம் இல்லை
+NORMAL	சாதாரணம்
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · இலவசம் · பரபரப்பான நேரங்களில் பொதுவாக மெதுவாக
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-வின் இலவச API பெரும்பாலும் மெதுவாக இருக்கும், குறிப்பாக பரபரப்பான நேரங்களில்.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) அல்லது OpenRouter API விசை
+Names:	பெயர்கள்:
+Needs a key	விசை தேவை
+Never	ஒருபோதும்
+New code	புதிய குறியீடு
+New voice from a clip...	கிளிப்பிலிருந்து புதிய குரல்...
+Next	அடுத்தது
+Night City	Night City
+No AI	AI இல்லை
+No AI · no brain at all	AI இல்லை · மூளையே இல்லை
+No brain runs, and nothing is sent anywhere.	எந்த மூளையும் இயங்காது, எதுவும் எங்கும் அனுப்பப்படாது.
+No brain yet	இன்னும் மூளை இல்லை
+No code open	திறந்த குறியீடு இல்லை
+No limit	வரம்பு இல்லை
+No mic found	மைக் எதுவும் கண்டறியப்படவில்லை
+No mods in the directory yet.	மோட்கள் கோப்புறையில் இன்னும் மோட்கள் இல்லை.
+No mods match that.	அதற்குப் பொருந்தும் மோட்கள் இல்லை.
+No mods match.	பொருந்தும் மோட்கள் இல்லை.
+No phones yet	இன்னும் ஃபோன்கள் இல்லை
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	இன்னும் மெய்நிகர் மைக் இல்லை. வெளியீட்டைத் தேர்ந்தெடுத்து, பின்னர் VB-CABLE பெறு (இலவசம்) என்பதைத் தேர்வு செய்யவும்.
+None yet: pick to get VB-CABLE (free)	இன்னும் இல்லை: VB-CABLE (இலவசம்) பெற தேர்வு செய்யவும்
+Normal	சாதாரண
+Not a relay host	ரிலே ஹோஸ்ட் அல்ல
+Not imported. Nothing ran.	இறக்குமதி செய்யப்படவில்லை. எதுவும் இயங்கவில்லை.
+Not updated. The old one is still in.	புதுப்பிக்கப்படவில்லை. பழையது இன்னும் உள்ளது.
+Nothing needed updating.	புதுப்பிக்கத் தேவையில்லை.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	பதிவிறக்க எதுவும் இல்லை, எதுவும் எங்கும் அனுப்பப்படாது. நான் திருப்பிப் பேச மாட்டேன். Mainframe-இல் எப்போது வேண்டுமானாலும் மூளை சேர்க்கலாம்.
+Nothing to show from the mods directory.	மோட்கள் கோப்புறையில் காட்ட எதுவும் இல்லை.
+Nothing? Windows Settings > Privacy & security > Microphone.	எதுவும் இல்லையா? Windows அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > மைக்ரோஃபோன்.
+Nous Portal keys aren't supported yet.	Nous Portal விசைகள் இன்னும் ஆதரிக்கப்படவில்லை.
+OBS	OBS
+OFF	முடக்கம்
+OLLAMA	OLLAMA
+ON	இயக்கம்
+ON THIS PC	இந்த PC-யில்
+OR A KEY	அல்லது ஒரு விசை
+Obsidian memory vault	Obsidian நினைவுப் பெட்டகம்
+Off	முடக்கம்
+Off. Turn on Her voice in your mic above.	முடக்கம். மேலே உள்ள உங்கள் மைக்கில் அவளுடைய குரல் என்பதை இயக்கவும்.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	முடக்கம்: அவள் எப்போதும் போல் ஒலிப்பாள். இயக்கம்: ElevenLabs உட்பட அவளிடம் உள்ள எல்லாக் குரல்களும்.
+Often	அடிக்கடி
+On	இயக்கம்
+On / Off	இயக்கு / முடக்கு
+On: your mic and her voice are going in.	இயக்கம்: உங்கள் மைக்கும் அவளுடைய குரலும் உள்ளே செல்லும்.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	இந்த மூளை அனுப்பும் ஒவ்வொரு கோரிக்கையிலும் சேர்க்கப்படும் ஒரு JSON பொருள். அது பகிரும் எந்தப் பெயருக்கும் Capri-இன் மதிப்பை மாற்றும், மாதிரியால் சரிபார்க்கப்படாது.
+Online speech recognition	ஆன்லைன் பேச்சு அடையாளம்
+Open Capri Mainframe	Capri Mainframe-ஐத் திற
+Open Ollama, I'll find it	Ollama-வைத் திற, நான் கண்டுபிடிக்கிறேன்
+Open clips folder	கிளிப்புகள் கோப்புறையைத் திற
+Open her memories	அவள் நினைவுகளைத் திற
+Open her notes	அவள் குறிப்புகளைத் திற
+Open mods folder	மோட்கள் கோப்புறையைத் திற
+Open the page again	பக்கத்தை மீண்டும் திற
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA அல்லது OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-இணக்கமான சேவையகம் அல்லது வழங்குநர்.
+OpenRouter · free models only	OpenRouter · இலவச மாதிரிகள் மட்டும்
+Optional	விருப்பம்
+Optional. Blank means no key.	விருப்பம். வெற்று என்றால் விசை இல்லை.
+Options	விருப்பங்கள்
+Out of the box a little higher, just behind her.	இயல்பாக சற்று உயரமாக, அவளுக்குப் பின்னால்.
+Out of the box lower, just behind her.	இயல்பாக சற்று தாழ்வாக, அவளுக்குப் பின்னால்.
+Output	வெளியீடு
+Output:	வெளியீடு:
+Output: none	வெளியீடு: எதுவுமில்லை
+PHONE CONNECTED	ஃபோன் இணைக்கப்பட்டது
+PHONES >	ஃபோன்கள் >
+PHONES CONNECTED	ஃபோன்கள் இணைக்கப்பட்டன
+PREBUILT LOCAL	முன்னமைக்கப்பட்ட உள்ளூர்
+PUBLISH MOD >	மோடை வெளியிடு >
+Pair a phone	ஃபோனை இணை
+Paste	ஒட்டு
+Paste API key	API விசையை ஒட்டு
+Paste a brain API key	மூளை API விசையை ஒட்டு
+Paste reads your clipboard once, when you press it.	ஒட்டு பொத்தானை அழுத்தும்போது உங்கள் கிளிப்போர்டை ஒருமுறை படிக்கும்.
+Paste your key here	உங்கள் விசையை இங்கே ஒட்டவும்
+Pat stroke	தலை தடவல்
+Perch	Perch
+Perch over {0} fps uses more CPU	{0} fps-க்கு மேல் Perch அதிக CPU பயன்படுத்தும்
+Pick Output to get it.	அதைப் பெற வெளியீட்டைத் தேர்ந்தெடுக்கவும்.
+Pick a brain so I can talk back. You can change it any time.	நான் பதில் சொல்ல ஒரு மூளையைத் தேர்ந்தெடுங்கள். எப்போது வேண்டுமானாலும் மாற்றலாம்.
+Pick a clip of a voice you have the rights and consent to use	நீங்கள் பயன்படுத்த உரிமையும் ஒப்புதலும் உள்ள குரலின் கிளிப்பைத் தேர்ந்தெடுக்கவும்
+Pick a free model. I opened the page in your browser.	இலவச மாதிரி ஒன்றைத் தேர்ந்தெடுங்கள். உங்கள் உலாவியில் பக்கத்தைத் திறந்தேன்.
+Pick a new clip of you...	உங்களுடைய புதிய கிளிப்பைத் தேர்ந்தெடுக்கவும்...
+Pick a voice model...	குரல் மாதிரியைத் தேர்ந்தெடுக்கவும்...
+Pick one. Only one brain runs at a time.	ஒன்றைத் தேர்ந்தெடுங்கள். ஒரு நேரத்தில் ஒரு மூளை மட்டுமே இயங்கும்.
+Pick the note her memories go in	அவள் நினைவுகள் செல்லும் குறிப்பைத் தேர்ந்தெடுக்கவும்
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	நீங்கள் பயன்படுத்த உரிமையும் ஒப்புதலும் உள்ள குரலின் {0} முதல் {1} வினாடிகளைத் தேர்ந்தெடுக்கவும்
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	நீங்கள் பேசும் {0} முதல் {1} வினாடிகளைத் தேர்ந்தெடுக்கவும், அல்லது நீங்கள் பயன்படுத்த உரிமையும் ஒப்புதலும் உள்ள குரலைத் தேர்ந்தெடுக்கவும்
+Pitch	சுருதி
+Play	இயக்கு
+Play...	இயக்கு...
+Player only	பிளேயர் மட்டும்
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS மாதிரிகள் இந்தக் கிளிப்பின் குரலை நகலெடுக்கும். கேட்க சோதனை அழுத்தவும்.
+Pop-in times	தோன்றும் நேரங்கள்
+Pop-ins	தோற்றங்கள்
+Power saver	ஆற்றல் சேமிப்பான்
+Power saver: how lightly she runs in games, or always	ஆற்றல் சேமிப்பான்: விளையாட்டுகளில் அவள் எவ்வளவு இலகுவாக இயங்குகிறாள், அல்லது எப்போதும்
+Preset	முன்னமைவு
+Press Create API key	API விசையை உருவாக்கு என்பதை அழுத்தவும்
+Press Create Key	விசையை உருவாக்கு என்பதை அழுத்தவும்
+Press Generate API Key	API விசையை உருவாக்கு என்பதை அழுத்தவும்
+Press Test and say something, so I know I can hear you.	சோதனை அழுத்தி ஏதாவது சொல்லுங்கள், நான் உங்களைக் கேட்கிறேன் என்பதை அறிய.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ஒரு விசையை அழுத்தவும், தனியாக அல்லது Ctrl, Alt, Shift அல்லது Win உடன்.
+Press new keys, then Confirm	புதிய விசைகளை அழுத்தி, பின்னர் உறுதிசெய்
+Provider	வழங்குநர்
+Provider API key, optional	வழங்குநர் API விசை, விருப்பம்
+Provider base URL	வழங்குநர் அடிப்படை URL
+Provider forgotten.	வழங்குநர் மறக்கப்பட்டது.
+Provider overlaps the brain name or note	வழங்குநர் மூளைப் பெயர் அல்லது குறிப்பை மேலெழுதுகிறது
+Publish	வெளியிடு
+Publish mod	மோடை வெளியிடு
+Push to talk is off.	பேச அழுத்தல் முடக்கப்பட்டுள்ளது.
+Push to talk key	பேச அழுத்தல் விசை
+Push to talk:	பேச அழுத்தல்:
+Push to talk: not set	பேச அழுத்தல்: அமைக்கப்படவில்லை
+QR CODE >	QR குறியீடு >
+QR hidden while streaming	ஸ்ட்ரீமிங்கின்போது QR மறைக்கப்பட்டது
+Quick	வேகமான
+Quiet key	அமைதி விசை
+Quiet:	அமைதி:
+Quiet: Ctrl + Alt + P	அமைதி: Ctrl + Alt + P
+Quit Capri	Capri-யிலிருந்து வெளியேறு
+RELAY >	ரிலே >
+REMOTE >	ரிமோட் >
+RUNS CODE.	குறியீட்டை இயக்குகிறது.
+Rarely	அரிதாக
+Rate mod	மோடை மதிப்பிடு
+Reading its README...	அதன் README-ஐ வாசிக்கிறது...
+Refresh	புதுப்பி
+Reinstall	மீண்டும் நிறுவு
+Reload	மீண்டும் ஏற்று
+Reloaded.	மீண்டும் ஏற்றப்பட்டது.
+Remember our chats	எங்கள் உரையாடல்களை நினைவில் வை
+Remember what she sees	அவள் பார்ப்பதை நினைவில் வை
+Remote	ரிமோட்
+Remote off	ரிமோட் முடக்கம்
+Remote on	ரிமோட் இயக்கம்
+Remove	அகற்று
+Remove all phones	எல்லா ஃபோன்களையும் அகற்று
+Replies	பதில்கள்
+Reply length	பதில் நீளம்
+Report a problem	சிக்கலைப் புகார் செய்
+Reset colors	வண்ணங்களை மீட்டமை
+Reset to her default	அவளுடைய இயல்புநிலைக்கு மீட்டமை
+Resolution	தெளிவுத்திறன்
+Restart to update	புதுப்பிக்க மீண்டும் தொடங்கு
+Restless	அமைதியற்ற
+Revoke	திரும்பப் பெறு
+Revoke also removes the phones its links added	திரும்பப் பெறுவது அதன் இணைப்புகள் சேர்த்த ஃபோன்களையும் அகற்றும்
+Ride cursor	கர்சரில் சவாரி செய்
+Ride cursor / Hop off	கர்சரில் சவாரி / இறங்கு
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள். மூளை என்பதன் கீழ் ஒரு மூளை இயங்கும்.
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, உதவி மற்றும் Discord-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள்.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox அல்லது வேறு செயலி: தேர்ந்தெடு
+Robot	ரோபோட்
+Rock, paper, scissors	கல், காகிதம், கத்தரிக்கோல்
+Run this code mod?	இந்தக் குறியீட்டு மோடை இயக்கவா?
+Running on this PC	இந்த PC-யில் இயங்குகிறது
+Running on this PC · :	இந்த PC-யில் இயங்குகிறது · :
+Runs Claude Code or Codex on this PC, signed in.	இந்த PC-யில் Claude Code அல்லது Codex இயங்குகிறது, உள்நுழைந்த நிலையில்.
+Runs on your PC. No key, no credits.	உங்கள் PC-யில் இயங்கும். விசை வேண்டாம், கிரெடிட் வேண்டாம்.
+SCAN WITH YOUR PHONE · EXPIRES	உங்கள் ஃபோனால் ஸ்கேன் செய் · காலாவதியாகும்
+SECURITY >	பாதுகாப்பு >
+SKILL.	திறன்.
+SKIN.	தோல்.
+SORT BY	வரிசைப்படுத்து
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ஒலிகள் பழக்கங்கள் மூளை பார் CAPRI DOOMSCROLL வானிலை கிளிப்புகள் விளையாட்டுகள் விசைகள் அசைவுகள் குரல் நீ
+Same as I speak	என் மொழியைப் போலவே
+Same as her ears (VOICE > Mic)	அவளுடைய காதுகளைப் போலவே (குரல் > மைக்)
+Same code on the phone?	ஃபோனில் அதே குறியீடா?
+Save	சேமி
+Save big moments	பெரிய தருணங்களைச் சேமி
+Save folder	சேமிப்புக் கோப்புறை
+Save your changes, or press Discard + reload.	உங்கள் மாற்றங்களைச் சேமிக்கவும், அல்லது நிராகரி + மீண்டும் ஏற்று என்பதை அழுத்தவும்.
+Save your changes, or press Discard.	உங்கள் மாற்றங்களைச் சேமிக்கவும், அல்லது நிராகரி என்பதை அழுத்தவும்.
+Saved.	சேமிக்கப்பட்டது.
+Saved. Ctrl + Alt + O opens her Mainframe.	சேமிக்கப்பட்டது. Ctrl + Alt + O அவளுடைய Mainframe-ஐத் திறக்கிறது.
+Saving your rating...	உங்கள் மதிப்பீடு சேமிக்கப்படுகிறது...
+Say her name anywhere to chat	அரட்டைக்கு எங்கும் அவளுடைய பெயரைச் சொல்லுங்கள்
+Screens	திரைகள்
+Screens is hidden or outside WATCH	திரைகள் மறைக்கப்பட்டுள்ளன அல்லது பார்க்கும் பகுதிக்கு வெளியே உள்ளன
+Screens overlaps a WATCH row	திரைகள் ஒரு பார்க்கும் வரிசையை மேலெழுதுகிறது
+Screens to watch	பார்க்க வேண்டிய திரைகள்
+Sealed end to end	இறுதி முதல் இறுதி வரை பாதுகாக்கப்பட்டது
+Search by name or author	பெயர் அல்லது ஆசிரியரால் தேடு
+Search installed mods	நிறுவப்பட்ட மோட்களில் தேடு
+Search mods	மோட்களைத் தேடு
+Search name, author or description	பெயர், ஆசிரியர் அல்லது விளக்கத்தில் தேடு
+Security	பாதுகாப்பு
+Security:	பாதுகாப்பு:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	அமை
+Set up her brain	அவள் மூளையை அமை
+Set up your voice model	உங்கள் குரல் மாதிரியை அமை
+Setting up her brain	அவள் மூளை அமைக்கப்படுகிறது
+Settings	அமைப்புகள்
+Settings / Back	அமைப்புகள் / பின்செல்
+Settings folds the wrong rows above BRAIN	அமைப்புகள் மூளைக்கு மேலே தவறான வரிசைகளை மடித்துவிட்டது
+Settings had nothing to watch.	அமைப்புகளில் பார்க்க எதுவும் இல்லை.
+Settings lost keyboard focus during the Tab walk	Tab வழிசெலுத்தலின்போது அமைப்புகள் விசைப்பலகை கவனத்தை இழந்தது
+Setup guide	அமைவு வழிகாட்டி
+Setup stopped	அமைவு நிறுத்தப்பட்டது
+She answers in	அவள் பதிலளிப்பது
+She can read it when it fits.	பொருந்தும்போது அவளால் அதைப் படிக்க முடியும்.
+She glances at your screen and comments. Costs a little on a paid brain.	அவள் உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
+She keeps listening. Say her name, then just talk.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு பேசுங்கள்.
+She reacts to your game until you close it.	நீங்கள் மூடும் வரை உங்கள் விளையாட்டுக்கு அவள் எதிர்வினையாற்றுகிறாள்.
+She reads these controls before each game job.	ஒவ்வொரு விளையாட்டு வேலைக்கு முன்பும் அவள் இந்தக் கட்டுப்பாடுகளைப் படிக்கிறாள்.
+She talks about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றி அவள் பேசுகிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
+She uses it when she plays	அவள் விளையாடும்போது அதைப் பயன்படுத்துகிறாள்
+Short	குறுகிய
+Shortest wait (minutes)	குறுகிய காத்திருப்பு (நிமிடம்)
+Show Capri	Capri-ஐக் காட்டு
+Show QR	QR-ஐக் காட்டு
+Show my mod file	என் மோட் கோப்பைக் காட்டு
+Show on Discord	Discord-இல் காட்டு
+Shum, what time is it	Shum, இப்போது என்ன நேரம்
+Sign in	உள்நுழை
+Sign in, make a key and copy it. Then press Paste and I'll connect.	உள்நுழையவும், ஒரு விசையை உருவாக்கி நகலெடுக்கவும். பின்னர் ஒட்டு அழுத்துங்கள், நான் இணைக்கிறேன்.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	உள்நுழையவும், API விசையை உருவாக்கு அழுத்தி நகலெடுக்கவும். பின்னர் ஒட்டு அழுத்துங்கள், நான் இணைக்கிறேன்.
+Silent · text only	அமைதி · உரை மட்டும்
+Simple / Advanced Settings	எளிய / மேம்பட்ட அமைப்புகள்
+Simple Settings	எளிய அமைப்புகள்
+Simple Settings left a gap under Check in on me	எளிய அமைப்புகள் என்னைப் பார்த்துக்கொள் கீழே இடைவெளி விட்டுவிட்டது
+Sit here	இங்கே அமர்
+Sit on windows	ஜன்னல்களின் மேல் அமர்
+Size	அளவு
+Skip	தவிர்
+Skip all	அனைத்தையும் தவிர்
+Skip for now	இப்போதைக்குத் தவிர்
+Sleep	உறக்கம்
+Small	சிறிய
+Sometimes	சில நேரங்களில்
+Sound effects volume	ஒலி விளைவுகளின் ஒலியளவு
+Sound sensitivity	ஒலி உணர்திறன்
+Sounds	ஒலிகள்
+Speaker or clip	ஸ்பீக்கர் அல்லது கிளிப்
+Speech model	குரல் இயந்திரம்
+Speed	வேகம்
+Start with Windows	Windows உடன் தொடங்கு
+Start with this!	இதனுடன் தொடங்கு!
+Starting...	தொடங்குகிறது...
+Stay	இரு
+Stay on my model	என் மாதிரியில் இரு
+Still checking your mics...	உங்கள் மைக்குகளை இன்னும் சரிபார்க்கிறது...
+Still checking your speakers...	உங்கள் ஸ்பீக்கர்களை இன்னும் சரிபார்க்கிறது...
+Still checking your virtual mics...	உங்கள் மெய்நிகர் மைக்குகளை இன்னும் சரிபார்க்கிறது...
+Stop	நிறுத்து
+Stopped using it. Couldn't remove the saved provider.	பயன்படுத்துவதை நிறுத்தினேன். சேமித்த வழங்குநரை அகற்ற முடியவில்லை.
+Support	ஆதரவு
+Sure?	உறுதியா?
+Sure? moved to a different phone	உறுதியா? வேறொரு ஃபோனுக்கு நகர்த்தப்பட்டது
+TALK TO ME	என்னுடன் பேசு
+TEXT ONLY	உரை மட்டும்
+Tab landed past the first option of	Tab முதல் விருப்பத்தைத் தாண்டிச் சென்றது:
+Tab never reached the quiet key	Tab ஒருபோதும் அமைதி விசையை அடையவில்லை
+Tab reached nothing	Tab எதையும் அடையவில்லை
+Tab selected a control without moving keyboard focus	Tab விசைப்பலகை கவனத்தை நகர்த்தாமல் ஒரு கட்டுப்பாட்டைத் தேர்ந்தெடுத்தது
+Talk	பேசு
+Talk key	பேச்சு விசை
+Talk:	பேசு:
+Talk: Ctrl + Alt + V	பேசு: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	இலக்கு பிடிப்பு பிரேம் வீதம்; சுமை அல்லது நினைவக வரம்பில் குறையலாம்
+Teases when another AI comes to the front.	வேறு AI முன்னணிக்கு வரும்போது கிண்டல் செய்கிறாள்.
+Test	சோதனை
+That address doesn't work. Try https://... or http://localhost:{0}.	அந்த முகவரி வேலை செய்யவில்லை. https://... அல்லது http://localhost:{0} முயற்சிக்கவும்.
+That code expired	அந்தக் குறியீடு காலாவதியாகிவிட்டது
+That mod is no longer installed. The list is updated.	அந்த மோட் இனி நிறுவப்படவில்லை. பட்டியல் புதுப்பிக்கப்பட்டது.
+That's a paid key: it goes under MAX INTELLIGENCE.	அது கட்டண விசை: அது MAX INTELLIGENCE-இன் கீழ் செல்லும்.
+The Mainframe stayed composited while sliding.	சறுக்கும்போது Mainframe கலக்கப்பட்ட நிலையிலேயே இருந்தது.
+The Mainframe stayed uncomposited after the slide.	சறுக்கிய பிறகு Mainframe கலக்கப்படாத நிலையில் இருந்தது.
+The controls moved while the picture was sliding.	படம் சறுக்கும்போது கட்டுப்பாடுகள் நகர்ந்தன.
+The cover stayed visible after the slide ended.	சறுக்கல் முடிந்த பிறகும் மூடி தெரிந்தது.
+The frame thread kept running after the page settled.	பக்கம் அமைந்த பிறகும் பிரேம் இழை இயங்கிக்கொண்டிருந்தது.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	அவள் கொடுக்கக்கூடிய மிக நீண்ட பதில், டோக்கன்களில். தானியங்கி மேலே உள்ள பதில்களைப் பின்பற்றும்; {0}K அல்லது {1}K அவள் தொடர அனுமதிக்கும். வேலைகளுக்குத் தேவைப்படும்போது அதிக இடம் வைத்திருக்கும்
+The longest wait must be at least the shortest wait.	நீண்ட காத்திருப்பு குறுகிய காத்திருப்புக்குக் குறையாமல் இருக்க வேண்டும்.
+The picture doesn't match the scrolled page:	படம் உருட்டப்பட்ட பக்கத்துடன் பொருந்தவில்லை:
+The picture of Settings doesn't match the page:	அமைப்புகளின் படம் பக்கத்துடன் பொருந்தவில்லை:
+The picture stayed up after the slide ended.	சறுக்கல் முடிந்த பிறகும் படம் காட்டப்பட்டுக்கொண்டிருந்தது.
+The picture wasn't showing while it slid.	சறுக்கும்போது படம் காட்டப்படவில்லை.
+The provider sheet is crowded:	வழங்குநர் பக்கம் நெரிசலாக உள்ளது:
+The voice panel has no screen DPI.	குரல் பலகைக்கு திரை DPI இல்லை.
+The voice panel's menus share one font.	குரல் பலகையின் மெனுக்கள் ஒரே எழுத்துருவைப் பகிர்கின்றன.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	உங்கள் கிளிப்போர்டில் இன்னும் விசை இல்லை. பக்கத்திலிருந்து நகலெடுத்து, பின்னர் ஒட்டு அழுத்தவும்.
+These start off. Each costs a little or uses your mic.	இவை முடக்கத்தில் தொடங்கும். ஒவ்வொன்றும் சிறிது செலவாகும் அல்லது உங்கள் மைக்கைப் பயன்படுத்தும்.
+These start off. Turn on what you want. They're all in Settings too.	இவை முடக்கத்தில் தொடங்கும். நீங்கள் விரும்பியதை இயக்கவும். அவை அனைத்தும் அமைப்புகளிலும் உள்ளன.
+They can also call you Big Z, Capricorn or Nova	அவர்கள் என்னை Big Z, Capricorn அல்லது Nova என்றும் அழைக்கலாம்
+They can also call you Nova, Big Z or Capricorn	அவர்கள் என்னை Nova, Big Z அல்லது Capricorn என்றும் அழைக்கலாம்
+Thinking	சிந்திக்கிறது
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	இது என் இலவசக் குரல். சோதனை அழுத்தி ஏதாவது சொல்லுங்கள், நான் உங்களைக் கேட்கிறேன் என்பதைக் காட்டுவேன்.
+This mod has no description yet.	இந்த மோடுக்கு இன்னும் விளக்கம் இல்லை.
+Tic-tac-toe	டிக்-டாக்-டோ
+Time between glances	பார்வைகளுக்கு இடையிலான நேரம்
+Tiny	மிகச் சிறிய
+Try again	மீண்டும் முயற்சி செய்
+Turn Remote on first	முதலில் ரிமோட்டை இயக்கு
+Turn off mini player	மினி பிளேயரை முடக்கு
+Turn push to talk off	பேச அழுத்தலை முடக்கு
+Turning the wheel the other way kept the page heading the old way, to	சக்கரத்தை மறுபக்கம் திருப்பியது பக்கத்தை பழைய திசையிலேயே வைத்திருந்தது, வரை:
+Type	தட்டச்சு
+Type key	தட்டச்சு விசை
+Type to me	எனக்குத் தட்டச்சு செய்
+Type:	தட்டச்சு:
+Type: Ctrl + Alt + T	தட்டச்சு: Ctrl + Alt + T
+Typing sound	தட்டச்சு ஒலி
+Unpacked. Press Test to hear it.	பிரித்தெடுக்கப்பட்டது. கேட்க சோதனை அழுத்தவும்.
+Unsaved changes.	சேமிக்கப்படாத மாற்றங்கள்.
+Up to {0} fps	அதிகபட்சம் {0} fps
+Up to {0}p	அதிகபட்சம் {0}p
+Update	புதுப்பி
+Update available.	புதுப்பிப்பு கிடைக்கிறது.
+Update mods	மோட்களைப் புதுப்பி
+Updating...	புதுப்பிக்கப்படுகிறது...
+Use	பயன்படுத்து
+Use her cursor	அவளுடைய கர்சரைப் பயன்படுத்து
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	வேறிடத்தில் உள்ள வழங்குநருக்கு https:// பயன்படுத்தவும். சாதாரண http-இல் விசை பாதுகாப்பானது அல்ல.
+Use preset	முன்னமைவைப் பயன்படுத்து
+Use saved	சேமித்ததைப் பயன்படுத்து
+Use this server	இந்த சேவையகத்தைப் பயன்படுத்து
+Using your provider with a key	விசையுடன் உங்கள் வழங்குநரைப் பயன்படுத்து
+Using your server with no key	விசை இல்லாமல் உங்கள் சொந்த சேவையகத்தைப் பயன்படுத்து
+VIEW MOD >	மோடைக் காண் >
+VOICE >	குரல் >
+VOICE IN YOUR MIC >	உங்கள் மைக்கில் குரல் >
+VOICE LAYERS >	குரல் அடுக்குகள் >
+Verbosity	விவரநிலை
+Video bitrate	வீடியோ பிட்ரேட்
+View	காண்
+View mod	மோடைக் காண்
+Voice	குரல்
+Voice ID	குரல் ID
+Voice from	குரல் மூலம்
+Voice layers	குரல் அடுக்குகள்
+Voice model	குரல் மாதிரி
+Voice model:	குரல் மாதிரி:
+Voice name or ID, optional	குரல் பெயர் அல்லது ID, விருப்பம்
+Voice server address, or a voice model's folder	குரல் சேவையக முகவரி, அல்லது குரல் மாதிரியின் கோப்புறை
+Voice status	குரல் நிலை
+Voice, key and model...	குரல், விசை மற்றும் மாதிரி...
+Volume	ஒலியளவு
+WAKE ME UP >	என்னை எழுப்பு >
+WATCH >	பார் >
+Waiting for the relay	ரிலேக்காகக் காத்திருக்கிறது
+Wake her up	அவளை எழுப்பு
+Waking her up	அவளை எழுப்புகிறது
+Wander	அலை
+Wander around	சுற்றி நட
+Watch my screen	என் திரையைப் பார்
+Watch-along memory	ஒன்றாகப் பார்க்கும் நினைவு
+Weather	வானிலை
+Weather city	வானிலை நகரம்
+Welcome back, choom. Let's finish setting me up.	மீண்டும் வரவேற்கிறோம், choom. அமைவை முடிப்போம்.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	அவள் கேட்காமலேயே உங்கள் PC-யில் செய்வது. ஒரு மாற்று முடக்கத்தில் இருந்தால் அவள் முதலில் கேட்பாள், நீங்கள் ஆம் என்றால் செய்வாள்.
+What should she call you?	அவள் உங்களை எப்படி அழைக்க வேண்டும்?
+When she types	அவள் தட்டச்சு செய்யும்போது
+White	வெள்ளை
+Windows default	Windows இயல்புநிலை
+Windows did not give Settings keyboard focus	Windows அமைப்புகளுக்கு விசைப்பலகை கவனத்தைக் கொடுக்கவில்லை
+Windows did not return keyboard focus to Back	Windows விசைப்பலகை கவனத்தை பின்செல்லுக்குத் திருப்பித் தரவில்லை
+With no picture the wheel still tried to slide.	படம் இல்லாதபோதும் சக்கரம் சறுக்க முயன்றது.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE-இல் சிறப்பாக வேலை செய்யும்.
+YOU	நீ
+YOU >	நீ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	நீ குரல் அசைவுகள் விசைகள் விளையாட்டுகள் கிளிப்புகள் வானிலை DOOMSCROLL CAPRI பார் மூளை பழக்கங்கள் ஒலிகள்
+YOUR KEY	உங்கள் விசை
+YOUR MIC	உங்கள் மைக்
+YOUR PLAN	உங்கள் திட்டம்
+Yokapri what's up	Yokapri என்ன நடக்கிறது
+You can hide this. It keeps going, and the Mainframe shows it too.	இதை மறைக்கலாம். அது தொடர்ந்து இயங்கும், Mainframe-உம் காட்டும்.
+Your mic and her voice go into one virtual mic, and	உங்கள் மைக்கும் அவளுடைய குரலும் ஒரே மெய்நிகர் மைக்கிற்குள் செல்லும், மேலும்
+Your mic is muted. Unmute it to test.	உங்கள் மைக் ஒலியடக்கப்பட்டுள்ளது. சோதிக்க ஒலியடக்கத்தை நீக்கவும்.
+Your mods are up to date.	உங்கள் மோட்கள் புதுப்பிக்கப்பட்டுள்ளன.
+Your name or a nickname	உங்கள் பெயர் அல்லது புனைபெயர்
+Your own model	உங்கள் சொந்த மாதிரி
+Your personality	உங்கள் ஆளுமை
+Your voice	உங்கள் குரல்
+Your voice (HD)	உங்கள் குரல் (HD)
+Your voice (HD) · pick a clip of you...	உங்கள் குரல் (HD) · உங்கள் கிளிப்பைத் தேர்ந்தெடுக்கவும்...
+Your voice model	உங்கள் குரல் மாதிரி
+as its mic.	அதன் மைக்காக.
+changed. Saved as My Colors, so you can share it.	மாற்றப்பட்டது. என் வண்ணங்கள் என்று சேமிக்கப்பட்டது, பகிரலாம்.
+choice	தேர்வு
+clips the input line	உள்ளீட்டு வரியை வெட்டுகிறது
+cue	குறிப்பு
+doesn't yet.	இன்னும் இல்லை.
+download	பதிவிறக்கு
+file.	கோப்பு.
+flag	கொடி
+fps	fps
+hear	கேள்
+hears	கேட்கிறது
+hears that.	அதைக் கேட்கிறது.
+hides or shows her.	அவளை மறைக்கும் அல்லது காட்டும்.
+hint	குறிப்பு
+in the Mainframe.	Mainframe-இல்.
+in the mods directory with a pull request.	மோட்கள் கோப்புறையில் ஒரு pull request உடன்.
+in the picture wasn't noticed.	படத்தில் கவனிக்கப்படவில்லை.
+is already her push-to-talk key.	ஏற்கனவே அவளுடைய பேச அழுத்தல் விசை.
+is off.	முடக்கத்தில் உள்ளது.
+is on and running.	இயக்கத்தில் உள்ளது மற்றும் இயங்குகிறது.
+is on, at the bottom, under	இயக்கத்தில் உள்ளது, கீழே, இதன் கீழ்
+is on.	இயக்கத்தில் உள்ளது.
+is on. She now answers to	இயக்கத்தில் உள்ளது. இப்போது அவள் இதற்குப் பதிலளிப்பாள்:
+is removed.	அகற்றப்பட்டது.
+is taken	எடுக்கப்பட்டது
+is taken by another app. Try another.	வேறொரு செயலி எடுத்துக்கொண்டது. வேறொன்றை முயற்சிக்கவும்.
+is updated	புதுப்பிக்கப்பட்டது
+isn't hearing it yet: do {0} and {1}, then join a call.	இன்னும் கேட்கவில்லை: {0} மற்றும் {1} செய்யுங்கள், பின்னர் அழைப்பில் சேருங்கள்.
+it now.	இப்போதே.
+keeps her quiet, and lets her talk again.	அவளை அமைதியாக வைத்து, மீண்டும் பேச அனுமதிக்கும்.
+key	விசை
+key.	விசை.
+min	நிமி
+more.	மேலும்.
+ms.	ms.
+mutes mic	மைக்கை ஒலியடக்கும்
+mutes your mic.	உங்கள் மைக்கை ஒலியடக்கும்.
+name	பெயர்
+off	முடக்கம்
+on this PC	இந்த PC-யில்
+opens her Mainframe.	அவளுடைய Mainframe-ஐத் திறக்கும்.
+opens her typing box.	அவளுடைய தட்டச்சுப் பெட்டியைத் திறக்கும்.
+phone	ஃபோன்
+phone pixels	ஃபோன் பிக்சல்கள்
+phones	ஃபோன்கள்
+pixels	பிக்சல்கள்
+pixels)	பிக்சல்கள்)
+star.	நட்சத்திரம்.
+stars.	நட்சத்திரங்கள்.
+starts voice chat.	குரல் அரட்டையைத் தொடங்கும்.
+stays off. Nothing ran.	முடக்கத்திலேயே இருக்கும். எதுவும் இயங்கவில்லை.
+still does its own job in other apps too. Confirm to keep it.	மற்ற செயலிகளிலும் அதன் சொந்த வேலையைச் செய்கிறது. வைத்திருக்க உறுதிசெய்.
+tall	உயரமான
+time	நேரம்
+to talk	பேச
+to talk to her, with a game in front too.	முன்னால் ஒரு விளையாட்டும் இருக்கும்போதும் அவளிடம் பேச.
+too.	கூட.
+turns Gaming Mode on and off.	விளையாட்டு முறையை இயக்கும் மற்றும் நிறுத்தும்.
+with Ollama	Ollama உடன்
+won't type in other apps while she runs. Confirm to keep it.	அவள் இயங்கும்போது மற்ற செயலிகளில் தட்டச்சு செய்யாது. வைத்திருக்க உறுதிசெய்.
+{0}   Echo Cancellation: Off	{0}   எதிரொலி ரத்து: முடக்கம்
+{0}   If her voice cuts off, turn off noise filtering	{0}   அவளுடைய குரல் துண்டிக்கப்பட்டால், இரைச்சல் வடிகட்டலை முடக்கவும்
+{0}   Input Device:	{0}   உள்ளீட்டுச் சாதனம்:
+{0}   Join the call and check they hear both of you	{0}   அழைப்பில் சேர்ந்து, இருவரையும் அவர்கள் கேட்கிறார்களா எனச் சரிபார்க்கவும்
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   மைக் சோதனை > பார்ப்போம்: நீங்கள் உங்களையும், அவள் பேசும்போது அவளையும் கேட்பீர்கள்
+{0}   Microphone:	{0}   மைக்ரோஃபோன்:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   இரைச்சல் அடக்கம்: இல்லை. இரண்டும் முதல் வரிக்குப் பிறகு அவளுடைய குரலைத் துண்டிக்கலாம்.
+{0}   Open the call or meeting's audio settings	{0}   அழைப்பு அல்லது சந்திப்பின் ஆடியோ அமைப்புகளைத் திற
+{0}   Output Device: your headphones, like before	{0}   வெளியீட்டுச் சாதனம்: முன்பு போல உங்கள் ஹெட்ஃபோன்கள்
+{0}   Speaker: your headphones, like before	{0}   ஸ்பீக்கர்: முன்பு போல உங்கள் ஹெட்ஃபோன்கள்
+{0}   Try a mic test in your call app	{0}   உங்கள் அழைப்புச் செயலியில் மைக் சோதனையை முயற்சிக்கவும்
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   பயனர் அமைப்புகள் (உங்கள் பெயருக்கு அடுத்துள்ள கியர்) > குரல் மற்றும் வீடியோ
+{0} Mbps	{0} Mbps
+{0} lines	{0} வரிகள்
+{0} min	{0} நிமி
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· இந்த PC-யில்
+· server	· சேவையகம்
+Edit as text	உரையாகத் திருத்து
+What Capri remembers about you. It stays on this computer.	Capri உன்னைப் பற்றி நினைவில் வைத்திருப்பது. இது இந்தக் கணினியில் இருக்கும்.
+Tell her something to remember	நினைவில் வைக்க ஒன்றைச் சொல்
+Search her memory	அவளது நினைவில் தேடு
+That day isn't there any more.	அந்த நாள் இனி இல்லை.
+Undo	செயல்நீக்கு
+Remember our chats is off, so she isn't keeping new chat memories.	நமது உரையாடல்களை நினைவில் வைப்பது அணைந்துள்ளது, எனவே புதிய உரையாடல் நினைவுகளைச் சேமிக்காது.
+ABOUT YOU	உன்னைப் பற்றி
+FROM YOUR CHATS	உனது உரையாடல்களில் இருந்து
+GAMES	விளையாட்டுகள்
+CHAT LOGS	உரையாடல் பதிவுகள்
+CHAT LOG	உரையாடல் பதிவு
+Nothing matches.	எதுவும் பொருந்தவில்லை.
+Nothing yet.	இன்னும் ஒன்றுமில்லை.
+Reading her notes.	அவளது குறிப்புகளைப் படிக்கிறது.
+Click again to forget game notes	விளையாட்டுக் குறிப்புகளை மறக்க மீண்டும் கிளிக் செய்
+Forget game notes	விளையாட்டுக் குறிப்புகளை மற
+Click again to forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மறக்க மீண்டும் கிளிக் செய்
+Forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மற
+Click again to forget	மறக்க மீண்டும் கிளிக் செய்
+Forget this day	இந்த நாளை மற
+Only the start of this day is shown.	இந்த நாளின் தொடக்கம் மட்டுமே காட்டப்படுகிறது.
+Nothing in this day.	இந்த நாளில் ஒன்றுமில்லை.
+No chats kept yet.	இன்னும் உரையாடல்கள் சேமிக்கப்படவில்லை.
+You	நீ
+{0} line	{0} வரி
+SET UP EMAIL >	மின்னஞ்சலை அமை >
+SET UP EMAIL	மின்னஞ்சலை அமை
+Or type your address	அல்லது உனது முகவரியைத் தட்டச்சு செய்
+Email address	மின்னஞ்சல் முகவரி
+Open the page	பக்கத்தைத் திற
+App password	செயலி கடவுச்சொல்
+IMAP server	IMAP சேவையகம்
+Incoming mail server	உள்வரும் மின்னஞ்சல் சேவையகம்
+SMTP server	SMTP சேவையகம்
+Outgoing mail server	வெளிச்செல்லும் மின்னஞ்சல் சேவையகம்
+An app password is a separate password just for Capri. Your normal password stays yours.	செயலி கடவுச்சொல் Capri-க்கு மட்டும் தனிக் கடவுச்சொல். உனது சாதாரண கடவுச்சொல் உன்னுடையதே.
+She keeps it only until she closes.	அது மூடும் வரை மட்டுமே அவள் அதை வைத்திருக்கிறாள்.
+She checks, searches and reads your mail. She asks before she sends any.	அவள் உனது மின்னஞ்சலைச் சரிபார்த்து, தேடி, படிக்கிறாள். எதையும் அனுப்பும் முன் கேட்கிறாள்.
+Watch for new mail	புதிய மின்னஞ்சலைக் கவனி
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	மின்னஞ்சல் வரும்போது அவள் சொல்வாள், ஃபிஷிங் போலத் தோன்றினால் எச்சரிக்கை தருவாள். எதுவும் படித்ததாகக் குறிக்கப்படாது.
+Deal with phishing on her own	ஃபிஷிங்கை நீயே கையாளு
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	அவள் கவனிக்கும்போது மட்டும். ஃபிஷிங் என்று உறுதியான மின்னஞ்சல் ஸ்பேமுக்குச் செல்லும். மீதம் உனது சம்மதத்திற்காகக் காத்திருக்கும்.
+Forget account	கணக்கை மற
+Use another email	வேறு மின்னஞ்சலைப் பயன்படுத்து
+Which email?	எந்த மின்னஞ்சல்?
+Make an app password	செயலி கடவுச்சொல்லை உருவாக்கு
+Paste it	அதை ஒட்டு
+Connecting...	இணைக்கிறது...
+She can use your email now.	இப்போது அவள் உனது மின்னஞ்சலைப் பயன்படுத்தலாம்.
+She's not watching your inbox.	அவள் உனது இன்பாக்ஸைக் கவனிக்கவில்லை.
+She's watching your inbox and deals with phishing she's sure of.	அவள் உனது இன்பாக்ஸைக் கவனித்து உறுதியான ஃபிஷிங்கைக் கையாள்கிறாள்.
+She's watching your inbox and tells you when mail lands.	அவள் உனது இன்பாக்ஸைக் கவனித்து மின்னஞ்சல் வரும்போது சொல்கிறாள்.
+She forgot that account and its app password.	அவள் அந்தக் கணக்கையும் அதன் செயலி கடவுச்சொல்லையும் மறந்துவிட்டாள்.
+She forgot that account. Its app password is gone from this PC.	அவள் அந்தக் கணக்கை மறந்துவிட்டாள். அதன் செயலி கடவுச்சொல் இந்தக் கணினியிலிருந்து போய்விட்டது.

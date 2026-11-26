@@ -855,9 +855,11 @@ namespace CapriDesktop
         internal const int TearFrames = 4;
         // Segments in each of the wave's five bars when it's full: the wave's shape, and the top of the mic level.
         internal static readonly int[] Bars = { 2, 4, 5, 3, 2 };
-        internal static readonly Color Fill = Color.FromArgb(246, 9, 11, 15);
-        internal static readonly Color Unlit = Color.FromArgb(46, 52, 64);
-        internal static readonly Color Caption = Color.FromArgb(168, 174, 184);
+        internal static Color Fill { get { return Color.FromArgb(246, BubbleLook.Panel); } }
+        internal static Color Unlit { get { return Neon.Tone(46, 52, 64); } }
+        internal static Color Caption { get { return Neon.Mono ? BubbleLook.Dim : Color.FromArgb(168, 174, 184); } }
+        // Its icons when not lit. Black, White and Grey have no hue to tell lit from not, so theirs sit dimmer than the lit grey.
+        internal static Color Idle { get { return Neon.Mono ? BubbleLook.Dim : BubbleLook.Ink; } }
         private const int WashAlpha = 40;
         private static readonly Random random = new Random();
         private readonly Beat ticks = new Beat();
@@ -918,11 +920,14 @@ namespace CapriDesktop
 
         internal void SetLevel(double value)
         {
-            int step = chatting && !muted ? Math.Min(6, (int)(Math.Sqrt(value) * 24)) : 0;
+            int step = chatting && !muted && !listenForName ? Math.Min(6, (int)(Math.Sqrt(value) * 24)) : 0;
             if (step == level) return;
             level = step;
             if (Visible) Redraw();
         }
+
+        // Her Mainframe colours changed, so it redraws in the new ones.
+        internal void Restyle() { if (Visible) Redraw(); }
 
         private void Redraw()
         {
@@ -987,7 +992,11 @@ namespace CapriDesktop
 
         internal static int EdgeWidth(float s) { return Math.Max(1, (int)Math.Round(1.5 * s)); }
 
-        internal static string Label(int part, bool chatting, bool muted, bool listenForName = false) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : chatting && listenForName ? "CAPRI" : "TALK"; }
+        // Her ears open only for her name leave TALK as it is out of voice chat, so it never looks on. Muting them still shows.
+        internal static string Label(int part, bool chatting, bool muted, bool listenForName = false) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : "TALK"; }
+
+        // Voice chat on, or a muted mic: the wave and TALK light up. Ears open only for her name aren't voice chat.
+        internal static bool TalkLit(bool chatting, bool muted, bool listenForName) { return chatting && (!listenForName || muted); }
 
         // How many of a bar's segments the mic level lights, for a level from 0 to 6.
         internal static int Lit(int bar, int level)
@@ -1053,28 +1062,29 @@ namespace CapriDesktop
                 Rectangle body = Body(s);
                 int mid = size.Width / 2;
                 Rectangle lit = hover == 1 ? Rectangle.FromLTRB(body.Left, body.Top, mid, body.Bottom) : hover == 2 ? Rectangle.FromLTRB(mid, body.Top, body.Right, body.Bottom) : Rectangle.Empty;
-                Plate(graphics, body, s, lit, Look.Pink, Look.Cyan);
+                Plate(graphics, body, s, lit, BubbleLook.Pink, BubbleLook.Cyan);
                 // A slanted seam where the two halves' hit areas meet.
-                using (Pen seam = new Pen(Color.FromArgb(66, 72, 86), Math.Max(1, (int)Math.Round(s))))
+                using (Pen seam = new Pen(Neon.Tone(66, 72, 86), Math.Max(1, (int)Math.Round(s))))
                     graphics.DrawLine(seam, mid + 1.5f * s, body.Top + 10 * s, mid - 1.5f * s, body.Bottom - 10 * s);
                 // Her glitch, like her mini player: slivers of the edge torn loose, cyan at the top right and pink at the bottom left.
                 int sliver = Math.Max(1, (int)Math.Round(s));
-                using (Brush cyan = new SolidBrush(Color.FromArgb(220, Look.Cyan))) graphics.FillRectangle(cyan, body.Right - (int)Math.Round(32 * s), body.Top - (int)Math.Round(2 * s), (int)Math.Round(15 * s), sliver);
-                using (Brush pink = new SolidBrush(Color.FromArgb(220, Look.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
-                Color wash = Mix(Fill, Look.Cyan, WashAlpha);
+                using (Brush cyan = new SolidBrush(Color.FromArgb(220, BubbleLook.Cyan))) graphics.FillRectangle(cyan, body.Right - (int)Math.Round(32 * s), body.Top - (int)Math.Round(2 * s), (int)Math.Round(15 * s), sliver);
+                using (Brush pink = new SolidBrush(Color.FromArgb(220, BubbleLook.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
+                Color wash = Mix(Fill, BubbleLook.Cyan, WashAlpha);
                 string talk = Label(2, chatting, muted, listenForName);
+                bool on = TalkLit(chatting, muted, listenForName);
                 Rectangle[] pencil = Layout(s, 1, Ink(font, "TYPE"));
                 Rectangle[] wave = Layout(s, 2, Ink(font, talk));
-                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);
-                DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? Look.Cyan : Caption);
-                DrawMeter(graphics, wave[0], s, chatting, muted, level, hover == 2 || chatting ? Look.Cyan : Look.Ink);
-                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? Look.Red : hover == 2 || chatting ? Look.Cyan : Caption);
+                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? BubbleLook.Cyan : Idle, hover == 1 ? wash : Fill);
+                DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? BubbleLook.Cyan : Caption);
+                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? BubbleLook.Cyan : Idle);
+                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? BubbleLook.Red : hover == 2 || on ? BubbleLook.Cyan : Caption);
                 if (chatting)
                 {
                     Rectangle mic = MicBody(s);
-                    Color edge = muted ? Look.Red : Look.Cyan;
+                    Color edge = muted ? BubbleLook.Red : BubbleLook.Cyan;
                     Plate(graphics, mic, s, hover == 3 ? mic : Rectangle.Empty, edge, edge);
-                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? Look.Cyan : muted ? Look.Dim : Look.Ink, muted, hover == 3 ? wash : Fill);
+                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : Idle, muted, hover == 3 ? wash : Fill);
                 }
             }
             if (tear > 0) Tear(image, s, Math.Min(1, (float)tear / TearFrames), seed + tear);
@@ -1101,7 +1111,7 @@ namespace CapriDesktop
                 int line = Math.Max(1, (int)Math.Round(s));
                 using (Pen scan = new Pen(Color.FromArgb(9, 255, 255, 255), line))
                     for (int row = box.Top; row < box.Bottom; row += Math.Max(3, (int)Math.Round(3 * s))) graphics.DrawLine(scan, box.Left, row + line / 2f, box.Right, row + line / 2f);
-                if (!lit.IsEmpty) using (Brush wash = new SolidBrush(Color.FromArgb(WashAlpha, Look.Cyan))) graphics.FillRectangle(wash, lit);
+                if (!lit.IsEmpty) using (Brush wash = new SolidBrush(Color.FromArgb(WashAlpha, BubbleLook.Cyan))) graphics.FillRectangle(wash, lit);
                 graphics.ResetClip();
             }
             float inset = edge / 2f;
@@ -1131,7 +1141,7 @@ namespace CapriDesktop
             float[] heights = { 5, 10, 14, 9, 4 };
             float stretch = !chatting ? 1 : 0.45f + (muted ? 0 : level) * 0.14f;
             PointF centre = new PointF(meter.X + meter.Width / 2f, meter.Y + meter.Height / 2f);
-            using (Pen bar = new Pen(chatting && muted ? Look.Dim : colour, 2.3f * s))
+            using (Pen bar = new Pen(chatting && muted ? BubbleLook.Dim : colour, 2.3f * s))
             {
                 bar.StartCap = LineCap.Round;
                 bar.EndCap = LineCap.Round;
@@ -1161,7 +1171,7 @@ namespace CapriDesktop
             }
             if (!muted) return;
             using (Pen gap = new Pen(back, 4.2f * s))
-            using (Pen slash = new Pen(Look.Red, 2 * s))
+            using (Pen slash = new Pen(BubbleLook.Red, 2 * s))
             {
                 slash.StartCap = LineCap.Round;
                 slash.EndCap = LineCap.Round;
@@ -1214,7 +1224,7 @@ namespace CapriDesktop
                     graphics.SetClip(Body(s));
                     if (chatting) graphics.SetClip(MicBody(s), CombineMode.Union);
                     graphics.IntersectClip(strip);
-                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? Look.Pink : Look.Cyan))) graphics.FillRectangle(tint, strip);
+                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? BubbleLook.Pink : BubbleLook.Cyan))) graphics.FillRectangle(tint, strip);
                     graphics.ResetClip();
                 }
             }
@@ -2977,7 +2987,7 @@ namespace CapriDesktop
         internal const int Columns = 36;
         private const int MostRows = 7;
         internal const int EndingRows = 5, SnagRows = 5;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
         private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly List<JobStep> steps = new List<JobStep>();
@@ -2998,6 +3008,9 @@ namespace CapriDesktop
 
         // It moved: it grew a row, or they dragged it.
         internal event Action Moved;
+        internal event Action EditRequested;
+        internal event Action MicRequested;
+        internal Func<string> JobMic;
 
         // Space it leaves above itself on screen, so she fits sitting on it.
         internal int Room;
@@ -3027,7 +3040,13 @@ namespace CapriDesktop
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left) Grab(PointToScreen(e.Location));
+            if (e.Button != MouseButtons.Left) return;
+            if (owner != null && outcome == null)
+            {
+                if (EditRequested != null && Footer(ClientSize, scale, 0, 134).Contains(e.Location)) { EditRequested(); return; }
+                if (MicRequested != null && JobMic != null && JobMic() != "" && Footer(ClientSize, scale, 144, 86).Contains(e.Location)) { MicRequested(); return; }
+            }
+            Grab(PointToScreen(e.Location));
         }
 
         protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); Haul(PointToScreen(e.Location)); }
@@ -3125,6 +3144,14 @@ namespace CapriDesktop
             Step();
         }
 
+        internal void JobWords(object job, string text)
+        {
+            if (job != owner || outcome != null) return;
+            words = text;
+            drawn = null;
+            Step();
+        }
+
         internal void Add(object job, JobStep step)
         {
             if (job != owner || step == null) return;
@@ -3161,10 +3188,11 @@ namespace CapriDesktop
             if (gone >= 1) { Stop(); return; }
             bool caret = outcome == null && (int)(Now * 2.5) % 2 == 0;
             double fade = 1 - Math.Max(0, gone);
-            string shown = outcome + "|" + busy + "|" + steps.Count + "|" + (steps.Count > 0 ? steps[steps.Count - 1].Label + steps[steps.Count - 1].Finished : "") + "|" + caret + "|" + fade.ToString("0.00") + "|" + area + "|" + Room;
+            string mic = JobMic == null ? "" : JobMic();
+            string shown = outcome + "|" + busy + "|" + steps.Count + "|" + (steps.Count > 0 ? steps[steps.Count - 1].Label + steps[steps.Count - 1].Finished : "") + "|" + caret + "|" + fade.ToString("0.00") + "|" + area + "|" + Room + "|" + mic + "|" + Neon.PaletteStamp;
             if (shown == drawn && Visible) return;
             drawn = shown;
-            Bitmap image = Frame(words, steps, busy, outcome, ending, caret, fade, scale);
+            Bitmap image = Frame(words, steps, busy, outcome, ending, caret, fade, scale, EditRequested != null, mic);
             Point was = Location;
             Present(image, Spot(image.Size));
             if (Location != was && Moved != null) Moved();
@@ -3194,7 +3222,12 @@ namespace CapriDesktop
             return lines;
         }
 
-        internal static Bitmap Frame(string task, IList<JobStep> steps, string busy, string outcome, string ending, bool caret, double fade, float s)
+        private static RectangleF Footer(Size size, float scale, int left, int width)
+        {
+            return new RectangleF((27 + left) * scale, size.Height - 39 * scale, width * scale, 19 * scale);
+        }
+
+        internal static Bitmap Frame(string task, IList<JobStep> steps, string busy, string outcome, string ending, bool caret, double fade, float s, bool editor = false, string mic = "")
         {
             string told = outcome == null ? "working on your task." : ending.Length > 0 ? ending : outcome == "done" ? "done." : "stopped.";
             string status = Speaker + told;
@@ -3212,12 +3245,12 @@ namespace CapriDesktop
                 int hidden = steps.Count > MostRows ? steps.Count - (MostRows - 1) : 0;
                 List<string> rows = new List<string>();
                 List<Color> inks = new List<Color>();
-                if (hidden > 0) { rows.Add("  +" + hidden + " earlier steps"); inks.Add(Look.Dim); }
+                if (hidden > 0) { rows.Add("  +" + hidden + " earlier steps"); inks.Add(BubbleLook.Dim); }
                 int snag = -1;
                 for (int i = 0; i < steps.Count; i++) if (steps[i].Finished && steps[i].Failed) snag = i;
                 for (int i = hidden > 0 ? steps.Count - (MostRows - 1) : 0; i < steps.Count; i++)
                 {
-                    Color ink = steps[i].Failed ? Look.Red : steps[i].Finished ? Look.Dim : Look.Neon;
+                    Color ink = steps[i].Failed ? BubbleLook.Red : steps[i].Finished ? BubbleLook.Dim : BubbleLook.Blue;
                     // The newest snag wraps onto up to five rows, like her ending, so its fix shows, like how to run her as administrator.
                     if (i == snag)
                     {
@@ -3229,7 +3262,7 @@ namespace CapriDesktop
                     inks.Add(ink);
                 }
                 bool thinking = outcome == null && busy != null;
-                if (thinking) { rows.Add("> " + busy); inks.Add(Look.Neon); }
+                if (thinking) { rows.Add("> " + busy); inks.Add(BubbleLook.Blue); }
                 for (int i = 0; i < rows.Count; i++) if (Look.Cells(rows[i]) > Columns) rows[i] = Look.Cut(rows[i], Columns - 3) + "...";
                 bool running = outcome == null;
                 float panelWidth = 30 * s + Columns * cw;
@@ -3244,18 +3277,18 @@ namespace CapriDesktop
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                    using (Pen glow = new Pen(Color.FromArgb(46 * a / 255, Look.Cyan), 7 * s)) graphics.DrawPath(glow, path);
-                    using (Brush fill = new SolidBrush(Color.FromArgb(238 * a / 255, Look.Panel))) graphics.FillPath(fill, path);
+                    using (Pen glow = new Pen(Color.FromArgb(46 * a / 255, BubbleLook.Cyan), 7 * s)) graphics.DrawPath(glow, path);
+                    using (Brush fill = new SolidBrush(Color.FromArgb(238 * a / 255, BubbleLook.Panel))) graphics.FillPath(fill, path);
                     graphics.SetClip(path);
                     using (Pen scan = new Pen(Color.FromArgb(9 * a / 255, 255, 255, 255), Math.Max(1, s)))
                         for (float row = panel.Top; row < panel.Bottom; row += 3 * s) graphics.DrawLine(scan, panel.Left, row, panel.Right, row);
                     graphics.ResetClip();
-                    using (Pen edge = new Pen(Color.FromArgb(a, Look.Cyan), 2 * s)) graphics.DrawPath(edge, path);
+                    using (Pen edge = new Pen(Color.FromArgb(a, BubbleLook.Cyan), 2 * s)) graphics.DrawPath(edge, path);
                     float x = panel.Left + 15 * s, y = panel.Top + 12 * s;
-                    using (Brush dim = new SolidBrush(Color.FromArgb(a, Look.Dim)))
+                    using (Brush dim = new SolidBrush(Color.FromArgb(a, BubbleLook.Dim)))
                         foreach (string row in you) { Look.Draw(graphics, row, heard, dim, x, y); y += line; }
-                    using (Brush red = new SolidBrush(Color.FromArgb(a, Look.Red)))
-                    using (Brush ink = new SolidBrush(Color.FromArgb(a, Look.Neon)))
+                    using (Brush red = new SolidBrush(Color.FromArgb(a, BubbleLook.Red)))
+                    using (Brush ink = new SolidBrush(Color.FromArgb(a, BubbleLook.Blue)))
                         for (int i = 0; i < said.Count; i++)
                         {
                             int name = i == 0 ? Math.Min(said[i].Length, Speaker.Length - 1) : 0;
@@ -3268,13 +3301,26 @@ namespace CapriDesktop
                     {
                         using (Brush ink = new SolidBrush(Color.FromArgb(a, inks[i]))) Look.Draw(graphics, rows[i], text, ink, x, y);
                         if (thinking && caret && i == rows.Count - 1)
-                            using (Brush block = new SolidBrush(Color.FromArgb(a, Look.Neon))) graphics.FillRectangle(block, x + Look.Cells(rows[i]) * cw + 2 * s, y + s, cw * 0.85f, line - 5 * s);
+                            using (Brush block = new SolidBrush(Color.FromArgb(a, BubbleLook.Blue))) graphics.FillRectangle(block, x + Look.Cells(rows[i]) * cw + 2 * s, y + s, cw * 0.85f, line - 5 * s);
                         y += line;
                     }
                     if (running)
                         using (Font small = Look.Mono(12 * s, FontStyle.Regular, GraphicsUnit.Pixel))
-                        using (Brush dim = new SolidBrush(Color.FromArgb(a, Look.Dim)))
+                        using (Brush dim = new SolidBrush(Color.FromArgb(a, BubbleLook.Dim)))
+                        using (Brush action = new SolidBrush(Color.FromArgb(a, BubbleLook.Cyan)))
+                        {
+                            if (editor)
+                            {
+                                PointF editAt = Footer(image.Size, s, 0, 134).Location;
+                                graphics.DrawString("EDIT INSTRUCTIONS", small, action, editAt.X, y + 2 * s, StringFormat.GenericTypographic);
+                            }
+                            if (mic.Length > 0)
+                            {
+                                PointF micAt = Footer(image.Size, s, 144, 86).Location;
+                                graphics.DrawString(mic, small, action, micAt.X, y + 2 * s, StringFormat.GenericTypographic);
+                            }
                             graphics.DrawString("ESC STOPS ME", small, dim, panel.Right - 15 * s - graphics.MeasureString("ESC STOPS ME", small, PointF.Empty, StringFormat.GenericTypographic).Width, y + 2 * s, StringFormat.GenericTypographic);
+                        }
                 }
                 return image;
             }
@@ -3285,6 +3331,20 @@ namespace CapriDesktop
             if (disposing) ticks.Dispose();
             base.Dispose(disposing);
         }
+    }
+
+    // Her bubble's, task panel's, TYPE | TALK pill's and mini player's colours, from her Mainframe colours: on Night City they're Look's own, on Black, White and
+    // Grey they're greys that read on that look's sheet.
+    internal static class BubbleLook
+    {
+        internal static Color Panel { get { return Neon.Sheet; } }
+        internal static Color Ink { get { return Neon.SheetInk; } }
+        internal static Color Dim { get { return Neon.SheetDim; } }
+        internal static Color Yellow { get { return Neon.Amber; } }
+        internal static Color Cyan { get { return Neon.SpeechCyan; } }
+        internal static Color Red { get { return Neon.SpeechRed; } }
+        internal static Color Blue { get { return Neon.SpeechBlue; } }
+        internal static Color Pink { get { return Neon.SpeechPink; } }
     }
 
     internal sealed class SpeechBox : Overlay
@@ -3307,6 +3367,7 @@ namespace CapriDesktop
         private string lastReply;
         private int lastRevealed;
         private float lastScale;
+        private int lastPalette;
         private Point lastHead;
         private Point lastFeet;
         private Rectangle lastArea;
@@ -3320,9 +3381,20 @@ namespace CapriDesktop
         internal RectangleF YesButton { get { return yesButton; } }
         internal RectangleF NoButton { get { return noButton; } }
 
+        internal string AskTitle;
+        internal string[] AskLines = new string[0];
+        private int ChoiceRows { get { return !Choosing ? 0 : AskTitle == null ? 2 : 3 + Math.Min(3, AskLines.Length); } }
+
         internal void Choose(Action<bool> answer)
         {
+            Choose(answer, null, null);
+        }
+
+        internal void Choose(Action<bool> answer, string title, string[] lines)
+        {
             picked = answer;
+            AskTitle = answer == null ? null : title;
+            AskLines = answer == null || lines == null ? new string[0] : lines;
             yesButton = noButton = RectangleF.Empty;
             clean = false;
         }
@@ -3340,7 +3412,7 @@ namespace CapriDesktop
         }
         internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
 
         internal SpeechBox() : base("Capri says") { Cursor = Look.Pointer; }
 
@@ -3402,7 +3474,7 @@ namespace CapriDesktop
             if (Leaving >= 0) glitch = (float)Math.Min(1, (now - Leaving) / 0.25 + 0.3);
             bool cursor = State == TalkState.Thinking || State == TalkState.Talking ? (State == TalkState.Talking || (int)(now * 2.5) % 2 == 0) : (int)(now * 2) % 2 == 0;
             int revealed = State == TalkState.Thinking || Reply == null ? 0 : Math.Min(Reply.Length, Math.Max(0, Revealed));
-            if (glitch == 0 && clean && Visible && Image != null && cursor == lastCursor && State == lastState && Heard == lastHeard && Prompt == lastPrompt && Reply == lastReply && revealed == lastRevealed && s == lastScale && head == lastHead && feet == lastFeet && area == lastArea) return;
+            if (glitch == 0 && clean && Visible && Image != null && cursor == lastCursor && State == lastState && Heard == lastHeard && Prompt == lastPrompt && Reply == lastReply && revealed == lastRevealed && s == lastScale && Neon.PaletteStamp == lastPalette && head == lastHead && feet == lastFeet && area == lastArea) return;
             Point at;
             Bitmap image = Render(s, head, feet, area, cursor, out at);
             if (glitch > 0)
@@ -3428,6 +3500,7 @@ namespace CapriDesktop
             lastReply = Reply;
             lastRevealed = revealed;
             lastScale = s;
+            lastPalette = Neon.PaletteStamp;
             lastHead = head;
             lastFeet = feet;
             lastArea = area;
@@ -3453,10 +3526,11 @@ namespace CapriDesktop
                 int above = string.IsNullOrEmpty(Prompt) && !copied ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
                 totalLines = lines.Count;
-                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - (Choosing ? 2 : 0));
+                int choices = ChoiceRows;
+                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - choices);
                 visibleLines = Math.Min(totalLines, totalLines > room ? Math.Max(1, room - 1) : room);
                 firstLine = Math.Max(0, Math.Min(firstLine, totalLines - visibleLines));
-                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + (Choosing ? 2 : 0)) + 10 * s;
+                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + choices) + 10 * s;
                 int width = (int)Math.Ceiling(panelWidth + margin * 2);
                 int height = (int)Math.Ceiling(top + panelHeight + tail + 4 * s);
                 bool below = head.Y - height < area.Top;
@@ -3466,9 +3540,18 @@ namespace CapriDesktop
                 at = new Point(left, y);
                 RectangleF panel = new RectangleF(margin, below ? tail + 4 * s : top, panelWidth, panelHeight);
                 panelOnScreen = new Rectangle(left + (int)panel.X, y + (int)panel.Y, (int)panel.Width, (int)panel.Height);
-                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - (Choosing ? line * 2 : 0), panel.Width - 38 * s, line) : RectangleF.Empty;
-                yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
-                noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
+                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - line * choices, panel.Width - 38 * s, line) : RectangleF.Empty;
+                RectangleF card = Choosing && AskTitle != null ? new RectangleF(panel.Left + 22 * s, panel.Bottom - 8 * s - line * choices + 2 * s, panel.Width - 34 * s, line * choices - 2 * s) : RectangleF.Empty;
+                if (card.IsEmpty)
+                {
+                    yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
+                    noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
+                }
+                else
+                {
+                    yesButton = new RectangleF(card.Left + 10 * s, card.Bottom - 6 * s - line * 1.2f, cw * 5 + 20 * s, line * 1.2f);
+                    noButton = new RectangleF(yesButton.Right + 8 * s, yesButton.Top, cw * 2 + 20 * s, yesButton.Height);
+                }
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
                 float tipY = below ? 0 : height - 1;
                 Bitmap image = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
@@ -3478,27 +3561,27 @@ namespace CapriDesktop
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                    using (Pen glow = new Pen(Color.FromArgb(46, Look.Cyan), 7 * s)) graphics.DrawPath(glow, path);
-                    using (Brush fill = new SolidBrush(Color.FromArgb(238, Look.Panel))) graphics.FillPath(fill, path);
+                    using (Pen glow = new Pen(Color.FromArgb(46, BubbleLook.Cyan), 7 * s)) graphics.DrawPath(glow, path);
+                    using (Brush fill = new SolidBrush(Color.FromArgb(238, BubbleLook.Panel))) graphics.FillPath(fill, path);
                     graphics.SetClip(path);
                     using (Pen scan = new Pen(Color.FromArgb(9, 255, 255, 255), Math.Max(1, s)))
                         for (float row = panel.Top; row < panel.Bottom; row += 3 * s) graphics.DrawLine(scan, panel.Left, row, panel.Right, row);
                     graphics.ResetClip();
-                    using (Pen edge = new Pen(Look.Cyan, 2 * s)) graphics.DrawPath(edge, path);
-                    using (Brush red = new SolidBrush(Look.Red)) graphics.FillRectangle(red, panel.Left + 10 * s, panel.Top + 13 * s, 3 * s, panel.Height - 26 * s);
+                    using (Pen edge = new Pen(BubbleLook.Cyan, 2 * s)) graphics.DrawPath(edge, path);
+                    using (Brush red = new SolidBrush(BubbleLook.Red)) graphics.FillRectangle(red, panel.Left + 10 * s, panel.Top + 13 * s, 3 * s, panel.Height - 26 * s - (card.IsEmpty ? 0 : card.Height + 6 * s));
                     float x = panel.Left + 24 * s;
                     float row2 = panel.Top + 12 * s;
                     if (above > 0)
                     {
                         string you = copied ? "> sys: copied" : Prompt + (Heard ?? "");
                         if (Look.Cells(you) > columns) you = Look.Cut(you, columns - 3) + "...";
-                        using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, you, heard, dim, x, row2);
+                        using (Brush dim = new SolidBrush(BubbleLook.Dim)) Look.Draw(graphics, you, heard, dim, x, row2);
                         row2 += line;
                     }
                     int[] takes = Look.Takes(lines, Speaker + (Reply ?? ""), Speaker.Length + (State == TalkState.Thinking ? (Reply ?? "").Length : Math.Max(0, Revealed)));
                     PointF caret = new PointF(x, row2);
-                    using (Brush red = new SolidBrush(Look.Red))
-                    using (Brush ink = new SolidBrush(Look.Neon))
+                    using (Brush red = new SolidBrush(BubbleLook.Red))
+                    using (Brush ink = new SolidBrush(BubbleLook.Blue))
                     {
                         float right = x + columns * cw;
                         for (int i = firstLine; i < firstLine + visibleLines && takes[i] > 0; i++)
@@ -3526,12 +3609,13 @@ namespace CapriDesktop
                     if (Scrollable)
                     {
                         string paging = "< PREV   " + (firstLine + 1) + "-" + (firstLine + visibleLines) + "/" + totalLines + "   NEXT >";
-                        using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
+                        using (Brush dim = new SolidBrush(BubbleLook.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
                     }
-                    if (Choosing)
+                    if (Choosing && !card.IsEmpty) DrawAsk(graphics, card, s, cw, line, text, bold);
+                    else if (Choosing)
                     {
-                        using (Pen edge = new Pen(Look.Cyan, Math.Max(1, s)))
-                        using (Brush ink = new SolidBrush(Look.Neon))
+                        using (Pen edge = new Pen(BubbleLook.Cyan, Math.Max(1, s)))
+                        using (Brush ink = new SolidBrush(BubbleLook.Blue))
                         {
                             graphics.DrawRectangle(edge, yesButton.X, yesButton.Y, yesButton.Width, yesButton.Height);
                             graphics.DrawRectangle(edge, noButton.X, noButton.Y, noButton.Width, noButton.Height);
@@ -3541,6 +3625,50 @@ namespace CapriDesktop
                     }
                 }
                 return image;
+            }
+        }
+
+        private void DrawAsk(Graphics graphics, RectangleF card, float s, float cw, float line, Font text, Font bold)
+        {
+            int columns = Math.Max(4, (int)Math.Floor((card.Width - 20 * s) / cw));
+            using (GraphicsPath plate = Neon.Cut(card, 0, 0, 8 * s, 0))
+            using (Brush fill = new SolidBrush(Color.FromArgb(250, Neon.Tone(16, 15, 20))))
+            using (Pen edge = new Pen(BubbleLook.Yellow, Math.Max(1, 1.5f * s)))
+            {
+                graphics.FillPath(fill, plate);
+                graphics.DrawPath(edge, plate);
+            }
+            float x = card.Left + 10 * s, y = card.Top + 3 * s;
+            string title = AskTitle.ToUpperInvariant(), side = "ASKS FIRST";
+            int room = columns - side.Length - 2;
+            if (Look.Cells(title) > room) title = Look.Cut(title, Math.Max(1, room - 3)) + "...";
+            using (Brush amber = new SolidBrush(BubbleLook.Yellow)) Look.Draw(graphics, title, bold, amber, x, y);
+            using (Brush dim = new SolidBrush(BubbleLook.Dim))
+            {
+                if (room > 4) Look.Draw(graphics, side, text, dim, card.Right - 10 * s - side.Length * cw, y);
+                int shown = Math.Min(3, AskLines.Length);
+                for (int i = 0; i < shown; i++)
+                {
+                    string one = i == 2 && AskLines.Length > 3 ? (AskLines.Length - 2) + " more" : AskLines[i] ?? "";
+                    if (Look.Cells(one) > columns) one = Look.Cut(one, columns - 3) + "...";
+                    using (Brush ink = new SolidBrush(BubbleLook.Ink)) Look.Draw(graphics, one, text, ink, x, y + line * (i + 1));
+                }
+                string hint = "or say yes";
+                float after = noButton.Right + 10 * s;
+                if (after + hint.Length * cw <= card.Right - 10 * s) Look.Draw(graphics, hint, text, dim, card.Right - 10 * s - hint.Length * cw, yesButton.Top + (yesButton.Height - line) / 2 + 2 * s);
+            }
+            using (GraphicsPath yes = Neon.Cut(yesButton, 5 * s, 0, 5 * s, 0))
+            using (GraphicsPath no = Neon.Cut(noButton, 5 * s, 0, 5 * s, 0))
+            using (Brush cyan = new SolidBrush(BubbleLook.Cyan))
+            using (Brush dark = new SolidBrush(BubbleLook.Panel))
+            using (Brush red = new SolidBrush(BubbleLook.Red))
+            using (Pen redEdge = new Pen(BubbleLook.Red, Math.Max(1, 1.5f * s)))
+            {
+                graphics.FillPath(cyan, yes);
+                graphics.DrawPath(redEdge, no);
+                float top = yesButton.Top + (yesButton.Height - line) / 2 + 2 * s;
+                Look.Draw(graphics, "ALLOW", bold, dark, yesButton.Left + 10 * s, top);
+                Look.Draw(graphics, "NO", bold, red, noButton.Left + 10 * s, top);
             }
         }
 
@@ -3563,14 +3691,14 @@ namespace CapriDesktop
                     int band = (int)((2 + random.Next(6)) * s);
                     int row = random.Next(Math.Max(1, clean.Height - band));
                     int shift = (int)((random.NextDouble() * 2 - 1) * 14 * s * amount);
-                    bool cyan = i == 0;
+                    bool cyan = i == 0, plain = Neon.Mono;
                     using (ImageAttributes tint = new ImageAttributes())
                     {
                         tint.SetColorMatrix(new ColorMatrix(new[]
                         {
-                            new float[] { cyan ? 0 : 1, 0, 0, 0, 0 },
-                            new float[] { 0, cyan ? 1 : 0, 0, 0, 0 },
-                            new float[] { 0, 0, cyan ? 1 : 0, 0, 0 },
+                            new float[] { cyan && !plain ? 0 : 1, 0, 0, 0, 0 },
+                            new float[] { 0, cyan || plain ? 1 : 0, 0, 0, 0 },
+                            new float[] { 0, 0, cyan || plain ? 1 : 0, 0, 0 },
                             new float[] { 0, 0, 0, 0.6f * amount, 0 },
                             new float[] { 0, 0, 0, 0, 1 }
                         }));
@@ -3592,14 +3720,16 @@ namespace CapriDesktop
         private readonly Label prompt;
         private readonly Button callMode;
         private readonly Label callNote;
+        private readonly bool jobEdit;
         private bool calling;
         private float scale = 1;
         private Font typed;
         private Font label;
 
-        internal TypeBox()
+        internal TypeBox(bool editJob = false)
         {
-            Text = "Talk to Capri";
+            jobEdit = editJob;
+            Text = jobEdit ? "Edit Capri's current instructions" : "Talk to Capri";
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
@@ -3608,7 +3738,7 @@ namespace CapriDesktop
             BackColor = Neon.Well;
             DoubleBuffered = true;
             prompt = new Label();
-            prompt.Text = "YOU";
+            prompt.Text = jobEdit ? "EDIT JOB" : "YOU";
             prompt.ForeColor = Neon.Rose;
             prompt.BackColor = Neon.Well;
             prompt.AutoSize = true;
@@ -3620,7 +3750,7 @@ namespace CapriDesktop
             // No limit, so her brain reads a long request whole.
             input.MaxLength = 0;
             input.AccessibleName = Text;
-            input.HandleCreated += delegate { Native.SendMessage(input.Handle, 0x1501, new IntPtr(1), "Say something to Capri"); };
+            input.HandleCreated += delegate { Native.SendMessage(input.Handle, 0x1501, new IntPtr(1), jobEdit ? "Edit and press Enter" : "Say something to Capri"); };
             input.KeyDown += delegate(object sender, KeyEventArgs key)
             {
                 if (key.KeyCode == Keys.Enter) { key.SuppressKeyPress = true; Submit(); }
@@ -3631,8 +3761,9 @@ namespace CapriDesktop
             callMode = new Button { FlatStyle = FlatStyle.Flat, BackColor = Neon.Well, ForeColor = Neon.Cyan, Text = "Call mode (beta): off", AccessibleName = "Call mode beta; say Capri to ask. Friend asks need your confirmation when enabled", TabIndex = 1 };
             callMode.FlatAppearance.BorderColor = Neon.Edge;
             callMode.Click += delegate { if (CallModeChanged != null) CallModeChanged(); };
-            callNote = new Label { Text = CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = false };
+            callNote = new Label { Text = jobEdit ? "Enter applies. Click away to cancel." : CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = jobEdit };
             Controls.Add(callMode);
+            callMode.Visible = !jobEdit;
             Controls.Add(callNote);
             Deactivate += delegate { Hide(); };
         }
@@ -3664,7 +3795,7 @@ namespace CapriDesktop
             input.Location = new Point(prompt.Right + (int)(10 * s), ((int)(44 * s) - input.PreferredHeight) / 2 + (int)s);
             input.Width = Width - input.Left - (int)(16 * s);
             callMode.SetBounds((int)(24 * s), (int)(44 * s), Width - (int)(48 * s), (int)(26 * s));
-            callNote.SetBounds((int)(24 * s), (int)(76 * s), Width - (int)(48 * s), (int)(38 * s));
+            callNote.SetBounds((int)(24 * s), (int)((jobEdit ? 48 : 76) * s), Width - (int)(48 * s), (int)((jobEdit ? 20 : 38) * s));
             callMode.Font = label;
             callNote.Font = label;
             Neon.Clip(this, 10 * s, 4 * s);
@@ -3695,7 +3826,8 @@ namespace CapriDesktop
             Show();
             Activate();
             input.Focus();
-            input.SelectionStart = input.Text.Length;
+            if (jobEdit) input.SelectAll();
+            else input.SelectionStart = input.Text.Length;
         }
 
         internal void Follow(Rectangle above, Rectangle area)
@@ -3762,15 +3894,20 @@ namespace CapriDesktop
         internal static bool StandsIn(Clip shown, Clip stand)
         {
             if (shown == null || shown == stand || stand.Old || shown.Title == null || !StandIns.ContainsKey(shown.Title)) return false;
+            return !SkinShips(shown.Title);
+        }
+
+        internal static bool SkinShips(string title)
+        {
             string skin = SkinFolder;
-            if (skin == null) return true;
+            if (skin == null || title == null) return false;
             bool ships;
             lock (skinShips)
             {
                 if (!ReferenceEquals(skin, standInSkin)) { standInSkin = skin; skinShips.Clear(); }
-                if (!skinShips.TryGetValue(shown.Title, out ships)) skinShips[shown.Title] = ships = File.Exists(Path.Combine(skin, shown.Title + ".png"));
+                if (!skinShips.TryGetValue(title, out ships)) skinShips[title] = ships = File.Exists(Path.Combine(skin, title + ".png"));
             }
-            return !ships;
+            return ships;
         }
 
         // Her glitch on her artist's standing set: drawn through her own RenderFrame, every step is her new frame whole on top

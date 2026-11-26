@@ -1,7 +1,7 @@
-"""Opt-in local Capri-name listening with the retained pinned Moonshine decoder.
+"""Local Moonshine listener for Capri's name.
 
-Only name-gated accepted finals leave this network-isolated worker. This is an
-ASR name detector, not the unrelated dormant Hey Jarvis keyword model.
+Only accepted transcripts are sent to the app. On Linux the whole listener runs
+in bwrap without network; on macOS the decoder runs under Seatbelt without network.
 """
 from __future__ import annotations
 
@@ -14,6 +14,9 @@ from pathlib import Path
 import sys
 import time
 import uuid
+
+if sys.platform == 'darwin':
+    sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
 
 from listen import message, parent_guard, verified_microphone
 from name_chat import NameChat
@@ -161,9 +164,14 @@ class NameListener:
             await self.verify_microphone(self.source, self.fingerprint)
             if self.shutdown.is_set() or admitted != self.authority or self.policy.blocked:
                 continue
-            process = await asyncio.create_subprocess_exec('pw-record', '--target', self.source,
-                '--rate', '16000', '--channels', '1', '--format', 's16', '--raw', '-',
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard)
+            if sys.platform == 'darwin':
+                helper = str(Path(__file__).resolve().parents[2] / 'capri-mic')
+                command = (helper,)
+            else:
+                command = ('pw-record', '--target', self.source,
+                    '--rate', '16000', '--channels', '1', '--format', 's16', '--raw', '-')
+            process = await asyncio.create_subprocess_exec(*command,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard if sys.platform == 'linux' else None)
             async with self.capture_lock:
                 if self.shutdown.is_set() or admitted != self.authority or self.policy.blocked:
                     await self.stop_process(process)
@@ -236,10 +244,15 @@ class NameListener:
             # Start the command reader before warming the decoder. A mute/Stop or
             # playback that happens during warmup must not open the microphone.
             tasks.append(asyncio.create_task(self.commands()))
-            self.worker = await asyncio.create_subprocess_exec(sys.executable, '-u',
-                str(Path(__file__).with_name('asr_worker.py')), '--manifest', self.manifest,
+            worker = Path(__file__).with_name('asr_worker.py')
+            if sys.platform == 'darwin':
+                from mac_sandbox import decoder_command
+                command, environment = decoder_command(worker, self.manifest)
+            else:
+                command, environment = (sys.executable, '-u', str(worker), '--manifest', self.manifest), None
+            self.worker = await asyncio.create_subprocess_exec(*command, env=environment,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard)
+                stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard if sys.platform == 'linux' else None)
             ready = await message(self.worker.stdout)
             if not isinstance(ready, dict) or ready.get('event') != 'ready':
                 raise ValueError('The pinned local name decoder did not warm')
@@ -273,7 +286,11 @@ class NameListener:
 
 async def main():
     parent = os.getppid()
-    parent_guard()
+    if sys.platform == 'darwin':
+        from parent_watch import bind_parent
+        bind_parent()
+    else:
+        parent_guard()
     if os.getppid() != parent:
         return 1
     reader = await stdin_reader()

@@ -11,6 +11,7 @@ namespace CapriDesktop
     internal sealed partial class Companion
     {
         private const int WatchWidth = 240, WatchHeight = 135;
+        internal const int WatchRestMs = 200;
         private Thread gameWatch;
 
         private void WatchGames()
@@ -26,15 +27,33 @@ namespace CapriDesktop
             return noticed == "hurt" || noticed == "bar_drop" ? "hit" : noticed == "cut" ? "scene" : noticed;
         }
 
+        internal enum WatchFrame { None, Grab, Clips }
+
+        internal static WatchFrame WatchCapture(GameCapture frames, bool on, bool clipping, IntPtr window, out Rectangle area, Func<IntPtr, Rectangle> look = null, Func<bool> full = null)
+        {
+            area = on && window != IntPtr.Zero ? (look ?? GameFinder.Frame)(window) : Rectangle.Empty;
+            bool ready = frames.Update(on && !clipping, window, area, on && window != IntPtr.Zero && (full ?? Native.Exclusive)());
+            if (!on || window == IntPtr.Zero || frames.Foreground != window) return WatchFrame.None;
+            return ready ? WatchFrame.Grab : WatchFrame.Clips;
+        }
+
         private void GameWatching()
         {
             GameSense sense = new GameSense();
             GameEars ears = null;
-            FrameGrab grab = null;
-            Rectangle watched = Rectangle.Empty, covers = Rectangle.Empty;
+            GameCapture frames = new GameCapture("watch");
+            Rectangle covers = Rectangle.Empty;
             int listening = 0, heard = 0;
             IntPtr watchedWindow = IntPtr.Zero;
             byte[] before = null, after = null;
+            Bitmap beforeShot = null, afterShot = null;
+            Action forget = delegate
+            {
+                if (beforeShot != null) beforeShot.Dispose();
+                if (afterShot != null) afterShot.Dispose();
+                beforeShot = afterShot = null;
+                before = after = null;
+            };
             Bitmap current = null;
             Stopwatch watch = Stopwatch.StartNew();
             double kept = 0, checkedFront = -1, bannerAt = -10;
@@ -44,6 +63,8 @@ namespace CapriDesktop
             // the frames keep coming (F67).
             Action<string> noticed = delegate(string kind)
             {
+                if (before == null && beforeShot != null) before = Jpeg(beforeShot, 1280);
+                if (after == null && afterShot != null) after = Jpeg(afterShot, 1280);
                 byte[] was = before, now = after;
                 Bitmap middle = null;
                 if (current != null && Reactions.Running && watch.Elapsed.TotalSeconds - bannerAt >= 1.5 && Ocr.Ready)
@@ -81,6 +102,8 @@ namespace CapriDesktop
                 {
                     try
                     {
+                        bool watching = GamePace != Commentary.Off || job != null;
+                        IFrameGrab previous = frames.Grab;
                         if (watch.Elapsed.TotalSeconds - checkedFront >= 1)
                         {
                             checkedFront = watch.Elapsed.TotalSeconds;
@@ -92,34 +115,22 @@ namespace CapriDesktop
                             live = owner > 0;
                             if (live)
                             {
-                                if (watchedWindow != front.Window) { before = after = null; sense.Reset(); }
+                                if (watchedWindow != front.Window) { forget(); sense.Reset(); }
                                 watchedWindow = front.Window;
                                 covers = front.Bounds;
                                 ReactionGame = front.Bounds;
                                 if (owner != listening)
                                 {
-                                    before = after = null;
+                                    forget();
                                     sense.Reset();
                                     if (ears != null) ears.Dispose();
                                     ears = new GameEars(owner);
+                                    ears.Sensitivity = delegate { return GameSoundSensitivity; };
                                     int soundOwner = owner;
                                     // A burst of sound is taken up with the next frame, on this thread, so it can look for a banner too.
                                     ears.Loud += delegate(double level) { if (listening == soundOwner && watchedWindow != IntPtr.Zero && Native.GetForegroundWindow() == watchedWindow) Interlocked.Exchange(ref heard, 1); };
                                     ears.Start();
                                     listening = owner;
-                                }
-                                if (clips.Enabled)
-                                {
-                                    if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
-                                }
-                                else if (grab == null || front.Bounds != watched)
-                                {
-                                    before = after = null;
-                                    if (grab != null) grab.Dispose();
-                                    grab = new FrameGrab();
-                                    grab.Open(front.Bounds);
-                                    watched = front.Bounds;
-                                    sense.Reset();
                                 }
                             }
                             else
@@ -127,22 +138,29 @@ namespace CapriDesktop
                                 watchedWindow = IntPtr.Zero;
                                 covers = Rectangle.Empty;
                                 ReactionGame = Rectangle.Empty;
-                                before = after = null;
+                                forget();
                                 Interlocked.Exchange(ref heard, 0);
                                 if (ears != null) { ears.Dispose(); ears = null; listening = 0; }
-                                if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
                                 sense.Reset();
                             }
                         }
+                        Rectangle area;
+                        WatchFrame source = WatchCapture(frames, watching, clips.Enabled, watchedWindow, out area);
+                        IFrameGrab grab = frames.Grab;
+                        if (previous != grab) { forget(); sense.Reset(); }
                         if (!live)
                         {
                             Thread.Sleep(1000);
                             continue;
                         }
+                        if (source != WatchFrame.None) covers = area;
                         bool keepFrame = watch.Elapsed.TotalSeconds - kept >= 1;
-                        Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(keepFrame ? 1280 : 480) : null;
+                        Bitmap seen = source == WatchFrame.None ? null : source == WatchFrame.Clips ? clips.Glimpse() : grab.Next(120) ? grab.Copy(keepFrame ? 1280 : 480) : null;
                         if (seen != null)
-                            using (Bitmap frame = seen)
+                        {
+                            Bitmap frame = seen;
+                            bool keeping = false;
+                            try
                             {
                                 // Her own feed never reaches her eyes, her senses or a banner read.
                                 ReactionFeed shown = feed;
@@ -154,40 +172,47 @@ namespace CapriDesktop
                                     if (keepFrame)
                                     {
                                         kept = watch.Elapsed.TotalSeconds;
+                                        if (beforeShot != null) beforeShot.Dispose();
+                                        beforeShot = afterShot;
                                         before = after;
-                                        after = Jpeg(frame, 1280);
+                                        afterShot = frame;
+                                        after = null;
+                                        keeping = true;
                                     }
                                     if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
                                     if (Interlocked.Exchange(ref heard, 0) != 0) noticed("sound");
                                 }
                                 finally { current = null; }
                             }
+                            finally { if (!keeping) frame.Dispose(); }
+                        }
                         else if (Interlocked.Exchange(ref heard, 0) != 0) noticed("sound");
-                        Thread.Sleep(100);
+                        Thread.Sleep(Saving ? WatchRestMs : 100);
                     }
                     catch (Exception error)
                     {
-                        if (error.Message != failedWith) Brain.Log("game watch", -1, error.GetType().Name + ": " + error.Message);
+                        try { frames.Close("error"); } catch (Exception) { }
+                        if (error.Message != failedWith) Brain.Log("game watch", -1, error.GetType().Name + " 0x" + error.HResult.ToString("X8"));
                         failedWith = error.Message;
                         watchedWindow = IntPtr.Zero;
                         covers = Rectangle.Empty;
                         ReactionGame = Rectangle.Empty;
                         current = null;
-                        before = after = null;
+                        forget();
                         live = false;
                         listening = 0;
-                        watched = Rectangle.Empty;
                         if (ears != null) { try { ears.Dispose(); } catch (Exception) { } ears = null; }
-                        if (grab != null) { try { grab.Dispose(); } catch (Exception) { } grab = null; }
                         sense.Reset();
                         Thread.Sleep(1000);
+                        try { frames.Release(); } catch (Exception) { }
                     }
                 }
             }
             finally
             {
+                frames.Close("switched off");
                 if (ears != null) ears.Dispose();
-                if (grab != null) grab.Dispose();
+                forget();
             }
         }
     }

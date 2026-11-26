@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Қайта боялған басқару элементі суретте қайта салынбады.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA немесе OpenRouter-ден тегін кілт. Жүктеудің қажеті жоқ. Интернет керек.
+A held trackpad scroll got a flick's long ease:	Тінтуір тақтасындағы ұсталған жылжу серпіннің ұзақ баяулауын алды:
+A layout change during a slide put the page at	Слайд кезінде орналасу өзгерісі бетті мына жерге қойды:
+A layout change left the picture up.	Орналасу өзгерісі суретті ілулі қалдырды.
+A model in Ollama, on your local server or on your key.	Ollama-дағы модель, жергілікті серверіңізде немесе өз кілтіңізбен.
+A paid key goes under MAX INTELLIGENCE by itself.	Ақылы кілт өздігінен MAX INTELLIGENCE астына өтеді.
+A plan you already pay for, a key of your own, or Ollama.	Сіз үшін төлейтін жоспар, өз кілтіңіз немесе Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Дауыс панелінің мәзірі панель қаріпінің өз көшірмесін ұстамайды.
+A wheel turn right after a slide ended froze the picture.	Слайд аяқталғаннан кейінгі дөңгелек бұрылысы суретті қатырып тастады.
+ALLOW THIS PHONE?	БҰЛ ТЕЛЕФОНҒА РУҚСАТ ПЕ?
+ALMOST THERE >	АЗ ҚАЛДЫ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	БАСҚА CAPRI ӨЗ ҚОЛЫНА АЛДЫ · ӨШІРІП, ҚАЙТА ҚОСЫҢЫЗ
+API key	API кілті
+API key, Claude plan or ChatGPT plan	API кілті, Claude жоспары немесе ChatGPT жоспары
+Add	Қосу
+Address	Мекенжай
+Address and key saved. Use saved to reconnect.	Мекенжай мен кілт сақталды. Қайта қосылу үшін сақталғанды пайдаланыңыз.
+Advanced Settings	Кеңейтілген параметрлер
+All	Барлығы
+All screens	Барлық экрандар
+Allow	Рұқсат ету
+Almost there. I'll say hi the second my brain's in.	Жақын қалды. Миым іске қосылған сәтте сәлем беремін.
+Always	Әрқашан
+Always on top	Әрқашан үстінде
+Any Google account works. I opened the page in your browser.	Кез келген Google аккаунты жұмыс істейді. Бетті браузеріңізде аштым.
+Applies to every voice	Барлық дауыстарға қолданылады
+Apps she may close	Жабуы мүмкін қолданбалар
+Ask Capri for more	Capri-ден көбірек сұраңыз
+Asking your server...	Серверіңізге сұрау жіберілуде...
+Asks before closing only the apps you choose.	Тек таңдаған қолданбаларыңызды жабар алдында сұрайды.
+Auto	Авто
+Auto (match what I say)	Авто (айтқаныма қарай)
+Automatic: VB-CABLE, else Steam's	Автоматты: VB-CABLE, болмаса Steam-нікі
+BAD RELAY HOST	ЖАРАМСЫЗ РЕЛЕ ХОСТЫ
+BIG Z open notepad	BIG Z блокнотты аш
+BRAIN	МИ
+BRAIN >	МИ >
+BRAIN ONLINE >	МИ ОНЛАЙН >
+BRAIN PROVIDER >	МИ ПРОВАЙДЕРІ >
+BRAIN VOICE CAPRI	CAPRI МИ ДАУЫСЫ
+Back	Артқа
+Back on your saved API key.	Сақталған API кілтіңізге қайта оралдыңыз.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Осы PC үшін ең жақсысы:
+Black	Қара
+Blank key means no key.	Бос кілт — кілт жоқ дегенді білдіреді.
+Brain API key	Ми API кілті
+Brain model	Ми моделі
+Brain provider	Ми провайдері
+Bring here	Мұнда әкел
+Bring to this screen	Осы экранға әкел
+Browse	Шолу
+Browse mods	Модтарды шолу
+Browse to a voice model	Дауыс моделін шолу
+Browse...	Шолу...
+Bubble	Көпіршік
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree сен осындасың ба
+CAN'T REACH THE RELAY · RETRYING	РЕЛЕГЕ ҚОСЫЛУ МҮМКІН ЕМЕС · ҚАЙТАЛАНУДА
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI МИ ДАУЫСЫ
+CHANGED, approve it again.	ӨЗГЕРТІЛДІ, оны қайта растаңыз.
+CLIPS >	КЛИПТЕР >
+CLOUD VOICE	БҰЛТТЫҚ ДАУЫС
+CODE	КОД
+COLORS >	ТҮСТЕР >
+CONNECTED	ҚОСЫЛДЫ
+CONNECTING	ҚОСЫЛУДА
+CUSTOM LOCAL	ЖЕРГІЛІКТІ ӨЗГЕРТІЛГЕН
+Call mode (beta)	Қоңырау режимі (бета)
+Call mode does not fit.	Қоңырау режимі сыймайды.
+Call mode is outside its space.	Қоңырау режимі өз аумағынан тыс.
+Cancel	Бас тарту
+Cancel keys	Пернелерді болдырмау
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Қашықтан
+Capri code:	Capri коды:
+Capri mods (*	Capri модтары (*
+Capri, hello	Capri, сәлем
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Ренжігенде хаос
+Chat with Capri from your phone	Телефоныңыздан Capri-мен сөйлесіңіз
+ChatGPT plan	ChatGPT жоспары
+Check for updates	Жаңартуларды тексеру
+Check in on me	Менімен тексеріңіз
+Check in on me is hidden	Менімен тексеру жасырылған
+Check in on me still decides whether she visits.	Менімен тексеру әлі де ол келетінін шешеді.
+Check in on me's tip missed	Менімен тексеру кеңесі өткізіп жіберілді
+Chess	Шахмат
+Choose apps	Қолданбаларды таңдау
+Choose folder...	Қапқа таңдау...
+Choose where future Capri clips are saved	Болашақ Capri клиптерінің сақталатын жерін таңдаңыз
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude немесе ChatGPT жоспары, ақылы кілт (OpenAI, Claude, DeepSeek) немесе Ollama.
+Claude plan	Claude жоспары
+Clear	Тазалау
+Cleared.	Тазаланды.
+Click Confirm to keep Down, or press Esc.	Растау түймесін басып Төмен сақтаңыз, немесе Esc басыңыз.
+Click to open it.	Ашу үшін басыңыз.
+Clip my games	Менің ойындарымды клиптеу
+Clips	Клиптер
+Close	Жабу
+Close other AIs for me	Мен үшін басқа AI-ларды жабу
+Cloud voice	Бұлттық дауыс
+Cloud voice service	Бұлттық дауыс қызметі
+Cloud voice setup	Бұлттық дауысты орнату
+Code mods can reach your whole PC. Only trusted ones.	Код модтары бүкіл PC-іңізге қол жеткізе алады. Тек сенімдісін пайдаланыңыз.
+Code/Husk Mode	Код/Husk режимі
+Codex	Codex
+Commands	Пәрмендер
+Comment on my games	Менің ойындарыма пікір беру
+Comments	Пікірлер
+Confirm	Растау
+Confirm keys	Пернелерді растау
+Connect	Қосылу
+Connect / Forget brain key	Қосылу / ми кілтін ұмыту
+Connect / Forget voice key	Қосылу / дауыс кілтін ұмыту
+Connect four	Төртеу қатарынан
+Controls	Басқару элементтері
+Copri, what time is it	Copri, сағат қанша
+Copy error details	Қате мәліметтерін көшіру
+Copy the key	Кілтті көшіру
+Copy the key from the page, then press Paste.	Кілтті беттен көшіріңіз, содан кейін Қою түймесін басыңыз.
+Couldn't open that page:	Бетті ашу мүмкін болмады:
+Couldn't open that:	Мұны ашу мүмкін болмады:
+Couldn't open the mods folder:	Модтар қапқасын ашу мүмкін болмады:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M — оның Mainframe пернесі.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N микрофонды өшіреді
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V — оның сөйлеу пернесі.
+Ctrl + Alt + V to talk	Сөйлесу үшін Ctrl + Alt + V
+Custom local voice	Теңшелген жергілікті дауыс
+Custom model name	Теңшелген модель атауы
+Dance	Би
+Dance to music	Музыкаға би
+Default	Әдепкі
+Default (follows Windows)	Әдепкі (Windows-ты ұстанады)
+Default duration for clip that and automatic clips	Clip that және автоматты клиптер үшін әдепкі ұзақтық
+Default length	Әдепкі ұзындық
+Default model	Әдепкі модель
+Delay	Кідіріс
+Deny	Қабылдамау
+Discard	Тастау
+Discard + reload	Тастау + қайта жүктеу
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Күтгіңіз келмей ме? Тегін кілт мені шамамен бір минутта сөйлетеді.
+Done	Дайын
+EXTRA REQUEST JSON >	ҚОСЫМША СҰРАНЫМ JSON >
+EXTRAS >	ҚОСЫМШАЛАР >
+Edit	Өңдеу
+Edit check-in lines	Кіру жолдарын өңдеу
+Edit check-in lines has the wrong view or dimming	Кіру жолдарын өңдеу дұрыс емес көріністі немесе бүркеуді пайдаланады
+Edit check-in lines is out of place	Кіру жолдарын өңдеу орнында емес
+Edit controls	Басқару элементтерін өңдеу
+ElevenLabs API key	ElevenLabs API кілті
+ElevenLabs voice ID	ElevenLabs дауыс ID
+English	Ағылшын
+Enter the game's name first.	Алдымен ойынның атауын енгізіңіз.
+Every	Әр
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Әр модты жүктеу алдында зиянды бағдарламаға тексереді. Код модтары іске қосар алдында әлі де сұрайды.
+Explore after	Кейін зерттеу
+Explore while I'm away	Мен жоқ кезде зерттеу
+Extra request JSON	Қосымша сұраным JSON
+Extras	Қосымшалар
+FREE KEY	ТЕГІН КІЛТ
+FREE KEY >	ТЕГІН КІЛТ >
+Fast hands in games	Ойындағы жылдам қолдар
+File editor	Файл редакторы
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs және басқалары Mainframe-дегі ДАУЫС астында.
+Follow-up messages	Жалғастыру хабарлары
+Forget	Ұмыту
+Fork capri-mods	capri-mods-ті форк жасау
+Frame rate	Кадр жылдамдығы
+Free	Тегін
+Free and private, works offline. Downloads	Тегін және жеке, офлайн жұмыс істейді. Жүктейді
+Free and private, works offline. Downloads the best model for this PC.	Тегін және жеке, офлайн жұмыс істейді. Осы PC үшін ең жақсы модельді жүктейді.
+Free key	Тегін кілт
+Free key providers	Тегін кілт провайдерлері
+Free keys can be rate limited and slow.	Тегін кілттерде жылдамдық шегі болуы және баяу болуы мүмкін.
+Free voice in games	Ойындағы тегін дауыс
+Free voice style	Тегін дауыс стилі
+Free voice:	Тегін дауыс:
+Free voice: Her own	Тегін дауыс: Өзінікі
+Free · local model	Тегін · жергілікті модель
+GAMES >	ОЙЫНДАР >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Ойын пікірлері Экранымды бақылау-дан бөлек жұмыс істейді. Өшірулі болса, олар Ойын режимінде де тоқтайды; Тек оқиғалар және Сөйлегіш ойыныңызды көруге рұқсат етеді
+Game controls	Ойын басқару элементтері
+Game name	Ойын атауы
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Ойын дыбысына сезімталдық. Гарнитура әлсіз болса, бірақ Windows {0}% болса және ол әр дыбысқа жауап берсе, азайтыңыз; Өшірулі ойын дыбыстарын елемейді
+Game sounds	Ойын дыбыстары
+Games	Ойындар
+Gaming Mode	Ойын режимі
+Gaming Mode key	Ойын режимі пернесі
+Gaming Mode:	Ойын режимі:
+Gaming Mode: Ctrl + Alt + G	Ойын режимі: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE алу
+Get VB-CABLE (free)...	VB-CABLE алу (тегін)...
+Get free voice	Тегін дауыс алу
+Getting your Fish Audio voices...	Fish Audio дауыстарыңыз алынуда...
+Giant	Алып
+Glitch	Glitch
+Glitch in at startup	Іске қосқанда glitch
+Go to sleep	Ұйықтату
+Go to the next screen	Келесі экранға өту
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · тегін деңгей · жылдамдық шегі бар
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude немесе ChatGPT жоспарыңыз бар ма, немесе өз кілтіңіз бар ма? Таңдаңыз, мен қосылайын.
+Got it, just me. Right-click me any time for Capri Mainframe.	Түсіндім, тек мен. Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз.
+Grey	Сұр
+H.{0} video bitrate target; higher values make larger files	H.{0} бейне bitrate мақсаты; жоғары мәндер үлкенірек файлдар жасайды
+HABITS >	ӘДЕТТЕР >
+HER HANDS >	ОНЫҢ ҚОЛДАРЫ >
+HER JOBS >	ОНЫҢ ЖҰМЫСТАРЫ >
+HER MEMORY >	ОНЫҢ ЖАДЫ >
+HER MODS >	ОНЫҢ МОДТАРЫ >
+HH:mm	HH:mm
+HOW I SOUND >	МЕН ҚАЛАЙ ДАУЫСТАНАМЫН >
+Hang here	Осында ілін
+Have Ollama? Open it, then press Refresh.	Ollama бар ма? Ашыңыз, содан кейін Жаңарту түймесін басыңыз.
+Head pats	Бас сипау
+Hearing	Есту
+Hearing engine	Есту қозғалтқышы
+Hearing fix	Есту түзетуі
+Hearing status	Есту күйі
+Help	Анықтама
+Help page	Анықтама беті
+Her colors	Оның түстері
+Her folder	Оның қапқасы
+Her memories	Оның естеліктері
+Her own colors are back.	Өз түстері қайтып келді.
+Her own notes (no vault)	Өз жазбалары (қойма жоқ)
+Her perch frames per second	Оның perch кадр жылдамдығы (секундына)
+Her personality	Оның жеке басы
+Her size	Оның өлшемі
+Her speaker	Оның динамигі
+Her speaker is hidden or outside VOICE	Оның динамигі жасырын немесе ДАУЫС-тан тыс
+Her speaker overlaps the mic or hearing row	Оның динамигі микрофон немесе есту жолын жабады
+Her speaker:	Динамик:
+Her speaker: Default	Динамик: Әдепкі
+Her voice in your mic	Оның дауысы сіздің микрофоныңызда
+Her voice in your mic: loudness	Сіздің микрофоныңыздағы оның дауысы: қаттылық
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Оның дауысы өзі. Оның биіктігі Параметрлер > ДАУЫС > Биіктік, және олар бірге қозғалады.
+Her voice joins your mic only in call mode.	Оның дауысы тек қоңырау режимінде сіздің микрофоныңызға қосылады.
+Her voice volume	Оның дауыс қаттылығы
+Her voice's pitch	Оның дауысының биіктігі
+Her voice's pitch, the same as Settings > VOICE > Pitch	Оның дауысының биіктігі, Параметрлер > ДАУЫС > Биіктік сияқты
+Her voice's speed	Оның дауысының жылдамдығы
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Оның дауысы және астында араластырылған екі көшірмесі, әрқайсысы өз биіктігі мен кідірісімен.
+Her voices · free	Оның дауыстары · тегін
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Сәлем, choom. Мен Capri. Жауап бере алуым үшін ми керек. Бірін таңдаңыз.
+Hide / Show Capri	Capri-ді жасыру / көрсету
+Hide / Show key	Жасыру / көрсету пернесі
+Hide Capri	Capri-ді жасыру
+Hide for now	Қазір жасыру
+Hide her	Оны жасыру
+Hide in full screen	Толық экранда жасыру
+Hide this	Мұны жасыру
+Hide, keep player	Жасыру, ойнатқышты қалдыру
+Hide/show:	Жасыру/көрсету:
+Hide/show: Ctrl + Alt + H	Жасыру/көрсету: Ctrl + Alt + H
+Hologram	Голограмма
+Hop off	Түсу
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Бос PC-ді ұйықтатар алдындағы уақыт; бес минут әлі де сіз жоқ дегенді білдіреді
+How long a stroke over her a head pat needs	Бас сипау үшін оның басының үстіндегі сипаудың қанша уақыт болуы керек
+How long her replies stay up	Оның жауаптары қанша уақыт тұрады
+How long you are away before she scrolls a browser or reader	Браузерді немесе оқырманды айналдырмас бұрын сіз қанша уақыт жоқ болуыңыз керек
+How much her voice glitches	Оның дауысы қаншалықты бұзылады
+How much of the chat she keeps	Чаттың қанша бөлігін сақтайды
+How much she wanders	Қаншалықты кезбелейді
+How often she pops in to say hi	Сәлем беру үшін қанша жиі соға береді
+How robotic her voice sounds	Оның дауысы қаншалықты роботтық естіледі
+How to	Қалай
+Huge	Өте үлкен
+I can hear you.	Мен сені естип тұрмын.
+I glance at your screen and comment. Costs a little on a paid brain.	Экраныңызға қараймын және пікір беремін. Ақылы миға аздап шығындайды.
+I keep listening. Say my name, then just talk.	Тыңдауды жалғастырамын. Атымды айтыңыз, содан кейін жай сөйлеңіз.
+I speak	Мен сөйлеймін
+I talk about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлеймін. Ақылы миға аздап шығындайды.
+I type my replies and stay quiet.	Жауаптарымды жазамын және тыныш боламын.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Мен кері сөйлемеймін, және ештеңе ешқайда жіберілмейді. Бәрібір араласамын, музыкаңызға билеймін және дыбыс деңгейі сияқты сұрағандарыңызды жасаймын.
+I'll talk in	Мен осында сөйлеймін:
+IN DISCORD >	DISCORD-ТА >
+INSTALLED >	ОРНАТЫЛҒАН >
+Import a Capri mod	Capri модын импорттау
+Import mod	Модты импорттау
+In full screen	Толық экранда
+In games	Ойындарда
+Input	Кіріс
+Input, Output or How to overlaps a row	Кіріс, Шығыс немесе Жол қалай қабаттасады
+Input:	Кіріс:
+Input: default	Кіріс: әдепкі
+Install	Орнату
+Install mod	Модты орнату
+Installed.	Орнатылды.
+It may ask for a phone number. I opened the page in your browser.	Телефон нөмірін сұрауы мүмкін. Бетті браузеріңізде аштым.
+It still does its own job in other apps too.	Басқа қолданбаларда да өз жұмысын атқарады.
+It won't type in other apps while she runs.	Ол жұмыс істеп тұрғанда басқа қолданбаларға жазбайды.
+JUST ME >	ТЕК МЕН >
+Jealous of other AIs	Басқа AI-larға қызғанышты
+Join the Discord	Discord-қа қосылу
+KB.	КБ.
+KEYS	ПЕРНЕЛЕР
+KEYS >	ПЕРНЕЛЕР >
+Keep PC awake for jobs	Жұмыстар үшін PC-ді оятып ұстау
+Keep player	Ойнатқышты қалдыру
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Ойыныңыздың соңғы екі минутын жадта сақтайды. Сақтау үшін clip that деңіз.
+Key	Кілт
+Key cleared: a model file needs none.	Кілт тазаланды: модель файлына ол керек емес.
+Key cleared: paste the key for	Кілт тазаланды: мына жерге кілтті қойыңыз:
+Key forgotten.	Кілт ұмытылды.
+Key. It goes only to this server, as a Bearer key	Кілт. Ол тек осы серверге Bearer кілті ретінде жіберіледі
+Kokoro only, like es	Тек Kokoro, es сияқты
+LAST THING >	СОҢҒЫ БІР НӘРСЕ >
+LISTENING >	ТЫҢДАЙДЫ >
+Language	Тіл
+Large	Үлкен
+Last thing. These cost a little or use your mic, so they're your pick.	Соңғы нәрсе. Бұлар аздап шығындайды немесе микрофонды пайдаланады, сондықтан таңдау сізде.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Соңғы нәрсе. Бұлар аздап шығындайды немесе микрофонды пайдаланады, сондықтан таңдау сізде. Содан кейін сізді қалай атау керектігін білгім келеді.
+Layers	Қабаттар
+Learn more	Толығырақ
+Leaving Settings threw its picture away straight away.	Параметрлерден шыққанда оның суретін бірден лақтырып тастады.
+Legacy stand	Ескі тірек
+Lie down	Жатыңыз
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Бірге қараған кезде жадта сақталатын PC диалогы жолдары. Ол көретінін есте сақтау қосулы болғанда ең ескі жартысы ескертпеге айналады
+Listen for Capri	Capri-ді тыңда
+Live reactions	Тікелей реакциялар
+Local server address	Жергілікті сервер мекенжайы
+Long	Ұзын
+Longest wait (minutes)	Ең ұзақ күту (минут)
+Looking at this PC...	Осы PC-ге қарап тұр...
+Looking for Ollama. Open it if it isn't running.	Ollama іздеуде. Жұмыс істемесе ашыңыз.
+Looking for a brain...	Ми іздеуде...
+Looking in the mods directory for updates...	Модтар қапқасында жаңартулар іздеуде...
+Looking in the mods directory...	Модтар қапқасы қаралуда...
+Looking...	Іздеуде...
+MAIN >	НЕГІЗГІ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ОРТА ИНТЕЛЛЕКТ
+MEMORY VAULT >	ЖАД ҚОЙМАСЫ >
+MODS	МОДТАР
+MODS >	МОДТАР >
+MODS DIRECTORY >	МОДТАР ҚАПҚАСЫ >
+MODS INSTALLED COLORS	ОРНАТЫЛҒАН МОДТАР ТҮСТЕРІ
+MOVES >	ҚОЗҒАЛЫСТАР >
+MY BRAIN	МЕНІҢ МИЫМ
+MY FREE VOICE	МЕНІҢ ТЕГІН ДАУЫСЫМ
+MY PLAN OR KEY	МЕНІҢ ЖОСПАРЫМ НЕМЕСЕ КІЛТІМ
+MY PLAN OR KEY >	МЕНІҢ ЖОСПАРЫМ НЕМЕСЕ КІЛТІМ >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio дауысыңыз жасалды. Тыңдау үшін Тест түймесін басыңыз.
+Mainframe colours	Mainframe түстері
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe түстері. Night City — қызыл және көгілдір; Қара, Ақ және Сұр Mainframe-ді, оның мәзірлерін, Теру жолағын және оның жазбаларын өзгертеді
+Mainframe frames	Mainframe жақтаулары
+Mainframe key	Mainframe пернесі
+Mainframe size	Mainframe өлшемі
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe өлшемі. Авто Virtual Super Resolution немесе DSR үлкен жұмыс үстелін кішірек экранға сығымдағанда оны үлкейтеді
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Төмен
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Fish Audio дауысыңыз жасалуда...
+Max reply	Ең көп жауап
+Maximum clip resolution, keeping the game's shape without upscaling	Ойын пішінін сақтайтын, үлкейтусіз ең жоғары клип ажыратымдылығы
+Medium	Орташа
+Memory	Жад
+Memory size	Жад өлшемі
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama және оның кірістірілген миы үшін токендердегі жад өлшемі. Сұраныс көбірек қажет болғанда Авто өседі
+Mg	Мб
+Mic level:	Микрофон деңгейі:
+Mic test finished. Sound is reaching Capri.	Микрофон тесті аяқталды. Дыбыс Capri-ге жетеді.
+Mic:	Микрофон:
+Mic: default	Микрофон: әдепкі
+Microphone	Микрофон
+Mini player	Шағын ойнатқыш
+Mini player over full screen	Толық экран үстіндегі шағын ойнатқыш
+Mini-games	Мини-ойындар
+Minimising the Mainframe left it sliding.	Mainframe-ді кішірейту оны сырғытып қалдырды.
+Minimize	Кішірейту
+Mod filter	Мод сүзгісі
+Mod options	Мод опциялары
+Mod pages	Мод беттері
+Mod rules	Мод ережелері
+Mod sort	Мод сұрыптау
+Mod switch	Мод ауыстыру
+Model	Модель
+Model folder	Модель қапқасы
+Model name, optional	Модель атауы, міндетті емес
+Mods	Модтар
+Mods directory	Модтар қапқасы
+Mods folder	Модтар қапқасы
+Most NVIDIA models can't see your screen.	Көптеген NVIDIA модельдері экранды көре алмайды.
+Mouse wheel notches got a flick's long ease:	Тінтуір дөңгелегінің бөлшектері серпіннің ұзақ баяулауын алды:
+Move	Жылжыту
+Move key to MAX INTELLIGENCE	Кілтті MAX INTELLIGENCE-ке жылжыту
+Move to MAX	MAX-ке жылжыту
+Music	Музыка
+Music app	Музыка қолданбасы
+Music app: where she plays music when you don't name an app	Музыка қолданбасы: қолданба атын атамаған кезде ол музыканы қайда ойнатады
+Mute	Дыбысты өшіру
+Mute her	Оны дыбыссыз ету
+Mute mic key	Микрофонды өшіру пернесі
+Mute mic:	Микрофонды өшіру:
+Mute mic: Ctrl + Alt + N	Микрофонды өшіру: Ctrl + Alt + N
+My brain	Менің миым
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Миым түсіп жатыр. Ол түскен сәтте сәлем беремін, содан кейін менімен сөйлесе аласыз.
+My brain's on its way. While it comes down, let's sort out how I sound.	Миым жолда. Ол түскенше, қалай дауыстайтынымды реттейік.
+My provider	Менің провайдерім
+NO AI	AI ЖОҚ
+NO PHONES CONNECTED	ҚОСЫЛҒАН ТЕЛЕФОН ЖОҚ
+NO PREVIEW	АЛДЫН АЛА ҚАРАУ ЖОҚ
+NORMAL	ҚАЛЫПТЫ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · тегін · қарбалас уақытта жиі баяу
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-ның тегін API-і қарбалас уақытта әсіресе жиі баяу.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) немесе OpenRouter API кілті
+Names:	Атаулар:
+Needs a key	Кілт керек
+Never	Ешқашан
+New code	Жаңа код
+New voice from a clip...	Клиптен жаңа дауыс...
+Next	Келесі
+Night City	Night City
+No AI	AI жоқ
+No AI · no brain at all	AI жоқ · мүлде ми жоқ
+No brain runs, and nothing is sent anywhere.	Ешқандай ми іске қосылмайды, және ештеңе ешқайда жіберілмейді.
+No brain yet	Әзірге ми жоқ
+No code open	Ашық код жоқ
+No limit	Шектеусіз
+No mic found	Микрофон табылмады
+No mods in the directory yet.	Қапқада әлі мод жоқ.
+No mods match that.	Бұған сәйкес мод жоқ.
+No mods match.	Сәйкес мод жоқ.
+No phones yet	Әзірге телефон жоқ
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Әзірге виртуалды микрофон жоқ. Шығысты таңдаңыз, содан кейін VB-CABLE алу (тегін).
+None yet: pick to get VB-CABLE (free)	Әзірге жоқ: VB-CABLE (тегін) алу үшін таңдаңыз
+Normal	Қалыпты
+Not a relay host	Бұл реле хосты емес
+Not imported. Nothing ran.	Импортталмады. Ештеңе іске қосылмады.
+Not updated. The old one is still in.	Жаңартылмады. Ескі нұсқа әлі орнатулы.
+Nothing needed updating.	Жаңарту қажет болған ештеңе жоқ.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Жүктейтін ештеңе жоқ, ештеңе ешқайда жіберілмейді. Кері сөйлемеймін. Mainframe-де кез келген уақытта ми қосуға болады.
+Nothing to show from the mods directory.	Модтар қапқасында көрсетілетін ештеңе жоқ.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ештеңе жоқ па? Windows параметрлері > Құпиялылық және қауіпсіздік > Микрофон.
+Nous Portal keys aren't supported yet.	Nous Portal кілттері әзірге қолдау тапқан жоқ.
+OBS	OBS
+OFF	ӨШІРУЛІ
+OLLAMA	OLLAMA
+ON	ҚОСУЛЫ
+ON THIS PC	ОСЫ PC-ДЕ
+OR A KEY	НЕМЕСЕ КІЛТ
+Obsidian memory vault	Obsidian жад қоймасы
+Off	Өшірулі
+Off. Turn on Her voice in your mic above.	Өшірулі. Жоғарыдағы Оның дауысы сіздің микрофоныңызда опциясын қосыңыз.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Өшірулі: ол әрқашан сияқты дауыстайды. Қосулы: оның барлық дауыстары, ElevenLabs да.
+Often	Жиі
+On	Қосулы
+On / Off	Қосулы / Өшірулі
+On: your mic and her voice are going in.	Қосулы: микрофоныңыз бен оның дауысы кіреді.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Бұл ми жіберетін әр сұранысқа қосылатын бір JSON объекті. Ол бөлісетін кез келген атау үшін Capri мәнін ауыстырады және модельмен тексерілмейді.
+Online speech recognition	Онлайн сөйлеуді тану
+Open Capri Mainframe	Capri Mainframe ашу
+Open Ollama, I'll find it	Ollama ашыңыз, табамын
+Open clips folder	Клиптер қапқасын ашу
+Open her memories	Оның естеліктерін ашу
+Open her notes	Оның жазбаларын ашу
+Open mods folder	Модтар қапқасын ашу
+Open the page again	Бетті қайта ашу
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA немесе OpenRouter.
+OpenAI-compatible server or provider.	OpenAI үйлесімді сервер немесе провайдер.
+OpenRouter · free models only	OpenRouter · тек тегін модельдер
+Optional	Міндетті емес
+Optional. Blank means no key.	Міндетті емес. Бос — кілт жоқ дегенді білдіреді.
+Options	Опциялар
+Out of the box a little higher, just behind her.	Әдепкі бойынша сәл жоғарырақ, оның артында.
+Out of the box lower, just behind her.	Әдепкі бойынша сәл төменірек, оның артында.
+Output	Шығыс
+Output:	Шығыс:
+Output: none	Шығыс: жоқ
+PHONE CONNECTED	ТЕЛЕФОН ҚОСЫЛҒАН
+PHONES >	ТЕЛЕФОНДАР >
+PHONES CONNECTED	ТЕЛЕФОНДАР ҚОСЫЛҒАН
+PREBUILT LOCAL	АЛДЫН АЛА ДАЙЫНДАЛҒАН ЖЕРГІЛІКТІ
+PUBLISH MOD >	МОДТЫ ЖАРИЯЛАУ >
+Pair a phone	Телефонды жұптау
+Paste	Қою
+Paste API key	API кілтін қою
+Paste a brain API key	Ми API кілтін қою
+Paste reads your clipboard once, when you press it.	Қою түймесін басқанда ғана көшірме-буферді бір рет оқиды.
+Paste your key here	Кілтіңізді осында қойыңыз
+Pat stroke	Бас сипау
+Perch	Perch
+Perch over {0} fps uses more CPU	{0} fps-тен жоғары perch көп CPU пайдаланады
+Pick Output to get it.	Оны алу үшін Шығысты таңдаңыз.
+Pick a brain so I can talk back. You can change it any time.	Жауап бере алуым үшін миды таңдаңыз. Кез келген уақытта өзгертуге болады.
+Pick a clip of a voice you have the rights and consent to use	Пайдалануға құқығыңыз және келісіміңіз бар дауыстың клипін таңдаңыз
+Pick a free model. I opened the page in your browser.	Тегін модельді таңдаңыз. Бетті браузеріңізде аштым.
+Pick a new clip of you...	Өзіңіздің жаңа клипті таңдаңыз...
+Pick a voice model...	Дауыс моделін таңдаңыз...
+Pick one. Only one brain runs at a time.	Біреуін таңдаңыз. Бір уақытта тек бір ми іске қосылады.
+Pick the note her memories go in	Естеліктері барын жазбаны таңдаңыз
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Пайдалануға құқығыңыз және келісіміңіз бар дауыстың {0} мен {1} секундын таңдаңыз
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Өзіңіз сөйлеген {0} мен {1} секундты немесе пайдалануға құқығыңыз және келісіміңіз бар дауысты таңдаңыз
+Pitch	Биіктік
+Play	Ойнату
+Play...	Ойнату...
+Player only	Тек ойнатқыш
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS модельдері осы клиптің дауысын көшіреді. Тыңдау үшін Тест түймесін басыңыз.
+Pop-in times	Пайда болу уақыттары
+Pop-ins	Пайда болулар
+Power saver	Энергия үнемдегіш
+Power saver: how lightly she runs in games, or always	Энергия үнемдегіш: ойындарда қаншалықты жеңіл жұмыс істейді, немесе әрқашан
+Preset	Алдын ала орнату
+Press Create API key	API кілтін жасау түймесін басыңыз
+Press Create Key	Кілтті жасау түймесін басыңыз
+Press Generate API Key	API кілтін жасау түймесін басыңыз
+Press Test and say something, so I know I can hear you.	Тест түймесін басып, бірдеңе айтыңыз, сізді естіп тұрғанымды білейін.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Бір пернені басыңыз, жалғыз немесе Ctrl, Alt, Shift немесе Win-мен.
+Press new keys, then Confirm	Жаңа пернелерді басыңыз, содан кейін Растау
+Provider	Провайдер
+Provider API key, optional	Провайдер API кілті, міндетті емес
+Provider base URL	Провайдердің негізгі URL-і
+Provider forgotten.	Провайдер ұмытылды.
+Provider overlaps the brain name or note	Провайдер ми атауын немесе жазбаны жабады
+Publish	Жариялау
+Publish mod	Модты жариялау
+Push to talk is off.	Басып сөйлеу өшірулі.
+Push to talk key	Басып сөйлеу пернесі
+Push to talk:	Басып сөйлеу:
+Push to talk: not set	Басып сөйлеу: орнатылмаған
+QR CODE >	QR КОД >
+QR hidden while streaming	Трансляция кезінде QR жасырын
+Quick	Жылдам
+Quiet key	Үнсіз перне
+Quiet:	Үнсіз:
+Quiet: Ctrl + Alt + P	Үнсіз: Ctrl + Alt + P
+Quit Capri	Capri-ден шығу
+RELAY >	РЕЛЕ >
+REMOTE >	ҚАШЫҚТАН >
+RUNS CODE.	КОД ІСКЕ ҚОСАДЫ.
+Rarely	Сирек
+Rate mod	Модты бағалау
+Reading its README...	README оқылуда...
+Refresh	Жаңарту
+Reinstall	Қайта орнату
+Reload	Қайта жүктеу
+Reloaded.	Қайта жүктелді.
+Remember our chats	Біздің чаттарымызды есте сақтау
+Remember what she sees	Ол көретінін есте сақтау
+Remote	Қашықтан
+Remote off	Қашықтан өшірулі
+Remote on	Қашықтан қосулы
+Remove	Жою
+Remove all phones	Барлық телефондарды жою
+Replies	Жауаптар
+Reply length	Жауап ұзындығы
+Report a problem	Мәселе туралы хабарлау
+Reset colors	Түстерді қалпына келтіру
+Reset to her default	Әдепкісіне қайтару
+Resolution	Ажыратымдылық
+Restart to update	Жаңарту үшін қайта іске қосу
+Restless	Мазасыз
+Revoke	Кері қайтарып алу
+Revoke also removes the phones its links added	Кері қайтарып алу оның сілтемелері қосқан телефондарды да жояды
+Ride cursor	Курсорды мінгізу
+Ride cursor / Hop off	Курсорды мінгізу / Түсу
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз. МИ астында ми қосылады.
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Анықтама және Discord үшін кез келген уақытта маған оң жақ батырмамен басыңыз.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox немесе басқа қолданба: таңдаңыз
+Robot	Робот
+Rock, paper, scissors	Тас, қағаз, қайшы
+Run this code mod?	Бұл код модын іске қосамыз ба?
+Running on this PC	Осы PC-де іске қосылған
+Running on this PC · :	Осы PC-де іске қосылған · :
+Runs Claude Code or Codex on this PC, signed in.	Осы PC-де Claude Code немесе Codex іске қосылған, кірген.
+Runs on your PC. No key, no credits.	PC-іңізде жұмыс істейді. Кілт жоқ, кредит жоқ.
+SCAN WITH YOUR PHONE · EXPIRES	ТЕЛЕФОНЫҢЫЗБЕН САУСАҚ · МЕРЗІМІ БІТЕДІ
+SECURITY >	ҚАУІПСІЗДІК >
+SKILL.	ДАҒДЫ.
+SKIN.	БЕТ-БЕЙНЕ.
+SORT BY	СҰРЫПТАУ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДАУЫСТАР ӘДЕТТЕР МИ ҚАРАУ CAPRI DOOMSCROLL АУА РАЙЫ КЛИПТЕР ОЙЫНДАР ПЕРНЕЛЕР ҚОЗҒАЛЫСТАР ДАУЫС СІЗ
+Same as I speak	Менің тілім сияқты
+Same as her ears (VOICE > Mic)	Оның құлақтарымен бірдей (ДАУЫС > Микрофон)
+Same code on the phone?	Телефондағы код бірдей ме?
+Save	Сақтау
+Save big moments	Үлкен сәттерді сақтау
+Save folder	Сақтау қапқасы
+Save your changes, or press Discard + reload.	Өзгерістеріңізді сақтаңыз немесе Тастау + қайта жүктеу түймесін басыңыз.
+Save your changes, or press Discard.	Өзгерістеріңізді сақтаңыз немесе Тастау түймесін басыңыз.
+Saved.	Сақталды.
+Saved. Ctrl + Alt + O opens her Mainframe.	Сақталды. Ctrl + Alt + O оның Mainframe-ін ашады.
+Saving your rating...	Бағаңыз сақталуда...
+Say her name anywhere to chat	Чатқа кез келген жерде оның атын айтыңыз
+Screens	Экрандар
+Screens is hidden or outside WATCH	Экрандар жасырын немесе ҚАРАУ-дан тыс
+Screens overlaps a WATCH row	Экрандар ҚАРАУ жолын жабады
+Screens to watch	Қарайтын экрандар
+Sealed end to end	Соңынан соңына дейін шифрланған
+Search by name or author	Атымен немесе авторымен іздеу
+Search installed mods	Орнатылған модтардан іздеу
+Search mods	Модтарды іздеу
+Search name, author or description	Атауы, авторы немесе сипаттамасы бойынша іздеу
+Security	Қауіпсіздік
+Security:	Қауіпсіздік:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Орнату
+Set up her brain	Оның миын орнату
+Set up your voice model	Дауыс моделін орнату
+Setting up her brain	Оның миы орнатылуда
+Settings	Параметрлер
+Settings / Back	Параметрлер / Артқа
+Settings folds the wrong rows above BRAIN	Параметрлер МИ-дің үстіндегі дұрыс емес жолдарды бүктеді
+Settings had nothing to watch.	Параметрлерде қарайтын ештеңе жоқ болды.
+Settings lost keyboard focus during the Tab walk	Tab жүрісі кезінде Параметрлер пернетақта фокусын жоғалтты
+Setup guide	Орнату нұсқаулығы
+Setup stopped	Орнату тоқтатылды
+She answers in	Ол жауап береді
+She can read it when it fits.	Сыйғанда ол оқи алады.
+She glances at your screen and comments. Costs a little on a paid brain.	Экраныңызға қарап, пікір береді. Ақылы миға аздап шығындайды.
+She keeps listening. Say her name, then just talk.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін сөйлеңіз.
+She reacts to your game until you close it.	Сіз жапқанша сіздің ойыныңызға жауап береді.
+She reads these controls before each game job.	Әр ойын тапсырмасының алдында осы басқару элементтерін оқиды.
+She talks about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлейді. Ақылы миға аздап шығындайды.
+She uses it when she plays	Ойнаған кезде оны пайдаланады
+Short	Қысқа
+Shortest wait (minutes)	Ең қысқа күту (минут)
+Show Capri	Capri көрсету
+Show QR	QR көрсету
+Show my mod file	Мод файлымды көрсету
+Show on Discord	Discord-та көрсету
+Shum, what time is it	Shum, сағат қанша
+Sign in	Кіру
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Кіріңіз, кілт жасаңыз және көшіріңіз. Содан кейін Қою түймесін басыңыз, мен қосылайын.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Кіріңіз, API кілтін жасау түймесін басып, көшіріңіз. Содан кейін Қою түймесін басыңыз, мен қосылайын.
+Silent · text only	Үнсіз · тек мәтін
+Simple / Advanced Settings	Қарапайым / Кеңейтілген параметрлер
+Simple Settings	Қарапайым параметрлер
+Simple Settings left a gap under Check in on me	Қарапайым параметрлер Менімен тексеру астында бос орын қалдырды
+Sit here	Осында отыр
+Sit on windows	Терезелердің үстінде отыр
+Size	Өлшемі
+Skip	Өткізіп жіберу
+Skip all	Барлығын өткізіп жіберу
+Skip for now	Қазір өткізіп жіберу
+Sleep	Ұйқы
+Small	Кіші
+Sometimes	Кейде
+Sound effects volume	Дыбыс эффектілерінің деңгейі
+Sound sensitivity	Дыбыс сезімталдығы
+Sounds	Дыбыстар
+Speaker or clip	Динамик немесе клип
+Speech model	Дауыс қозғалтқышы
+Speed	Жылдамдық
+Start with Windows	Windows-пен бірге іске қосу
+Start with this!	Осымен бастаңыз!
+Starting...	Басталуда...
+Stay	Қалу
+Stay on my model	Модельімде қалу
+Still checking your mics...	Микрофондарыңызды әлі тексеріп жатырмыз...
+Still checking your speakers...	Динамиктеріңізді әлі тексеріп жатырмыз...
+Still checking your virtual mics...	Виртуалды микрофондарыңызды әлі тексеріп жатырмыз...
+Stop	Тоқтату
+Stopped using it. Couldn't remove the saved provider.	Пайдалануды тоқтаттым. Сақталған провайдерді жою мүмкін болмады.
+Support	Қолдау
+Sure?	Сенімдісіз бе?
+Sure? moved to a different phone	Сенімдісіз бе? басқа телефонға көшірілді
+TALK TO ME	МЕНІМЕН СӨЙЛЕС
+TEXT ONLY	ТЕК МӘТІН
+Tab landed past the first option of	Tab бірінші опцияны басып өтті:
+Tab never reached the quiet key	Tab ешқашан үнсіз пернеге жетпеді
+Tab reached nothing	Tab ешнәрсеге жетпеді
+Tab selected a control without moving keyboard focus	Tab пернетақта фокусын жылжытпай басқару элементін таңдады
+Talk	Сөйлеу
+Talk key	Сөйлеу пернесі
+Talk:	Сөйлеу:
+Talk: Ctrl + Alt + V	Сөйлеу: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Мақсатты түсіру кадр жылдамдығы; жүктеме немесе жад бюджеті кезінде түсуі мүмкін
+Teases when another AI comes to the front.	Басқа AI алдыңғы қатарға шыққанда мазақ етеді.
+Test	Тест
+That address doesn't work. Try https://... or http://localhost:{0}.	Бұл мекенжай жұмыс істемейді. https://... немесе http://localhost:{0} деп көріңіз.
+That code expired	Бұл кодтың мерзімі өтті
+That mod is no longer installed. The list is updated.	Бұл мод енді орнатылмаған. Тізім жаңартылды.
+That's a paid key: it goes under MAX INTELLIGENCE.	Бұл ақылы кілт: ол MAX INTELLIGENCE астына өтеді.
+The Mainframe stayed composited while sliding.	Mainframe сырғу кезінде композиттелген күйде қалды.
+The Mainframe stayed uncomposited after the slide.	Mainframe сырғудан кейін композиттелмеген күйде қалды.
+The controls moved while the picture was sliding.	Сурет сырғып жатқанда басқару элементтері жылжыды.
+The cover stayed visible after the slide ended.	Сырғу аяқталғаннан кейін мұқаба көрінді.
+The frame thread kept running after the page settled.	Бет тұрақтанғаннан кейін кадр ағыны жұмыс істеуді жалғастырды.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Ол бере алатын ең ұзақ жауап, токендерде. Авто жоғарыдағы Жауаптарды сақтайды; {0}K немесе {1}K оған жалғастыруға мүмкіндік береді. Тапсырмалар қажет болғанда көбірек орын алады
+The longest wait must be at least the shortest wait.	Ең ұзақ күту кем дегенде ең қысқа күту болуы керек.
+The picture doesn't match the scrolled page:	Сурет айналдырылған бетке сәйкес келмейді:
+The picture of Settings doesn't match the page:	Параметрлердің суреті бетке сәйкес келмейді:
+The picture stayed up after the slide ended.	Сырғу аяқталғаннан кейін сурет көріністе қалды.
+The picture wasn't showing while it slid.	Сырғып жатқан кезде сурет көрсетілмеді.
+The provider sheet is crowded:	Провайдер парағы толып тұр:
+The voice panel has no screen DPI.	Дауыс панелінде экран DPI жоқ.
+The voice panel's menus share one font.	Дауыс панелінің мәзірлері бір қаріпті бөліседі.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Көшіру-буферіңізде әлі кілт жоқ. Беттен көшіріңіз, содан кейін Қою түймесін басыңыз.
+These start off. Each costs a little or uses your mic.	Бұлар өшірулі басталады. Әрқайсысы аздап шығындайды немесе микрофонды пайдаланады.
+These start off. Turn on what you want. They're all in Settings too.	Бұлар өшірулі басталады. Қажетті нәрселерді қосыңыз. Барлығы Параметрлерде де бар.
+They can also call you Big Z, Capricorn or Nova	Олар мені Big Z, Capricorn немесе Nova деп те атауы мүмкін
+They can also call you Nova, Big Z or Capricorn	Олар мені Nova, Big Z немесе Capricorn деп те атауы мүмкін
+Thinking	Ойлануда
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Бұл менің тегін дауысым. Тест түймесін басып, бірдеңе айтыңыз, мен сізді естіп тұрғанымды көрсетемін.
+This mod has no description yet.	Бұл модтың әзірге сипаттамасы жоқ.
+Tic-tac-toe	Крестики-нолики
+Time between glances	Қарастар арасындағы уақыт
+Tiny	Ұсақ
+Try again	Қайталау
+Turn Remote on first	Алдымен Қашықтанды қосыңыз
+Turn off mini player	Шағын ойнатқышты өшіру
+Turn push to talk off	Басып сөйлеуді өшіру
+Turning the wheel the other way kept the page heading the old way, to	Дөңгелекті басқа жаққа бұру бетті ескі бағытта ұстады, мына жерге дейін:
+Type	Теру
+Type key	Теру пернесі
+Type to me	Маған жазыңыз
+Type:	Теру:
+Type: Ctrl + Alt + T	Теру: Ctrl + Alt + T
+Typing sound	Теру дыбысы
+Unpacked. Press Test to hear it.	Ашылды. Тыңдау үшін Тест түймесін басыңыз.
+Unsaved changes.	Сақталмаған өзгерістер.
+Up to {0} fps	{0} fps-ке дейін
+Up to {0}p	{0}p-ға дейін
+Update	Жаңарту
+Update available.	Жаңарту бар.
+Update mods	Модтарды жаңарту
+Updating...	Жаңартылуда...
+Use	Пайдалану
+Use her cursor	Оның курсорын пайдалану
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Басқа жердегі провайдер үшін https:// пайдаланыңыз. Қарапайым http арқылы кілт қауіпсіз емес.
+Use preset	Алдын ала орнатуды пайдалану
+Use saved	Сақталғанды пайдалану
+Use this server	Осы серверді пайдалану
+Using your provider with a key	Кілтпен провайдеріңізді пайдалану
+Using your server with no key	Кілтсіз өз серверіңізді пайдалану
+VIEW MOD >	МОДТЫ КӨРУ >
+VOICE >	ДАУЫС >
+VOICE IN YOUR MIC >	МИКРОФОНДА ДАУЫС >
+VOICE LAYERS >	ДАУЫС ҚАБАТТАРЫ >
+Verbosity	Сөздер көптігі
+Video bitrate	Бейне bitrate
+View	Көрініс
+View mod	Модты көру
+Voice	Дауыс
+Voice ID	Дауыс ID
+Voice from	Дауыс көзі
+Voice layers	Дауыс қабаттары
+Voice model	Дауыс моделі
+Voice model:	Дауыс моделі:
+Voice name or ID, optional	Дауыс атауы немесе ID, міндетті емес
+Voice server address, or a voice model's folder	Дауыс серверінің мекенжайы немесе дауыс моделінің қапқасы
+Voice status	Дауыс күйі
+Voice, key and model...	Дауыс, кілт және модель...
+Volume	Дыбыс деңгейі
+WAKE ME UP >	МЕНІ ОЯТЫҢЫЗ >
+WATCH >	КӨРУ >
+Waiting for the relay	Релені күту
+Wake her up	Оны ояту
+Waking her up	Ояту
+Wander	Кезу
+Wander around	Айналып жүру
+Watch my screen	Экранымды бақылау
+Watch-along memory	Бірге қараған кездегі жад
+Weather	Ауа райы
+Weather city	Ауа райы қаласы
+Welcome back, choom. Let's finish setting me up.	Қайта келдіңіз, choom. Мені орнатуды аяқтайық.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Сұрамай-ақ PC-іңізде не істейді. Қосқыш өшірулі болғанда ол алдымен сұрайды, ал сіз иә деген кезде орындайды.
+What should she call you?	Оның сізді қалай атағанын қалайсыз?
+When she types	Ол жазғанда
+White	Ақ
+Windows default	Windows әдепкісі
+Windows did not give Settings keyboard focus	Windows Параметрлерге пернетақта фокусын бермеді
+Windows did not return keyboard focus to Back	Windows пернетақта фокусын Артқа-ға қайтармады
+With no picture the wheel still tried to slide.	Сурет болмаған кезде дөңгелек бәрібір сырғуға тырысты.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE-де ең жақсы жұмыс істейді.
+YOU	СІЗ
+YOU >	СІЗ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	СІЗ ДАУЫС ҚОЗҒАЛЫСТАР ПЕРНЕЛЕР ОЙЫНДАР КЛИПТЕР АУА РАЙЫ DOOMSCROLL CAPRI КӨРУ МИ ӘДЕТТЕР ДЫБЫСТАР
+YOUR KEY	СІЗДІҢ КІЛТІҢІЗ
+YOUR MIC	СІЗДІҢ МИКРОФОНЫҢЫЗ
+YOUR PLAN	СІЗДІҢ ЖОСПАРЫҢЫЗ
+Yokapri what's up	Yokapri не болып жатыр
+You can hide this. It keeps going, and the Mainframe shows it too.	Мұны жасыра аласыз. Ол жұмыс істеуін жалғастырады және Mainframe да көрсетеді.
+Your mic and her voice go into one virtual mic, and	Сіздің микрофоныңыз бен оның дауысы бір виртуалды микрофонға кіреді, және
+Your mic is muted. Unmute it to test.	Микрофоныңыз өшірулі. Тексеру үшін оны қосыңыз.
+Your mods are up to date.	Модтарыңыз жаңартылған.
+Your name or a nickname	Сіздің атыңыз немесе лақап атыңыз
+Your own model	Өз моделіңіз
+Your personality	Сіздің жеке басыңыз
+Your voice	Сіздің дауысыңыз
+Your voice (HD)	Сіздің дауысыңыз (HD)
+Your voice (HD) · pick a clip of you...	Сіздің дауысыңыз (HD) · өзіңіздің клипті таңдаңыз...
+Your voice model	Сіздің дауыс моделіңіз
+as its mic.	оның микрофоны ретінде.
+changed. Saved as My Colors, so you can share it.	өзгертілді. Бөлісе алуыңыз үшін Менің түстерім ретінде сақталды.
+choice	таңдау
+clips the input line	кіріс жолын қысқартады
+cue	белгі
+doesn't yet.	әлі жоқ.
+download	жүктеу
+file.	файл.
+flag	жалау
+fps	fps
+hear	есту
+hears	естиді
+hears that.	мұны естиді.
+hides or shows her.	оны жасырады немесе көрсетеді.
+hint	кеңес
+in the Mainframe.	Mainframe-де.
+in the mods directory with a pull request.	pull request арқылы модтар қапқасында.
+in the picture wasn't noticed.	суретте байқалмады.
+is already her push-to-talk key.	бұл оның басып сөйлеу пернесі.
+is off.	өшірулі.
+is on and running.	қосулы және жұмыс істеп тұр.
+is on, at the bottom, under	қосулы, төменде, мына астында:
+is on.	қосулы.
+is on. She now answers to	қосулы. Енді ол мына нәрсеге жауап береді:
+is removed.	жойылды.
+is taken	алынған
+is taken by another app. Try another.	басқа қолданба алған. Басқасын көріңіз.
+is updated	жаңартылды
+isn't hearing it yet: do {0} and {1}, then join a call.	әлі естімейді: {0} және {1} орындаңыз, содан кейін қоңырауға қосылыңыз.
+it now.	қазір.
+keeps her quiet, and lets her talk again.	оны үнсіз ұстайды және қайта сөйлеуге рұқсат етеді.
+key	пернесі
+key.	пернесі.
+min	мин
+more.	көп.
+ms.	мс.
+mutes mic	микрофонды өшіреді
+mutes your mic.	микрофоныңызды өшіреді.
+name	атау
+off	өшірулі
+on this PC	осы PC-де
+opens her Mainframe.	оның Mainframe-ін ашады.
+opens her typing box.	оның теру жолағын ашады.
+phone	телефон
+phone pixels	телефон пикселі
+phones	телефондар
+pixels	пиксель
+pixels)	пиксель)
+star.	жұлдызша.
+stars.	жұлдызша.
+starts voice chat.	дауыстық чатты бастайды.
+stays off. Nothing ran.	өшірулі қалады. Ештеңе іске қосылмады.
+still does its own job in other apps too. Confirm to keep it.	басқа қолданбаларда да өз жұмысын атқарады. Сақтау үшін растаңыз.
+tall	биік
+time	уақыт
+to talk	сөйлесу үшін
+to talk to her, with a game in front too.	ойын алдыңғы жағында да болғанда, онымен сөйлесу үшін.
+too.	де.
+turns Gaming Mode on and off.	Ойын режимін қосады және өшіреді.
+with Ollama	Ollama-мен
+won't type in other apps while she runs. Confirm to keep it.	ол жұмыс істеп тұрғанда басқа қолданбаларға жазбайды. Сақтау үшін растаңыз.
+{0}   Echo Cancellation: Off	{0}   Эхо бақылауы: Өшірулі
+{0}   If her voice cuts off, turn off noise filtering	{0}   Егер оның дауысы үзілсе, шу сүзгісін өшіріңіз
+{0}   Input Device:	{0}   Кіріс құрылғысы:
+{0}   Join the call and check they hear both of you	{0}   Қоңыраумен қосылыңыз және екеуіңізді де естіп тұрғанын тексеріңіз
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Микрофон тесті > Тексереміз: өзіңізді және ол сөйлеп жатқанда естисіз
+{0}   Microphone:	{0}   Микрофон:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Шуды басу: Жоқ. Екеуі де бірінші жолдан кейін оның дауысын үзе алады.
+{0}   Open the call or meeting's audio settings	{0}   Қоңырау немесе кездесу дыбыс параметрлерін ашыңыз
+{0}   Output Device: your headphones, like before	{0}   Шығыс құрылғысы: бұрынғыдай құлаққап
+{0}   Speaker: your headphones, like before	{0}   Динамик: бұрынғыдай құлаққап
+{0}   Try a mic test in your call app	{0}   Қоңырау қолданбаңызда микрофон тестін көріңіз
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Пайдаланушы параметрлері (атыңыздың жанындағы тісті доңғалақ) > Дауыс және бейне
+{0} Mbps	{0} Mbps
+{0} lines	{0} жол
+{0} min	{0} мин
+{0} ms	{0} мс
+· HD	· HD
+· on this PC	· осы PC-де
+· server	· сервер
+Edit as text	Мәтін ретінде өңдеу
+What Capri remembers about you. It stays on this computer.	Capri сен туралы нені есте сақтайды. Ол осы компьютерде қалады.
+Tell her something to remember	Оған есте қалатын бірдеңе айт
+Search her memory	Оның жадынан іздеу
+That day isn't there any more.	Ол күн енді жоқ.
+Undo	Болдырмау
+Remember our chats is off, so she isn't keeping new chat memories.	Әңгімелерімізді есте сақтау өшірулі, сондықтан ол жаңа әңгіме естеліктерін сақтамайды.
+ABOUT YOU	СЕН ТУРАЛЫ
+FROM YOUR CHATS	СЕНІҢ ӘҢГІМЕЛЕРІҢНЕН
+GAMES	ОЙЫНДАР
+CHAT LOGS	ӘҢГІМЕ ЖУРНАЛДАРЫ
+CHAT LOG	ӘҢГІМЕ ЖУРНАЛЫ
+Nothing matches.	Ештеңе сәйкес келмейді.
+Nothing yet.	Әзірге ештеңе жоқ.
+Reading her notes.	Оның жазбаларын оқып жатыр.
+Click again to forget game notes	Ойын жазбаларын ұмыту үшін қайта бас
+Forget game notes	Ойын жазбаларын ұмыт
+Click again to forget everything about me	Сен туралы бәрін ұмыту үшін қайта бас
+Forget everything about me	Сен туралы бәрін ұмыт
+Click again to forget	Ұмыту үшін қайта бас
+Forget this day	Осы күнді ұмыт
+Only the start of this day is shown.	Осы күннің тек басы көрсетіледі.
+Nothing in this day.	Бұл күні ештеңе жоқ.
+No chats kept yet.	Әзірге әңгіме сақталмаған.
+You	Сен
+{0} line	{0} жол
+SET UP EMAIL >	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ >
+SET UP EMAIL	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ
+Or type your address	Немесе мекенжайыңды жаз
+Email address	Электрондық пошта мекенжайы
+Open the page	Бетті ашу
+App password	Қолданба құпиясөзі
+IMAP server	IMAP сервері
+Incoming mail server	Кіріс пошта сервері
+SMTP server	SMTP сервері
+Outgoing mail server	Шығыс пошта сервері
+An app password is a separate password just for Capri. Your normal password stays yours.	Қолданба құпиясөзі тек Capri үшін бөлек құпиясөз. Қарапайым құпиясөзің өзінде қалады.
+She keeps it only until she closes.	Ол оны тек жабылғанша сақтайды.
+She checks, searches and reads your mail. She asks before she sends any.	Ол поштаңды тексереді, іздейді және оқиды. Бірдеңе жібермес бұрын сұрайды.
+Watch for new mail	Жаңа поштаны бақыла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Пошта келгенде ол айтады, фишингке ұқсаса ескертеді. Ештеңе оқылған деп белгіленбейді.
+Deal with phishing on her own	Фишингті өзі шеш
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Тек ол бақылап тұрғанда. Фишинг екеніне сенімді пошта спамға кетеді. Қалғаны сенің иәңды күтеді.
+Forget account	Аккаунтты ұмыт
+Use another email	Басқа электрондық поштаны қолдан
+Which email?	Қай пошта?
+Make an app password	Қолданба құпиясөзін жаса
+Paste it	Оны қой
+Connecting...	Қосылуда...
+She can use your email now.	Ол енді поштаңды қолдана алады.
+She's not watching your inbox.	Ол кіріс жәшігіңді бақыламайды.
+She's watching your inbox and deals with phishing she's sure of.	Ол кіріс жәшігіңді бақылап, сенімді фишингті шешеді.
+She's watching your inbox and tells you when mail lands.	Ол кіріс жәшігіңді бақылайды және пошта келгенде айтады.
+She forgot that account and its app password.	Ол сол аккаунтты және оның қолданба құпиясөзін ұмытты.
+She forgot that account. Its app password is gone from this PC.	Ол сол аккаунтты ұмытты. Оның қолданба құпиясөзі осы компьютерден жоғалды.

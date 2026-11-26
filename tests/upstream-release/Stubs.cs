@@ -1,9 +1,12 @@
 using System; using System.IO; using System.Runtime.Serialization;
 namespace CapriDesktop {
-static class Hands { public const string CrashKind="fake crash screen"; public static bool Agrees(string text)=>false; public static string Asked(string text)=>text; public static bool Failed(string result)=>false; }
+static class Hands { public const string CrashKind="fake crash screen"; public static bool Agrees(string text)=>false; public static string Asked(string text)=>text; public static bool Failed(string result)=>false; public static void WebsiteArgs(ToolArguments args){} public static string FilesAsked(ToolArguments args)=>"change files"; public static bool WorkspaceStarts(ToolArguments args)=>args!=null&&(args.Action=="start"||string.IsNullOrEmpty(args.Action)&&!string.IsNullOrWhiteSpace(args.Task)&&args.Task.Trim()!="..."); }
+static class Plugins { public static bool Owns(string name)=>false; public static int Needs(string name)=>-1; public static int Granted(string name)=>-1; public static string Asking(string name, string text)=>null; }
+static class ModFloor { public static bool Forces(string tool, ToolArguments args, int toggle)=>false; public static void Fresh(){} }
+class Deed { public bool Undoable=>false; public string UndoTool; public ToolArguments UndoArguments()=>new ToolArguments(); }
+static class Timeline { public static Deed Target(ToolArguments args)=>null; }
 static class Brain { public static string SystemLanguage(System.Globalization.CultureInfo c)=>"en"; public static void LogAt(string p,string tag,int n,string msg)=>File.AppendAllText(p,msg+"\n"); }
-static class Retention { public static bool WholeFile(string path)=>File.Exists(path); }
 [DataContract] class Settings { [DataMember] public string Language; [DataMember]public int X,Y; [DataMember]public bool Placed; }
 [DataContract] class NewSettings {}
-partial class Pet { private bool settingsWriteBlocked; private string unreadableNotice; private bool settingsReset; public void LoadFixture(){Saved=Load();} public bool Blocked=>settingsWriteBlocked; public string Notice=>unreadableNotice; public Settings Saved; public string folder; private (int X,int Y) anchor; void NotifySettings(){} static Settings Kept(Settings s,NewSettings n)=>s; static NewSettings Newest(Settings s)=>new(); sealed class BodyStub { public double Size; } private BodyStub body = new BodyStub(); private double SitAcross => SitX; internal const double SitX = 0.30; private int Px(double dip)=>(int)System.Math.Round(dip); }
+partial class Pet { private bool settingsWriteBlocked; private string unreadableNotice; public void LoadFixture(){Saved=Load();} public bool Blocked=>settingsWriteBlocked; public string Notice=>unreadableNotice; public Settings Saved; public string folder; private (int X,int Y) anchor; void NotifySettings(){} static Settings Kept(Settings s,NewSettings n,string folder=null)=>s; static NewSettings Newest(Settings s)=>new(); sealed class BodyStub { public double Size; } private BodyStub body = new BodyStub(); private double SitAcross => SitX; internal const double SitX = 0.30; private int Px(double dip)=>(int)System.Math.Round(dip); }
 }

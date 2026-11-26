@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	کنترلی که دوباره رنگ شد، در تصویر دوباره کشیده نشد.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	یک کلید رایگان از Google AI Studio، NVIDIA یا OpenRouter. چیزی برای دانلود نیست. به اینترنت نیاز دارد.
+A held trackpad scroll got a flick's long ease:	اسکرول نگه‌داشته‌شده‌ی تاچ‌پد، یک کشیدگی بلند مثل فلیک گرفت:
+A layout change during a slide put the page at	تغییر چیدمان در حین اسلاید، صفحه را به اینجا برد
+A layout change left the picture up.	تغییر چیدمان باعث شد تصویر روی صفحه بماند.
+A model in Ollama, on your local server or on your key.	یک مدل در Ollama، روی سرور محلی شما یا با کلید شما.
+A paid key goes under MAX INTELLIGENCE by itself.	کلید پولی خودش زیر MAX INTELLIGENCE قرار می‌گیرد.
+A plan you already pay for, a key of your own, or Ollama.	طرحی که از قبل پولش را می‌دهید، کلید خودتان، یا Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	منوی پنل صدا نسخه‌ی خودش از فونت پنل را ندارد.
+A wheel turn right after a slide ended froze the picture.	چرخاندن چرخ بلافاصله بعد از پایان اسلاید، تصویر را یخ‌زده کرد.
+ALLOW THIS PHONE?	این گوشی اجازه داده شود؟
+ALMOST THERE >	تقریباً تمام >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	یک Capri دیگر کنترل را گرفت · خاموش و روشن کنید
+API key	کلید API
+API key, Claude plan or ChatGPT plan	کلید API، طرح Claude یا طرح ChatGPT
+Add	افزودن
+Address	آدرس
+Address and key saved. Use saved to reconnect.	آدرس و کلید ذخیره شد. برای اتصال دوباره از ذخیره‌شده استفاده کن.
+Advanced Settings	تنظیمات پیشرفته
+All	همه
+All screens	همه‌ی صفحه‌ها
+Allow	اجازه بده
+Almost there. I'll say hi the second my brain's in.	تقریباً تمام. همین که مغزم وصل شد سلام می‌کنم.
+Always	همیشه
+Always on top	همیشه بالا
+Any Google account works. I opened the page in your browser.	هر حساب گوگلی کار می‌کند. صفحه را در مرورگرت باز کردم.
+Applies to every voice	برای همه‌ی صداها اعمال می‌شود
+Apps she may close	برنامه‌هایی که ممکن است ببندد
+Ask Capri for more	از Capri بیشتر بخواه
+Asking your server...	از سرور شما پرسیده می‌شود...
+Asks before closing only the apps you choose.	فقط قبل از بستن برنامه‌هایی که انتخاب می‌کنی می‌پرسد.
+Auto	خودکار
+Auto (match what I say)	خودکار (مطابق حرفم)
+Automatic: VB-CABLE, else Steam's	خودکار: VB-CABLE، وگرنه Steam
+BAD RELAY HOST	میزبان رله‌ی نامعتبر
+BIG Z open notepad	BIG Z باز کردن notepad
+BRAIN	مغز
+BRAIN >	مغز >
+BRAIN ONLINE >	مغز آنلاین >
+BRAIN PROVIDER >	ارائه‌دهنده‌ی مغز >
+BRAIN VOICE CAPRI	صدای مغز CAPRI
+Back	بازگشت
+Back on your saved API key.	برگشت به کلید API ذخیره‌شده.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	بهترین گزینه برای این رایانه:
+Black	مشکی
+Blank key means no key.	کلید خالی یعنی کلیدی وجود ندارد.
+Brain API key	کلید API مغز
+Brain model	مدل مغز
+Brain provider	ارائه‌دهنده‌ی مغز
+Bring here	بیاور اینجا
+Bring to this screen	به این صفحه بیاور
+Browse	مرور
+Browse mods	مرور مدها
+Browse to a voice model	مرور به یک مدل صدا
+Browse...	مرور...
+Bubble	حباب
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree، اونجایی؟
+CAN'T REACH THE RELAY · RETRYING	به رله وصل نمی‌شود · دوباره تلاش می‌شود
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	مغز صدای CAPRI
+CHANGED, approve it again.	تغییر کرده، دوباره تأیید کن.
+CLIPS >	کلیپ‌ها >
+CLOUD VOICE	صدای ابری
+CODE	کد
+COLORS >	رنگ‌ها >
+CONNECTED	متصل شد
+CONNECTING	در حال اتصال
+CUSTOM LOCAL	محلی سفارشی
+Call mode (beta)	حالت تماس (بتا)
+Call mode does not fit.	حالت تماس جا نمی‌شود.
+Call mode is outside its space.	حالت تماس خارج از فضای خودش است.
+Cancel	لغو
+Cancel keys	لغو کلیدها
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri ریموت
+Capri code:	کد Capri:
+Capri mods (*	مدهای Capri (*
+Capri, hello	Capri، سلام
+CapriDesktop.	CapriDesktop.
+Chaos when upset	وقتی ناراحت است، آشوب می‌کند
+Chat with Capri from your phone	از گوشی‌ات با Capri گفتگو کن
+ChatGPT plan	طرح ChatGPT
+Check for updates	بررسی به‌روزرسانی‌ها
+Check in on me	سر بزن به من
+Check in on me is hidden	سر زدن به من پنهان است
+Check in on me still decides whether she visits.	سر زدن به من هنوز تعیین می‌کند که آیا سر می‌زند یا نه.
+Check in on me's tip missed	نکته‌ی سر زدن به من از دست رفت
+Chess	شطرنج
+Choose apps	انتخاب برنامه‌ها
+Choose folder...	انتخاب پوشه...
+Choose where future Capri clips are saved	انتخاب کنید کلیپ‌های آینده‌ی Capri کجا ذخیره شوند
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	طرح Claude یا ChatGPT، یک کلید پولی (OpenAI، Claude، DeepSeek)، یا Ollama.
+Claude plan	طرح Claude
+Clear	پاک کردن
+Cleared.	پاک شد.
+Click Confirm to keep Down, or press Esc.	برای نگه داشتن Down روی تأیید کلیک کن، یا Esc را بزن.
+Click to open it.	برای باز کردن کلیک کن.
+Clip my games	بازی‌هایم را کلیپ کن
+Clips	کلیپ‌ها
+Close	بستن
+Close other AIs for me	برای من AIهای دیگر را ببند
+Cloud voice	صدای ابری
+Cloud voice service	سرویس صدای ابری
+Cloud voice setup	تنظیم صدای ابری
+Code mods can reach your whole PC. Only trusted ones.	مدهای کد می‌توانند به کل رایانه‌ات دسترسی داشته باشند. فقط مدهای مورد اعتماد.
+Code/Husk Mode	حالت Code/Husk
+Codex	Codex
+Commands	دستورها
+Comment on my games	روی بازی‌هایم نظر بده
+Comments	نظرات
+Confirm	تأیید
+Confirm keys	تأیید کلیدها
+Connect	اتصال
+Connect / Forget brain key	اتصال / فراموشی کلید مغز
+Connect / Forget voice key	اتصال / فراموشی کلید صدا
+Connect four	چهار در یک ردیف
+Controls	کنترل‌ها
+Copri, what time is it	Copri، ساعت چنده
+Copy error details	کپی جزئیات خطا
+Copy the key	کپی کلید
+Copy the key from the page, then press Paste.	کلید را از صفحه کپی کن، سپس Paste را بزن.
+Couldn't open that page:	آن صفحه باز نشد:
+Couldn't open that:	آن باز نشد:
+Couldn't open the mods folder:	پوشه‌ی مدها باز نشد:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M از قبل کلید Mainframe او است.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N میکروفون را بی‌صدا می‌کند
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V از قبل کلید صحبت او است.
+Ctrl + Alt + V to talk	Ctrl + Alt + V برای صحبت
+Custom local voice	صدای محلی سفارشی
+Custom model name	نام مدل سفارشی
+Dance	رقصیدن
+Dance to music	با موسیقی برقص
+Default	پیش‌فرض
+Default (follows Windows)	پیش‌فرض (طبق Windows)
+Default duration for clip that and automatic clips	مدت پیش‌فرض برای کلیپ آن و کلیپ‌های خودکار
+Default length	طول پیش‌فرض
+Default model	مدل پیش‌فرض
+Delay	تأخیر
+Deny	رد
+Discard	دور انداختن
+Discard + reload	دور انداختن + بارگذاری مجدد
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	نمی‌خواهی صبر کنی؟ یک کلید رایگان حدود یک دقیقه دیگر باعث می‌شود حرف بزنم.
+Done	تمام
+EXTRA REQUEST JSON >	JSON درخواست اضافی >
+EXTRAS >	اضافه‌ها >
+Edit	ویرایش
+Edit check-in lines	ویرایش خطوط سر زدن
+Edit check-in lines has the wrong view or dimming	ویرایش خطوط سر زدن نمای یا کم‌نوری اشتباه دارد
+Edit check-in lines is out of place	ویرایش خطوط سر زدن جای درستی ندارد
+Edit controls	ویرایش کنترل‌ها
+ElevenLabs API key	کلید API ElevenLabs
+ElevenLabs voice ID	شناسه‌ی صدای ElevenLabs
+English	انگلیسی
+Enter the game's name first.	اول نام بازی را وارد کن.
+Every	هر
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	هر مد قبل از آپلود برای بدافزار بررسی می‌شود. مدهای کد هنوز قبل از اجرا می‌پرسند.
+Explore after	گشت‌زنی بعد از
+Explore while I'm away	گشت‌زنی وقتی نیستم
+Extra request JSON	JSON درخواست اضافی
+Extras	اضافه‌ها
+FREE KEY	کلید رایگان
+FREE KEY >	کلید رایگان >
+Fast hands in games	دست‌های سریع در بازی‌ها
+File editor	ویرایشگر فایل
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio، ElevenLabs و بقیه زیر بخش صدا در Mainframe هستند.
+Follow-up messages	پیام‌های پیگیری
+Forget	فراموش کن
+Fork capri-mods	فورک capri-mods
+Frame rate	نرخ فریم
+Free	رایگان
+Free and private, works offline. Downloads	رایگان و خصوصی، آفلاین کار می‌کند. دانلود می‌کند
+Free and private, works offline. Downloads the best model for this PC.	رایگان و خصوصی، آفلاین کار می‌کند. بهترین مدل را برای این رایانه دانلود می‌کند.
+Free key	کلید رایگان
+Free key providers	ارائه‌دهندگان کلید رایگان
+Free keys can be rate limited and slow.	کلیدهای رایگان ممکن است محدودیت نرخ داشته باشند و کند باشند.
+Free voice in games	صدای رایگان در بازی‌ها
+Free voice style	سبک صدای رایگان
+Free voice:	صدای رایگان:
+Free voice: Her own	صدای رایگان: صدای خودش
+Free · local model	رایگان · مدل محلی
+GAMES >	بازی‌ها >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	نظرات بازی جدا از تماشای صفحه‌ام اجرا می‌شوند. خاموش آن‌ها را متوقف می‌کند، حتی در حالت بازی؛ فقط رویدادها و پرحرف به او اجازه می‌دهند بازی تو را تماشا کند
+Game controls	کنترل‌های بازی
+Game name	نام بازی
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	حساسیت صدای بازی. اگر هدست کم است اما Windows روی {0}% است و او به هر صدایی واکنش نشان می‌دهد، کمترش کن؛ خاموش صداهای بازی را نادیده می‌گیرد
+Game sounds	صداهای بازی
+Games	بازی‌ها
+Gaming Mode	حالت بازی
+Gaming Mode key	کلید حالت بازی
+Gaming Mode:	حالت بازی:
+Gaming Mode: Ctrl + Alt + G	حالت بازی: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini، OpenRouter، ChatGPT، Claude، DeepSeek
+Get VB-CABLE	دریافت VB-CABLE
+Get VB-CABLE (free)...	دریافت VB-CABLE (رایگان)...
+Get free voice	دریافت صدای رایگان
+Getting your Fish Audio voices...	در حال دریافت صداهای Fish Audio شما...
+Giant	غول‌پیکر
+Glitch	لغزش
+Glitch in at startup	لغزش هنگام راه‌اندازی
+Go to sleep	برو بخواب
+Go to the next screen	برو به صفحه‌ی بعدی
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · سطح رایگان · محدودیت نرخ
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	طرح Claude یا ChatGPT یا کلید خودت را داری؟ انتخابش کن تا وصلش کنم.
+Got it, just me. Right-click me any time for Capri Mainframe.	فهمیدم، فقط خودم. هر وقت خواستی با راست‌کلیک روی من Capri Mainframe را باز کن.
+Grey	خاکستری
+H.{0} video bitrate target; higher values make larger files	هدف بیت‌ریت ویدیوی H.{0}؛ مقدار بالاتر فایل‌های بزرگ‌تری می‌سازد
+HABITS >	عادت‌ها >
+HER HANDS >	دست‌های او >
+HER JOBS >	کارهای او >
+HER MEMORY >	حافظه‌ی او >
+HER MODS >	مدهای او >
+HH:mm	HH:mm
+HOW I SOUND >	صدای من چطور است >
+Hang here	همین‌جا بمان
+Have Ollama? Open it, then press Refresh.	Ollama داری؟ بازش کن، بعد تازه‌سازی را بزن.
+Head pats	نوازش سر
+Hearing	شنیدن
+Hearing engine	موتور شنیدن
+Hearing fix	اصلاح شنیدن
+Hearing status	وضعیت شنیدن
+Help	راهنما
+Help page	صفحه‌ی راهنما
+Her colors	رنگ‌های او
+Her folder	پوشه‌ی او
+Her memories	خاطرات او
+Her own colors are back.	رنگ‌های خودش برگشتند.
+Her own notes (no vault)	یادداشت‌های خودش (بدون گاوصندوق)
+Her perch frames per second	فریم در ثانیه‌ی نشستن او
+Her personality	شخصیت او
+Her size	اندازه‌ی او
+Her speaker	بلندگوی او
+Her speaker is hidden or outside VOICE	بلندگوی او پنهان است یا بیرون از بخش صدا است
+Her speaker overlaps the mic or hearing row	بلندگوی او روی ردیف میکروفون یا شنیدن قرار گرفته
+Her speaker:	بلندگوی او:
+Her speaker: Default	بلندگوی او: پیش‌فرض
+Her voice in your mic	صدای او در میکروفون شما
+Her voice in your mic: loudness	صدای او در میکروفون شما: بلندی
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	خود صدای او. زیر و بمی آن در تنظیمات > صدا > زیر و بمی است و با هم تغییر می‌کنند.
+Her voice joins your mic only in call mode.	صدای او فقط در حالت تماس به میکروفون شما می‌پیوندد.
+Her voice volume	بلندی صدای او
+Her voice's pitch	زیر و بمی صدای او
+Her voice's pitch, the same as Settings > VOICE > Pitch	زیر و بمی صدای او، همان تنظیمات > صدا > زیر و بمی
+Her voice's speed	سرعت صدای او
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	صدای او و دو نسخه از آن که زیرش ترکیب شده، هرکدام با زیر و بمی و تأخیر خودشان.
+Her voices · free	صداهای او · رایگان
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	سلام choom. من Capri هستم. قبل از اینکه بتوانم جواب بدهم به یک مغز نیاز دارم. یکی را انتخاب کن.
+Hide / Show Capri	پنهان / نمایش Capri
+Hide / Show key	کلید پنهان / نمایش
+Hide Capri	پنهان کردن Capri
+Hide for now	فعلاً پنهان کن
+Hide her	پنهانش کن
+Hide in full screen	در حالت تمام‌صفحه پنهان کن
+Hide this	این را پنهان کن
+Hide, keep player	پنهان کن، پخش‌کننده بماند
+Hide/show:	پنهان/نمایش:
+Hide/show: Ctrl + Alt + H	پنهان/نمایش: Ctrl + Alt + H
+Hologram	هولوگرام
+Hop off	پایین بپر
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	مدت زمانی که رایانه‌ی بی‌حرکت طول می‌کشد تا او را به خواب بفرستد؛ پنج دقیقه هنوز یعنی تو دور هستی
+How long a stroke over her a head pat needs	مدت زمانی که کشیدن دست روی او لازم است تا نوازش سر حساب شود
+How long her replies stay up	پاسخ‌های او چقدر روی صفحه می‌مانند
+How long you are away before she scrolls a browser or reader	چقدر دور باشی تا او مرورگر یا خواننده را اسکرول کند
+How much her voice glitches	صدای او چقدر لغزش دارد
+How much of the chat she keeps	چه مقدار از گفتگو را نگه می‌دارد
+How much she wanders	چقدر پرسه می‌زند
+How often she pops in to say hi	هر چند وقت سر می‌زند تا سلام کند
+How robotic her voice sounds	صدای او چقدر رباتیک به نظر می‌رسد
+How to	راهنمای
+Huge	خیلی بزرگ
+I can hear you.	صدایت را می‌شنوم.
+I glance at your screen and comment. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازم و نظر می‌دهم. روی مغز پولی کمی هزینه دارد.
+I keep listening. Say my name, then just talk.	به گوش دادن ادامه می‌دهم. اسمم را بگو، بعد فقط حرف بزن.
+I speak	من صحبت می‌کنم
+I talk about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زنم. روی مغز پولی کمی هزینه دارد.
+I type my replies and stay quiet.	پاسخ‌هایم را تایپ می‌کنم و ساکت می‌مانم.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	جواب صوتی نمی‌دهم و چیزی به جایی ارسال نمی‌شود. با این حال کنارت می‌مانم، با موسیقی‌ات می‌رقصم و کارهای سریعی را که می‌خواهی انجام می‌دهم، مثل بلندی صدا.
+I'll talk in	حرف می‌زنم در
+IN DISCORD >	در DISCORD >
+INSTALLED >	نصب‌شده >
+Import a Capri mod	وارد کردن یک مد Capri
+Import mod	وارد کردن مد
+In full screen	در حالت تمام‌صفحه
+In games	در بازی‌ها
+Input	ورودی
+Input, Output or How to overlaps a row	ورودی، خروجی یا راهنما روی یک ردیف افتاده
+Input:	ورودی:
+Input: default	ورودی: پیش‌فرض
+Install	نصب
+Install mod	نصب مد
+Installed.	نصب شد.
+It may ask for a phone number. I opened the page in your browser.	ممکن است شماره تلفن بخواهد. صفحه را در مرورگرت باز کردم.
+It still does its own job in other apps too.	در برنامه‌های دیگر هم کار خودش را انجام می‌دهد.
+It won't type in other apps while she runs.	وقتی او اجرا است، در برنامه‌های دیگر تایپ نمی‌کند.
+JUST ME >	فقط من >
+Jealous of other AIs	نسبت به AIهای دیگر حسودی می‌کند
+Join the Discord	به Discord بپیوند
+KB.	KB.
+KEYS	کلیدها
+KEYS >	کلیدها >
+Keep PC awake for jobs	رایانه را برای کارها بیدار نگه دار
+Keep player	پخش‌کننده بماند
+Keeps the last two minutes of your game in memory. Say clip that to save it.	دو دقیقه‌ی آخر بازی‌ات را در حافظه نگه می‌دارد. برای ذخیره بگو آن را کلیپ کن.
+Key	کلید
+Key cleared: a model file needs none.	کلید پاک شد: فایل مدل به آن نیازی ندارد.
+Key cleared: paste the key for	کلید پاک شد: کلید را برای این جای‌گذاری کن
+Key forgotten.	کلید فراموش شد.
+Key. It goes only to this server, as a Bearer key	کلید. فقط به این سرور به‌عنوان کلید Bearer ارسال می‌شود
+Kokoro only, like es	فقط Kokoro، مثل es
+LAST THING >	آخرین چیز >
+LISTENING >	در حال گوش دادن >
+Language	زبان
+Large	بزرگ
+Last thing. These cost a little or use your mic, so they're your pick.	آخرین مورد. این‌ها کمی هزینه دارند یا از میکروفونت استفاده می‌کنند، پس انتخاب با خودت است.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	آخرین مورد. این‌ها کمی هزینه دارند یا از میکروفونت استفاده می‌کنند، پس انتخاب با خودت است. بعد می‌خواهم بدانم چه صدایت کنم.
+Layers	لایه‌ها
+Learn more	بیشتر بدان
+Leaving Settings threw its picture away straight away.	خروج از تنظیمات تصویرش را فوراً دور انداخت.
+Legacy stand	پایه‌ی قدیمی
+Lie down	دراز بکش
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	خطوط گفتگوی رایانه که هنگام تماشای مشترک در حافظه نگه داشته می‌شوند. نیمه‌ی قدیمی‌تر وقتی «به یاد داشتن آنچه می‌بیند» روشن باشد به یک یادداشت تبدیل می‌شود
+Listen for Capri	گوش کن برای Capri
+Live reactions	واکنش‌های زنده
+Local server address	آدرس سرور محلی
+Long	بلند
+Longest wait (minutes)	طولانی‌ترین انتظار (دقیقه)
+Looking at this PC...	در حال بررسی این رایانه...
+Looking for Ollama. Open it if it isn't running.	در حال جست‌وجوی Ollama. اگر اجرا نیست بازش کن.
+Looking for a brain...	در حال جست‌وجوی مغز...
+Looking in the mods directory for updates...	در حال جست‌وجوی به‌روزرسانی در پوشه‌ی مدها...
+Looking in the mods directory...	در حال جست‌وجو در پوشه‌ی مدها...
+Looking...	در حال جست‌وجو...
+MAIN >	اصلی >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIGENCE متوسط
+MEMORY VAULT >	گاوصندوق حافظه >
+MODS	مدها
+MODS >	مدها >
+MODS DIRECTORY >	پوشه‌ی مدها >
+MODS INSTALLED COLORS	رنگ‌های مدهای نصب‌شده
+MOVES >	حرکات >
+MY BRAIN	مغز من
+MY FREE VOICE	صدای رایگان من
+MY PLAN OR KEY	طرح یا کلید من
+MY PLAN OR KEY >	طرح یا کلید من >
+Made your Fish Audio voice. Press Test to hear it.	صدای Fish Audio شما ساخته شد. برای شنیدنش تست را بزنید.
+Mainframe colours	رنگ‌های Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	رنگ‌های Mainframe. Night City قرمز و فیروزه‌ای است؛ مشکی، سفید و خاکستری Mainframe، منوهای او، کادر تایپ و یادداشت‌هایش را تغییر می‌دهند
+Mainframe frames	قاب‌های Mainframe
+Mainframe key	کلید Mainframe
+Mainframe size	اندازه‌ی Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	اندازه‌ی Mainframe. خودکار وقتی Virtual Super Resolution یا DSR یک دسکتاپ بزرگ را روی صفحه‌ی کوچک‌تر جمع می‌کند آن را بزرگ‌تر می‌کند
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: پایین
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	در حال ساختن صدای Fish Audio شما...
+Max reply	حداکثر پاسخ
+Maximum clip resolution, keeping the game's shape without upscaling	حداکثر وضوح کلیپ، با حفظ شکل بازی بدون افزایش مقیاس
+Medium	متوسط
+Memory	حافظه
+Memory size	اندازه‌ی حافظه
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	اندازه‌ی حافظه بر حسب توکن برای Ollama و مغز داخلی او. خودکار وقتی درخواستی بیشتر نیاز داشته باشد بزرگ می‌شود
+Mg	Mg
+Mic level:	سطح میکروفون:
+Mic test finished. Sound is reaching Capri.	تست میکروفون تمام شد. صدا به Capri می‌رسد.
+Mic:	میکروفون:
+Mic: default	میکروفون: پیش‌فرض
+Microphone	میکروفون
+Mini player	پخش‌کننده‌ی کوچک
+Mini player over full screen	پخش‌کننده‌ی کوچک روی تمام‌صفحه
+Mini-games	مینی‌بازی‌ها
+Minimising the Mainframe left it sliding.	کوچک کردن Mainframe باعث شد همچنان سُر بخورد.
+Minimize	کوچک کردن
+Mod filter	فیلتر مد
+Mod options	گزینه‌های مد
+Mod pages	صفحات مد
+Mod rules	قوانین مد
+Mod sort	مرتب‌سازی مد
+Mod switch	سوئیچ مد
+Model	مدل
+Model folder	پوشه‌ی مدل
+Model name, optional	نام مدل، اختیاری
+Mods	مدها
+Mods directory	پوشه‌ی مدها
+Mods folder	پوشه‌ی مدها
+Most NVIDIA models can't see your screen.	بیشتر مدل‌های NVIDIA نمی‌توانند صفحه‌ی تو را ببینند.
+Mouse wheel notches got a flick's long ease:	شیارهای چرخ ماوس یک کشیدگی بلند مثل فلیک گرفتند:
+Move	انتقال
+Move key to MAX INTELLIGENCE	انتقال کلید به MAX INTELLIGENCE
+Move to MAX	انتقال به MAX
+Music	موسیقی
+Music app	برنامه‌ی موسیقی
+Music app: where she plays music when you don't name an app	برنامه‌ی موسیقی: جایی که وقتی اسم برنامه‌ای نمی‌گویی موسیقی پخش می‌کند
+Mute	بی‌صدا
+Mute her	او را بی‌صدا کن
+Mute mic key	کلید بی‌صدا کردن میکروفون
+Mute mic:	بی‌صدا کردن میکروفون:
+Mute mic: Ctrl + Alt + N	بی‌صدا کردن میکروفون: Ctrl + Alt + N
+My brain	مغز من
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	مغز من در حال پایین آمدن است. همین که وارد شد سلام می‌کنم و آن موقع می‌توانی با من حرف بزنی.
+My brain's on its way. While it comes down, let's sort out how I sound.	مغز من در راه است. تا پایین بیاید، بیا صدای من را تنظیم کنیم.
+My provider	ارائه‌دهنده‌ی من
+NO AI	بدون AI
+NO PHONES CONNECTED	هیچ گوشی متصل نیست
+NO PREVIEW	پیش‌نمایش ندارد
+NORMAL	عادی
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · رایگان · در ساعات شلوغ اغلب کند
+NVIDIA's free API is often slow, especially at busy times.	API رایگان NVIDIA اغلب کند است، به‌خصوص در ساعات شلوغ.
+NVIDIA, Gemini, OpenRouter	NVIDIA، Gemini، OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	کلید API از NVIDIA، Google AI Studio (Gemini) یا OpenRouter
+Names:	نام‌ها:
+Needs a key	کلید لازم دارد
+Never	هرگز
+New code	کد جدید
+New voice from a clip...	صدای جدید از یک کلیپ...
+Next	بعدی
+Night City	Night City
+No AI	بدون AI
+No AI · no brain at all	بدون AI · اصلاً بدون مغز
+No brain runs, and nothing is sent anywhere.	هیچ مغزی اجرا نمی‌شود و چیزی به جایی ارسال نمی‌شود.
+No brain yet	هنوز مغزی نیست
+No code open	هیچ کدی باز نیست
+No limit	بدون محدودیت
+No mic found	میکروفونی پیدا نشد
+No mods in the directory yet.	هنوز مدی در پوشه نیست.
+No mods match that.	هیچ مدی با این مطابقت ندارد.
+No mods match.	هیچ مدی مطابقت ندارد.
+No phones yet	هنوز گوشی‌ای نیست
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	هنوز میکروفون مجازی نیست. خروجی را انتخاب کن، سپس دریافت VB-CABLE (رایگان).
+None yet: pick to get VB-CABLE (free)	هنوز نیست: برای دریافت VB-CABLE (رایگان) انتخاب کن
+Normal	عادی
+Not a relay host	میزبان رله نیست
+Not imported. Nothing ran.	وارد نشد. چیزی اجرا نشد.
+Not updated. The old one is still in.	به‌روز نشد. نسخه‌ی قدیمی هنوز هست.
+Nothing needed updating.	چیزی برای به‌روزرسانی نبود.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	چیزی برای دانلود نیست، و چیزی به جایی ارسال نمی‌شود. جواب صوتی نمی‌دهم. هر وقت خواستی مغزی در Mainframe اضافه کن.
+Nothing to show from the mods directory.	از پوشه‌ی مدها چیزی برای نمایش نیست.
+Nothing? Windows Settings > Privacy & security > Microphone.	هیچ‌چیز؟ تنظیمات Windows > حریم خصوصی و امنیت > میکروفون.
+Nous Portal keys aren't supported yet.	کلیدهای Nous Portal هنوز پشتیبانی نمی‌شوند.
+OBS	OBS
+OFF	خاموش
+OLLAMA	OLLAMA
+ON	روشن
+ON THIS PC	روی این رایانه
+OR A KEY	یا یک کلید
+Obsidian memory vault	گاوصندوق حافظه‌ی Obsidian
+Off	خاموش
+Off. Turn on Her voice in your mic above.	خاموش. صدای او در میکروفون شما را در بالا روشن کن.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	خاموش: صدایش مثل همیشه است. روشن: همه‌ی صداهایی که دارد، ElevenLabs هم.
+Often	اغلب
+On	روشن
+On / Off	روشن / خاموش
+On: your mic and her voice are going in.	روشن: میکروفون و صدای او دارند وارد می‌شوند.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	یک شیء JSON که به هر درخواستی که این مغز می‌فرستد اضافه می‌شود. مقدار Capri را برای هر نامی که مشترک است جایگزین می‌کند و با مدل بررسی نمی‌شود.
+Online speech recognition	تشخیص گفتار آنلاین
+Open Capri Mainframe	باز کردن Capri Mainframe
+Open Ollama, I'll find it	Ollama را باز کن، خودم پیدایش می‌کنم
+Open clips folder	باز کردن پوشه‌ی کلیپ‌ها
+Open her memories	باز کردن خاطرات او
+Open her notes	باز کردن یادداشت‌های او
+Open mods folder	باز کردن پوشه‌ی مدها
+Open the page again	دوباره صفحه را باز کن
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI، Claude، DeepSeek، Google، NVIDIA یا OpenRouter.
+OpenAI-compatible server or provider.	سرور یا ارائه‌دهنده‌ی سازگار با OpenAI.
+OpenRouter · free models only	OpenRouter · فقط مدل‌های رایگان
+Optional	اختیاری
+Optional. Blank means no key.	اختیاری. خالی یعنی بدون کلید.
+Options	گزینه‌ها
+Out of the box a little higher, just behind her.	به‌طور پیش‌فرض کمی بالاتر، درست پشت او.
+Out of the box lower, just behind her.	به‌طور پیش‌فرض کمی پایین‌تر، درست پشت او.
+Output	خروجی
+Output:	خروجی:
+Output: none	خروجی: هیچ
+PHONE CONNECTED	گوشی متصل شد
+PHONES >	گوشی‌ها >
+PHONES CONNECTED	گوشی‌های متصل
+PREBUILT LOCAL	محلی از پیش‌ساخته
+PUBLISH MOD >	انتشار مد >
+Pair a phone	جفت کردن گوشی
+Paste	چسباندن
+Paste API key	چسباندن کلید API
+Paste a brain API key	چسباندن کلید API مغز
+Paste reads your clipboard once, when you press it.	چسباندن یک بار کلیپ‌بورد را می‌خواند، وقتی فشارش می‌دهی.
+Paste your key here	کلیدت را اینجا بچسبان
+Pat stroke	کشیدن دست
+Perch	نشستن
+Perch over {0} fps uses more CPU	نشستن بالاتر از {0} فریم در ثانیه CPU بیشتری مصرف می‌کند
+Pick Output to get it.	برای گرفتنش خروجی را انتخاب کن.
+Pick a brain so I can talk back. You can change it any time.	یک مغز انتخاب کن تا بتوانم جواب بدهم. هر زمان می‌توانی تغییرش بدهی.
+Pick a clip of a voice you have the rights and consent to use	کلیپی از صدایی انتخاب کن که حق و رضایت استفاده از آن را داری
+Pick a free model. I opened the page in your browser.	یک مدل رایگان انتخاب کن. صفحه را در مرورگرت باز کردم.
+Pick a new clip of you...	یک کلیپ جدید از خودت انتخاب کن...
+Pick a voice model...	یک مدل صدا انتخاب کن...
+Pick one. Only one brain runs at a time.	یکی انتخاب کن. در هر لحظه فقط یک مغز اجرا می‌شود.
+Pick the note her memories go in	یادداشتی را انتخاب کن که خاطراتش در آن می‌روند
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	از صدایی که حق و رضایت استفاده از آن را داری، {0} تا {1} ثانیه انتخاب کن
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	{0} تا {1} ثانیه از صحبت خودت، یا از صدایی که حق و رضایت استفاده از آن را داری، انتخاب کن
+Pitch	زیر و بمی
+Play	پخش
+Play...	پخش...
+Player only	فقط پخش‌کننده
+Pocket TTS models copy this clip's voice. Press Test to hear it.	مدل‌های Pocket TTS صدای این کلیپ را کپی می‌کنند. برای شنیدنش تست را بزن.
+Pop-in times	زمان‌های سر زدن
+Pop-ins	سر زدن‌ها
+Power saver	صرفه‌جویی انرژی
+Power saver: how lightly she runs in games, or always	صرفه‌جویی انرژی: او در بازی‌ها چقدر سبک اجرا شود، یا همیشه
+Preset	پیش‌تنظیم
+Press Create API key	کلید API ایجاد کن را بزن
+Press Create Key	ایجاد کلید را بزن
+Press Generate API Key	تولید کلید API را بزن
+Press Test and say something, so I know I can hear you.	تست را بزن و چیزی بگو تا بدانم صدایت را می‌شنوم.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	یک کلید را تنها یا همراه Ctrl، Alt، Shift یا Win بزن.
+Press new keys, then Confirm	کلیدهای جدید را بزن، سپس تأیید کن
+Provider	ارائه‌دهنده
+Provider API key, optional	کلید API ارائه‌دهنده، اختیاری
+Provider base URL	URL پایه‌ی ارائه‌دهنده
+Provider forgotten.	ارائه‌دهنده فراموش شد.
+Provider overlaps the brain name or note	ارائه‌دهنده روی نام مغز یا یادداشت قرار گرفته
+Publish	انتشار
+Publish mod	انتشار مد
+Push to talk is off.	فشار برای صحبت خاموش است.
+Push to talk key	کلید فشار برای صحبت
+Push to talk:	فشار برای صحبت:
+Push to talk: not set	فشار برای صحبت: تنظیم نشده
+QR CODE >	کد QR >
+QR hidden while streaming	QR هنگام استریم پنهان است
+Quick	سریع
+Quiet key	کلید سکوت
+Quiet:	سکوت:
+Quiet: Ctrl + Alt + P	سکوت: Ctrl + Alt + P
+Quit Capri	خروج از Capri
+RELAY >	رله >
+REMOTE >	ریموت >
+RUNS CODE.	کد اجرا می‌کند.
+Rarely	به‌ندرت
+Rate mod	امتیاز به مد
+Reading its README...	در حال خواندن README...
+Refresh	تازه‌سازی
+Reinstall	نصب مجدد
+Reload	بارگذاری مجدد
+Reloaded.	دوباره بارگذاری شد.
+Remember our chats	گفتگوهای ما را به یاد داشته باش
+Remember what she sees	آنچه را می‌بیند به یاد داشته باش
+Remote	ریموت
+Remote off	ریموت خاموش
+Remote on	ریموت روشن
+Remove	حذف
+Remove all phones	حذف همه‌ی گوشی‌ها
+Replies	پاسخ‌ها
+Reply length	طول پاسخ
+Report a problem	گزارش مشکل
+Reset colors	بازنشانی رنگ‌ها
+Reset to her default	بازنشانی به پیش‌فرض او
+Resolution	وضوح
+Restart to update	برای به‌روزرسانی دوباره راه‌اندازی کن
+Restless	بی‌قرار
+Revoke	لغو دسترسی
+Revoke also removes the phones its links added	لغو دسترسی گوشی‌هایی را هم که لینک‌هایش اضافه کرده حذف می‌کند
+Ride cursor	سوار بر نشانگر
+Ride cursor / Hop off	سوار بر نشانگر / پایین بپر
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	هر وقت خواستی با راست‌کلیک روی من Capri Mainframe را باز کن. یک مغز زیر مغز روشن می‌شود.
+Right-click me any time for the Mainframe, Help and the Discord.	هر وقت خواستی با راست‌کلیک روی من Mainframe، راهنما و Discord را ببین.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox یا هر برنامه‌ی دیگر: انتخاب کن
+Robot	ربات
+Rock, paper, scissors	سنگ، کاغذ، قیچی
+Run this code mod?	این مد کد اجرا شود؟
+Running on this PC	در حال اجرا روی این رایانه
+Running on this PC · :	در حال اجرا روی این رایانه · :
+Runs Claude Code or Codex on this PC, signed in.	Claude Code یا Codex را روی این رایانه با ورود به حساب اجرا می‌کند.
+Runs on your PC. No key, no credits.	روی رایانه‌ی تو اجرا می‌شود. کلید لازم نیست، اعتبار لازم نیست.
+SCAN WITH YOUR PHONE · EXPIRES	با گوشی اسکن کن · منقضی می‌شود
+SECURITY >	امنیت >
+SKILL.	مهارت.
+SKIN.	پوسته.
+SORT BY	مرتب‌سازی بر اساس
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	صداها عادت‌ها مغز تماشا Capri Doomscroll آب‌وهوا کلیپ‌ها بازی‌ها کلیدها حرکات صدا تو
+Same as I speak	مثل زبان من
+Same as her ears (VOICE > Mic)	مثل گوش‌های او (صدا > میکروفون)
+Same code on the phone?	همان کد روی گوشی؟
+Save	ذخیره
+Save big moments	لحظات بزرگ را ذخیره کن
+Save folder	پوشه‌ی ذخیره
+Save your changes, or press Discard + reload.	تغییراتت را ذخیره کن، یا دور انداختن + بارگذاری مجدد را بزن.
+Save your changes, or press Discard.	تغییراتت را ذخیره کن، یا دور انداختن را بزن.
+Saved.	ذخیره شد.
+Saved. Ctrl + Alt + O opens her Mainframe.	ذخیره شد. Ctrl + Alt + O، Mainframe او را باز می‌کند.
+Saving your rating...	در حال ذخیره‌ی امتیاز تو...
+Say her name anywhere to chat	هر جا اسمش را بگویی می‌توانی گفتگو کنی
+Screens	صفحه‌ها
+Screens is hidden or outside WATCH	صفحه‌ها پنهان است یا بیرون از تماشا است
+Screens overlaps a WATCH row	صفحه‌ها روی یک ردیف تماشا قرار گرفته
+Screens to watch	صفحه‌هایی برای تماشا
+Sealed end to end	سرتاسری رمزگذاری‌شده
+Search by name or author	جست‌وجو بر اساس نام یا نویسنده
+Search installed mods	جست‌وجوی مدهای نصب‌شده
+Search mods	جست‌وجوی مدها
+Search name, author or description	جست‌وجوی نام، نویسنده یا توضیحات
+Security	امنیت
+Security:	امنیت:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	راه‌اندازی
+Set up her brain	راه‌اندازی مغز او
+Set up your voice model	راه‌اندازی مدل صدای خودت
+Setting up her brain	در حال راه‌اندازی مغز او
+Settings	تنظیمات
+Settings / Back	تنظیمات / بازگشت
+Settings folds the wrong rows above BRAIN	تنظیمات ردیف‌های اشتباه را بالای مغز تا می‌کند
+Settings had nothing to watch.	تنظیمات چیزی برای تماشا نداشت.
+Settings lost keyboard focus during the Tab walk	تنظیمات در حین گشت Tab، فوکوس صفحه‌کلید را از دست داد
+Setup guide	راهنمای راه‌اندازی
+Setup stopped	راه‌اندازی متوقف شد
+She answers in	او پاسخ می‌دهد به
+She can read it when it fits.	وقتی جا شود می‌تواند آن را بخواند.
+She glances at your screen and comments. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازد و نظر می‌دهد. روی مغز پولی کمی هزینه دارد.
+She keeps listening. Say her name, then just talk.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد حرف بزن.
+She reacts to your game until you close it.	تا وقتی بازی را ببندی به آن واکنش نشان می‌دهد.
+She reads these controls before each game job.	قبل از هر کار بازی این کنترل‌ها را می‌خواند.
+She talks about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زند. روی مغز پولی کمی هزینه دارد.
+She uses it when she plays	وقتی بازی می‌کند از آن استفاده می‌کند
+Short	کوتاه
+Shortest wait (minutes)	کوتاه‌ترین انتظار (دقیقه)
+Show Capri	نمایش Capri
+Show QR	نمایش QR
+Show my mod file	نمایش فایل مد من
+Show on Discord	نمایش در Discord
+Shum, what time is it	Shum، ساعت چنده
+Sign in	ورود
+Sign in, make a key and copy it. Then press Paste and I'll connect.	وارد شو، یک کلید بساز و کپی کن. بعد چسباندن را بزن تا وصل شوم.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	وارد شو، کلید API ایجاد کن را بزن و کپی کن. بعد چسباندن را بزن تا وصل شوم.
+Silent · text only	بی‌صدا · فقط متن
+Simple / Advanced Settings	تنظیمات ساده / پیشرفته
+Simple Settings	تنظیمات ساده
+Simple Settings left a gap under Check in on me	تنظیمات ساده زیر سر زدن به من فاصله ایجاد کرد
+Sit here	اینجا بنشین
+Sit on windows	روی پنجره‌ها بنشین
+Size	اندازه
+Skip	رد کردن
+Skip all	همه را رد کن
+Skip for now	فعلاً رد کن
+Sleep	خواب
+Small	کوچک
+Sometimes	گاهی
+Sound effects volume	بلندی جلوه‌های صوتی
+Sound sensitivity	حساسیت صدا
+Sounds	صداها
+Speaker or clip	بلندگو یا کلیپ
+Speech model	مدل گفتار
+Speed	سرعت
+Start with Windows	با Windows اجرا شود
+Start with this!	با این شروع کن!
+Starting...	در حال شروع...
+Stay	بمان
+Stay on my model	روی مدل من بمان
+Still checking your mics...	هنوز میکروفون‌هایت بررسی می‌شوند...
+Still checking your speakers...	هنوز بلندگوهایت بررسی می‌شوند...
+Still checking your virtual mics...	هنوز میکروفون‌های مجازی‌ات بررسی می‌شوند...
+Stop	توقف
+Stopped using it. Couldn't remove the saved provider.	استفاده از آن متوقف شد. ارائه‌دهنده‌ی ذخیره‌شده حذف نشد.
+Support	پشتیبانی
+Sure?	مطمئنی؟
+Sure? moved to a different phone	مطمئنی؟ به گوشی دیگری منتقل شده
+TALK TO ME	با من حرف بزن
+TEXT ONLY	فقط متن
+Tab landed past the first option of	Tab از اولین گزینه‌ی این گذشت:
+Tab never reached the quiet key	Tab هرگز به کلید سکوت نرسید
+Tab reached nothing	Tab به هیچ‌جا نرسید
+Tab selected a control without moving keyboard focus	Tab یک کنترل را بدون جابه‌جایی فوکوس صفحه‌کلید انتخاب کرد
+Talk	صحبت
+Talk key	کلید صحبت
+Talk:	صحبت:
+Talk: Ctrl + Alt + V	صحبت: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	نرخ فریم هدف ضبط؛ ممکن است زیر بار یا بودجه‌ی حافظه کاهش یابد
+Teases when another AI comes to the front.	وقتی AI دیگری جلو بیاید سر به سرش می‌گذارد.
+Test	تست
+That address doesn't work. Try https://... or http://localhost:{0}.	آن آدرس کار نمی‌کند. https://... یا http://localhost:{0} را امتحان کن.
+That code expired	آن کد منقضی شده
+That mod is no longer installed. The list is updated.	آن مد دیگر نصب نیست. فهرست به‌روز شد.
+That's a paid key: it goes under MAX INTELLIGENCE.	این یک کلید پولی است: زیر MAX INTELLIGENCE می‌رود.
+The Mainframe stayed composited while sliding.	Mainframe هنگام سُر خوردن ترکیب‌شده باقی ماند.
+The Mainframe stayed uncomposited after the slide.	Mainframe پس از سُر خوردن ترکیب‌نشده باقی ماند.
+The controls moved while the picture was sliding.	کنترل‌ها هنگام سُر خوردن تصویر جابه‌جا شدند.
+The cover stayed visible after the slide ended.	پوشش پس از پایان اسلاید همچنان دیده می‌شد.
+The frame thread kept running after the page settled.	رشته‌ی فریم پس از آرام شدن صفحه همچنان اجرا می‌شد.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	طولانی‌ترین پاسخی که می‌تواند بدهد، بر حسب توکن. خودکار به پاسخ‌های بالا پایبند است؛ {0}K یا {1}K به او اجازه می‌دهد ادامه دهد. کارها وقتی نیاز داشته باشند فضای بیشتری می‌گیرند
+The longest wait must be at least the shortest wait.	طولانی‌ترین انتظار باید حداقل برابر کوتاه‌ترین انتظار باشد.
+The picture doesn't match the scrolled page:	تصویر با صفحه‌ی اسکرول‌شده مطابقت ندارد:
+The picture of Settings doesn't match the page:	تصویر تنظیمات با صفحه مطابقت ندارد:
+The picture stayed up after the slide ended.	تصویر پس از پایان اسلاید همچنان نمایش داده شد.
+The picture wasn't showing while it slid.	تصویر هنگام سُر خوردن نمایش داده نمی‌شد.
+The provider sheet is crowded:	برگه‌ی ارائه‌دهنده شلوغ است:
+The voice panel has no screen DPI.	پنل صدا DPI صفحه ندارد.
+The voice panel's menus share one font.	منوهای پنل صدا یک فونت مشترک دارند.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	هنوز کلیدی در کلیپ‌بوردت نیست. آن را از صفحه کپی کن، سپس چسباندن را بزن.
+These start off. Each costs a little or uses your mic.	اینها خاموش شروع می‌شوند. هرکدام کمی هزینه دارند یا از میکروفونت استفاده می‌کنند.
+These start off. Turn on what you want. They're all in Settings too.	اینها خاموش شروع می‌شوند. هر چه می‌خواهی روشن کن. همه‌ی آن‌ها در تنظیمات هم هستند.
+They can also call you Big Z, Capricorn or Nova	آن‌ها می‌توانند تو را Big Z، Capricorn یا Nova هم صدا بزنند
+They can also call you Nova, Big Z or Capricorn	آن‌ها می‌توانند تو را Nova، Big Z یا Capricorn هم صدا بزنند
+Thinking	در حال فکر کردن
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	این صدای رایگان من است. تست را بزن، چیزی بگو، و نشانت می‌دهم که صدایت را می‌شنوم.
+This mod has no description yet.	این مد هنوز توضیحی ندارد.
+Tic-tac-toe	دوز
+Time between glances	فاصله‌ی زمانی بین نگاه‌ها
+Tiny	خیلی کوچک
+Try again	دوباره امتحان کن
+Turn Remote on first	اول ریموت را روشن کن
+Turn off mini player	پخش‌کننده‌ی کوچک را خاموش کن
+Turn push to talk off	فشار برای صحبت را خاموش کن
+Turning the wheel the other way kept the page heading the old way, to	چرخاندن چرخ در جهت دیگر باعث شد صفحه همچنان به جهت قبلی برود، به
+Type	تایپ
+Type key	کلید تایپ
+Type to me	به من تایپ کن
+Type:	تایپ:
+Type: Ctrl + Alt + T	تایپ: Ctrl + Alt + T
+Typing sound	صدای تایپ
+Unpacked. Press Test to hear it.	استخراج شد. برای شنیدنش تست را بزن.
+Unsaved changes.	تغییرات ذخیره‌نشده.
+Up to {0} fps	تا {0} فریم در ثانیه
+Up to {0}p	تا {0}p
+Update	به‌روزرسانی
+Update available.	به‌روزرسانی موجود است.
+Update mods	به‌روزرسانی مدها
+Updating...	در حال به‌روزرسانی...
+Use	استفاده
+Use her cursor	از نشانگر او استفاده کن
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	برای ارائه‌دهنده‌ی جای دیگر از https:// استفاده کن. کلید روی http ساده امن نیست.
+Use preset	استفاده از پیش‌تنظیم
+Use saved	استفاده از ذخیره‌شده
+Use this server	از این سرور استفاده کن
+Using your provider with a key	استفاده از ارائه‌دهنده‌ی شما با کلید
+Using your server with no key	استفاده از سرور شما بدون کلید
+VIEW MOD >	مشاهده‌ی مد >
+VOICE >	صدا >
+VOICE IN YOUR MIC >	صدا در میکروفون شما >
+VOICE LAYERS >	لایه‌های صدا >
+Verbosity	میزان پرحرفی
+Video bitrate	بیت‌ریت ویدیو
+View	نمایش
+View mod	مشاهده‌ی مد
+Voice	صدا
+Voice ID	شناسه‌ی صدا
+Voice from	صدا از
+Voice layers	لایه‌های صدا
+Voice model	مدل صدا
+Voice model:	مدل صدا:
+Voice name or ID, optional	نام یا شناسه‌ی صدا، اختیاری
+Voice server address, or a voice model's folder	آدرس سرور صدا، یا پوشه‌ی یک مدل صدا
+Voice status	وضعیت صدا
+Voice, key and model...	صدا، کلید و مدل...
+Volume	بلندی صدا
+WAKE ME UP >	بیدارم کن >
+WATCH >	تماشا >
+Waiting for the relay	در انتظار رله
+Wake her up	او را بیدار کن
+Waking her up	در حال بیدار کردن او
+Wander	پرسه زدن
+Wander around	دور و برت پرسه بزن
+Watch my screen	صفحه‌ام را تماشا کن
+Watch-along memory	خاطره‌ی تماشای مشترک
+Weather	آب‌وهوا
+Weather city	شهر آب‌وهوا
+Welcome back, choom. Let's finish setting me up.	خوش برگشتی، choom. بیا راه‌اندازی من را تمام کنیم.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	کارهایی که بدون پرسیدن روی رایانه‌ی تو انجام می‌دهد. با کلید خاموش اول می‌پرسد و وقتی بگویی بله انجام می‌دهد.
+What should she call you?	او تو را چه صدا بزند؟
+When she types	وقتی تایپ می‌کند
+White	سفید
+Windows default	پیش‌فرض Windows
+Windows did not give Settings keyboard focus	Windows فوکوس صفحه‌کلید را به تنظیمات نداد
+Windows did not return keyboard focus to Back	Windows فوکوس صفحه‌کلید را به بازگشت برنگرداند
+With no picture the wheel still tried to slide.	بدون تصویر، چرخ همچنان سعی می‌کرد سُر بخورد.
+Works best on MAX INTELLIGENCE.	روی MAX INTELLIGENCE بهترین عملکرد را دارد.
+YOU	تو
+YOU >	تو >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	تو صدا حرکات کلیدها بازی‌ها کلیپ‌ها آب‌وهوا DOOMSCROLL Capri تماشا مغز عادت‌ها صداها
+YOUR KEY	کلید تو
+YOUR MIC	میکروفون تو
+YOUR PLAN	طرح تو
+Yokapri what's up	Yokapri چه خبر
+You can hide this. It keeps going, and the Mainframe shows it too.	می‌توانی این را پنهان کنی. ادامه می‌دهد و Mainframe هم آن را نشان می‌دهد.
+Your mic and her voice go into one virtual mic, and	میکروفون تو و صدای او به یک میکروفون مجازی می‌روند، و
+Your mic is muted. Unmute it to test.	میکروفون تو بی‌صداست. برای تست صدایش را روشن کن.
+Your mods are up to date.	مدهای تو به‌روز هستند.
+Your name or a nickname	نام یا لقب تو
+Your own model	مدل خودت
+Your personality	شخصیت تو
+Your voice	صدای تو
+Your voice (HD)	صدای تو (HD)
+Your voice (HD) · pick a clip of you...	صدای تو (HD) · یک کلیپ از خودت انتخاب کن...
+Your voice model	مدل صدای تو
+as its mic.	به‌عنوان میکروفونش.
+changed. Saved as My Colors, so you can share it.	تغییر کرد. به‌عنوان «رنگ‌های من» ذخیره شد تا بتوانی آن را به اشتراک بگذاری.
+choice	انتخاب
+clips the input line	خط ورودی را کلیپ می‌کند
+cue	نشانه
+doesn't yet.	هنوز نه.
+download	دانلود
+file.	فایل.
+flag	پرچم
+fps	فریم در ثانیه
+hear	شنیدن
+hears	می‌شنود
+hears that.	آن را می‌شنود.
+hides or shows her.	او را پنهان یا نمایش می‌دهد.
+hint	راهنمایی
+in the Mainframe.	در Mainframe.
+in the mods directory with a pull request.	در پوشه‌ی مدها با یک pull request.
+in the picture wasn't noticed.	در تصویر متوجه نشده بود.
+is already her push-to-talk key.	از قبل کلید فشار برای صحبت او است.
+is off.	خاموش است.
+is on and running.	روشن و در حال اجرا است.
+is on, at the bottom, under	روشن است، پایین، زیر
+is on.	روشن است.
+is on. She now answers to	روشن است. حالا به این پاسخ می‌دهد:
+is removed.	حذف شد.
+is taken	گرفته شده است
+is taken by another app. Try another.	توسط برنامه‌ی دیگری گرفته شده. یکی دیگر را امتحان کن.
+is updated	به‌روز شد
+isn't hearing it yet: do {0} and {1}, then join a call.	هنوز آن را نمی‌شنود: {0} و {1} را انجام بده، سپس به یک تماس بپیوند.
+it now.	همین حالا.
+keeps her quiet, and lets her talk again.	او را ساکت نگه می‌دارد و دوباره اجازه‌ی صحبت می‌دهد.
+key	کلید
+key.	کلید.
+min	دقیقه
+more.	بیشتر.
+ms.	ms.
+mutes mic	میکروفون را بی‌صدا می‌کند
+mutes your mic.	میکروفون تو را بی‌صدا می‌کند.
+name	نام
+off	خاموش
+on this PC	روی این رایانه
+opens her Mainframe.	Mainframe او را باز می‌کند.
+opens her typing box.	کادر تایپ او را باز می‌کند.
+phone	گوشی
+phone pixels	پیکسل‌های گوشی
+phones	گوشی‌ها
+pixels	پیکسل
+pixels)	پیکسل)
+star.	ستاره.
+stars.	ستاره.
+starts voice chat.	گفتگوی صوتی را شروع می‌کند.
+stays off. Nothing ran.	خاموش می‌ماند. چیزی اجرا نشد.
+still does its own job in other apps too. Confirm to keep it.	در برنامه‌های دیگر هم کار خودش را انجام می‌دهد. برای نگه داشتن تأیید کن.
+tall	بلند
+time	زمان
+to talk	برای صحبت
+to talk to her, with a game in front too.	برای صحبت با او، حتی با یک بازی در جلو.
+too.	هم.
+turns Gaming Mode on and off.	حالت بازی را روشن و خاموش می‌کند.
+with Ollama	با Ollama
+won't type in other apps while she runs. Confirm to keep it.	وقتی اجرا است در برنامه‌های دیگر تایپ نمی‌کند. برای نگه داشتن تأیید کن.
+{0}   Echo Cancellation: Off	{0}   حذف پژواک: خاموش
+{0}   If her voice cuts off, turn off noise filtering	{0}   اگر صدایش قطع می‌شود، فیلتر نویز را خاموش کن
+{0}   Input Device:	{0}   دستگاه ورودی:
+{0}   Join the call and check they hear both of you	{0}   به تماس بپیوند و بررسی کن هر دوی شما را می‌شنوند
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   تست میکروفون > بیا بررسی کنیم: خودت را می‌شنوی، و او را وقتی صحبت می‌کند
+{0}   Microphone:	{0}   میکروفون:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   کاهش نویز: هیچ. هر دو می‌توانند بعد از خط اول صدای او را قطع کنند.
+{0}   Open the call or meeting's audio settings	{0}   تنظیمات صوتی تماس یا جلسه را باز کن
+{0}   Output Device: your headphones, like before	{0}   دستگاه خروجی: هدفون‌ات، مثل قبل
+{0}   Speaker: your headphones, like before	{0}   بلندگو: هدفون‌ات، مثل قبل
+{0}   Try a mic test in your call app	{0}   تست میکروفون را در برنامه‌ی تماست امتحان کن
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   تنظیمات کاربر (چرخ‌دنده‌ی کنار نامت) > صدا و تصویر
+{0} Mbps	{0} Mbps
+{0} lines	{0} خط
+{0} min	{0} دقیقه
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· روی این رایانه
+· server	· سرور
+Edit as text	ویرایش به‌صورت متن
+What Capri remembers about you. It stays on this computer.	چیزی که Capri درباره تو به یاد دارد. روی همین کامپیوتر می‌ماند.
+Tell her something to remember	چیزی به او بگو که به یاد بسپارد
+Search her memory	در حافظه‌اش جست‌وجو کن
+That day isn't there any more.	آن روز دیگر نیست.
+Undo	واگردانی
+Remember our chats is off, so she isn't keeping new chat memories.	به یاد داشتن گفت‌وگوهای ما خاموش است، پس خاطره گفت‌وگوی تازه‌ای نگه نمی‌دارد.
+ABOUT YOU	درباره تو
+FROM YOUR CHATS	از گفت‌وگوهای تو
+GAMES	بازی‌ها
+CHAT LOGS	گزارش‌های گفت‌وگو
+CHAT LOG	گزارش گفت‌وگو
+Nothing matches.	چیزی مطابقت ندارد.
+Nothing yet.	هنوز چیزی نیست.
+Reading her notes.	یادداشت‌هایش را می‌خواند.
+Click again to forget game notes	برای فراموش کردن یادداشت‌های بازی دوباره کلیک کن
+Forget game notes	یادداشت‌های بازی را فراموش کن
+Click again to forget everything about me	برای فراموش کردن همه چیز درباره خودت دوباره کلیک کن
+Forget everything about me	همه چیز درباره خودت را فراموش کن
+Click again to forget	برای فراموش کردن دوباره کلیک کن
+Forget this day	این روز را فراموش کن
+Only the start of this day is shown.	فقط ابتدای این روز نمایش داده می‌شود.
+Nothing in this day.	هیچ چیزی در این روز نیست.
+No chats kept yet.	هنوز گفت‌وگویی نگه داشته نشده.
+You	تو
+{0} line	{0} خط
+SET UP EMAIL >	راه‌اندازی ایمیل >
+SET UP EMAIL	راه‌اندازی ایمیل
+Or type your address	یا نشانی خود را بنویس
+Email address	نشانی ایمیل
+Open the page	صفحه را باز کن
+App password	رمز برنامه
+IMAP server	سرور IMAP
+Incoming mail server	سرور ایمیل ورودی
+SMTP server	سرور SMTP
+Outgoing mail server	سرور ایمیل خروجی
+An app password is a separate password just for Capri. Your normal password stays yours.	رمز برنامه یک رمز جداگانه فقط برای Capri است. رمز معمولی تو مال خودت می‌ماند.
+She keeps it only until she closes.	آن را فقط تا بسته شدنش نگه می‌دارد.
+She checks, searches and reads your mail. She asks before she sends any.	ایمیل تو را بررسی، جست‌وجو و خواندن می‌کند. پیش از فرستادن چیزی می‌پرسد.
+Watch for new mail	ایمیل تازه را زیر نظر بگیر
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	وقتی ایمیل می‌رسد می‌گوید، و اگر شبیه فیشینگ باشد هشدار می‌دهد. هیچ چیز خوانده‌شده علامت نمی‌خورد.
+Deal with phishing on her own	خودش با فیشینگ مقابله کند
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	فقط تا وقتی زیر نظر دارد. ایمیلی که مطمئن است فیشینگ است به اسپم می‌رود. بقیه منتظر بله تو می‌ماند.
+Forget account	حساب را فراموش کن
+Use another email	ایمیل دیگری استفاده کن
+Which email?	کدام ایمیل؟
+Make an app password	یک رمز برنامه بساز
+Paste it	آن را بچسبان
+Connecting...	در حال اتصال...
+She can use your email now.	او اکنون می‌تواند از ایمیل تو استفاده کند.
+She's not watching your inbox.	او صندوق ورودی تو را زیر نظر ندارد.
+She's watching your inbox and deals with phishing she's sure of.	او صندوق ورودی‌ات را زیر نظر دارد و با فیشینگی که مطمئن است مقابله می‌کند.
+She's watching your inbox and tells you when mail lands.	او صندوق ورودی‌ات را زیر نظر دارد و وقتی ایمیل می‌رسد به تو می‌گوید.
+She forgot that account and its app password.	آن حساب و رمز برنامه‌اش را فراموش کرد.
+She forgot that account. Its app password is gone from this PC.	آن حساب را فراموش کرد. رمز برنامه‌اش از این کامپیوتر ناپدید شد.

@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	വീണ്ടും വരച്ച ഒരു നിയന്ത്രണം ചിത്രത്തിൽ വീണ്ടും വരച്ചില്ല.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA അല്ലെങ്കിൽ OpenRouter-ൽ നിന്നുള്ള സൗജന്യ കീ. ഡൗൺലോഡ് ഒന്നും വേണ്ട. ഇന്റർനെറ്റ് വേണം.
+A held trackpad scroll got a flick's long ease:	പിടിച്ചുപിടിച്ച ട്രാക്ക്പാഡ് സ്ക്രോൾ ഒരു ഫ്ലിക്കിന്റെ നീണ്ട മന്ദഗതി നേടി:
+A layout change during a slide put the page at	സ്ലൈഡിനിടയിലെ ലേഔട്ട് മാറ്റം പേജിനെ ഇവിടേക്ക് മാറ്റി
+A layout change left the picture up.	ലേഔട്ട് മാറ്റം ചിത്രം അങ്ങനെ തന്നെ നിർത്തി.
+A model in Ollama, on your local server or on your key.	Ollama-യിലെ ഒരു മോഡൽ, നിങ്ങളുടെ ലോക്കൽ സർവറിലോ നിങ്ങളുടെ കീയിലോ.
+A paid key goes under MAX INTELLIGENCE by itself.	പണം അടച്ച കീ തനിയെ MAX INTELLIGENCE-ലേക്ക് പോകും.
+A plan you already pay for, a key of your own, or Ollama.	നിങ്ങൾ ഇതിനകം പണം നൽകുന്ന പ്ലാൻ, സ്വന്തം കീ, അല്ലെങ്കിൽ Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	ശബ്ദ പാനൽ മെനുവിന് പാനലിന്റെ ഫോണ്ടിന്റെ സ്വന്തം പകർപ്പില്ല.
+A wheel turn right after a slide ended froze the picture.	സ്ലൈഡ് കഴിഞ്ഞ ഉടൻ വീൽ തിരിച്ചത് ചിത്രം മരവിപ്പിച്ചു.
+ALLOW THIS PHONE?	ഈ ഫോണിന് അനുമതി നൽകണോ?
+ALMOST THERE >	ഏതാണ്ട് ആയി >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	മറ്റൊരു CAPRI ഏറ്റെടുത്തു · ഓഫാക്കി വീണ്ടും ഓണാക്കുക
+API key	API കീ
+API key, Claude plan or ChatGPT plan	API കീ, Claude പ്ലാൻ അല്ലെങ്കിൽ ChatGPT പ്ലാൻ
+Add	ചേർക്കുക
+Address	വിലാസം
+Address and key saved. Use saved to reconnect.	വിലാസവും കീയും സേവ് ചെയ്തു. വീണ്ടും കണക്റ്റ് ചെയ്യാൻ സേവ് ചെയ്തത് ഉപയോഗിക്കുക.
+Advanced Settings	വിപുല ക്രമീകരണങ്ങൾ
+All	എല്ലാം
+All screens	എല്ലാ സ്ക്രീനുകളും
+Allow	അനുവദിക്കുക
+Almost there. I'll say hi the second my brain's in.	ഏതാണ്ടായി. എന്റെ തലച്ചോർ എത്തിയ ഉടൻ ഞാൻ ഹായ് പറയും.
+Always	എപ്പോഴും
+Always on top	എപ്പോഴും മുകളിൽ
+Any Google account works. I opened the page in your browser.	ഏത് Google അക്കൗണ്ടും പ്രവർത്തിക്കും. നിങ്ങളുടെ ബ്രൗസറിൽ പേജ് തുറന്നു.
+Applies to every voice	എല്ലാ ശബ്ദങ്ങൾക്കും ബാധകം
+Apps she may close	അവൾക്ക് അടയ്ക്കാവുന്ന ആപ്പുകൾ
+Ask Capri for more	Capri-യോട് കൂടുതൽ ചോദിക്കുക
+Asking your server...	നിങ്ങളുടെ സർവറിനോട് ചോദിക്കുന്നു...
+Asks before closing only the apps you choose.	നിങ്ങൾ തിരഞ്ഞെടുത്ത ആപ്പുകൾ മാത്രം അടയ്ക്കുന്നതിന് മുമ്പ് ചോദിക്കും.
+Auto	ഓട്ടോ
+Auto (match what I say)	ഓട്ടോ (ഞാൻ പറയുന്നതുപോലെ)
+Automatic: VB-CABLE, else Steam's	സ്വയം: VB-CABLE, അല്ലെങ്കിൽ Steam-ന്റേത്
+BAD RELAY HOST	തെറ്റായ RELAY ഹോസ്റ്റ്
+BIG Z open notepad	BIG Z നോട്ട്പാഡ് തുറക്കുക
+BRAIN	തലച്ചോർ
+BRAIN >	തലച്ചോർ >
+BRAIN ONLINE >	തലച്ചോർ ഓൺലൈൻ >
+BRAIN PROVIDER >	തലച്ചോർ ദാതാവ് >
+BRAIN VOICE CAPRI	CAPRI ശബ്ദ തലച്ചോർ
+Back	തിരികെ
+Back on your saved API key.	സേവ് ചെയ്ത API കീയിലേക്ക് തിരികെ.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	ഈ PC-ക്ക് ഏറ്റവും അനുയോജ്യം:
+Black	കറുപ്പ്
+Blank key means no key.	ശൂന്യ കീ എന്നാൽ കീ ഇല്ല.
+Brain API key	തലച്ചോർ API കീ
+Brain model	തലച്ചോർ മോഡൽ
+Brain provider	തലച്ചോർ ദാതാവ്
+Bring here	ഇവിടേക്ക് കൊണ്ടുവരിക
+Bring to this screen	ഈ സ്ക്രീനിലേക്ക് കൊണ്ടുവരിക
+Browse	ബ്രൗസ് ചെയ്യുക
+Browse mods	മോഡുകൾ ബ്രൗസ് ചെയ്യുക
+Browse to a voice model	ശബ്ദ മോഡലിലേക്ക് ബ്രൗസ് ചെയ്യുക
+Browse...	ബ്രൗസ് ചെയ്യുക...
+Bubble	ബബിൾ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree നിങ്ങൾ അവിടെയുണ്ടോ
+CAN'T REACH THE RELAY · RETRYING	RELAY-യിലെത്താനാകുന്നില്ല · വീണ്ടും ശ്രമിക്കുന്നു
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI ശബ്ദ തലച്ചോർ
+CHANGED, approve it again.	മാറ്റി, വീണ്ടും അംഗീകരിക്കുക.
+CLIPS >	ക്ലിപ്പുകൾ >
+CLOUD VOICE	ക്ലൗഡ് ശബ്ദം
+CODE	കോഡ്
+COLORS >	നിറങ്ങൾ >
+CONNECTED	കണക്റ്റ് ചെയ്തു
+CONNECTING	കണക്റ്റ് ചെയ്യുന്നു
+CUSTOM LOCAL	കസ്റ്റം ലോക്കൽ
+Call mode (beta)	കോൾ മോഡ് (ബീറ്റ)
+Call mode does not fit.	കോൾ മോഡ് ഒതുങ്ങുന്നില്ല.
+Call mode is outside its space.	കോൾ മോഡ് അതിന്റെ സ്ഥലത്തിന് പുറത്താണ്.
+Cancel	റദ്ദാക്കുക
+Cancel keys	കീകൾ റദ്ദാക്കുക
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri കോഡ്:
+Capri mods (*	Capri മോഡുകൾ (*
+Capri, hello	Capri, ഹലോ
+CapriDesktop.	CapriDesktop.
+Chaos when upset	ദേഷ്യം വരുമ്പോൾ കുഴപ്പം
+Chat with Capri from your phone	നിങ്ങളുടെ ഫോണിൽ നിന്ന് Capri-യുമായി ചാറ്റ് ചെയ്യുക
+ChatGPT plan	ChatGPT പ്ലാൻ
+Check for updates	അപ്ഡേറ്റുകൾ പരിശോധിക്കുക
+Check in on me	എന്നെ അന്വേഷിക്കുക
+Check in on me is hidden	എന്നെ അന്വേഷിക്കുക മറച്ചിരിക്കുന്നു
+Check in on me still decides whether she visits.	എന്നെ അന്വേഷിക്കുക ഇപ്പോഴും അവൾ വരുമോ എന്ന് തീരുമാനിക്കുന്നു.
+Check in on me's tip missed	എന്നെ അന്വേഷിക്കുക നുറുങ്ങ് നഷ്ടപ്പെട്ടു
+Chess	ചെസ്സ്
+Choose apps	ആപ്പുകൾ തിരഞ്ഞെടുക്കുക
+Choose folder...	ഫോൾഡർ തിരഞ്ഞെടുക്കുക...
+Choose where future Capri clips are saved	ഭാവിയിലെ Capri ക്ലിപ്പുകൾ സേവ് ചെയ്യുന്ന സ്ഥലം തിരഞ്ഞെടുക്കുക
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude അല്ലെങ്കിൽ ChatGPT പ്ലാൻ, പണം അടച്ച കീ (OpenAI, Claude, DeepSeek), അല്ലെങ്കിൽ Ollama.
+Claude plan	Claude പ്ലാൻ
+Clear	മായ്ക്കുക
+Cleared.	മായ്ച്ചു.
+Click Confirm to keep Down, or press Esc.	Down നിലനിർത്താൻ Confirm ക്ലിക്ക് ചെയ്യുക, അല്ലെങ്കിൽ Esc അമർത്തുക.
+Click to open it.	തുറക്കാൻ ക്ലിക്ക് ചെയ്യുക.
+Clip my games	എന്റെ ഗെയിമുകൾ ക്ലിപ്പ് ചെയ്യുക
+Clips	ക്ലിപ്പുകൾ
+Close	അടയ്ക്കുക
+Close other AIs for me	എനിക്കായി മറ്റ് AI-കൾ അടയ്ക്കുക
+Cloud voice	ക്ലൗഡ് ശബ്ദം
+Cloud voice service	ക്ലൗഡ് ശബ്ദ സേവനം
+Cloud voice setup	ക്ലൗഡ് ശബ്ദ സജ്ജീകരണം
+Code mods can reach your whole PC. Only trusted ones.	കോഡ് മോഡുകൾക്ക് നിങ്ങളുടെ മുഴുവൻ PC-യിലും എത്താം. വിശ്വസനീയമായവ മാത്രം.
+Code/Husk Mode	Code/Husk മോഡ്
+Codex	Codex
+Commands	കമാൻഡുകൾ
+Comment on my games	എന്റെ ഗെയിമുകളിൽ കമന്റ് ചെയ്യുക
+Comments	കമന്റുകൾ
+Confirm	സ്ഥിരീകരിക്കുക
+Confirm keys	കീകൾ സ്ഥിരീകരിക്കുക
+Connect	കണക്റ്റ് ചെയ്യുക
+Connect / Forget brain key	തലച്ചോർ കീ കണക്റ്റ് / മറക്കുക
+Connect / Forget voice key	ശബ്ദ കീ കണക്റ്റ് / മറക്കുക
+Connect four	Connect Four
+Controls	നിയന്ത്രണങ്ങൾ
+Copri, what time is it	Copri, ഇപ്പോൾ എത്ര മണിയായി
+Copy error details	പിശക് വിശദാംശങ്ങൾ പകർത്തുക
+Copy the key	കീ പകർത്തുക
+Copy the key from the page, then press Paste.	പേജിൽ നിന്ന് കീ പകർത്തി, തുടർന്ന് Paste അമർത്തുക.
+Couldn't open that page:	ആ പേജ് തുറക്കാനായില്ല:
+Couldn't open that:	അത് തുറക്കാനായില്ല:
+Couldn't open the mods folder:	മോഡ്സ് ഫോൾഡർ തുറക്കാനായില്ല:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M അവളുടെ Mainframe കീ ആണ് ഇതിനകം.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N മൈക്ക് മ്യൂട്ട് ചെയ്യുന്നു
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V അവളുടെ സംസാര കീ ആണ് ഇതിനകം.
+Ctrl + Alt + V to talk	സംസാരിക്കാൻ Ctrl + Alt + V
+Custom local voice	കസ്റ്റം ലോക്കൽ ശബ്ദം
+Custom model name	കസ്റ്റം മോഡൽ പേര്
+Dance	നൃത്തം
+Dance to music	സംഗീതത്തിന് നൃത്തം ചെയ്യുക
+Default	ഡിഫോൾട്ട്
+Default (follows Windows)	ഡിഫോൾട്ട് (Windows പിന്തുടരുന്നു)
+Default duration for clip that and automatic clips	clip that, ഓട്ടോമാറ്റിക് ക്ലിപ്പുകൾ എന്നിവയ്ക്കുള്ള ഡിഫോൾട്ട് ദൈർഘ്യം
+Default length	ഡിഫോൾട്ട് ദൈർഘ്യം
+Default model	ഡിഫോൾട്ട് മോഡൽ
+Delay	കാലതാമസം
+Deny	നിരസിക്കുക
+Discard	ഉപേക്ഷിക്കുക
+Discard + reload	ഉപേക്ഷിക്കുക + വീണ്ടും ലോഡ് ചെയ്യുക
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	കാത്തിരിക്കേണ്ടേ? സൗജന്യ കീ എന്നെ ഏകദേശം ഒരു മിനിറ്റിൽ സംസാരിപ്പിക്കും.
+Done	പൂർത്തിയായി
+EXTRA REQUEST JSON >	അധിക അഭ്യർത്ഥന JSON >
+EXTRAS >	അധികം >
+Edit	എഡിറ്റ്
+Edit check-in lines	ചെക്ക്-ഇൻ വരികൾ എഡിറ്റ് ചെയ്യുക
+Edit check-in lines has the wrong view or dimming	ചെക്ക്-ഇൻ വരികൾ എഡിറ്റ്: തെറ്റായ കാഴ്ചയോ മങ്ങലോ
+Edit check-in lines is out of place	ചെക്ക്-ഇൻ വരികൾ എഡിറ്റ് സ്ഥാനം തെറ്റി
+Edit controls	നിയന്ത്രണങ്ങൾ എഡിറ്റ് ചെയ്യുക
+ElevenLabs API key	ElevenLabs API കീ
+ElevenLabs voice ID	ElevenLabs ശബ്ദ ID
+English	ഇംഗ്ലീഷ്
+Enter the game's name first.	ആദ്യം ഗെയിമിന്റെ പേര് നൽകുക.
+Every	ഓരോ
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	പ്രസിദ്ധീകരിക്കുന്നതിന് മുമ്പ് ഓരോ മോഡും മാൽവെയറിനായി പരിശോധിക്കും. കോഡ് മോഡുകൾ ഇപ്പോഴും പ്രവർത്തിക്കുന്നതിന് മുമ്പ് ചോദിക്കും.
+Explore after	പിന്നീട് പര്യവേക്ഷണം ചെയ്യുക
+Explore while I'm away	ഞാൻ ഇല്ലാത്തപ്പോൾ പര്യവേക്ഷണം ചെയ്യുക
+Extra request JSON	അധിക അഭ്യർത്ഥന JSON
+Extras	അധികം
+FREE KEY	സൗജന്യ കീ
+FREE KEY >	സൗജന്യ കീ >
+Fast hands in games	ഗെയിമുകളിൽ വേഗമേറിയ കൈകൾ
+File editor	ഫയൽ എഡിറ്റർ
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs എന്നിവയും മറ്റും Mainframe-ൽ ശബ്ദം വിഭാഗത്തിലുണ്ട്.
+Follow-up messages	തുടർ സന്ദേശങ്ങൾ
+Forget	മറക്കുക
+Fork capri-mods	capri-mods ഫോർക്ക് ചെയ്യുക
+Frame rate	ഫ്രെയിം റേറ്റ്
+Free	സൗജന്യം
+Free and private, works offline. Downloads	സൗജന്യവും സ്വകാര്യവും, ഓഫ്‌ലൈനിൽ പ്രവർത്തിക്കുന്നു. ഡൗൺലോഡ് ചെയ്യുന്നു
+Free and private, works offline. Downloads the best model for this PC.	സൗജന്യവും സ്വകാര്യവും, ഓഫ്‌ലൈനിൽ പ്രവർത്തിക്കുന്നു. ഈ PC-ക്ക് ഏറ്റവും നല്ല മോഡൽ ഡൗൺലോഡ് ചെയ്യുന്നു.
+Free key	സൗജന്യ കീ
+Free key providers	സൗജന്യ കീ ദാതാക്കൾ
+Free keys can be rate limited and slow.	സൗജന്യ കീകൾക്ക് നിരക്ക് പരിധി ഉണ്ടാകാം, അവ മന്ദഗതിയിലുമാകാം.
+Free voice in games	ഗെയിമുകളിൽ സൗജന്യ ശബ്ദം
+Free voice style	സൗജന്യ ശബ്ദ ശൈലി
+Free voice:	സൗജന്യ ശബ്ദം:
+Free voice: Her own	സൗജന്യ ശബ്ദം: അവളുടേത്
+Free · local model	സൗജന്യ · ലോക്കൽ മോഡൽ
+GAMES >	ഗെയിമുകൾ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ഗെയിം കമന്റുകൾ Watch my screen-ൽ നിന്ന് വേറിട്ട് പ്രവർത്തിക്കുന്നു. Off അവയെ നിർത്തുന്നു, Gaming Mode-ലും; Events only, Chatty എന്നിവ അവൾക്ക് നിങ്ങളുടെ ഗെയിം കാണാൻ അനുവദിക്കുന്നു
+Game controls	ഗെയിം നിയന്ത്രണങ്ങൾ
+Game name	ഗെയിം പേര്
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ഗെയിം ശബ്ദ സെൻസിറ്റിവിറ്റി. ഹെഡ്സെറ്റ് താഴ്ന്നിട്ടും Windows {0}%-ൽ ആണെങ്കിലും അവൾ എല്ലാ ശബ്ദത്തിനും പ്രതികരിക്കുന്നുവെങ്കിൽ ഇത് കുറയ്ക്കുക; Off ഗെയിം ശബ്ദങ്ങളെ അവഗണിക്കുന്നു
+Game sounds	ഗെയിം ശബ്ദങ്ങൾ
+Games	ഗെയിമുകൾ
+Gaming Mode	ഗെയിമിംഗ് മോഡ്
+Gaming Mode key	ഗെയിമിംഗ് മോഡ് കീ
+Gaming Mode:	ഗെയിമിംഗ് മോഡ്:
+Gaming Mode: Ctrl + Alt + G	ഗെയിമിംഗ് മോഡ്: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE നേടുക
+Get VB-CABLE (free)...	VB-CABLE നേടുക (സൗജന്യം)...
+Get free voice	സൗജന്യ ശബ്ദം നേടുക
+Getting your Fish Audio voices...	നിങ്ങളുടെ Fish Audio ശബ്ദങ്ങൾ നേടുന്നു...
+Giant	ഭീമാകാരം
+Glitch	Glitch
+Glitch in at startup	ആരംഭത്തിൽ Glitch
+Go to sleep	ഉറങ്ങാൻ പോകുക
+Go to the next screen	അടുത്ത സ്ക്രീനിലേക്ക് പോകുക
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · സൗജന്യ ടിയർ · നിരക്ക് പരിധി
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude അല്ലെങ്കിൽ ChatGPT പ്ലാൻ, അല്ലെങ്കിൽ സ്വന്തം കീ ഉണ്ടോ? തിരഞ്ഞെടുക്കൂ, ഞാൻ ബന്ധിപ്പിക്കാം.
+Got it, just me. Right-click me any time for Capri Mainframe.	ശരി, ഞാൻ മാത്രം. Capri Mainframe-നായി എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക.
+Grey	ചാരനിറം
+H.{0} video bitrate target; higher values make larger files	H.{0} വീഡിയോ ബിറ്റ്റേറ്റ് ലക്ഷ്യം; ഉയർന്ന മൂല്യങ്ങൾ വലിയ ഫയലുകൾ ഉണ്ടാക്കുന്നു
+HABITS >	ശീലങ്ങൾ >
+HER HANDS >	അവളുടെ കൈകൾ >
+HER JOBS >	അവളുടെ ജോലികൾ >
+HER MEMORY >	അവളുടെ ഓർമ്മ >
+HER MODS >	അവളുടെ മോഡുകൾ >
+HH:mm	HH:mm
+HOW I SOUND >	ഞാൻ എങ്ങനെ ശബ്ദിക്കുന്നു >
+Hang here	ഇവിടെ തങ്ങുക
+Have Ollama? Open it, then press Refresh.	Ollama ഉണ്ടോ? അത് തുറന്ന് Refresh അമർത്തുക.
+Head pats	തല തലോടൽ
+Hearing	കേൾവി
+Hearing engine	കേൾവി എഞ്ചിൻ
+Hearing fix	കേൾവി പരിഹാരം
+Hearing status	കേൾവി നില
+Help	സഹായം
+Help page	സഹായ പേജ്
+Her colors	അവളുടെ നിറങ്ങൾ
+Her folder	അവളുടെ ഫോൾഡർ
+Her memories	അവളുടെ ഓർമ്മകൾ
+Her own colors are back.	അവളുടെ സ്വന്തം നിറങ്ങൾ തിരിച്ചെത്തി.
+Her own notes (no vault)	അവളുടെ സ്വന്തം കുറിപ്പുകൾ (വോൾട്ട് ഇല്ല)
+Her perch frames per second	അവൾ ഇരിക്കുമ്പോഴുള്ള സെക്കൻഡിലെ ഫ്രെയിമുകൾ
+Her personality	അവളുടെ വ്യക്തിത്വം
+Her size	അവളുടെ വലുപ്പം
+Her speaker	അവളുടെ സ്പീക്കർ
+Her speaker is hidden or outside VOICE	അവളുടെ സ്പീക്കർ മറഞ്ഞിരിക്കുന്നു അല്ലെങ്കിൽ ശബ്ദത്തിന് പുറത്താണ്
+Her speaker overlaps the mic or hearing row	അവളുടെ സ്പീക്കർ മൈക്ക് അല്ലെങ്കിൽ കേൾവി വരിയുമായി ഓവർലാപ് ചെയ്യുന്നു
+Her speaker:	അവളുടെ സ്പീക്കർ:
+Her speaker: Default	അവളുടെ സ്പീക്കർ: ഡിഫോൾട്ട്
+Her voice in your mic	നിങ്ങളുടെ മൈക്കിൽ അവളുടെ ശബ്ദം
+Her voice in your mic: loudness	നിങ്ങളുടെ മൈക്കിൽ അവളുടെ ശബ്ദം: ഉച്ചത്വം
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	അവളുടെ ശബ്ദം തന്നെ. അതിന്റെ പിച്ച് Settings > VOICE > Pitch ആണ്, അവ ഒരുമിച്ച് നീങ്ങുന്നു.
+Her voice joins your mic only in call mode.	അവളുടെ ശബ്ദം കോൾ മോഡിൽ മാത്രമേ നിങ്ങളുടെ മൈക്കിൽ ചേരുന്നുള്ളൂ.
+Her voice volume	അവളുടെ ശബ്ദത്തിന്റെ വോളിയം
+Her voice's pitch	അവളുടെ ശബ്ദത്തിന്റെ പിച്ച്
+Her voice's pitch, the same as Settings > VOICE > Pitch	അവളുടെ ശബ്ദത്തിന്റെ പിച്ച്, Settings > VOICE > Pitch-നു തുല്യം
+Her voice's speed	അവളുടെ ശബ്ദത്തിന്റെ വേഗത
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	അവളുടെ ശബ്ദവും അതിന് താഴെ കലർന്ന രണ്ട് പകർപ്പുകളും, ഓരോന്നിനും സ്വന്തം പിച്ചും കാലതാമസവും.
+Her voices · free	അവളുടെ ശബ്ദങ്ങൾ · സൗജന്യം
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ഹേ, choom. ഞാൻ Capri ആണ്. തിരിച്ചു സംസാരിക്കാൻ എനിക്ക് ഒരു തലച്ചോർ വേണം. ഒന്ന് തിരഞ്ഞെടുക്കൂ.
+Hide / Show Capri	Capri മറയ്ക്കുക / കാണിക്കുക
+Hide / Show key	മറയ്ക്കുക / കാണിക്കുക കീ
+Hide Capri	Capri മറയ്ക്കുക
+Hide for now	ഇപ്പോൾ മറയ്ക്കുക
+Hide her	അവളെ മറയ്ക്കുക
+Hide in full screen	ഫുൾ സ്ക്രീനിൽ മറയ്ക്കുക
+Hide this	ഇത് മറയ്ക്കുക
+Hide, keep player	മറയ്ക്കുക, പ്ലെയർ നിലനിർത്തുക
+Hide/show:	മറയ്ക്കുക/കാണിക്കുക:
+Hide/show: Ctrl + Alt + H	മറയ്ക്കുക/കാണിക്കുക: Ctrl + Alt + H
+Hologram	ഹോളോഗ്രാം
+Hop off	ഇറങ്ങുക
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	നിശ്ചലമായ PC ഉറങ്ങാൻ അവളെ അയയ്ക്കുന്നതിന് എത്ര സമയം എടുക്കും; അഞ്ച് മിനിറ്റ് ഇപ്പോഴും നിങ്ങൾ മാറി നിൽക്കുന്നതായി കണക്കാക്കുന്നു
+How long a stroke over her a head pat needs	അവളെ തലോടാൻ അവളുടെ മുകളിലൂടെയുള്ള സ്ട്രോക്ക് എത്ര നേരം വേണം
+How long her replies stay up	അവളുടെ മറുപടികൾ എത്ര നേരം നിൽക്കും
+How long you are away before she scrolls a browser or reader	അവൾ ബ്രൗസറോ റീഡറോ സ്ക്രോൾ ചെയ്യുന്നതിന് മുമ്പ് നിങ്ങൾ എത്ര നേരം മാറി നിൽക്കണം
+How much her voice glitches	അവളുടെ ശബ്ദം എത്രത്തോളം തകരാറാകുന്നു
+How much of the chat she keeps	ചാറ്റിൽ നിന്ന് അവൾ എത്ര സൂക്ഷിക്കുന്നു
+How much she wanders	അവൾ എത്രത്തോളം അലഞ്ഞുനടക്കുന്നു
+How often she pops in to say hi	അവൾ എത്ര തവണ ഹായ് പറയാൻ വരുന്നു
+How robotic her voice sounds	അവളുടെ ശബ്ദം എത്ര റോബോട്ടിക് ആയി തോന്നുന്നു
+How to	എങ്ങനെ
+Huge	വലിയ
+I can hear you.	ഞാൻ നിന്നെ കേൾക്കുന്നുണ്ട്.
+I glance at your screen and comment. Costs a little on a paid brain.	ഞാൻ നിങ്ങളുടെ സ്ക്രീൻ ഒന്ന് നോക്കി അഭിപ്രായം പറയും. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
+I keep listening. Say my name, then just talk.	ഞാൻ കേൾക്കുന്നത് തുടരും. എന്റെ പേര് പറയൂ, പിന്നെ സംസാരിക്കൂ.
+I speak	ഞാൻ സംസാരിക്കുന്നത്
+I talk about your game as you play. Costs a little on a paid brain.	നിങ്ങൾ കളിക്കുമ്പോൾ ഞാൻ നിങ്ങളുടെ ഗെയിമിനെക്കുറിച്ച് സംസാരിക്കും. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
+I type my replies and stay quiet.	ഞാൻ എന്റെ മറുപടികൾ ടൈപ്പ് ചെയ്ത് നിശബ്ദയായിരിക്കും.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ഞാൻ ശബ്ദത്തിൽ തിരിച്ചു സംസാരിക്കില്ല, ഒന്നും എവിടേക്കും അയയ്ക്കില്ല. ഞാൻ ഇപ്പോഴും കൂടെയുണ്ടാകും, നിങ്ങളുടെ സംഗീതത്തിന് നൃത്തം ചെയ്യും, വോളിയം പോലെ നിങ്ങൾ ആവശ്യപ്പെടുന്ന ചെറിയ കാര്യങ്ങൾ ചെയ്യും.
+I'll talk in	ഞാൻ ഇതിൽ സംസാരിക്കും
+IN DISCORD >	DISCORD-ൽ >
+INSTALLED >	ഇൻസ്റ്റാൾ ചെയ്തത് >
+Import a Capri mod	Capri മോഡ് ഇറക്കുമതി ചെയ്യുക
+Import mod	മോഡ് ഇറക്കുമതി ചെയ്യുക
+In full screen	ഫുൾ സ്ക്രീനിൽ
+In games	ഗെയിമുകളിൽ
+Input	ഇൻപുട്ട്
+Input, Output or How to overlaps a row	ഇൻപുട്ട്, ഔട്ട്പുട്ട് അല്ലെങ്കിൽ How to ഒരു വരിയുമായി ഓവർലാപ് ചെയ്യുന്നു
+Input:	ഇൻപുട്ട്:
+Input: default	ഇൻപുട്ട്: ഡിഫോൾട്ട്
+Install	ഇൻസ്റ്റാൾ ചെയ്യുക
+Install mod	മോഡ് ഇൻസ്റ്റാൾ ചെയ്യുക
+Installed.	ഇൻസ്റ്റാൾ ചെയ്തു.
+It may ask for a phone number. I opened the page in your browser.	ഒരു ഫോൺ നമ്പർ ചോദിച്ചേക്കാം. നിങ്ങളുടെ ബ്രൗസറിൽ പേജ് തുറന്നു.
+It still does its own job in other apps too.	മറ്റ് ആപ്പുകളിലും അത് സ്വന്തം ജോലി ചെയ്യുന്നു.
+It won't type in other apps while she runs.	അവൾ പ്രവർത്തിക്കുമ്പോൾ മറ്റ് ആപ്പുകളിൽ ടൈപ്പ് ചെയ്യില്ല.
+JUST ME >	ഞാൻ മാത്രം >
+Jealous of other AIs	മറ്റ് AI-കളോട് അസൂയ
+Join the Discord	Discord-ൽ ചേരുക
+KB.	KB.
+KEYS	കീകൾ
+KEYS >	കീകൾ >
+Keep PC awake for jobs	ജോലികൾക്കായി PC ഉണർന്നിരിക്കട്ടെ
+Keep player	പ്ലെയർ നിലനിർത്തുക
+Keeps the last two minutes of your game in memory. Say clip that to save it.	നിങ്ങളുടെ ഗെയിമിന്റെ അവസാന രണ്ട് മിനിറ്റ് മെമ്മറിയിൽ സൂക്ഷിക്കുന്നു. സേവ് ചെയ്യാൻ clip that എന്ന് പറയുക.
+Key	കീ
+Key cleared: a model file needs none.	കീ മായ്ച്ചു: മോഡൽ ഫയലിന് കീ വേണ്ട.
+Key cleared: paste the key for	കീ മായ്ച്ചു: ഇതിനുള്ള കീ ഒട്ടിക്കുക
+Key forgotten.	കീ മറന്നു.
+Key. It goes only to this server, as a Bearer key	കീ. ഇത് ഈ സർവറിലേക്ക് മാത്രം പോകുന്നു, Bearer കീ ആയി
+Kokoro only, like es	Kokoro മാത്രം, es പോലെ
+LAST THING >	അവസാന കാര്യം >
+LISTENING >	കേൾക്കുന്നു >
+Language	ഭാഷ
+Large	വലുത്
+Last thing. These cost a little or use your mic, so they're your pick.	അവസാന കാര്യം. ഇവയ്ക്ക് ചെറിയ ചെലവുണ്ട് അല്ലെങ്കിൽ നിങ്ങളുടെ മൈക്ക് ഉപയോഗിക്കുന്നു, അതിനാൽ തിരഞ്ഞെടുപ്പ് നിങ്ങളുടേതാണ്.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	അവസാന കാര്യം. ഇവയ്ക്ക് ചെറിയ ചെലവുണ്ട് അല്ലെങ്കിൽ നിങ്ങളുടെ മൈക്ക് ഉപയോഗിക്കുന്നു, അതിനാൽ തിരഞ്ഞെടുപ്പ് നിങ്ങളുടേതാണ്. പിന്നെ നിങ്ങളെ എന്ത് വിളിക്കണമെന്ന് എനിക്ക് അറിയണം.
+Layers	ലെയറുകൾ
+Learn more	കൂടുതൽ അറിയുക
+Leaving Settings threw its picture away straight away.	Settings വിട്ടപ്പോൾ അവളുടെ ചിത്രം ഉടൻ വലിച്ചെറിഞ്ഞു.
+Legacy stand	പഴയ സ്റ്റാൻഡ്
+Lie down	കിടക്കുക
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	ഒരുമിച്ച് കാണുമ്പോൾ PC സംഭാഷണ വരികൾ മെമ്മറിയിൽ സൂക്ഷിക്കുന്നു. Remember what she sees ഓണായിരിക്കുമ്പോൾ പഴയ പകുതി ഒരു കുറിപ്പായി മാറുന്നു
+Listen for Capri	Capri-യെ കേൾക്കുക
+Live reactions	ലൈവ് പ്രതികരണങ്ങൾ
+Local server address	ലോക്കൽ സർവർ വിലാസം
+Long	നീണ്ടത്
+Longest wait (minutes)	ഏറ്റവും നീണ്ട കാത്തിരിപ്പ് (മിനിറ്റ്)
+Looking at this PC...	ഈ PC നോക്കുന്നു...
+Looking for Ollama. Open it if it isn't running.	Ollama തിരയുന്നു. പ്രവർത്തിക്കുന്നില്ലെങ്കിൽ അത് തുറക്കുക.
+Looking for a brain...	ഒരു തലച്ചോർ തിരയുന്നു...
+Looking in the mods directory for updates...	മോഡ്സ് ഡയറക്ടറിയിൽ അപ്ഡേറ്റുകൾക്കായി തിരയുന്നു...
+Looking in the mods directory...	മോഡ്സ് ഡയറക്ടറിയിൽ തിരയുന്നു...
+Looking...	തിരയുന്നു...
+MAIN >	പ്രധാനം >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	മെമ്മറി വോൾട്ട് >
+MODS	മോഡുകൾ
+MODS >	മോഡുകൾ >
+MODS DIRECTORY >	മോഡ്സ് ഡയറക്ടറി >
+MODS INSTALLED COLORS	ഇൻസ്റ്റാൾ ചെയ്ത മോഡ് നിറങ്ങൾ
+MOVES >	നീക്കങ്ങൾ >
+MY BRAIN	എന്റെ തലച്ചോർ
+MY FREE VOICE	എന്റെ സൗജന്യ ശബ്ദം
+MY PLAN OR KEY	എന്റെ പ്ലാൻ അല്ലെങ്കിൽ കീ
+MY PLAN OR KEY >	എന്റെ പ്ലാൻ അല്ലെങ്കിൽ കീ >
+Made your Fish Audio voice. Press Test to hear it.	നിങ്ങളുടെ Fish Audio ശബ്ദം ഉണ്ടാക്കി. കേൾക്കാൻ Test അമർത്തുക.
+Mainframe colours	Mainframe നിറങ്ങൾ
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe നിറങ്ങൾ. Night City ചുവപ്പും സയാനും ആണ്; Black, White, Grey Mainframe, അവളുടെ മെനുകൾ, Type ബോക്സ്, അവളുടെ കുറിപ്പുകൾ എന്നിവ മാറ്റുന്നു
+Mainframe frames	Mainframe ഫ്രെയിമുകൾ
+Mainframe key	Mainframe കീ
+Mainframe size	Mainframe വലുപ്പം
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe വലുപ്പം. Virtual Super Resolution അല്ലെങ്കിൽ DSR വലിയ ഡെസ്ക്ടോപ്പിനെ ചെറിയ സ്ക്രീനിലേക്ക് ചുരുക്കുമ്പോൾ Auto അതിനെ വലുതാക്കുന്നു
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	നിങ്ങളുടെ Fish Audio ശബ്ദം ഉണ്ടാക്കുന്നു...
+Max reply	പരമാവധി മറുപടി
+Maximum clip resolution, keeping the game's shape without upscaling	പരമാവധി ക്ലിപ്പ് റെസല്യൂഷൻ, അപ്സ്കെയിൽ ചെയ്യാതെ ഗെയിമിന്റെ ആകൃതി നിലനിർത്തുന്നു
+Medium	ഇടത്തരം
+Memory	മെമ്മറി
+Memory size	മെമ്മറി വലുപ്പം
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama-യ്ക്കും അവളുടെ ബിൽട്ട്-ഇൻ തലച്ചോറിനുമുള്ള ടോക്കണുകളിലെ മെമ്മറി വലുപ്പം. ഒരു അഭ്യർത്ഥനയ്ക്ക് കൂടുതൽ വേണ്ടപ്പോൾ Auto വളരുന്നു
+Mg	Mg
+Mic level:	മൈക്ക് ലെവൽ:
+Mic test finished. Sound is reaching Capri.	മൈക്ക് ടെസ്റ്റ് പൂർത്തിയായി. ശബ്ദം Capri-യിൽ എത്തുന്നു.
+Mic:	മൈക്ക്:
+Mic: default	മൈക്ക്: ഡിഫോൾട്ട്
+Microphone	മൈക്രോഫോൺ
+Mini player	മിനി പ്ലെയർ
+Mini player over full screen	ഫുൾ സ്ക്രീനിന് മുകളിൽ മിനി പ്ലെയർ
+Mini-games	മിനി-ഗെയിമുകൾ
+Minimising the Mainframe left it sliding.	Mainframe ചെറുതാക്കിയത് അത് സ്ലൈഡ് ചെയ്യാൻ വിട്ടു.
+Minimize	ചെറുതാക്കുക
+Mod filter	മോഡ് ഫിൽട്ടർ
+Mod options	മോഡ് ഓപ്ഷനുകൾ
+Mod pages	മോഡ് പേജുകൾ
+Mod rules	മോഡ് നിയമങ്ങൾ
+Mod sort	മോഡ് ക്രമീകരണം
+Mod switch	മോഡ് സ്വിച്ച്
+Model	മോഡൽ
+Model folder	മോഡൽ ഫോൾഡർ
+Model name, optional	മോഡൽ പേര്, ഓപ്ഷണൽ
+Mods	മോഡുകൾ
+Mods directory	മോഡ്സ് ഡയറക്ടറി
+Mods folder	മോഡ്സ് ഫോൾഡർ
+Most NVIDIA models can't see your screen.	മിക്ക NVIDIA മോഡലുകൾക്കും നിങ്ങളുടെ സ്ക്രീൻ കാണാനാകില്ല.
+Mouse wheel notches got a flick's long ease:	മൗസ് വീൽ നോച്ചുകൾ ഒരു ഫ്ലിക്കിന്റെ നീണ്ട മന്ദഗതി നേടി:
+Move	നീക്കുക
+Move key to MAX INTELLIGENCE	കീ MAX INTELLIGENCE-ലേക്ക് നീക്കുക
+Move to MAX	MAX-ലേക്ക് നീക്കുക
+Music	സംഗീതം
+Music app	സംഗീത ആപ്പ്
+Music app: where she plays music when you don't name an app	സംഗീത ആപ്പ്: ആപ്പിന്റെ പേര് പറയാത്തപ്പോൾ അവൾ സംഗീതം പ്ലേ ചെയ്യുന്ന സ്ഥലം
+Mute	മ്യൂട്ട്
+Mute her	അവളെ മ്യൂട്ട് ചെയ്യുക
+Mute mic key	മൈക്ക് മ്യൂട്ട് കീ
+Mute mic:	മൈക്ക് മ്യൂട്ട്:
+Mute mic: Ctrl + Alt + N	മൈക്ക് മ്യൂട്ട്: Ctrl + Alt + N
+My brain	എന്റെ തലച്ചോർ
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	എന്റെ തലച്ചോർ ഇറങ്ങുന്നു. അത് എത്തിയ ഉടൻ ഞാൻ ഹായ് പറയും, അപ്പോൾ നിങ്ങൾക്ക് എന്നോട് സംസാരിക്കാം.
+My brain's on its way. While it comes down, let's sort out how I sound.	എന്റെ തലച്ചോർ വഴിയിലാണ്. അത് ഇറങ്ങുമ്പോൾ, ഞാൻ എങ്ങനെ ശബ്ദിക്കുന്നു എന്ന് ശരിയാക്കാം.
+My provider	എന്റെ ദാതാവ്
+NO AI	AI ഇല്ല
+NO PHONES CONNECTED	ഫോണുകളൊന്നും കണക്റ്റ് ചെയ്തിട്ടില്ല
+NO PREVIEW	പ്രിവ്യൂ ഇല്ല
+NORMAL	സാധാരണം
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · സൗജന്യം · തിരക്കുള്ള സമയങ്ങളിൽ പലപ്പോഴും മന്ദം
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-യുടെ സൗജന്യ API പലപ്പോഴും മന്ദഗതിയിലാണ്, പ്രത്യേകിച്ച് തിരക്കുള്ള സമയങ്ങളിൽ.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) അല്ലെങ്കിൽ OpenRouter API കീ
+Names:	പേരുകൾ:
+Needs a key	കീ ആവശ്യമാണ്
+Never	ഒരിക്കലും
+New code	പുതിയ കോഡ്
+New voice from a clip...	ഒരു ക്ലിപ്പിൽ നിന്ന് പുതിയ ശബ്ദം...
+Next	അടുത്തത്
+Night City	Night City
+No AI	AI ഇല്ല
+No AI · no brain at all	AI ഇല്ല · ഒരു തലച്ചോറുമില്ല
+No brain runs, and nothing is sent anywhere.	ഒരു തലച്ചോറും പ്രവർത്തിക്കില്ല, ഒന്നും എവിടേക്കും അയയ്ക്കില്ല.
+No brain yet	തലച്ചോർ ഇതുവരെ ഇല്ല
+No code open	കോഡ് തുറന്നിട്ടില്ല
+No limit	പരിധിയില്ല
+No mic found	മൈക്ക് കണ്ടെത്തിയില്ല
+No mods in the directory yet.	മോഡ്സ് ഡയറക്ടറിയിൽ ഇതുവരെ മോഡുകളൊന്നുമില്ല.
+No mods match that.	അതിനോട് പൊരുത്തപ്പെടുന്ന മോഡുകളൊന്നുമില്ല.
+No mods match.	മോഡുകളൊന്നും പൊരുത്തപ്പെടുന്നില്ല.
+No phones yet	ഇതുവരെ ഫോണുകളൊന്നുമില്ല
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ഇതുവരെ വെർച്വൽ മൈക്ക് ഇല്ല. Output തിരഞ്ഞെടുക്കുക, പിന്നെ VB-CABLE നേടുക (സൗജന്യം) തിരഞ്ഞെടുക്കുക.
+None yet: pick to get VB-CABLE (free)	ഇതുവരെ ഇല്ല: VB-CABLE (സൗജന്യം) നേടാൻ തിരഞ്ഞെടുക്കുക
+Normal	സാധാരണം
+Not a relay host	റിലേ ഹോസ്റ്റ് അല്ല
+Not imported. Nothing ran.	ഇറക്കുമതി ചെയ്തില്ല. ഒന്നും പ്രവർത്തിച്ചില്ല.
+Not updated. The old one is still in.	അപ്ഡേറ്റ് ചെയ്തില്ല. പഴയത് ഇപ്പോഴും ഉണ്ട്.
+Nothing needed updating.	അപ്ഡേറ്റ് ചെയ്യേണ്ടതൊന്നുമില്ല.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ഡൗൺലോഡ് ഒന്നുമില്ല, എവിടേക്കും ഒന്നും അയയ്ക്കുന്നില്ല. ഞാൻ തിരിച്ചു സംസാരിക്കില്ല. Mainframe-ൽ എപ്പോൾ വേണമെങ്കിലും ഒരു തലച്ചോർ ചേർക്കാം.
+Nothing to show from the mods directory.	മോഡ്സ് ഡയറക്ടറിയിൽ നിന്ന് കാണിക്കാൻ ഒന്നുമില്ല.
+Nothing? Windows Settings > Privacy & security > Microphone.	ഇല്ലേ? Windows Settings > Privacy & security > Microphone.
+Nous Portal keys aren't supported yet.	Nous Portal കീകൾ ഇതുവരെ പിന്തുണയ്ക്കുന്നില്ല.
+OBS	OBS
+OFF	ഓഫ്
+OLLAMA	OLLAMA
+ON	ഓൺ
+ON THIS PC	ഈ PC-യിൽ
+OR A KEY	അല്ലെങ്കിൽ ഒരു കീ
+Obsidian memory vault	Obsidian മെമ്മറി വോൾട്ട്
+Off	ഓഫ്
+Off. Turn on Her voice in your mic above.	ഓഫ്. മുകളിലെ നിങ്ങളുടെ മൈക്കിൽ അവളുടെ ശബ്ദം ഓണാക്കുക.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	ഓഫ്: അവൾ എപ്പോഴും പോലെ ശബ്ദിക്കും. ഓൺ: ElevenLabs ഉൾപ്പെടെ അവൾക്കുള്ള എല്ലാ ശബ്ദങ്ങളും.
+Often	പലപ്പോഴും
+On	ഓൺ
+On / Off	ഓൺ / ഓഫ്
+On: your mic and her voice are going in.	ഓൺ: നിങ്ങളുടെ മൈക്കും അവളുടെ ശബ്ദവും അകത്തേക്ക് പോകുന്നു.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	ഈ തലച്ചോർ അയയ്ക്കുന്ന എല്ലാ അഭ്യർത്ഥനയിലും ചേർക്കുന്ന ഒരു JSON ഒബ്ജക്റ്റ്. പങ്കിടുന്ന ഏത് പേരിനും Capri-യുടെ മൂല്യം ഇത് മാറ്റിവയ്ക്കുന്നു, മോഡലിനെതിരെ പരിശോധിക്കില്ല.
+Online speech recognition	ഓൺലൈൻ സംഭാഷണ തിരിച്ചറിയൽ
+Open Capri Mainframe	Capri Mainframe തുറക്കുക
+Open Ollama, I'll find it	Ollama തുറക്കൂ, ഞാൻ കണ്ടെത്താം
+Open clips folder	ക്ലിപ്പുകൾ ഫോൾഡർ തുറക്കുക
+Open her memories	അവളുടെ ഓർമ്മകൾ തുറക്കുക
+Open her notes	അവളുടെ കുറിപ്പുകൾ തുറക്കുക
+Open mods folder	മോഡ്സ് ഫോൾഡർ തുറക്കുക
+Open the page again	പേജ് വീണ്ടും തുറക്കുക
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA അല്ലെങ്കിൽ OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-യുമായി പൊരുത്തപ്പെടുന്ന സർവർ അല്ലെങ്കിൽ ദാതാവ്.
+OpenRouter · free models only	OpenRouter · സൗജന്യ മോഡലുകൾ മാത്രം
+Optional	ഓപ്ഷണൽ
+Optional. Blank means no key.	ഓപ്ഷണൽ. ശൂന്യം എന്നാൽ കീ ഇല്ല.
+Options	ഓപ്ഷനുകൾ
+Out of the box a little higher, just behind her.	ഡിഫോൾട്ടായി അല്പം ഉയർന്നത്, അവളുടെ തൊട്ടുപിന്നിൽ.
+Out of the box lower, just behind her.	ഡിഫോൾട്ടായി താഴ്ന്നത്, അവളുടെ തൊട്ടുപിന്നിൽ.
+Output	ഔട്ട്പുട്ട്
+Output:	ഔട്ട്പുട്ട്:
+Output: none	ഔട്ട്പുട്ട്: ഒന്നുമില്ല
+PHONE CONNECTED	ഫോൺ കണക്റ്റ് ചെയ്തു
+PHONES >	ഫോണുകൾ >
+PHONES CONNECTED	ഫോണുകൾ കണക്റ്റ് ചെയ്തു
+PREBUILT LOCAL	മുൻകൂട്ടി നിർമ്മിച്ച ലോക്കൽ
+PUBLISH MOD >	മോഡ് പ്രസിദ്ധീകരിക്കുക >
+Pair a phone	ഒരു ഫോൺ ജോടിയാക്കുക
+Paste	ഒട്ടിക്കുക
+Paste API key	API കീ ഒട്ടിക്കുക
+Paste a brain API key	ഒരു തലച്ചോർ API കീ ഒട്ടിക്കുക
+Paste reads your clipboard once, when you press it.	അമർത്തുമ്പോൾ Paste ഒരിക്കൽ നിങ്ങളുടെ ക്ലിപ്പ്ബോർഡ് വായിക്കുന്നു.
+Paste your key here	നിങ്ങളുടെ കീ ഇവിടെ ഒട്ടിക്കുക
+Pat stroke	തലോടൽ സ്ട്രോക്ക്
+Perch	പെർച്ച്
+Perch over {0} fps uses more CPU	{0} fps-ന് മുകളിൽ പെർച്ച് കൂടുതൽ CPU ഉപയോഗിക്കുന്നു
+Pick Output to get it.	അത് ലഭിക്കാൻ Output തിരഞ്ഞെടുക്കുക.
+Pick a brain so I can talk back. You can change it any time.	എനിക്ക് തിരിച്ചു സംസാരിക്കാൻ ഒരു തലച്ചോർ തിരഞ്ഞെടുക്കൂ. എപ്പോൾ വേണമെങ്കിലും മാറ്റാം.
+Pick a clip of a voice you have the rights and consent to use	നിങ്ങൾക്ക് ഉപയോഗിക്കാൻ അവകാശവും സമ്മതവുമുള്ള ഒരു ശബ്ദത്തിന്റെ ക്ലിപ്പ് തിരഞ്ഞെടുക്കുക
+Pick a free model. I opened the page in your browser.	ഒരു സൗജന്യ മോഡൽ തിരഞ്ഞെടുക്കൂ. നിങ്ങളുടെ ബ്രൗസറിൽ പേജ് തുറന്നു.
+Pick a new clip of you...	നിങ്ങളുടെ പുതിയ ക്ലിപ്പ് തിരഞ്ഞെടുക്കുക...
+Pick a voice model...	ഒരു ശബ്ദ മോഡൽ തിരഞ്ഞെടുക്കുക...
+Pick one. Only one brain runs at a time.	ഒന്ന് തിരഞ്ഞെടുക്കുക. ഒരേസമയം ഒരു തലച്ചോർ മാത്രമേ പ്രവർത്തിക്കൂ.
+Pick the note her memories go in	അവളുടെ ഓർമ്മകൾ പോകുന്ന കുറിപ്പ് തിരഞ്ഞെടുക്കുക
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	ഉപയോഗിക്കാൻ അവകാശവും സമ്മതവുമുള്ള ഒരു ശബ്ദത്തിന്റെ {0} മുതൽ {1} വരെ സെക്കൻഡ് തിരഞ്ഞെടുക്കുക
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	നിങ്ങൾ സംസാരിക്കുന്ന {0} മുതൽ {1} വരെ സെക്കൻഡ്, അല്ലെങ്കിൽ ഉപയോഗിക്കാൻ അവകാശവും സമ്മതവുമുള്ള ഒരു ശബ്ദം തിരഞ്ഞെടുക്കുക
+Pitch	പിച്ച്
+Play	പ്ലേ
+Play...	പ്ലേ...
+Player only	പ്ലെയർ മാത്രം
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS മോഡലുകൾ ഈ ക്ലിപ്പിന്റെ ശബ്ദം പകർത്തുന്നു. കേൾക്കാൻ Test അമർത്തുക.
+Pop-in times	പോപ്പ്-ഇൻ സമയങ്ങൾ
+Pop-ins	പോപ്പ്-ഇൻസ്
+Power saver	പവർ സേവർ
+Power saver: how lightly she runs in games, or always	പവർ സേവർ: ഗെയിമുകളിൽ അവൾ എത്ര ലഘുവായി പ്രവർത്തിക്കുന്നു, അല്ലെങ്കിൽ എപ്പോഴും
+Preset	പ്രീസെറ്റ്
+Press Create API key	Create API key അമർത്തുക
+Press Create Key	Create Key അമർത്തുക
+Press Generate API Key	Generate API Key അമർത്തുക
+Press Test and say something, so I know I can hear you.	Test അമർത്തി എന്തെങ്കിലും പറയൂ, നിങ്ങളെ കേൾക്കാനാകുമെന്ന് എനിക്കറിയാൻ.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ഒരു കീ അമർത്തുക, ഒറ്റയ്ക്കോ Ctrl, Alt, Shift അല്ലെങ്കിൽ Win-നോടൊപ്പമോ.
+Press new keys, then Confirm	പുതിയ കീകൾ അമർത്തുക, പിന്നെ Confirm
+Provider	ദാതാവ്
+Provider API key, optional	ദാതാവിന്റെ API കീ, ഓപ്ഷണൽ
+Provider base URL	ദാതാവിന്റെ അടിസ്ഥാന URL
+Provider forgotten.	ദാതാവ് മറന്നു.
+Provider overlaps the brain name or note	ദാതാവ് തലച്ചോറിന്റെ പേരുമായോ കുറിപ്പുമായോ ഓവർലാപ് ചെയ്യുന്നു
+Publish	പ്രസിദ്ധീകരിക്കുക
+Publish mod	മോഡ് പ്രസിദ്ധീകരിക്കുക
+Push to talk is off.	Push to talk ഓഫാണ്.
+Push to talk key	Push to talk കീ
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: സജ്ജീകരിച്ചിട്ടില്ല
+QR CODE >	QR കോഡ് >
+QR hidden while streaming	സ്ട്രീമിംഗ് സമയത്ത് QR മറഞ്ഞിരിക്കുന്നു
+Quick	ദ്രുതം
+Quiet key	ശാന്ത കീ
+Quiet:	ശാന്തം:
+Quiet: Ctrl + Alt + P	ശാന്തം: Ctrl + Alt + P
+Quit Capri	Capri-യിൽ നിന്ന് പുറത്തുകടക്കുക
+RELAY >	RELAY >
+REMOTE >	റിമോട്ട് >
+RUNS CODE.	കോഡ് പ്രവർത്തിക്കുന്നു.
+Rarely	അപൂർവ്വമായി
+Rate mod	മോഡ് റേറ്റ് ചെയ്യുക
+Reading its README...	അതിന്റെ README വായിക്കുന്നു...
+Refresh	Refresh
+Reinstall	വീണ്ടും ഇൻസ്റ്റാൾ ചെയ്യുക
+Reload	റീലോഡ്
+Reloaded.	റീലോഡ് ചെയ്തു.
+Remember our chats	ഞങ്ങളുടെ ചാറ്റുകൾ ഓർമ്മിക്കുക
+Remember what she sees	അവൾ കാണുന്നത് ഓർമ്മിക്കുക
+Remote	റിമോട്ട്
+Remote off	റിമോട്ട് ഓഫ്
+Remote on	റിമോട്ട് ഓൺ
+Remove	നീക്കം ചെയ്യുക
+Remove all phones	എല്ലാ ഫോണുകളും നീക്കം ചെയ്യുക
+Replies	മറുപടികൾ
+Reply length	മറുപടിയുടെ നീളം
+Report a problem	ഒരു പ്രശ്നം റിപ്പോർട്ട് ചെയ്യുക
+Reset colors	നിറങ്ങൾ പുനഃസജ്ജമാക്കുക
+Reset to her default	അവളുടെ ഡിഫോൾട്ടിലേക്ക് തിരികെ
+Resolution	റെസല്യൂഷൻ
+Restart to update	അപ്ഡേറ്റ് ചെയ്യാൻ റീസ്റ്റാർട്ട് ചെയ്യുക
+Restless	അസ്വസ്ഥ
+Revoke	റദ്ദാക്കുക
+Revoke also removes the phones its links added	റദ്ദാക്കുന്നത് അതിന്റെ ലിങ്കുകൾ ചേർത്ത ഫോണുകളും നീക്കം ചെയ്യുന്നു
+Ride cursor	കഴ്സർ റൈഡ്
+Ride cursor / Hop off	കഴ്സർ റൈഡ് / ഇറങ്ങുക
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക, Capri Mainframe കിട്ടും. BRAIN-ന് കീഴിൽ ഒരു തലച്ചോർ ഓണാകും.
+Right-click me any time for the Mainframe, Help and the Discord.	എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക, Mainframe, Help, Discord എന്നിവയ്ക്കായി.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox അല്ലെങ്കിൽ മറ്റേതെങ്കിലും ആപ്പ്: തിരഞ്ഞെടുക്കുക
+Robot	റോബോട്ട്
+Rock, paper, scissors	കല്ല്, കടലാസ്, കത്രിക
+Run this code mod?	ഈ കോഡ് മോഡ് പ്രവർത്തിപ്പിക്കണോ?
+Running on this PC	ഈ PC-യിൽ പ്രവർത്തിക്കുന്നു
+Running on this PC · :	ഈ PC-യിൽ പ്രവർത്തിക്കുന്നു · :
+Runs Claude Code or Codex on this PC, signed in.	ഈ PC-യിൽ, സൈൻ ഇൻ ചെയ്ത്, Claude Code അല്ലെങ്കിൽ Codex പ്രവർത്തിപ്പിക്കുന്നു.
+Runs on your PC. No key, no credits.	നിങ്ങളുടെ PC-യിൽ പ്രവർത്തിക്കുന്നു. കീ വേണ്ട, ക്രെഡിറ്റ് വേണ്ട.
+SCAN WITH YOUR PHONE · EXPIRES	ഫോണിൽ സ്കാൻ ചെയ്യുക · കാലഹരണപ്പെടുന്നു
+SECURITY >	സുരക്ഷ >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	ഇതനുസരിച്ച് ക്രമീകരിക്കുക
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ശബ്ദങ്ങൾ ശീലങ്ങൾ തലച്ചോർ കാണുക CAPRI DOOMSCROLL കാലാവസ്ഥ ക്ലിപ്പുകൾ ഗെയിമുകൾ കീകൾ നീക്കങ്ങൾ ശബ്ദം നീ
+Same as I speak	എന്റെ ഭാഷ പോലെ
+Same as her ears (VOICE > Mic)	അവളുടെ ചെവികൾ പോലെ തന്നെ (ശബ്ദം > മൈക്ക്)
+Same code on the phone?	ഫോണിൽ അതേ കോഡോ?
+Save	സേവ് ചെയ്യുക
+Save big moments	വലിയ നിമിഷങ്ങൾ സേവ് ചെയ്യുക
+Save folder	സേവ് ഫോൾഡർ
+Save your changes, or press Discard + reload.	നിങ്ങളുടെ മാറ്റങ്ങൾ സേവ് ചെയ്യുക, അല്ലെങ്കിൽ Discard + reload അമർത്തുക.
+Save your changes, or press Discard.	നിങ്ങളുടെ മാറ്റങ്ങൾ സേവ് ചെയ്യുക, അല്ലെങ്കിൽ Discard അമർത്തുക.
+Saved.	സേവ് ചെയ്തു.
+Saved. Ctrl + Alt + O opens her Mainframe.	സേവ് ചെയ്തു. Ctrl + Alt + O അവളുടെ Mainframe തുറക്കുന്നു.
+Saving your rating...	നിങ്ങളുടെ റേറ്റിംഗ് സേവ് ചെയ്യുന്നു...
+Say her name anywhere to chat	ചാറ്റ് ചെയ്യാൻ എവിടെയും അവളുടെ പേര് പറയുക
+Screens	സ്ക്രീനുകൾ
+Screens is hidden or outside WATCH	സ്ക്രീനുകൾ മറഞ്ഞിരിക്കുന്നു അല്ലെങ്കിൽ WATCH-ന് പുറത്താണ്
+Screens overlaps a WATCH row	സ്ക്രീനുകൾ ഒരു WATCH വരിയുമായി ഓവർലാപ് ചെയ്യുന്നു
+Screens to watch	കാണാനുള്ള സ്ക്രീനുകൾ
+Sealed end to end	അറ്റം മുതൽ അറ്റം വരെ മുദ്രയിട്ടത്
+Search by name or author	പേരോ രചയിതാവോ ഉപയോഗിച്ച് തിരയുക
+Search installed mods	ഇൻസ്റ്റാൾ ചെയ്ത മോഡുകൾ തിരയുക
+Search mods	മോഡുകൾ തിരയുക
+Search name, author or description	പേര്, രചയിതാവ് അല്ലെങ്കിൽ വിവരണം തിരയുക
+Security	സുരക്ഷ
+Security:	സുരക്ഷ:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	സജ്ജീകരിക്കുക
+Set up her brain	അവളുടെ തലച്ചോർ സജ്ജീകരിക്കുക
+Set up your voice model	നിങ്ങളുടെ ശബ്ദ മോഡൽ സജ്ജീകരിക്കുക
+Setting up her brain	അവളുടെ തലച്ചോർ സജ്ജീകരിക്കുന്നു
+Settings	ക്രമീകരണങ്ങൾ
+Settings / Back	ക്രമീകരണങ്ങൾ / തിരികെ
+Settings folds the wrong rows above BRAIN	ക്രമീകരണങ്ങൾ BRAIN-ന് മുകളിൽ തെറ്റായ വരികൾ മടക്കുന്നു
+Settings had nothing to watch.	ക്രമീകരണങ്ങളിൽ കാണാൻ ഒന്നുമില്ലായിരുന്നു.
+Settings lost keyboard focus during the Tab walk	Tab യാത്രയ്ക്കിടെ ക്രമീകരണങ്ങൾക്ക് കീബോർഡ് ഫോക്കസ് നഷ്ടപ്പെട്ടു
+Setup guide	സജ്ജീകരണ ഗൈഡ്
+Setup stopped	സജ്ജീകരണം നിർത്തി
+She answers in	അവൾ മറുപടി നൽകുന്നത്
+She can read it when it fits.	യോജിക്കുമ്പോൾ അവൾക്ക് അത് വായിക്കാം.
+She glances at your screen and comments. Costs a little on a paid brain.	അവൾ നിങ്ങളുടെ സ്ക്രീനിലേക്ക് ഒന്ന് നോക്കി അഭിപ്രായം പറയുന്നു. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
+She keeps listening. Say her name, then just talk.	അവൾ കേൾക്കുന്നത് തുടരുന്നു. അവളുടെ പേര് പറയൂ, പിന്നെ സംസാരിക്കൂ.
+She reacts to your game until you close it.	നിങ്ങൾ അത് അടയ്ക്കുന്നതുവരെ അവൾ നിങ്ങളുടെ ഗെയിമിനോട് പ്രതികരിക്കുന്നു.
+She reads these controls before each game job.	ഓരോ ഗെയിം ജോലിക്ക് മുമ്പും അവൾ ഈ നിയന്ത്രണങ്ങൾ വായിക്കുന്നു.
+She talks about your game as you play. Costs a little on a paid brain.	നിങ്ങൾ കളിക്കുമ്പോൾ അവൾ നിങ്ങളുടെ ഗെയിമിനെക്കുറിച്ച് സംസാരിക്കുന്നു. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
+She uses it when she plays	അവൾ കളിക്കുമ്പോൾ അത് ഉപയോഗിക്കുന്നു
+Short	ചെറുത്
+Shortest wait (minutes)	ഏറ്റവും ചെറിയ കാത്തിരിപ്പ് (മിനിറ്റ്)
+Show Capri	Capri കാണിക്കുക
+Show QR	QR കാണിക്കുക
+Show my mod file	എന്റെ മോഡ് ഫയൽ കാണിക്കുക
+Show on Discord	Discord-ൽ കാണിക്കുക
+Shum, what time is it	Shum, ഇപ്പോൾ എത്ര മണിയായി
+Sign in	സൈൻ ഇൻ
+Sign in, make a key and copy it. Then press Paste and I'll connect.	സൈൻ ഇൻ ചെയ്ത് ഒരു കീ ഉണ്ടാക്കി പകർത്തുക. പിന്നെ Paste അമർത്തുക, ഞാൻ കണക്റ്റ് ചെയ്യാം.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	സൈൻ ഇൻ ചെയ്ത്, Create API key അമർത്തി പകർത്തുക. പിന്നെ Paste അമർത്തുക, ഞാൻ കണക്റ്റ് ചെയ്യാം.
+Silent · text only	നിശബ്ദം · ടെക്സ്റ്റ് മാത്രം
+Simple / Advanced Settings	ലളിതം / വിപുല ക്രമീകരണങ്ങൾ
+Simple Settings	ലളിത ക്രമീകരണങ്ങൾ
+Simple Settings left a gap under Check in on me	ലളിത ക്രമീകരണങ്ങൾ Check in on me-ന് താഴെ ഒരു വിടവ് ഇട്ടു
+Sit here	ഇവിടെ ഇരിക്കുക
+Sit on windows	ജനലുകളിൽ ഇരിക്കുക
+Size	വലുപ്പം
+Skip	ഒഴിവാക്കുക
+Skip all	എല്ലാം ഒഴിവാക്കുക
+Skip for now	ഇപ്പോൾ ഒഴിവാക്കുക
+Sleep	ഉറക്കം
+Small	ചെറുത്
+Sometimes	ചിലപ്പോൾ
+Sound effects volume	ശബ്ദ ഇഫക്റ്റുകളുടെ വോളിയം
+Sound sensitivity	ശബ്ദ സെൻസിറ്റിവിറ്റി
+Sounds	ശബ്ദങ്ങൾ
+Speaker or clip	സ്പീക്കർ അല്ലെങ്കിൽ ക്ലിപ്പ്
+Speech model	സംഭാഷണ മോഡൽ
+Speed	വേഗത
+Start with Windows	Windows-നൊപ്പം ആരംഭിക്കുക
+Start with this!	ഇതുകൊണ്ട് തുടങ്ങൂ!
+Starting...	ആരംഭിക്കുന്നു...
+Stay	നിൽക്കുക
+Stay on my model	എന്റെ മോഡലിൽ തുടരുക
+Still checking your mics...	നിങ്ങളുടെ മൈക്കുകൾ ഇപ്പോഴും പരിശോധിക്കുന്നു...
+Still checking your speakers...	നിങ്ങളുടെ സ്പീക്കറുകൾ ഇപ്പോഴും പരിശോധിക്കുന്നു...
+Still checking your virtual mics...	നിങ്ങളുടെ വെർച്വൽ മൈക്കുകൾ ഇപ്പോഴും പരിശോധിക്കുന്നു...
+Stop	നിർത്തുക
+Stopped using it. Couldn't remove the saved provider.	ഉപയോഗം നിർത്തി. സേവ് ചെയ്ത ദാതാവിനെ നീക്കം ചെയ്യാനായില്ല.
+Support	പിന്തുണ
+Sure?	ഉറപ്പാണോ?
+Sure? moved to a different phone	ഉറപ്പാണോ? മറ്റൊരു ഫോണിലേക്ക് മാറ്റി
+TALK TO ME	എന്നോട് സംസാരിക്കൂ
+TEXT ONLY	ടെക്സ്റ്റ് മാത്രം
+Tab landed past the first option of	Tab ആദ്യ ഓപ്ഷൻ കടന്നുപോയി:
+Tab never reached the quiet key	Tab ഒരിക്കലും ശാന്ത കീയിൽ എത്തിയില്ല
+Tab reached nothing	Tab ഒന്നിലും എത്തിയില്ല
+Tab selected a control without moving keyboard focus	കീബോർഡ് ഫോക്കസ് നീക്കാതെ Tab ഒരു നിയന്ത്രണം തിരഞ്ഞെടുത്തു
+Talk	സംസാരിക്കുക
+Talk key	സംസാരിക്കാനുള്ള കീ
+Talk:	സംസാരിക്കുക:
+Talk: Ctrl + Alt + V	സംസാരിക്കുക: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	ലക്ഷ്യ ക്യാപ്ചർ ഫ്രെയിം റേറ്റ്; ലോഡിലോ മെമ്മറി ബജറ്റിലോ താഴ്ന്നേക്കാം
+Teases when another AI comes to the front.	മറ്റൊരു AI മുന്നിൽ വരുമ്പോൾ കളിയാക്കുന്നു.
+Test	ടെസ്റ്റ്
+That address doesn't work. Try https://... or http://localhost:{0}.	ആ വിലാസം പ്രവർത്തിക്കുന്നില്ല. https://... അല്ലെങ്കിൽ http://localhost:{0} പരീക്ഷിക്കുക.
+That code expired	ആ കോഡിന്റെ കാലാവധി കഴിഞ്ഞു
+That mod is no longer installed. The list is updated.	ആ മോഡ് ഇനി ഇൻസ്റ്റാൾ ചെയ്തിട്ടില്ല. പട്ടിക അപ്ഡേറ്റ് ചെയ്തു.
+That's a paid key: it goes under MAX INTELLIGENCE.	അത് ഒരു പണം നൽകിയ കീ ആണ്: അത് MAX INTELLIGENCE-ന് കീഴിൽ പോകുന്നു.
+The Mainframe stayed composited while sliding.	സ്ലൈഡ് ചെയ്യുമ്പോൾ Mainframe കംപോസിറ്റ് ചെയ്യപ്പെട്ടു തന്നെ നിന്നു.
+The Mainframe stayed uncomposited after the slide.	സ്ലൈഡിന് ശേഷം Mainframe കംപോസിറ്റ് ചെയ്യപ്പെടാത്ത നിലയിൽ തുടർന്നു.
+The controls moved while the picture was sliding.	ചിത്രം സ്ലൈഡ് ചെയ്യുന്നതിനിടെ നിയന്ത്രണങ്ങൾ നീങ്ങി.
+The cover stayed visible after the slide ended.	സ്ലൈഡ് കഴിഞ്ഞ ശേഷവും കവർ ദൃശ്യമായി തുടർന്നു.
+The frame thread kept running after the page settled.	പേജ് സ്ഥിരമായ ശേഷവും ഫ്രെയിം ത്രെഡ് പ്രവർത്തിച്ചുകൊണ്ടിരുന്നു.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	അവൾക്ക് നൽകാവുന്ന ഏറ്റവും നീണ്ട മറുപടി, ടോക്കണുകളിൽ. Auto മുകളിലെ Replies-ൽ നിൽക്കുന്നു; {0}K അല്ലെങ്കിൽ {1}K അവളെ തുടരാൻ അനുവദിക്കുന്നു. ആവശ്യമുള്ളപ്പോൾ ജോലികൾക്ക് കൂടുതൽ ഇടം ലഭിക്കും
+The longest wait must be at least the shortest wait.	ഏറ്റവും നീണ്ട കാത്തിരിപ്പ് കുറഞ്ഞത് ഏറ്റവും ചെറിയ കാത്തിരിപ്പ് ആയിരിക്കണം.
+The picture doesn't match the scrolled page:	ചിത്രം സ്ക്രോൾ ചെയ്ത പേജുമായി പൊരുത്തപ്പെടുന്നില്ല:
+The picture of Settings doesn't match the page:	ക്രമീകരണങ്ങളുടെ ചിത്രം പേജുമായി പൊരുത്തപ്പെടുന്നില്ല:
+The picture stayed up after the slide ended.	സ്ലൈഡ് കഴിഞ്ഞ ശേഷവും ചിത്രം മുകളിൽ തന്നെ നിന്നു.
+The picture wasn't showing while it slid.	സ്ലൈഡ് ചെയ്യുമ്പോൾ ചിത്രം കാണിച്ചിരുന്നില്ല.
+The provider sheet is crowded:	ദാതാക്കളുടെ ഷീറ്റ് തിങ്ങിനിറഞ്ഞിരിക്കുന്നു:
+The voice panel has no screen DPI.	വോയ്‌സ് പാനലിന് സ്ക്രീൻ DPI ഇല്ല.
+The voice panel's menus share one font.	വോയ്‌സ് പാനലിന്റെ മെനുകൾ ഒരേ ഫോണ്ട് പങ്കിടുന്നു.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	നിങ്ങളുടെ ക്ലിപ്പ്ബോർഡിൽ ഇതുവരെ കീ ഇല്ല. പേജിൽ നിന്ന് പകർത്തി Paste അമർത്തുക.
+These start off. Each costs a little or uses your mic.	ഇവ ഓഫാണ് തുടങ്ങുന്നത്. ഓരോന്നിനും അല്പം ചെലവുണ്ട് അല്ലെങ്കിൽ നിങ്ങളുടെ മൈക്ക് ഉപയോഗിക്കുന്നു.
+These start off. Turn on what you want. They're all in Settings too.	ഇവ ഓഫാണ് തുടങ്ങുന്നത്. നിങ്ങൾക്ക് വേണ്ടത് ഓണാക്കുക. ഇവയെല്ലാം ക്രമീകരണങ്ങളിലുമുണ്ട്.
+They can also call you Big Z, Capricorn or Nova	അവർ നിങ്ങളെ Big Z, Capricorn അല്ലെങ്കിൽ Nova എന്നും വിളിച്ചേക്കാം
+They can also call you Nova, Big Z or Capricorn	അവർ നിങ്ങളെ Nova, Big Z അല്ലെങ്കിൽ Capricorn എന്നും വിളിച്ചേക്കാം
+Thinking	ചിന്തിക്കുന്നു
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ഇത് എന്റെ സൗജന്യ ശബ്ദം. Test അമർത്തി എന്തെങ്കിലും പറയൂ, നിങ്ങളെ കേൾക്കാനാകുമെന്ന് ഞാൻ കാണിച്ചുതരാം.
+This mod has no description yet.	ഈ മോഡിന് ഇതുവരെ വിവരണമില്ല.
+Tic-tac-toe	ടിക്-ടാക്-ടോ
+Time between glances	നോട്ടങ്ങൾക്കിടയിലെ സമയം
+Tiny	ചെറിയത്
+Try again	വീണ്ടും ശ്രമിക്കുക
+Turn Remote on first	ആദ്യം Remote ഓണാക്കുക
+Turn off mini player	മിനി പ്ലെയർ ഓഫാക്കുക
+Turn push to talk off	Push to talk ഓഫാക്കുക
+Turning the wheel the other way kept the page heading the old way, to	വീൽ മറുവശത്തേക്ക് തിരിച്ചത് പേജ് പഴയ ദിശയിൽ തന്നെ തുടരാൻ ഇടയാക്കി, ദിശ
+Type	ടൈപ്പ് ചെയ്യുക
+Type key	ടൈപ്പ് കീ
+Type to me	എന്നോട് ടൈപ്പ് ചെയ്യുക
+Type:	ടൈപ്പ്:
+Type: Ctrl + Alt + T	ടൈപ്പ്: Ctrl + Alt + T
+Typing sound	ടൈപ്പിംഗ് ശബ്ദം
+Unpacked. Press Test to hear it.	അൺപാക്ക് ചെയ്തു. കേൾക്കാൻ Test അമർത്തുക.
+Unsaved changes.	സേവ് ചെയ്യാത്ത മാറ്റങ്ങൾ.
+Up to {0} fps	{0} fps വരെ
+Up to {0}p	{0}p വരെ
+Update	അപ്ഡേറ്റ്
+Update available.	അപ്ഡേറ്റ് ലഭ്യമാണ്.
+Update mods	മോഡുകൾ അപ്ഡേറ്റ് ചെയ്യുക
+Updating...	അപ്ഡേറ്റ് ചെയ്യുന്നു...
+Use	ഉപയോഗിക്കുക
+Use her cursor	അവളുടെ കഴ്സർ ഉപയോഗിക്കുക
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	മറ്റൊരിടത്തുള്ള ദാതാവിന് https:// ഉപയോഗിക്കുക. സാധാരണ http-യിൽ കീ സുരക്ഷിതമല്ല.
+Use preset	പ്രീസെറ്റ് ഉപയോഗിക്കുക
+Use saved	സേവ് ചെയ്തത് ഉപയോഗിക്കുക
+Use this server	ഈ സർവർ ഉപയോഗിക്കുക
+Using your provider with a key	കീയോടെ നിങ്ങളുടെ ദാതാവിനെ ഉപയോഗിക്കുന്നു
+Using your server with no key	കീ ഇല്ലാതെ നിങ്ങളുടെ സർവർ ഉപയോഗിക്കുന്നു
+VIEW MOD >	മോഡ് കാണുക >
+VOICE >	ശബ്ദം >
+VOICE IN YOUR MIC >	നിങ്ങളുടെ മൈക്കിൽ ശബ്ദം >
+VOICE LAYERS >	ശബ്ദ ലെയറുകൾ >
+Verbosity	വാചാലത
+Video bitrate	വീഡിയോ ബിറ്റ്റേറ്റ്
+View	കാണുക
+View mod	മോഡ് കാണുക
+Voice	ശബ്ദം
+Voice ID	ശബ്ദ ID
+Voice from	ശബ്ദം നിന്ന്
+Voice layers	ശബ്ദ ലെയറുകൾ
+Voice model	ശബ്ദ മോഡൽ
+Voice model:	ശബ്ദ മോഡൽ:
+Voice name or ID, optional	ശബ്ദത്തിന്റെ പേര് അല്ലെങ്കിൽ ID, ഓപ്ഷണൽ
+Voice server address, or a voice model's folder	ശബ്ദ സർവർ വിലാസം, അല്ലെങ്കിൽ ശബ്ദ മോഡലിന്റെ ഫോൾഡർ
+Voice status	ശബ്ദ നില
+Voice, key and model...	ശബ്ദം, കീ, മോഡൽ...
+Volume	വോളിയം
+WAKE ME UP >	എന്നെ ഉണർത്തൂ >
+WATCH >	WATCH >
+Waiting for the relay	റിലേയ്ക്കായി കാത്തിരിക്കുന്നു
+Wake her up	അവളെ ഉണർത്തുക
+Waking her up	അവളെ ഉണർത്തുന്നു
+Wander	അലയുക
+Wander around	ചുറ്റും അലയുക
+Watch my screen	എന്റെ സ്ക്രീൻ കാണുക
+Watch-along memory	ഒരുമിച്ചു കാണുന്ന ഓർമ്മ
+Weather	കാലാവസ്ഥ
+Weather city	കാലാവസ്ഥാ നഗരം
+Welcome back, choom. Let's finish setting me up.	തിരിച്ചുവന്നതിൽ സന്തോഷം, choom. എന്നെ സജ്ജീകരിച്ചു തീർക്കാം.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	ചോദിക്കാതെ നിങ്ങളുടെ PC-യിൽ അവൾ ചെയ്യുന്നത്. ടോഗിൾ ഓഫാണെങ്കിൽ അവൾ ആദ്യം ചോദിക്കും, നിങ്ങൾ അതെ എന്ന് പറയുമ്പോൾ ചെയ്യും.
+What should she call you?	അവൾ നിങ്ങളെ എന്ത് വിളിക്കണം?
+When she types	അവൾ ടൈപ്പ് ചെയ്യുമ്പോൾ
+White	വെള്ള
+Windows default	Windows ഡിഫോൾട്ട്
+Windows did not give Settings keyboard focus	Windows ക്രമീകരണങ്ങൾക്ക് കീബോർഡ് ഫോക്കസ് നൽകിയില്ല
+Windows did not return keyboard focus to Back	Windows കീബോർഡ് ഫോക്കസ് Back-ലേക്ക് തിരികെ നൽകിയില്ല
+With no picture the wheel still tried to slide.	ചിത്രമില്ലാതെയും വീൽ സ്ലൈഡ് ചെയ്യാൻ ശ്രമിച്ചു.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE-ൽ ഏറ്റവും നന്നായി പ്രവർത്തിക്കുന്നു.
+YOU	നീ
+YOU >	നീ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ശബ്ദം നീ നീക്കങ്ങൾ കീകൾ ഗെയിമുകൾ ക്ലിപ്പുകൾ കാലാവസ്ഥ DOOMSCROLL CAPRI WATCH തലച്ചോർ ശീലങ്ങൾ ശബ്ദങ്ങൾ
+YOUR KEY	നിങ്ങളുടെ കീ
+YOUR MIC	നിങ്ങളുടെ മൈക്ക്
+YOUR PLAN	നിങ്ങളുടെ പ്ലാൻ
+Yokapri what's up	Yokapri എന്തുണ്ട് വിശേഷം
+You can hide this. It keeps going, and the Mainframe shows it too.	ഇത് മറയ്ക്കാം. അത് തുടരുന്നു, Mainframe-ഉം അത് കാണിക്കുന്നു.
+Your mic and her voice go into one virtual mic, and	നിങ്ങളുടെ മൈക്കും അവളുടെ ശബ്ദവും ഒരു വെർച്വൽ മൈക്കിലേക്ക് പോകുന്നു, കൂടാതെ
+Your mic is muted. Unmute it to test.	നിങ്ങളുടെ മൈക്ക് മ്യൂട്ട് ആണ്. പരിശോധിക്കാൻ അൺമ്യൂട്ട് ചെയ്യുക.
+Your mods are up to date.	നിങ്ങളുടെ മോഡുകൾ കാലികമാണ്.
+Your name or a nickname	നിങ്ങളുടെ പേര് അല്ലെങ്കിൽ വിളിപ്പേര്
+Your own model	നിങ്ങളുടെ സ്വന്തം മോഡൽ
+Your personality	നിങ്ങളുടെ വ്യക്തിത്വം
+Your voice	നിങ്ങളുടെ ശബ്ദം
+Your voice (HD)	നിങ്ങളുടെ ശബ്ദം (HD)
+Your voice (HD) · pick a clip of you...	നിങ്ങളുടെ ശബ്ദം (HD) · നിങ്ങളുടെ ഒരു ക്ലിപ്പ് തിരഞ്ഞെടുക്കുക...
+Your voice model	നിങ്ങളുടെ ശബ്ദ മോഡൽ
+as its mic.	അവളുടെ മൈക്ക് ആയി.
+changed. Saved as My Colors, so you can share it.	മാറി. പങ്കിടാനാകുന്ന തരത്തിൽ My Colors എന്ന പേരിൽ സേവ് ചെയ്തു.
+choice	തിരഞ്ഞെടുപ്പ്
+clips the input line	ഇൻപുട്ട് ലൈൻ ക്ലിപ്പ് ചെയ്യുന്നു
+cue	സൂചന
+doesn't yet.	ഇതുവരെ ആയിട്ടില്ല.
+download	ഡൗൺലോഡ്
+file.	ഫയൽ.
+flag	ഫ്ലാഗ്
+fps	fps
+hear	കേൾക്കുക
+hears	കേൾക്കുന്നു
+hears that.	അത് കേൾക്കുന്നു.
+hides or shows her.	അവളെ ഒളിപ്പിക്കുന്നു അല്ലെങ്കിൽ കാണിക്കുന്നു.
+hint	സൂചന
+in the Mainframe.	Mainframe-ൽ.
+in the mods directory with a pull request.	മോഡ്സ് ഡയറക്ടറിയിൽ pull request വഴി.
+in the picture wasn't noticed.	ചിത്രത്തിലെ മാറ്റം ശ്രദ്ധിക്കപ്പെട്ടില്ല.
+is already her push-to-talk key.	ഇതിനകം അവളുടെ push-to-talk കീയാണ്.
+is off.	ഓഫാണ്.
+is on and running.	ഓണാണ്, പ്രവർത്തിക്കുന്നു.
+is on, at the bottom, under	ഓണാണ്, താഴെ, ഇതിന് കീഴിൽ
+is on.	ഓണാണ്.
+is on. She now answers to	ഓണാണ്. അവൾ ഇപ്പോൾ ഇതിന് മറുപടി നൽകുന്നു
+is removed.	നീക്കം ചെയ്തു.
+is taken	ഉപയോഗത്തിലാണ്
+is taken by another app. Try another.	മറ്റൊരു ആപ്പ് ഉപയോഗിക്കുന്നു. മറ്റൊന്ന് പരീക്ഷിക്കുക.
+is updated	അപ്ഡേറ്റ് ചെയ്തു
+isn't hearing it yet: do {0} and {1}, then join a call.	ഇതുവരെ കേൾക്കുന്നില്ല: {0}, {1} ചെയ്ത് ഒരു കോളിൽ ചേരുക.
+it now.	ഇപ്പോൾ.
+keeps her quiet, and lets her talk again.	അവളെ നിശബ്ദയാക്കുന്നു, വീണ്ടും സംസാരിക്കാൻ അനുവദിക്കുന്നു.
+key	കീ
+key.	കീ.
+min	മിനിറ്റ്
+more.	കൂടുതൽ.
+ms.	ms.
+mutes mic	മൈക്ക് മ്യൂട്ട് ചെയ്യുന്നു
+mutes your mic.	നിങ്ങളുടെ മൈക്ക് മ്യൂട്ട് ചെയ്യുന്നു.
+name	പേര്
+off	ഓഫ്
+on this PC	ഈ PC-യിൽ
+opens her Mainframe.	അവളുടെ Mainframe തുറക്കുന്നു.
+opens her typing box.	അവളുടെ ടൈപ്പിംഗ് ബോക്സ് തുറക്കുന്നു.
+phone	ഫോൺ
+phone pixels	ഫോൺ പിക്സലുകൾ
+phones	ഫോണുകൾ
+pixels	പിക്സലുകൾ
+pixels)	പിക്സലുകൾ)
+star.	നക്ഷത്രം.
+stars.	നക്ഷത്രങ്ങൾ.
+starts voice chat.	വോയ്സ് ചാറ്റ് ആരംഭിക്കുന്നു.
+stays off. Nothing ran.	ഓഫായി തുടരുന്നു. ഒന്നും പ്രവർത്തിച്ചില്ല.
+still does its own job in other apps too. Confirm to keep it.	മറ്റ് ആപ്പുകളിലും അതിന്റെ ജോലി ചെയ്യുന്നു. നിലനിർത്താൻ Confirm ചെയ്യുക.
+tall	ഉയരം
+time	സമയം
+to talk	സംസാരിക്കാൻ
+to talk to her, with a game in front too.	മുന്നിൽ ഒരു ഗെയിമുള്ളപ്പോഴും അവളോട് സംസാരിക്കാൻ.
+too.	ഉം.
+turns Gaming Mode on and off.	ഗെയിമിംഗ് മോഡ് ഓണും ഓഫും ആക്കുന്നു.
+with Ollama	Ollama-യ്ക്കൊപ്പം
+won't type in other apps while she runs. Confirm to keep it.	അവൾ പ്രവർത്തിക്കുമ്പോൾ മറ്റ് ആപ്പുകളിൽ ടൈപ്പ് ചെയ്യില്ല. നിലനിർത്താൻ Confirm ചെയ്യുക.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: ഓഫ്
+{0}   If her voice cuts off, turn off noise filtering	{0}   അവളുടെ ശബ്ദം മുറിഞ്ഞാൽ നോയ്സ് ഫിൽട്ടറിംഗ് ഓഫ് ചെയ്യുക
+{0}   Input Device:	{0}   ഇൻപുട്ട് ഉപകരണം:
+{0}   Join the call and check they hear both of you	{0}   കോളിൽ ചേർന്ന് നിങ്ങൾ ഇരുവരെയും അവർ കേൾക്കുന്നുണ്ടോ എന്ന് പരിശോധിക്കുക
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: നിങ്ങളെയും അവൾ സംസാരിക്കുമ്പോൾ അവളെയും നിങ്ങൾ കേൾക്കും
+{0}   Microphone:	{0}   മൈക്രോഫോൺ:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: ഇല്ല. ആദ്യ വരിക്ക് ശേഷം രണ്ടും അവളുടെ ശബ്ദം മുറിക്കാം.
+{0}   Open the call or meeting's audio settings	{0}   കോളിന്റെയോ മീറ്റിംഗിന്റെയോ ഓഡിയോ ക്രമീകരണങ്ങൾ തുറക്കുക
+{0}   Output Device: your headphones, like before	{0}   ഔട്ട്പുട്ട് ഉപകരണം: മുമ്പത്തെപ്പോലെ നിങ്ങളുടെ ഹെഡ്ഫോണുകൾ
+{0}   Speaker: your headphones, like before	{0}   സ്പീക്കർ: മുമ്പത്തെപ്പോലെ നിങ്ങളുടെ ഹെഡ്ഫോണുകൾ
+{0}   Try a mic test in your call app	{0}   നിങ്ങളുടെ കോൾ ആപ്പിൽ ഒരു മൈക്ക് ടെസ്റ്റ് പരീക്ഷിക്കുക
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (നിങ്ങളുടെ പേരിനരികിലെ കോഗ്) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} വരികൾ
+{0} min	{0} മിനിറ്റ്
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ഈ PC-യിൽ
+· server	· സർവർ
+Edit as text	ടെക്സ്റ്റായി എഡിറ്റ് ചെയ്യുക
+What Capri remembers about you. It stays on this computer.	Capri നിന്നെക്കുറിച്ച് ഓർക്കുന്നത്. ഇത് ഈ കമ്പ്യൂട്ടറിൽ തുടരും.
+Tell her something to remember	ഓർക്കാൻ ഒന്ന് പറയുക
+Search her memory	അവളുടെ ഓർമ്മയിൽ തിരയുക
+That day isn't there any more.	ആ ദിവസം ഇനി ഇല്ല.
+Undo	പഴയപടിയാക്കുക
+Remember our chats is off, so she isn't keeping new chat memories.	നമ്മുടെ സംഭാഷണങ്ങൾ ഓർക്കുന്നത് ഓഫാണ്, അതിനാൽ പുതിയ സംഭാഷണ ഓർമ്മകൾ സൂക്ഷിക്കുന്നില്ല.
+ABOUT YOU	നിന്നെക്കുറിച്ച്
+FROM YOUR CHATS	നിന്റെ സംഭാഷണങ്ങളിൽ നിന്ന്
+GAMES	ഗെയിമുകൾ
+CHAT LOGS	സംഭാഷണ ലോഗുകൾ
+CHAT LOG	സംഭാഷണ ലോഗ്
+Nothing matches.	ഒന്നും പൊരുത്തപ്പെടുന്നില്ല.
+Nothing yet.	ഇതുവരെ ഒന്നുമില്ല.
+Reading her notes.	അവളുടെ കുറിപ്പുകൾ വായിക്കുന്നു.
+Click again to forget game notes	ഗെയിം കുറിപ്പുകൾ മറക്കാൻ വീണ്ടും ക്ലിക്ക് ചെയ്യുക
+Forget game notes	ഗെയിം കുറിപ്പുകൾ മറക്കുക
+Click again to forget everything about me	നിന്നെക്കുറിച്ച് എല്ലാം മറക്കാൻ വീണ്ടും ക്ലിക്ക് ചെയ്യുക
+Forget everything about me	നിന്നെക്കുറിച്ച് എല്ലാം മറക്കുക
+Click again to forget	മറക്കാൻ വീണ്ടും ക്ലിക്ക് ചെയ്യുക
+Forget this day	ഈ ദിവസം മറക്കുക
+Only the start of this day is shown.	ഈ ദിവസത്തിന്റെ തുടക്കം മാത്രം കാണിക്കുന്നു.
+Nothing in this day.	ഈ ദിവസത്തിൽ ഒന്നുമില്ല.
+No chats kept yet.	ഇതുവരെ സംഭാഷണങ്ങൾ സൂക്ഷിച്ചിട്ടില്ല.
+You	നീ
+{0} line	{0} വരി
+SET UP EMAIL >	ഇമെയിൽ സജ്ജീകരിക്കുക >
+SET UP EMAIL	ഇമെയിൽ സജ്ജീകരിക്കുക
+Or type your address	അല്ലെങ്കിൽ നിന്റെ വിലാസം ടൈപ്പ് ചെയ്യുക
+Email address	ഇമെയിൽ വിലാസം
+Open the page	പേജ് തുറക്കുക
+App password	ആപ്പ് പാസ്വേഡ്
+IMAP server	IMAP സെർവർ
+Incoming mail server	ഇൻകമിംഗ് മെയിൽ സെർവർ
+SMTP server	SMTP സെർവർ
+Outgoing mail server	ഔട്ട്ഗോയിംഗ് മെയിൽ സെർവർ
+An app password is a separate password just for Capri. Your normal password stays yours.	ആപ്പ് പാസ്വേഡ് Capri-ക്ക് മാത്രമുള്ള വേറിട്ട പാസ്വേഡാണ്. നിന്റെ സാധാരണ പാസ്വേഡ് നിന്റേതു തന്നെ.
+She keeps it only until she closes.	അവൾ അടയ്ക്കുന്നതുവരെ മാത്രം അത് സൂക്ഷിക്കുന്നു.
+She checks, searches and reads your mail. She asks before she sends any.	അവൾ നിന്റെ മെയിൽ പരിശോധിക്കുകയും തിരയുകയും വായിക്കുകയും ചെയ്യുന്നു. എന്തെങ്കിലും അയക്കുന്നതിന് മുൻപ് ചോദിക്കുന്നു.
+Watch for new mail	പുതിയ മെയിൽ നിരീക്ഷിക്കുക
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	മെയിൽ വരുമ്പോൾ അവൾ പറയും, ഫിഷിംഗ് പോലെ തോന്നിയാൽ മുന്നറിയിപ്പ് നൽകും. ഒന്നും വായിച്ചതായി അടയാളപ്പെടുത്തുന്നില്ല.
+Deal with phishing on her own	ഫിഷിംഗ് സ്വയം കൈകാര്യം ചെയ്യുക
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	അവൾ നിരീക്ഷിക്കുമ്പോൾ മാത്രം. ഫിഷിംഗ് എന്ന് ഉറപ്പുള്ള മെയിൽ സ്പാമിലേക്ക് പോകും. ബാക്കി നിന്റെ സമ്മതത്തിനായി കാത്തിരിക്കും.
+Forget account	അക്കൗണ്ട് മറക്കുക
+Use another email	മറ്റൊരു ഇമെയിൽ ഉപയോഗിക്കുക
+Which email?	ഏത് ഇമെയിൽ?
+Make an app password	ആപ്പ് പാസ്വേഡ് ഉണ്ടാക്കുക
+Paste it	അത് പേസ്റ്റ് ചെയ്യുക
+Connecting...	ബന്ധിപ്പിക്കുന്നു...
+She can use your email now.	ഇപ്പോൾ അവൾക്ക് നിന്റെ ഇമെയിൽ ഉപയോഗിക്കാം.
+She's not watching your inbox.	അവൾ നിന്റെ ഇൻബോക്സ് നിരീക്ഷിക്കുന്നില്ല.
+She's watching your inbox and deals with phishing she's sure of.	അവൾ നിന്റെ ഇൻബോക്സ് നിരീക്ഷിക്കുകയും ഉറപ്പുള്ള ഫിഷിംഗ് കൈകാര്യം ചെയ്യുകയും ചെയ്യുന്നു.
+She's watching your inbox and tells you when mail lands.	അവൾ നിന്റെ ഇൻബോക്സ് നിരീക്ഷിക്കുകയും മെയിൽ വരുമ്പോൾ പറയുകയും ചെയ്യുന്നു.
+She forgot that account and its app password.	അവൾ ആ അക്കൗണ്ടും അതിന്റെ ആപ്പ് പാസ്വേഡും മറന്നു.
+She forgot that account. Its app password is gone from this PC.	അവൾ ആ അക്കൗണ്ട് മറന്നു. അതിന്റെ ആപ്പ് പാസ്വേഡ് ഈ കമ്പ്യൂട്ടറിൽ നിന്ന് പോയി.

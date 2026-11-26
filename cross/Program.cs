@@ -16,6 +16,7 @@ namespace CapriDesktop
     {
         internal static string Smoke;
         internal static bool ConnectChatGPT;
+        internal static bool Companion;
         // Smoke checks turn this on to run Guard's catch path, which otherwise rethrows in smoke runs so a bug fails them.
         internal static bool Catching;
         internal static int[] Shelf;
@@ -26,7 +27,10 @@ namespace CapriDesktop
         private static int Main(string[] args)
         {
             ConnectChatGPT = Array.IndexOf(args, "--connect-chatgpt") >= 0;
+            Mods.NoneThisRun = Array.IndexOf(args, "--no-mods") >= 0 && Array.IndexOf(args, "--smoke") < 0;
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
+            if (args.Length > 0 && args[0] == "--companion") return CompanionCli.Run(args);
+            for (int i = 0; i < args.Length; i++) if (args[i] == "--companion-bridge") Companion = true;
             Desk.Niri = () => NiriDesktop.Start() is NiriDesktop niri ? new NiriDesk(niri) : null;
             NativeFontBootstrap.Initialize();
             if (args.Length >= 5 && args[0] == "--shelf")

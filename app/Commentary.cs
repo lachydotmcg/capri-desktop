@@ -271,7 +271,7 @@ namespace CapriDesktop
                 case "win": return "They may have just won; check the pictures.";
                 case "loss": return "They may have just lost; check the pictures.";
                 case "dark": return "The screen just went dark; check the pictures for why.";
-                case "sound": case "noise": return "There was a big burst of sound in the game.";
+                case "sound": case "noise": return "Something loud just happened; check the pictures for what it was. React to what you can see, not to the sound, and never say anything about their volume or your ears.";
                 case "flash": return "The screen just went bright for a moment; check the pictures for why.";
                 case "motion": return "Something on screen just moved fast.";
                 case "red": return "The edges of the screen just went red.";
@@ -532,9 +532,10 @@ namespace CapriDesktop
 
         // The game in front, by its window's title: a game she knows by name, her own game job, or anything full screen that isn't
         // a browser, a video or an editor.
-        private string GameAhead()
+        private string GameAhead() { return GameAhead(Computer.Glimpse()); }
+
+        private string GameAhead(Sight front)
         {
-            Sight front = Computer.Glimpse();
             if (front == null || front.Window == IntPtr.Zero) return null;
             Job running = job;
             bool fills = FullScreen() && !Native.Titled(front.Window) && !Regex.IsMatch((front.Program ?? "") + " " + (front.Title ?? ""), @"\b(chrome|firefox|msedge|edge|brave|opera|vivaldi|arc|vlc|mpv|netflix|youtube|twitch|plex|powerpnt)\b", RegexOptions.IgnoreCase);

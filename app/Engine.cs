@@ -122,7 +122,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Engine
+    internal sealed partial class Engine
     {
         internal const string Build = "b11669";
         private const string ZipUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-vulkan-x64.zip";
@@ -143,9 +143,16 @@ namespace CapriDesktop
         private bool serverEyes;
         private bool serverCpu;
         private int serverWindow;
+        private int serverLimit;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        internal bool OnCpu { get { return CpuOnly || Brain.GpuLimit < 0; } }
+        // The window an ask is growing her to past 16K, or 0. A load of that size that stops on the graphics card throws without
+        // marking her for the CPU, so Brain can put back the size that worked.
+        internal volatile int Careful;
         private int loading;
+        private int busy;
+        private readonly Stopwatch quiet = Stopwatch.StartNew();
         private bool retryGpu;
 
         internal bool Loading { get { return Interlocked.CompareExchange(ref loading, 0, 0) > 0; } }
@@ -189,7 +196,7 @@ namespace CapriDesktop
         internal static string Amount(long size) { return size < 1e9 ? Math.Round(size / 1e6) + " MB" : (size / 1e9).ToString("0.#") + " GB"; }
 
         private string Folder { get { return Path.Combine(root, "engine-" + Build); } }
-        private string Server { get { return Path.Combine(Folder, "llama-server.exe"); } }
+        private string Server { get { return Path.Combine(Folder, Path.DirectorySeparatorChar == '\\' ? "llama-server.exe" : "llama-server"); } }
         private string ModelPath(Pick pick) { return Path.Combine(Path.Combine(root, "models"), pick.File); }
         private string EyesPath(Pick pick) { return pick.EyesFile == null ? null : Path.Combine(Path.Combine(root, "models"), pick.EyesFile); }
 
@@ -217,6 +224,44 @@ namespace CapriDesktop
 
         // The zip passed its checksum, so a missing server means antivirus took it (owner flag A14). Fits the BRAIN note.
         internal const string ServerGone = "Your antivirus likely took llama-server.exe. Allow it, then try again.";
+
+        internal static string Refused { get { return "Windows won't let my brain's engine, llama-server.exe, run on this PC. To talk to me, " + Brain.FreeKeyHow + "."; } }
+
+        internal static bool Barred(int code)
+        {
+            uint status = (uint)code;
+            return code == 577 || code == 1260 || code >= 4550 && code < 4600 || status == 0xC0000428 || status >= 0xC0000361 && status <= 0xC0000364 || status == 0xC0000372;
+        }
+
+        internal static Func<string> Guards = ReadGuards;
+
+        private static string ReadGuards()
+        {
+            System.Collections.Generic.List<string> found = new System.Collections.Generic.List<string>();
+#if !CROSS
+            if (Packaged.Is) found.Add("packaged");
+            try
+            {
+                using (RegistryKey policy = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\CI\Policy"))
+                {
+                    object state = policy == null ? null : policy.GetValue("VerifiedAndReputablePolicyState");
+                    if (state is int) found.Add("Smart App Control " + ((int)state == 1 ? "on" : (int)state == 2 ? "evaluating" : "off"));
+                }
+            }
+            catch (Exception) { }
+            try
+            {
+                int mode;
+                if (WldpQueryWindowsLockdownMode(out mode) == 0 && mode == 2) found.Add("S mode");
+            }
+            catch (Exception) { }
+#endif
+            return found.Count == 0 ? "" : " (" + string.Join(", ", found.ToArray()) + ")";
+        }
+
+#if !CROSS
+        [DllImport("wldp.dll")] private static extern int WldpQueryWindowsLockdownMode(out int mode);
+#endif
 
         internal void Install(Pick pick, Action<string, long, long> progress)
         {
@@ -255,7 +300,7 @@ namespace CapriDesktop
             long have = File.Exists(part) ? new FileInfo(part).Length : 0;
             if (have > size) { File.Delete(part); have = 0; }
             bool resumed = have > 0;
-            int stalls = 0;
+            int stalls = 0, logged = 0;
             while (have < size)
             {
                 long before = have;
@@ -285,8 +330,27 @@ namespace CapriDesktop
                         }
                     }
                 }
-                catch (WebException) { if (stopped()) throw new OperationCanceledException(); }
-                catch (IOException) { if (stopped()) throw new OperationCanceledException(); }
+                catch (WebException error)
+                {
+                    using (HttpWebResponse response = error.Response as HttpWebResponse)
+                    {
+                        if (stopped()) throw new OperationCanceledException();
+                        if (have <= before && logged < 8)
+                        {
+                            Brain.Log(url, -1, "Downloading " + label + ": " + error.Status + (response == null ? "" : " (HTTP " + (int)response.StatusCode + ")"));
+                            logged++;
+                        }
+                    }
+                }
+                catch (IOException error)
+                {
+                    if (stopped()) throw new OperationCanceledException();
+                    if (have <= before && logged < 8)
+                    {
+                        Brain.Log(url, -1, "Downloading " + label + ": " + error.GetType().Name + " (0x" + error.HResult.ToString("X8") + ")");
+                        logged++;
+                    }
+                }
                 if (have < size)
                 {
                     stalls = have > before ? 0 : stalls + 1;
@@ -320,10 +384,17 @@ namespace CapriDesktop
 
         internal static int Threads(int processors) { return Math.Max(1, Math.Min(4, processors / 2)); }
 
-        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096)
+        internal static string Fit(int limit, long vram, long eyes)
+        {
+            if (limit <= 0 || vram < (1L << 30)) return "";
+            long margin = (vram >> 20) - ((long)limit << 10) + (eyes >> 20);
+            return margin > 1024 ? " -fitt " + margin : "";
+        }
+
+        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096, int limit = 0)
         {
             int threads = Threads(Environment.ProcessorCount);
-            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : ""));
+            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : Fit(limit, Interlocked.Read(ref Brain.Vram), eyes ? pick.EyesSize : 0)));
             info.UseShellExecute = false;
             info.CreateNoWindow = true;
             info.WorkingDirectory = Folder;
@@ -349,26 +420,78 @@ namespace CapriDesktop
         {
             Interlocked.Increment(ref loading);
             try { Load(pick); }
-            finally { Interlocked.Decrement(ref loading); }
+            finally { lock (gate) quiet.Restart(); Interlocked.Decrement(ref loading); }
+        }
+
+        internal void Begin() { Interlocked.Increment(ref busy); }
+
+        internal void End()
+        {
+            lock (gate) quiet.Restart();
+            Interlocked.Decrement(ref busy);
+        }
+
+        internal bool Running { get { lock (gate) return server != null && !server.HasExited; } }
+
+        internal int ServerId
+        {
+            get
+            {
+                lock (gate)
+                {
+                    try { return server != null && !server.HasExited ? server.Id : 0; }
+                    catch (InvalidOperationException) { return 0; }
+                }
+            }
+        }
+
+        internal double Unused { get { lock (gate) return quiet.Elapsed.TotalSeconds; } }
+
+        internal bool Rest(double seconds, Func<bool> current = null)
+        {
+            lock (gate)
+            {
+                if (server == null || Loading || Interlocked.CompareExchange(ref busy, 0, 0) > 0 || quiet.Elapsed.TotalSeconds < seconds) return false;
+                if (current != null && !current()) return false;
+                Stop();
+                return true;
+            }
         }
 
         private void Load(Pick pick)
         {
+            int window;
+            bool careful;
             lock (gate)
             {
                 bool eyes = HasEyes(pick);
-                int window = Brain.Window;
-                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == CpuOnly && serverWindow == window) return;
+                window = Brain.Window;
+                careful = window == Careful;
+                int limit = Brain.GpuLimit;
+                bool cpu = CpuOnly || limit < 0;
+                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == cpu && serverWindow == window && serverLimit == limit) return;
                 if (server != null) Stop();
                 if (!File.Exists(Server) || !File.Exists(ModelPath(pick))) throw new BrainException("Brain not downloaded. Press Set up her brain.");
                 port = FreePort();
                 serverEyes = eyes;
-                serverCpu = CpuOnly;
+                serverCpu = cpu;
                 serverWindow = window;
+                serverLimit = limit;
                 // The try is marked before it starts, so a load that takes Capri or the PC down with it leaves her on the CPU for
                 // this version.
                 if (retryGpu && !serverCpu) KeepCpu("trying the graphics card again");
-                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window));
+#if CROSS
+                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit));
+#else
+                try { server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit)); }
+                catch (System.ComponentModel.Win32Exception error)
+                {
+                    Brain.Log("brain", -1, "llama-server couldn't start: Windows error " + error.NativeErrorCode + Guards());
+                    if (Barred(error.NativeErrorCode)) throw new BrainException(Refused, true);
+                    if (error.NativeErrorCode == 225 || error.NativeErrorCode == 226) throw new BrainException(ServerGone, true);
+                    throw new BrainException("Couldn't start my brain: " + Brain.Plainly("brain", error));
+                }
+#endif
                 Lower(server);
                 Bind(server);
             }
@@ -377,14 +500,22 @@ namespace CapriDesktop
             {
                 Process running;
                 bool onGpu;
-                lock (gate) { running = server; onGpu = !serverCpu; }
+                lock (gate)
+                {
+                    running = server; onGpu = !serverCpu;
+                    if (window != serverWindow) { window = serverWindow; careful = window == Careful; }
+                    else careful = careful || window == Careful;
+                }
                 if (running == null || running.HasExited)
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : "");
+                    int code = running == null ? 0 : ExitCode(running);
+                    bool barred = running != null && Barred(code);
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)code).ToString("X8")) + (barred ? Guards() : retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
-                    if (!retry) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    if (barred) throw new BrainException(Refused, true);
+                    if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.") { Careful = careful };
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);
                     return;
@@ -502,6 +633,7 @@ namespace CapriDesktop
 
         internal static void Bind(Process child)
         {
+            if (Path.DirectorySeparatorChar != '\\') return;
             try
             {
                 lock (jobs)

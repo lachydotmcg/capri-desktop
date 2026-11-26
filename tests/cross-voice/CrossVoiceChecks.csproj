@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Capri.CrossVoiceChecks</AssemblyName>
+    <RootNamespace>CapriCrossVoiceChecks</RootNamespace>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);CROSS</DefineConstants>
+    <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CA1416;SYSLIB0014</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../app/Voice.cs" Link="Voice.cs" />
+    <Compile Include="../../cross/Speakers.cs" Link="Speakers.cs" />
+    <Compile Include="../../cross/VoiceSpeakers.cs" Link="VoiceSpeakers.cs" />
+  </ItemGroup>
+</Project>

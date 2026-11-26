@@ -117,7 +117,7 @@ namespace CapriDesktop
             phoneKey = new PhoneKey { Device = device, Id = ask.Id, Key = key, Tier = ask.Tier, Listing = cloudListing + 1, Started = brainClock.ElapsedMilliseconds };
             ConnectText(key, ask.Tier);
             PhoneKey still = phoneKey;
-            if (still != null && still.Id == ask.Id && still.Device == device && still.Listing == cloudListing) BrainSend(device, RemoteBrainKeys.Note(ask.Id, "checking", "Checking key...", key));
+            if (still != null && still.Id == ask.Id && still.Device == device && still.Listing == cloudListing) BrainSend(device, RemoteBrainKeys.Note(ask.Id, "checking", RemoteBrainKeys.Checking, key));
         }
 
         // TextProblem's hook: a problem with the phone's key is the phone's note too, in the same words. Another change first
@@ -145,7 +145,7 @@ namespace CapriDesktop
                 else if (preferences.Tier == asked.Tier && Voice.Unprotect(asked.Tier == 1 ? preferences.NvidiaKey : preferences.PaidKey) == asked.Key)
                 {
                     phoneKey = null;
-                    BrainSend(asked.Device, RemoteBrainKeys.Note(asked.Id, "saved", "Key saved. She uses it now.", asked.Key));
+                    BrainSend(asked.Device, RemoteBrainKeys.Note(asked.Id, "saved", RemoteBrainKeys.Saved, asked.Key));
                     RemoteKeyNotice(asked);
                 }
             }
@@ -158,7 +158,7 @@ namespace CapriDesktop
             string phone = "A phone";
             RemoteLink link = remoteLink;
             if (link != null) foreach (RemoteDevice device in link.Devices()) if (device.Id == asked.Device) phone = device.Name;
-            string words = phone + " set her " + RemoteBrainKeys.Shown[asked.Tier] + " key";
+            string words = RemoteBrainKeys.Notice(phone, asked.Tier);
             remoteNote = words;
             mainframe.RemoteChanged();
             Action<string> noticed = brainNoticed;

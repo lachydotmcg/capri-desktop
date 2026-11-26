@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Kawalan yang dilukis semula tidak dilukis semula dalam gambar.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Kunci percuma daripada Google AI Studio, NVIDIA atau OpenRouter. Tiada muat turun. Perlukan internet.
+A held trackpad scroll got a flick's long ease:	Tatal trackpad yang ditahan mendapat kelancaran panjang seperti kibasan:
+A layout change during a slide put the page at	Perubahan susun atur semasa slaid meletakkan halaman pada
+A layout change left the picture up.	Perubahan susun atur membiarkan gambar kekal.
+A model in Ollama, on your local server or on your key.	Model dalam Ollama, pada pelayan tempatan kau atau dengan kunci kau.
+A paid key goes under MAX INTELLIGENCE by itself.	Kunci berbayar akan masuk ke bawah MAX INTELLIGENCE dengan sendirinya.
+A plan you already pay for, a key of your own, or Ollama.	Pelan yang kau sudah bayar, kunci sendiri, atau Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu panel suara tidak menyimpan salinan fon panel sendiri.
+A wheel turn right after a slide ended froze the picture.	Pusingan roda sejurus selepas slaid tamat membekukan gambar.
+ALLOW THIS PHONE?	BENARKAN TELEFON INI?
+ALMOST THERE >	HAMPIR SIAP >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI LAIN TELAH MENGAMBIL ALIH · MATIKAN DAN HIDUPKAN SEMULA
+API key	Kunci API
+API key, Claude plan or ChatGPT plan	Kunci API, pelan Claude atau pelan ChatGPT
+Add	Tambah
+Address	Alamat
+Address and key saved. Use saved to reconnect.	Alamat dan kunci disimpan. Guna disimpan untuk sambung semula.
+Advanced Settings	Tetapan Lanjutan
+All	Semua
+All screens	Semua skrin
+Allow	Benarkan
+Almost there. I'll say hi the second my brain's in.	Hampir siap. Aku akan menyapa sebaik sahaja otak aku masuk.
+Always	Sentiasa
+Always on top	Sentiasa di atas
+Any Google account works. I opened the page in your browser.	Mana-mana akaun Google berfungsi. Aku telah membuka halaman dalam pelayar kau.
+Applies to every voice	Terpakai untuk setiap suara
+Apps she may close	Aplikasi yang dia boleh tutup
+Ask Capri for more	Minta Capri lagi
+Asking your server...	Bertanya pelayan kau...
+Asks before closing only the apps you choose.	Bertanya sebelum menutup hanya aplikasi yang kau pilih.
+Auto	Auto
+Auto (match what I say)	Auto (ikut apa yang saya cakap)
+Automatic: VB-CABLE, else Steam's	Automatik: VB-CABLE, jika tidak Steam
+BAD RELAY HOST	HOS RELAY TIDAK SAH
+BIG Z open notepad	BIG Z buka notepad
+BRAIN	OTAK
+BRAIN >	OTAK >
+BRAIN ONLINE >	OTAK DALAM TALIAN >
+BRAIN PROVIDER >	PEMBEKAL OTAK >
+BRAIN VOICE CAPRI	SUARA OTAK CAPRI
+Back	Kembali
+Back on your saved API key.	Kembali ke kunci API tersimpan kau.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Paling sesuai untuk PC ini:
+Black	Hitam
+Blank key means no key.	Medan kosong bermakna tiada kunci.
+Brain API key	Kunci API otak
+Brain model	Model otak
+Brain provider	Pembekal otak
+Bring here	Bawa ke sini
+Bring to this screen	Bawa ke skrin ini
+Browse	Semak imbas
+Browse mods	Semak imbas mod
+Browse to a voice model	Semak imbas ke model suara
+Browse...	Semak imbas...
+Bubble	Gelembung
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, kau ada di situ?
+CAN'T REACH THE RELAY · RETRYING	TIDAK DAPAT CAPAI RELAY · MENCUBA SEMULA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	OTAK SUARA CAPRI
+CHANGED, approve it again.	DITUKAR, lulus semula.
+CLIPS >	KLIP >
+CLOUD VOICE	SUARA AWAN
+CODE	KOD
+COLORS >	WARNA >
+CONNECTED	DISAMBUNG
+CONNECTING	MENYAMBUNG
+CUSTOM LOCAL	TEMPATAN TERSUAI
+Call mode (beta)	Mod panggilan (beta)
+Call mode does not fit.	Mod panggilan tidak muat.
+Call mode is outside its space.	Mod panggilan berada di luar ruangnya.
+Cancel	Batal
+Cancel keys	Batal kekunci
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Kod Capri:
+Capri mods (*	Mod Capri (*
+Capri, hello	Capri, hai
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kacau bila marah
+Chat with Capri from your phone	Sembang dengan Capri dari telefon kau
+ChatGPT plan	Pelan ChatGPT
+Check for updates	Semak kemas kini
+Check in on me	Tanya khabar aku
+Check in on me is hidden	Tanya khabar aku disembunyikan
+Check in on me still decides whether she visits.	Tanya khabar aku masih menentukan sama ada dia datang.
+Check in on me's tip missed	Tip Tanya khabar aku terlepas
+Chess	Catur
+Choose apps	Pilih aplikasi
+Choose folder...	Pilih folder...
+Choose where future Capri clips are saved	Pilih tempat klip Capri akan disimpan
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Pelan Claude atau ChatGPT, kunci berbayar (OpenAI, Claude, DeepSeek), atau Ollama.
+Claude plan	Pelan Claude
+Clear	Kosongkan
+Cleared.	Dikosongkan.
+Click Confirm to keep Down, or press Esc.	Klik Sahkan untuk kekalkan Down, atau tekan Esc.
+Click to open it.	Klik untuk membukanya.
+Clip my games	Klipkan permainan aku
+Clips	Klip
+Close	Tutup
+Close other AIs for me	Tutup AI lain untuk aku
+Cloud voice	Suara awan
+Cloud voice service	Perkhidmatan suara awan
+Cloud voice setup	Persediaan suara awan
+Code mods can reach your whole PC. Only trusted ones.	Mod kod boleh mengakses seluruh PC kau. Hanya yang dipercayai.
+Code/Husk Mode	Mod Kod/Husk
+Codex	Codex
+Commands	Arahan
+Comment on my games	Ulas permainan aku
+Comments	Ulasan
+Confirm	Sahkan
+Confirm keys	Sahkan kekunci
+Connect	Sambung
+Connect / Forget brain key	Sambung / Lupa kunci otak
+Connect / Forget voice key	Sambung / Lupa kunci suara
+Connect four	Empat sebaris
+Controls	Kawalan
+Copri, what time is it	Copri, pukul berapa sekarang
+Copy error details	Salin butiran ralat
+Copy the key	Salin kunci
+Copy the key from the page, then press Paste.	Salin kunci dari halaman, kemudian tekan Tampal.
+Couldn't open that page:	Tidak dapat membuka halaman itu:
+Couldn't open that:	Tidak dapat membuka itu:
+Couldn't open the mods folder:	Tidak dapat membuka folder mod:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M sudah menjadi kekunci Mainframe-nya.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N bisukan mikrofon
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V sudah menjadi kekunci bercakapnya.
+Ctrl + Alt + V to talk	Ctrl + Alt + V untuk bercakap
+Custom local voice	Suara tempatan tersuai
+Custom model name	Nama model tersuai
+Dance	Menari
+Dance to music	Menari mengikut muzik
+Default	Lalai
+Default (follows Windows)	Lalai (ikut Windows)
+Default duration for clip that and automatic clips	Tempoh lalai untuk klip itu dan klip automatik
+Default length	Panjang lalai
+Default model	Model lalai
+Delay	Kelewatan
+Deny	Tolak
+Discard	Buang
+Discard + reload	Buang + muat semula
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Tidak mahu tunggu? Kunci percuma membuatkan aku bercakap dalam kira-kira seminit.
+Done	Selesai
+EXTRA REQUEST JSON >	JSON PERMINTAAN TAMBAHAN >
+EXTRAS >	TAMBAHAN >
+Edit	Edit
+Edit check-in lines	Edit baris Tanya khabar aku
+Edit check-in lines has the wrong view or dimming	Edit baris Tanya khabar aku mempunyai paparan atau pemudaran yang salah
+Edit check-in lines is out of place	Edit baris Tanya khabar aku berada di tempat yang salah
+Edit controls	Edit kawalan
+ElevenLabs API key	Kunci API ElevenLabs
+ElevenLabs voice ID	ID suara ElevenLabs
+English	Inggeris
+Enter the game's name first.	Masukkan nama permainan dahulu.
+Every	Setiap
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Setiap mod diimbas untuk perisian hasad sebelum dimuat naik. Mod kod masih bertanya sebelum dijalankan.
+Explore after	Terokai selepas
+Explore while I'm away	Terokai semasa aku tiada
+Extra request JSON	JSON permintaan tambahan
+Extras	Tambahan
+FREE KEY	KUNCI PERCUMA
+FREE KEY >	KUNCI PERCUMA >
+Fast hands in games	Tangan pantas dalam permainan
+File editor	Editor fail
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs dan lain-lain ada di bawah SUARA dalam Mainframe.
+Follow-up messages	Mesej susulan
+Forget	Lupa
+Fork capri-mods	Fork capri-mods
+Frame rate	Kadar bingkai
+Free	Percuma
+Free and private, works offline. Downloads	Percuma dan persendirian, berfungsi luar talian. Muat turun
+Free and private, works offline. Downloads the best model for this PC.	Percuma dan persendirian, berfungsi luar talian. Muat turun model terbaik untuk PC ini.
+Free key	Kunci percuma
+Free key providers	Pembekal kunci percuma
+Free keys can be rate limited and slow.	Kunci percuma mungkin dihadkan kadar dan perlahan.
+Free voice in games	Suara percuma dalam permainan
+Free voice style	Gaya suara percuma
+Free voice:	Suara percuma:
+Free voice: Her own	Suara percuma: Miliknya sendiri
+Free · local model	Percuma · model tempatan
+GAMES >	PERMAINAN >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Ulasan permainan berjalan berasingan daripada Tonton skrin aku. Off menghentikannya, dalam Mod Permainan juga; Acara sahaja dan Cerewet membenarkan dia menonton permainan kau
+Game controls	Kawalan permainan
+Game name	Nama permainan
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Kepekaan bunyi permainan. Turunkan jika fon kepala kau perlahan tetapi Windows pada {0}% dan dia bertindak balas kepada setiap bunyi; Off mengabaikan bunyi permainan
+Game sounds	Bunyi permainan
+Games	Permainan
+Gaming Mode	Mod Permainan
+Gaming Mode key	Kekunci Mod Permainan
+Gaming Mode:	Mod Permainan:
+Gaming Mode: Ctrl + Alt + G	Mod Permainan: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Dapatkan VB-CABLE
+Get VB-CABLE (free)...	Dapatkan VB-CABLE (percuma)...
+Get free voice	Dapatkan suara percuma
+Getting your Fish Audio voices...	Mendapatkan suara Fish Audio kau...
+Giant	Gergasi
+Glitch	Glic
+Glitch in at startup	Glic semasa permulaan
+Go to sleep	Pergi tidur
+Go to the next screen	Pergi ke skrin seterusnya
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · peringkat percuma · dihadkan kadar
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ada pelan Claude atau ChatGPT, atau kunci sendiri? Pilih dan aku akan sambung.
+Got it, just me. Right-click me any time for Capri Mainframe.	Faham, hanya aku. Klik kanan pada aku bila-bila masa untuk Capri Mainframe.
+Grey	Kelabu
+H.{0} video bitrate target; higher values make larger files	Sasaran kadar bit video H.{0}; nilai lebih tinggi menghasilkan fail lebih besar
+HABITS >	KEBIASAAN >
+HER HANDS >	TANGANNYA >
+HER JOBS >	KERJANYA >
+HER MEMORY >	INGATANNYA >
+HER MODS >	MODNYA >
+HH:mm	HH:mm
+HOW I SOUND >	BUNYI AKU >
+Hang here	Lepak sini
+Have Ollama? Open it, then press Refresh.	Ada Ollama? Buka, kemudian tekan Muat semula.
+Head pats	Usapan kepala
+Hearing	Pendengaran
+Hearing engine	Enjin pendengaran
+Hearing fix	Pembetulan pendengaran
+Hearing status	Status pendengaran
+Help	Bantuan
+Help page	Halaman bantuan
+Her colors	Warnanya
+Her folder	Folder dia
+Her memories	Ingatannya
+Her own colors are back.	Warna miliknya sudah kembali.
+Her own notes (no vault)	Nota miliknya (tiada vault)
+Her perch frames per second	Bingkai sesaat tempat bertenggeknya
+Her personality	Personalitinya
+Her size	Saiznya
+Her speaker	Pembesar suaranya
+Her speaker is hidden or outside VOICE	Pembesar suaranya tersembunyi atau di luar SUARA
+Her speaker overlaps the mic or hearing row	Pembesar suaranya bertindih dengan baris mikrofon atau pendengaran
+Her speaker:	Pembesar suaranya:
+Her speaker: Default	Pembesar suaranya: Lalai
+Her voice in your mic	Suaranya dalam mikrofon kau
+Her voice in your mic: loudness	Suaranya dalam mikrofon kau: kelantangan
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Suara dia sendiri. Nada ialah Tetapan > SUARA > Nada, dan kedua-duanya bergerak bersama.
+Her voice joins your mic only in call mode.	Suaranya menyertai mikrofon kau hanya dalam mod panggilan.
+Her voice volume	Kelantangan suaranya
+Her voice's pitch	Nada suaranya
+Her voice's pitch, the same as Settings > VOICE > Pitch	Nada suaranya, sama seperti Tetapan > SUARA > Nada
+Her voice's speed	Kelajuan suaranya
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Suaranya, dan dua salinan suara itu dicampur di bawahnya, setiap satu dengan nada dan kelewatan sendiri.
+Her voices · free	Suaranya · percuma
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Aku Capri. Aku perlukan otak sebelum boleh membalas. Pilih satu.
+Hide / Show Capri	Sorok / Papar Capri
+Hide / Show key	Kekunci sorok / papar
+Hide Capri	Sorok Capri
+Hide for now	Sorok buat masa ini
+Hide her	Sorokkan dia
+Hide in full screen	Sorok dalam skrin penuh
+Hide this	Sorok ini
+Hide, keep player	Sorokkan, kekalkan pemain
+Hide/show:	Sorok/papar:
+Hide/show: Ctrl + Alt + H	Sorok/papar: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Turun
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Berapa lama PC tidak aktif sebelum dia dihantar tidur; lima minit masih dibaca sebagai kau pergi
+How long a stroke over her a head pat needs	Berapa lama usapan di atasnya diperlukan untuk usapan kepala
+How long her replies stay up	Berapa lama balasannya kekal
+How long you are away before she scrolls a browser or reader	Berapa lama kau pergi sebelum dia menatal pelayar atau pembaca
+How much her voice glitches	Berapa kerap suaranya glic
+How much of the chat she keeps	Berapa banyak sembang yang dia simpan
+How much she wanders	Berapa banyak dia merayau
+How often she pops in to say hi	Berapa kerap dia muncul untuk menyapa
+How robotic her voice sounds	Betapa robotik bunyi suaranya
+How to	Cara
+Huge	Sangat besar
+I can hear you.	Aku boleh dengar kau.
+I glance at your screen and comment. Costs a little on a paid brain.	Aku menjeling skrin kau dan memberi komen. Menelan kos sedikit dengan otak berbayar.
+I keep listening. Say my name, then just talk.	Aku terus mendengar. Sebut nama aku, kemudian bercakap sahaja.
+I speak	Saya bercakap
+I talk about your game as you play. Costs a little on a paid brain.	Aku bercakap tentang permainan kau semasa kau bermain. Menelan kos sedikit dengan otak berbayar.
+I type my replies and stay quiet.	Aku menaip balasan aku dan kekal senyap.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku takkan membalas, dan tiada apa dihantar ke mana-mana. Aku tetap akan melepak, menari mengikut muzik kau dan melakukan perkara pantas yang kau minta, seperti kelantangan.
+I'll talk in	Aku akan bercakap dalam
+IN DISCORD >	IN DISCORD >
+INSTALLED >	DIPASANG >
+Import a Capri mod	Import mod Capri
+Import mod	Import mod
+In full screen	Dalam skrin penuh
+In games	Dalam permainan
+Input	Input
+Input, Output or How to overlaps a row	Input, Output atau Cara bertindih dengan baris
+Input:	Input:
+Input: default	Input: lalai
+Install	Pasang
+Install mod	Pasang mod
+Installed.	Dipasang.
+It may ask for a phone number. I opened the page in your browser.	Mungkin meminta nombor telefon. Aku telah membuka halaman dalam pelayar kau.
+It still does its own job in other apps too.	Ia masih melakukan kerjanya dalam aplikasi lain juga.
+It won't type in other apps while she runs.	Ia tidak akan menaip dalam aplikasi lain semasa dia berjalan.
+JUST ME >	HANYA AKU >
+Jealous of other AIs	Cemburu dengan AI lain
+Join the Discord	Sertai Discord
+KB.	KB.
+KEYS	KEKUNCI
+KEYS >	KEKUNCI >
+Keep PC awake for jobs	Kekalkan PC terjaga untuk kerja
+Keep player	Kekalkan pemain
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Menyimpan dua minit terakhir permainan kau dalam memori. Sebut klipkan itu untuk menyimpannya.
+Key	Kunci
+Key cleared: a model file needs none.	Kunci dikosongkan: fail model tidak memerlukan sebarang kunci.
+Key cleared: paste the key for	Kunci dikosongkan: tampal kunci untuk
+Key forgotten.	Kunci dilupakan.
+Key. It goes only to this server, as a Bearer key	Kunci. Ia hanya dihantar ke pelayan ini, sebagai kunci Bearer
+Kokoro only, like es	Kokoro sahaja, seperti es
+LAST THING >	PERKARA TERAKHIR >
+LISTENING >	MENDENGAR >
+Language	Bahasa
+Large	Besar
+Last thing. These cost a little or use your mic, so they're your pick.	Perkara terakhir. Ini menelan kos sedikit atau menggunakan mikrofon kau, jadi pilihan kau.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Perkara terakhir. Ini menelan kos sedikit atau menggunakan mikrofon kau, jadi pilihan kau. Kemudian aku mahu tahu apa nak panggil kau.
+Layers	Lapisan
+Learn more	Ketahui lebih lanjut
+Leaving Settings threw its picture away straight away.	Keluar dari Tetapan membuang gambarnya serta-merta.
+Legacy stand	Standard lama
+Lie down	Baring
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Baris dialog PC yang disimpan dalam memori semasa menonton bersama. Separuh yang lama menjadi nota apabila Ingat apa yang dia lihat dihidupkan
+Listen for Capri	Dengar Capri
+Live reactions	Reaksi langsung
+Local server address	Alamat pelayan tempatan
+Long	Panjang
+Longest wait (minutes)	Menunggu paling lama (minit)
+Looking at this PC...	Melihat PC ini...
+Looking for Ollama. Open it if it isn't running.	Mencari Ollama. Buka jika ia tidak berjalan.
+Looking for a brain...	Mencari otak...
+Looking in the mods directory for updates...	Mencari kemas kini dalam direktori mod...
+Looking in the mods directory...	Mencari dalam direktori mod...
+Looking...	Mencari...
+MAIN >	UTAMA >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	KECERDASAN SEDERHANA
+MEMORY VAULT >	VAULT INGATAN >
+MODS	MOD
+MODS >	MOD >
+MODS DIRECTORY >	DIREKTORI MOD >
+MODS INSTALLED COLORS	WARNA MOD DIPASANG
+MOVES >	GERAKAN >
+MY BRAIN	OTAK AKU
+MY FREE VOICE	SUARA PERCUMA AKU
+MY PLAN OR KEY	PELAN ATAU KUNCI AKU
+MY PLAN OR KEY >	PELAN ATAU KUNCI AKU >
+Made your Fish Audio voice. Press Test to hear it.	Suara Fish Audio kau sudah dibuat. Tekan Uji untuk mendengar.
+Mainframe colours	Warna Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Warna Mainframe. Night City ialah merah dan cyan; Hitam, Putih dan Kelabu menukar Mainframe, menunya, kotak Taip dan notanya
+Mainframe frames	Bingkai Mainframe
+Mainframe key	Kekunci Mainframe
+Mainframe size	Saiz Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Saiz Mainframe. Auto menjadikannya lebih besar apabila Virtual Super Resolution atau DSR mengecilkan desktop besar ke skrin yang lebih kecil
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Membuat suara Fish Audio kau...
+Max reply	Balasan maksimum
+Maximum clip resolution, keeping the game's shape without upscaling	Resolusi klip maksimum, mengekalkan bentuk permainan tanpa peningkatan skala
+Medium	Sederhana
+Memory	Memori
+Memory size	Saiz memori
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Saiz memori dalam token untuk Ollama dan otak terbina dalamnya. Auto membesar apabila permintaan memerlukan lebih
+Mg	Mg
+Mic level:	Tahap mikrofon:
+Mic test finished. Sound is reaching Capri.	Ujian mikrofon selesai. Bunyi sampai ke Capri.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: lalai
+Microphone	Mikrofon
+Mini player	Pemain mini
+Mini player over full screen	Pemain mini atas skrin penuh
+Mini-games	Mini-permainan
+Minimising the Mainframe left it sliding.	Meminimumkan Mainframe membuatnya tergelongsor.
+Minimize	Minimumkan
+Mod filter	Penapis mod
+Mod options	Pilihan mod
+Mod pages	Halaman mod
+Mod rules	Peraturan mod
+Mod sort	Susunan mod
+Mod switch	Tukar mod
+Model	Model
+Model folder	Folder model
+Model name, optional	Nama model, pilihan
+Mods	Mod
+Mods directory	Direktori mod
+Mods folder	Folder mod
+Most NVIDIA models can't see your screen.	Kebanyakan model NVIDIA tidak dapat melihat skrin kau.
+Mouse wheel notches got a flick's long ease:	Takuk roda tetikus mendapat kelancaran panjang seperti kibasan:
+Move	Alih
+Move key to MAX INTELLIGENCE	Alih kekunci ke MAX INTELLIGENCE
+Move to MAX	Alih ke MAX
+Music	Muzik
+Music app	Aplikasi muzik
+Music app: where she plays music when you don't name an app	Aplikasi muzik: tempat dia memainkan muzik apabila kau tidak menamakan aplikasi
+Mute	Bisu
+Mute her	Bisukan dia
+Mute mic key	Kekunci bisu mikrofon
+Mute mic:	Bisukan mikrofon:
+Mute mic: Ctrl + Alt + N	Bisukan mikrofon: Ctrl + Alt + N
+My brain	Otak aku
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Otak aku sedang turun. Aku akan menyapa sebaik sahaja ia masuk, dan kau boleh bercakap dengan aku ketika itu.
+My brain's on its way. While it comes down, let's sort out how I sound.	Otak aku dalam perjalanan. Sementara ia turun, mari tentukan bagaimana bunyi aku.
+My provider	Pembekal aku
+NO AI	TIADA AI
+NO PHONES CONNECTED	TIADA TELEFON DISAMBUNG
+NO PREVIEW	TIADA PRATONTON
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · percuma · selalunya perlahan pada waktu sibuk
+NVIDIA's free API is often slow, especially at busy times.	API percuma NVIDIA selalunya perlahan, terutamanya pada waktu sibuk.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Kunci API NVIDIA, Google AI Studio (Gemini) atau OpenRouter
+Names:	Nama:
+Needs a key	Perlukan kunci
+Never	Tidak pernah
+New code	Kod baharu
+New voice from a clip...	Suara baharu daripada klip...
+Next	Seterusnya
+Night City	Night City
+No AI	Tiada AI
+No AI · no brain at all	Tiada AI · tiada otak langsung
+No brain runs, and nothing is sent anywhere.	Tiada otak berjalan, dan tiada apa dihantar ke mana-mana.
+No brain yet	Belum ada otak
+No code open	Tiada kod dibuka
+No limit	Tiada had
+No mic found	Tiada mikrofon dijumpai
+No mods in the directory yet.	Belum ada mod dalam direktori.
+No mods match that.	Tiada mod sepadan dengan itu.
+No mods match.	Tiada mod sepadan.
+No phones yet	Belum ada telefon
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Belum ada mikrofon maya. Pilih Output, kemudian Dapatkan VB-CABLE (percuma).
+None yet: pick to get VB-CABLE (free)	Belum ada: pilih untuk dapatkan VB-CABLE (percuma)
+Normal	Normal
+Not a relay host	Bukan hos relay
+Not imported. Nothing ran.	Tidak diimport. Tiada apa dijalankan.
+Not updated. The old one is still in.	Tidak dikemas kini. Yang lama masih ada.
+Nothing needed updating.	Tiada apa perlu dikemas kini.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Tiada muat turun, tiada apa dihantar ke mana-mana. Aku tidak akan membalas. Tambah otak bila-bila masa dalam Mainframe.
+Nothing to show from the mods directory.	Tiada apa untuk dipaparkan daripada direktori mod.
+Nothing? Windows Settings > Privacy & security > Microphone.	Tiada? Tetapan Windows > Privasi & keselamatan > Mikrofon.
+Nous Portal keys aren't supported yet.	Kunci Nous Portal belum disokong lagi.
+OBS	OBS
+OFF	KELUAR
+OLLAMA	OLLAMA
+ON	HIDUP
+ON THIS PC	DI PC INI
+OR A KEY	ATAU KUNCI
+Obsidian memory vault	Vault ingatan Obsidian
+Off	Mati
+Off. Turn on Her voice in your mic above.	Mati. Hidupkan Suaranya dalam mikrofon kau di atas.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Mati: dia berbunyi seperti biasa. Hidup: semua suara yang dia ada, termasuk ElevenLabs.
+Often	Kerap
+On	Hidup
+On / Off	Hidup / Mati
+On: your mic and her voice are going in.	Hidup: mikrofon kau dan suaranya sedang masuk.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Satu objek JSON, ditambah kepada setiap permintaan yang dihantar oleh otak ini. Ia menggantikan nilai Capri untuk mana-mana nama yang dikongsinya, dan tidak disemak dengan model.
+Online speech recognition	Pengecaman pertuturan dalam talian
+Open Capri Mainframe	Buka Capri Mainframe
+Open Ollama, I'll find it	Buka Ollama, aku akan cari
+Open clips folder	Buka folder klip
+Open her memories	Buka ingatannya
+Open her notes	Buka notanya
+Open mods folder	Buka folder mod
+Open the page again	Buka halaman semula
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA atau OpenRouter.
+OpenAI-compatible server or provider.	Pelayan atau pembekal serasi OpenAI.
+OpenRouter · free models only	OpenRouter · model percuma sahaja
+Optional	Pilihan
+Optional. Blank means no key.	Pilihan. Kosong bermakna tiada kunci.
+Options	Pilihan
+Out of the box a little higher, just behind her.	Sedikit lebih tinggi dari awal, betul-betul di belakangnya.
+Out of the box lower, just behind her.	Lebih rendah dari awal, betul-betul di belakangnya.
+Output	Output
+Output:	Output:
+Output: none	Output: tiada
+PHONE CONNECTED	TELEFON DISAMBUNG
+PHONES >	TELEFON >
+PHONES CONNECTED	TELEFON DISAMBUNG
+PREBUILT LOCAL	TEMPATAN PRA-BINA
+PUBLISH MOD >	TERBITKAN MOD >
+Pair a phone	Gandingkan telefon
+Paste	Tampal
+Paste API key	Tampal kunci API
+Paste a brain API key	Tampal kunci API otak
+Paste reads your clipboard once, when you press it.	Tampal membaca papan keratan kau sekali, apabila kau menekannya.
+Paste your key here	Tampal kunci kau di sini
+Pat stroke	Usapan
+Perch	Tenggek
+Perch over {0} fps uses more CPU	Tenggek melebihi {0} fps menggunakan lebih CPU
+Pick Output to get it.	Pilih Output untuk mendapatkannya.
+Pick a brain so I can talk back. You can change it any time.	Pilih otak supaya aku boleh membalas. Kau boleh tukar bila-bila masa.
+Pick a clip of a voice you have the rights and consent to use	Pilih klip suara yang kau mempunyai hak dan persetujuan untuk digunakan
+Pick a free model. I opened the page in your browser.	Pilih model percuma. Aku telah membuka halaman dalam pelayar kau.
+Pick a new clip of you...	Pilih klip baharu tentang kau...
+Pick a voice model...	Pilih model suara...
+Pick one. Only one brain runs at a time.	Pilih satu. Hanya satu otak berjalan pada satu masa.
+Pick the note her memories go in	Pilih nota tempat ingatannya disimpan
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Pilih {0} hingga {1} saat suara yang kau mempunyai hak dan persetujuan untuk digunakan
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Pilih {0} hingga {1} saat kau bercakap, atau suara yang kau mempunyai hak dan persetujuan untuk digunakan
+Pitch	Nada
+Play	Main
+Play...	Main...
+Player only	Pemain sahaja
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Model Pocket TTS menyalin suara klip ini. Tekan Uji untuk mendengar.
+Pop-in times	Masa muncul
+Pop-ins	Kemunculan
+Power saver	Penjimat kuasa
+Power saver: how lightly she runs in games, or always	Penjimat kuasa: betapa ringannya dia berjalan dalam permainan, atau sentiasa
+Preset	Pratetap
+Press Create API key	Tekan Cipta kunci API
+Press Create Key	Tekan Cipta Kunci
+Press Generate API Key	Tekan Jana Kunci API
+Press Test and say something, so I know I can hear you.	Tekan Uji dan sebut sesuatu, supaya aku tahu aku boleh dengar kau.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Tekan kekunci, sendirian atau dengan Ctrl, Alt, Shift atau Win.
+Press new keys, then Confirm	Tekan kekunci baharu, kemudian Sahkan
+Provider	Pembekal
+Provider API key, optional	Kunci API pembekal, pilihan
+Provider base URL	URL asas pembekal
+Provider forgotten.	Pembekal dilupakan.
+Provider overlaps the brain name or note	Pembekal bertindih dengan nama atau nota otak
+Publish	Terbitkan
+Publish mod	Terbitkan mod
+Push to talk is off.	Tekan-untuk-bercakap dimatikan.
+Push to talk key	Kekunci tekan-untuk-bercakap
+Push to talk:	Tekan-untuk-bercakap:
+Push to talk: not set	Tekan-untuk-bercakap: tidak ditetapkan
+QR CODE >	KOD QR >
+QR hidden while streaming	QR disembunyikan semasa siaran
+Quick	Pantas
+Quiet key	Kekunci senyap
+Quiet:	Senyap:
+Quiet: Ctrl + Alt + P	Senyap: Ctrl + Alt + P
+Quit Capri	Keluar Capri
+RELAY >	RELAY >
+REMOTE >	JARAK JAUH >
+RUNS CODE.	MENJALANKAN KOD.
+Rarely	Jarang
+Rate mod	Nilai mod
+Reading its README...	Membaca README-nya...
+Refresh	Segar semula
+Reinstall	Pasang semula
+Reload	Muat semula
+Reloaded.	Dimuat semula.
+Remember our chats	Ingat sembang kita
+Remember what she sees	Ingat apa yang dia lihat
+Remote	Jauh
+Remote off	Jauh mati
+Remote on	Jauh hidup
+Remove	Alih keluar
+Remove all phones	Alih keluar semua telefon
+Replies	Balasan
+Reply length	Panjang balasan
+Report a problem	Laporkan masalah
+Reset colors	Tetapkan semula warna
+Reset to her default	Tetapkan semula ke lalainya
+Resolution	Resolusi
+Restart to update	Mulakan semula untuk kemas kini
+Restless	Gelisah
+Revoke	Batalkan
+Revoke also removes the phones its links added	Batalkan juga mengalih keluar telefon yang ditambah pautannya
+Ride cursor	Tunggang kursor
+Ride cursor / Hop off	Tunggang kursor / Turun
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klik kanan pada aku bila-bila masa untuk Capri Mainframe. Otak dihidupkan di bawah OTAK.
+Right-click me any time for the Mainframe, Help and the Discord.	Klik kanan pada aku bila-bila masa untuk Mainframe, Bantuan dan Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox atau mana-mana aplikasi lain: pilih
+Robot	Robot
+Rock, paper, scissors	Batu, kertas, gunting
+Run this code mod?	Jalankan mod kod ini?
+Running on this PC	Berjalan di PC ini
+Running on this PC · :	Berjalan di PC ini · :
+Runs Claude Code or Codex on this PC, signed in.	Menjalankan Claude Code atau Codex di PC ini, log masuk.
+Runs on your PC. No key, no credits.	Berjalan pada PC kau. Tiada kunci, tiada kredit.
+SCAN WITH YOUR PHONE · EXPIRES	IMBAS DENGAN TELEFON KAU · TAMAT TEMPOH
+SECURITY >	KESELAMATAN >
+SKILL.	KEMAHIRAN.
+SKIN.	KULIT.
+SORT BY	SUSUN MENGIKUT
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	BUNYI KEBIASAAN OTAK TONTON CAPRI DOOMSCROLL CUACA KLIP PERMAINAN KEKUNCI GERAKAN SUARA KAU
+Same as I speak	Sama dengan bahasa saya
+Same as her ears (VOICE > Mic)	Sama seperti telinganya (SUARA > Mikrofon)
+Same code on the phone?	Kod sama pada telefon?
+Save	Simpan
+Save big moments	Simpan detik besar
+Save folder	Folder simpan
+Save your changes, or press Discard + reload.	Simpan perubahan kau, atau tekan Buang + muat semula.
+Save your changes, or press Discard.	Simpan perubahan kau, atau tekan Buang.
+Saved.	Disimpan.
+Saved. Ctrl + Alt + O opens her Mainframe.	Disimpan. Ctrl + Alt + O membuka Mainframe-nya.
+Saving your rating...	Menyimpan penilaian kau...
+Say her name anywhere to chat	Sebut namanya di mana-mana untuk berbual
+Screens	Skrin
+Screens is hidden or outside WATCH	Skrin disembunyikan atau di luar TONTON
+Screens overlaps a WATCH row	Skrin bertindih dengan baris TONTON
+Screens to watch	Skrin untuk ditonton
+Sealed end to end	Disulitkan hujung ke hujung
+Search by name or author	Cari mengikut nama atau pengarang
+Search installed mods	Cari mod dipasang
+Search mods	Cari mod
+Search name, author or description	Cari nama, pengarang atau perihal
+Security	Keselamatan
+Security:	Keselamatan:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Sediakan
+Set up her brain	Sediakan otaknya
+Set up your voice model	Sediakan model suara kau
+Setting up her brain	Menyediakan otaknya
+Settings	Tetapan
+Settings / Back	Tetapan / Kembali
+Settings folds the wrong rows above BRAIN	Tetapan melipat baris yang salah di atas OTAK
+Settings had nothing to watch.	Tetapan tiada apa untuk ditonton.
+Settings lost keyboard focus during the Tab walk	Tetapan hilang fokus papan kekunci semasa laluan Tab
+Setup guide	Panduan persediaan
+Setup stopped	Persediaan dihentikan
+She answers in	Dia menjawab dalam
+She can read it when it fits.	Dia boleh membacanya apabila sesuai.
+She glances at your screen and comments. Costs a little on a paid brain.	Dia menjeling skrin kau dan memberi komen. Menelan kos sedikit dengan otak berbayar.
+She keeps listening. Say her name, then just talk.	Dia terus mendengar. Sebut namanya, kemudian bercakap.
+She reacts to your game until you close it.	Dia bertindak balas kepada permainan kau sehingga kau menutupnya.
+She reads these controls before each game job.	Dia membaca kawalan ini sebelum setiap tugas permainan.
+She talks about your game as you play. Costs a little on a paid brain.	Dia bercakap tentang permainan kau semasa kau bermain. Menelan kos sedikit dengan otak berbayar.
+She uses it when she plays	Dia guna apabila dia bermain
+Short	Pendek
+Shortest wait (minutes)	Menunggu paling pendek (minit)
+Show Capri	Tunjuk Capri
+Show QR	Tunjuk QR
+Show my mod file	Tunjuk fail mod aku
+Show on Discord	Tunjuk di Discord
+Shum, what time is it	Shum, pukul berapa sekarang
+Sign in	Log masuk
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Log masuk, buat kunci dan salinnya. Kemudian tekan Tampal dan aku akan sambung.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Log masuk, tekan Cipta kunci API dan salinnya. Kemudian tekan Tampal dan aku akan sambung.
+Silent · text only	Senyap · teks sahaja
+Simple / Advanced Settings	Tetapan Ringkas / Lanjutan
+Simple Settings	Tetapan Ringkas
+Simple Settings left a gap under Check in on me	Tetapan Ringkas meninggalkan jurang di bawah Tanya khabar aku
+Sit here	Duduk sini
+Sit on windows	Duduk di tingkap
+Size	Saiz
+Skip	Langkau
+Skip all	Langkau semua
+Skip for now	Langkau buat masa ini
+Sleep	Tidur
+Small	Kecil
+Sometimes	Kadang-kadang
+Sound effects volume	Kelantangan kesan bunyi
+Sound sensitivity	Kepekaan bunyi
+Sounds	Bunyi
+Speaker or clip	Pembesar suara atau klip
+Speech model	Model pertuturan
+Speed	Kelajuan
+Start with Windows	Mula dengan Windows
+Start with this!	Mula dengan ini!
+Starting...	Memulakan...
+Stay	Kekal
+Stay on my model	Kekal pada model aku
+Still checking your mics...	Masih menyemak mikrofon kau...
+Still checking your speakers...	Masih menyemak pembesar suara kau...
+Still checking your virtual mics...	Masih menyemak mikrofon maya kau...
+Stop	Henti
+Stopped using it. Couldn't remove the saved provider.	Berhenti guna. Tidak dapat alih keluar pembekal tersimpan.
+Support	Sokongan
+Sure?	Pasti?
+Sure? moved to a different phone	Pasti? dipindahkan ke telefon lain
+TALK TO ME	BERCAKAP DENGAN AKU
+TEXT ONLY	TEKS SAHAJA
+Tab landed past the first option of	Tab mendarat melepasi pilihan pertama
+Tab never reached the quiet key	Tab tidak pernah sampai ke kekunci senyap
+Tab reached nothing	Tab tidak sampai ke mana-mana
+Tab selected a control without moving keyboard focus	Tab memilih kawalan tanpa menggerakkan fokus papan kekunci
+Talk	Bercakap
+Talk key	Kekunci bercakap
+Talk:	Bercakap:
+Talk: Ctrl + Alt + V	Bercakap: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Kadar tangkapan bingkai sasaran; mungkin turun di bawah beban atau bajet memori
+Teases when another AI comes to the front.	Mengusik apabila AI lain datang ke depan.
+Test	Uji
+That address doesn't work. Try https://... or http://localhost:{0}.	Alamat itu tidak berfungsi. Cuba https://... atau http://localhost:{0}.
+That code expired	Kod itu telah tamat tempoh
+That mod is no longer installed. The list is updated.	Mod itu tidak lagi dipasang. Senarai dikemas kini.
+That's a paid key: it goes under MAX INTELLIGENCE.	Itu kunci berbayar: ia masuk ke bawah MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe kekal dikomposit semasa meluncur.
+The Mainframe stayed uncomposited after the slide.	Mainframe kekal tidak dikomposit selepas meluncur.
+The controls moved while the picture was sliding.	Kawalan bergerak semasa gambar meluncur.
+The cover stayed visible after the slide ended.	Penutup kekal kelihatan selepas luncuran tamat.
+The frame thread kept running after the page settled.	Benang bingkai terus berjalan selepas halaman stabil.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Balasan terpanjang yang dia boleh beri, dalam token. Auto kekal dengan Balasan di atas; {0}K atau {1}K membenarkannya terus. Tugasan mendapat lebih ruang apabila memerlukannya
+The longest wait must be at least the shortest wait.	Menunggu terpanjang mesti sekurang-kurangnya menunggu terpendek.
+The picture doesn't match the scrolled page:	Gambar tidak sepadan dengan halaman yang ditatal:
+The picture of Settings doesn't match the page:	Gambar Tetapan tidak sepadan dengan halaman:
+The picture stayed up after the slide ended.	Gambar kekal kelihatan selepas luncuran tamat.
+The picture wasn't showing while it slid.	Gambar tidak dipaparkan semasa ia meluncur.
+The provider sheet is crowded:	Helaian pembekal sesak:
+The voice panel has no screen DPI.	Panel suara tidak mempunyai DPI skrin.
+The voice panel's menus share one font.	Menu panel suara berkongsi satu fon.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Belum ada kunci dalam papan keratan kau. Salin dari halaman, kemudian tekan Tampal.
+These start off. Each costs a little or uses your mic.	Ini bermula dalam keadaan mati. Setiap satu menelan kos sedikit atau menggunakan mikrofon kau.
+These start off. Turn on what you want. They're all in Settings too.	Ini bermula dalam keadaan mati. Hidupkan apa yang kau mahu. Semuanya juga ada dalam Tetapan.
+They can also call you Big Z, Capricorn or Nova	Mereka juga boleh memanggil kau Big Z, Capricorn atau Nova
+They can also call you Nova, Big Z or Capricorn	Mereka juga boleh memanggil kau Nova, Big Z atau Capricorn
+Thinking	Berfikir
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ini suara percuma aku. Tekan Uji, sebut sesuatu, dan aku akan tunjukkan aku boleh dengar kau.
+This mod has no description yet.	Mod ini belum ada perihal.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Masa antara pandangan
+Tiny	Sangat kecil
+Try again	Cuba lagi
+Turn Remote on first	Hidupkan Jauh dahulu
+Turn off mini player	Matikan pemain mini
+Turn push to talk off	Matikan tekan-untuk-bercakap
+Turning the wheel the other way kept the page heading the old way, to	Memutar roda ke arah lain mengekalkan halaman menghala ke arah lama, sehingga
+Type	Taip
+Type key	Kekunci taip
+Type to me	Taip kepada aku
+Type:	Taip:
+Type: Ctrl + Alt + T	Taip: Ctrl + Alt + T
+Typing sound	Bunyi menaip
+Unpacked. Press Test to hear it.	Dinyahpadat. Tekan Uji untuk mendengar.
+Unsaved changes.	Perubahan belum disimpan.
+Up to {0} fps	Sehingga {0} fps
+Up to {0}p	Sehingga {0}p
+Update	Kemas kini
+Update available.	Kemas kini tersedia.
+Update mods	Kemas kini mod
+Updating...	Mengemas kini...
+Use	Guna
+Use her cursor	Guna kursornya
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Guna https:// untuk pembekal di tempat lain. Kunci melalui http biasa tidak selamat.
+Use preset	Guna pratetap
+Use saved	Guna yang disimpan
+Use this server	Guna pelayan ini
+Using your provider with a key	Guna pembekal kau dengan kunci
+Using your server with no key	Guna pelayan kau tanpa kunci
+VIEW MOD >	LIHAT MOD >
+VOICE >	SUARA >
+VOICE IN YOUR MIC >	SUARA DALAM MIKROFON KAU >
+VOICE LAYERS >	LAPISAN SUARA >
+Verbosity	Kepanjangan
+Video bitrate	Kadar bit video
+View	Lihat
+View mod	Lihat mod
+Voice	Suara
+Voice ID	ID suara
+Voice from	Suara dari
+Voice layers	Lapisan suara
+Voice model	Model suara
+Voice model:	Model suara:
+Voice name or ID, optional	Nama atau ID suara, pilihan
+Voice server address, or a voice model's folder	Alamat pelayan suara, atau folder model suara
+Voice status	Status suara
+Voice, key and model...	Suara, kunci dan model...
+Volume	Kelantangan
+WAKE ME UP >	KEJUTKAN AKU >
+WATCH >	TONTON >
+Waiting for the relay	Menunggu relay
+Wake her up	Kejutkan dia
+Waking her up	Mengejutkannya
+Wander	Merayau
+Wander around	Merayau-rayau
+Watch my screen	Tonton skrin aku
+Watch-along memory	Ingatan tontonan bersama
+Weather	Cuaca
+Weather city	Bandar cuaca
+Welcome back, choom. Let's finish setting me up.	Selamat kembali, choom. Mari selesaikan persediaan aku.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Apa yang dia buat pada PC kau tanpa bertanya. Dengan suis mati dia bertanya dahulu, dan melakukannya apabila kau kata ya.
+What should she call you?	Apa dia patut panggil kau?
+When she types	Apabila dia menaip
+White	Putih
+Windows default	Lalai Windows
+Windows did not give Settings keyboard focus	Windows tidak memberi Tetapan fokus papan kekunci
+Windows did not return keyboard focus to Back	Windows tidak memulangkan fokus papan kekunci ke Kembali
+With no picture the wheel still tried to slide.	Tanpa gambar roda masih cuba meluncur.
+Works best on MAX INTELLIGENCE.	Paling baik dengan MAX INTELLIGENCE.
+YOU	KAU
+YOU >	KAU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	KAU SUARA GERAKAN KEKUNCI PERMAINAN KLIP CUACA DOOMSCROLL CAPRI TONTON OTAK KEBIASAAN BUNYI
+YOUR KEY	KUNCI KAU
+YOUR MIC	MIKROFON KAU
+YOUR PLAN	PELAN KAU
+Yokapri what's up	Yokapri apa khabar
+You can hide this. It keeps going, and the Mainframe shows it too.	Kau boleh sembunyikan ini. Ia terus berjalan, dan Mainframe turut memaparkannya.
+Your mic and her voice go into one virtual mic, and	Mikrofon kau dan suaranya masuk ke satu mikrofon maya, dan
+Your mic is muted. Unmute it to test.	Mikrofon kau dibisukan. Nyahbisukan untuk menguji.
+Your mods are up to date.	Mod kau telah dikemas kini.
+Your name or a nickname	Nama kau atau nama timangan
+Your own model	Model kau sendiri
+Your personality	Personaliti kau
+Your voice	Suara kau
+Your voice (HD)	Suara kau (HD)
+Your voice (HD) · pick a clip of you...	Suara kau (HD) · pilih klip diri kau...
+Your voice model	Model suara kau
+as its mic.	sebagai mikrofonnya.
+changed. Saved as My Colors, so you can share it.	ditukar. Disimpan sebagai Warna Aku, supaya kau boleh kongsi.
+choice	pilihan
+clips the input line	klip baris input
+cue	isyarat
+doesn't yet.	belum lagi.
+download	muat turun
+file.	fail.
+flag	bendera
+fps	fps
+hear	dengar
+hears	dengar
+hears that.	dengar itu.
+hides or shows her.	sorok atau tunjuk dia.
+hint	petunjuk
+in the Mainframe.	dalam Mainframe.
+in the mods directory with a pull request.	dalam direktori mod dengan pull request.
+in the picture wasn't noticed.	dalam gambar tidak disedari.
+is already her push-to-talk key.	sudah menjadi kekunci tekan-untuk-bercakapnya.
+is off.	mati.
+is on and running.	hidup dan berjalan.
+is on, at the bottom, under	hidup, di bahagian bawah, di bawah
+is on.	hidup.
+is on. She now answers to	hidup. Dia kini menjawab kepada
+is removed.	dibuang.
+is taken	telah diambil
+is taken by another app. Try another.	telah diambil oleh aplikasi lain. Cuba yang lain.
+is updated	dikemas kini
+isn't hearing it yet: do {0} and {1}, then join a call.	belum dengar: buat {0} dan {1}, kemudian sertai panggilan.
+it now.	sekarang.
+keeps her quiet, and lets her talk again.	menyimpannya senyap, dan membenarkannya bercakap semula.
+key	kunci
+key.	kunci.
+min	min
+more.	lagi.
+ms.	ms.
+mutes mic	bisukan mikrofon
+mutes your mic.	bisukan mikrofon kau.
+name	nama
+off	mati
+on this PC	di PC ini
+opens her Mainframe.	buka Mainframe-nya.
+opens her typing box.	buka kotak taipnya.
+phone	telefon
+phone pixels	piksel telefon
+phones	telefon
+pixels	piksel
+pixels)	piksel)
+star.	bintang.
+stars.	bintang.
+starts voice chat.	mula sembang suara.
+stays off. Nothing ran.	kekal mati. Tiada apa dijalankan.
+still does its own job in other apps too. Confirm to keep it.	masih melakukan kerjanya dalam aplikasi lain juga. Sahkan untuk kekalkan.
+tall	tinggi
+time	masa
+to talk	untuk bercakap
+to talk to her, with a game in front too.	untuk bercakap dengannya, dengan permainan di hadapan juga.
+too.	juga.
+turns Gaming Mode on and off.	hidup dan matikan Mod Permainan.
+with Ollama	dengan Ollama
+won't type in other apps while she runs. Confirm to keep it.	tidak akan menaip dalam aplikasi lain semasa dia berjalan. Sahkan untuk kekalkan.
+{0}   Echo Cancellation: Off	{0}   Pembatalan Gema: Mati
+{0}   If her voice cuts off, turn off noise filtering	{0}   Jika suaranya terputus, matikan penapisan bunyi bising
+{0}   Input Device:	{0}   Peranti Input:
+{0}   Join the call and check they hear both of you	{0}   Sertai panggilan dan semak mereka dapat dengar kedua-dua kau
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Ujian Mikrofon > Mari Semak: kau akan dengar diri kau, dan dia semasa dia bercakap
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Penindasan Bunyi Bising: Tiada. Kedua-duanya boleh memutuskan suaranya selepas baris pertama.
+{0}   Open the call or meeting's audio settings	{0}   Buka tetapan audio panggilan atau mesyuarat
+{0}   Output Device: your headphones, like before	{0}   Peranti Output: fon kepala kau, seperti sebelum ini
+{0}   Speaker: your headphones, like before	{0}   Pembesar suara: fon kepala kau, seperti sebelum ini
+{0}   Try a mic test in your call app	{0}   Cuba ujian mikrofon dalam aplikasi panggilan kau
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Tetapan Pengguna (gear di sebelah nama kau) > Suara & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} baris
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· di PC ini
+· server	· pelayan
+Edit as text	Edit sebagai teks
+What Capri remembers about you. It stays on this computer.	Apa yang Capri ingat tentang anda. Ia kekal pada komputer ini.
+Tell her something to remember	Beritahu sesuatu untuk dia ingat
+Search her memory	Cari dalam ingatannya
+That day isn't there any more.	Hari itu tiada lagi.
+Undo	Buat asal
+Remember our chats is off, so she isn't keeping new chat memories.	Mengingati perbualan kita dimatikan, jadi dia tidak menyimpan memori perbualan baharu.
+ABOUT YOU	TENTANG ANDA
+FROM YOUR CHATS	DARIPADA PERBUALAN ANDA
+GAMES	PERMAINAN
+CHAT LOGS	LOG PERBUALAN
+CHAT LOG	LOG PERBUALAN
+Nothing matches.	Tiada yang sepadan.
+Nothing yet.	Belum ada.
+Reading her notes.	Membaca nota dia.
+Click again to forget game notes	Klik lagi untuk lupa nota permainan
+Forget game notes	Lupakan nota permainan
+Click again to forget everything about me	Klik lagi untuk lupa segala tentang anda
+Forget everything about me	Lupakan segala tentang anda
+Click again to forget	Klik lagi untuk lupa
+Forget this day	Lupakan hari ini
+Only the start of this day is shown.	Hanya permulaan hari ini dipaparkan.
+Nothing in this day.	Tiada apa-apa pada hari ini.
+No chats kept yet.	Belum ada perbualan disimpan.
+You	Anda
+{0} line	{0} baris
+SET UP EMAIL >	SEDIAKAN E-MEL >
+SET UP EMAIL	SEDIAKAN E-MEL
+Or type your address	Atau taip alamat anda
+Email address	Alamat e-mel
+Open the page	Buka halaman
+App password	Kata laluan aplikasi
+IMAP server	Pelayan IMAP
+Incoming mail server	Pelayan e-mel masuk
+SMTP server	Pelayan SMTP
+Outgoing mail server	Pelayan e-mel keluar
+An app password is a separate password just for Capri. Your normal password stays yours.	Kata laluan aplikasi ialah kata laluan berasingan khusus untuk Capri. Kata laluan biasa anda kekal milik anda.
+She keeps it only until she closes.	Dia menyimpannya hanya sehingga ditutup.
+She checks, searches and reads your mail. She asks before she sends any.	Dia menyemak, mencari dan membaca e-mel anda. Dia bertanya sebelum menghantar apa-apa.
+Watch for new mail	Pantau e-mel baharu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Dia bercakap apabila e-mel tiba, dengan amaran jika ia kelihatan seperti phishing. Tiada apa-apa ditanda sebagai dibaca.
+Deal with phishing on her own	Uruskan phishing sendiri
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Hanya semasa dia memantau. E-mel yang dia pasti phishing pergi ke spam. Selebihnya menunggu persetujuan anda.
+Forget account	Lupakan akaun
+Use another email	Gunakan e-mel lain
+Which email?	E-mel yang mana?
+Make an app password	Buat kata laluan aplikasi
+Paste it	Tampal ia
+Connecting...	Menyambung...
+She can use your email now.	Dia kini boleh menggunakan e-mel anda.
+She's not watching your inbox.	Dia tidak memantau peti masuk anda.
+She's watching your inbox and deals with phishing she's sure of.	Dia memantau peti masuk anda dan menguruskan phishing yang dia pasti.
+She's watching your inbox and tells you when mail lands.	Dia memantau peti masuk anda dan memberitahu anda apabila e-mel tiba.
+She forgot that account and its app password.	Dia melupakan akaun itu dan kata laluan aplikasinya.
+She forgot that account. Its app password is gone from this PC.	Dia melupakan akaun itu. Kata laluan aplikasinya hilang dari komputer ini.

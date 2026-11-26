@@ -1,222 +1,150 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CapriDesktop
 {
-    // What she keeps, and for how long. Chat logs and the sights she kept go after a week; the daily chat
-    // transcripts go after a year, unless they chose to keep everything. Her notes stay until they delete them.
     internal static class Retention
     {
-        internal const int ChatDays = 7;
-        internal const int Days = 365;
+        internal const string Limited = "limited-v1";
+        private const int ChatDays = 7, TranscriptDays = 365;
+        private const long ReadLimit = 16L * 1024 * 1024;
+        private static readonly Encoding Utf8 = new UTF8Encoding(false, true);
+        private const string TranscriptNote = "> Kept on this PC only, never uploaded. Delete a line or the whole file whenever you like.";
+        private static readonly Regex TranscriptLine = new Regex(@"^\*\*(?:[01][0-9]|2[0-3]):[0-5][0-9] [^*]+:\*\* .+\z|^\*(?:[01][0-9]|2[0-3]):[0-5][0-9] .+\*\z");
 
-        // Deletes only whole days older than the cutoff, read from the file's own date, so a copy or a touched
-        // file can't keep a year-old day alive. Returns how many days and chats went.
-        internal static string Sweep(string transcripts, string chat, bool keepForever, DateTime now)
+        internal static bool Enabled(string path)
         {
-            if (keepForever) return "Kept every chat and transcript.";
-            int days = 0, chats = 0;
-            if (transcripts != null && Directory.Exists(transcripts))
-            {
-                DateTime cutoff = now.Date.AddDays(-Days);
-                string[] files;
-                try { files = Directory.GetFiles(transcripts, "????-??-??.md"); }
-                catch (IOException) { files = new string[0]; }
-                catch (UnauthorizedAccessException) { files = new string[0]; }
-                foreach (string file in files)
-                {
-                    DateTime day;
-                    if (!DateTime.TryParseExact(Path.GetFileNameWithoutExtension(file), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day) || day >= cutoff) continue;
-                    try { File.Delete(file); days++; }
-                    catch (IOException) { }
-                    catch (UnauthorizedAccessException) { }
-                }
-            }
-            if (chat != null && File.Exists(chat))
-            {
-                DateTime at;
-                if (ChatAt(chat, out at) && now.ToUniversalTime() - at > TimeSpan.FromDays(ChatDays))
-                {
-                    try { File.Delete(chat); chats++; }
-                    catch (IOException) { }
-                    catch (UnauthorizedAccessException) { }
-                }
-            }
-            return "Removed " + days + " old transcripts and " + chats + " old chats.";
+            Dictionary<string, object> settings = Read(path);
+            object choice;
+            return settings != null && settings.TryGetValue("HistoryRetention", out choice) && (choice as string) == Limited;
         }
 
-        // When they last talked, from the same chat file she loads. A file she can't read, or one without a readable
-        // time, is left alone: only the chat's own top-level time counts, never a sighting's or a nested one.
-        private static bool ChatAt(string path, out DateTime at)
+        // Only an explicit, recognized setting on disk enables a sweep.
+        internal static void Sweep(string settings, string transcripts, string chat, DateTime now)
         {
-            at = DateTime.MinValue;
-            SavedChat saved;
+            if (!Enabled(settings)) return;
             try
             {
-                string text = File.ReadAllText(path);
-                // A file that stops halfway is not a chat she can date, even when the serializer reads part of it.
-                if (!Whole(text)) return false;
-                byte[] bytes = Encoding.UTF8.GetBytes(text);
-                using (MemoryStream stream = new MemoryStream(bytes)) saved = (SavedChat)new DataContractJsonSerializer(typeof(SavedChat)).ReadObject(stream);
-            }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-            catch (SerializationException) { return false; }
-            catch (System.Xml.XmlException) { return false; }
-            catch (Exception) { return false; }
-            DateTimeOffset stamp;
-            if (saved == null || saved.At == null || !DateTimeOffset.TryParse(saved.At, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out stamp)) return false;
-            // The same instant, whatever offset it was saved with, so an hour of daylight saving or another time zone
-            // can't age a chat past seven days before it is.
-            at = stamp.UtcDateTime;
-            return true;
-        }
-
-        // The keep-all choice survives a settings file that no longer has it: a marker beside the settings, and a
-        // settings file from before the choice existed counts as keep-all.
-        internal static bool KeepAll(bool chosen, bool marker, bool mentioned)
-        {
-            return chosen || marker || !mentioned;
-        }
-
-        internal static bool Mentions(string path, string token)
-        {
-            string text;
-            try { text = File.ReadAllText(path); }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-            if (token == null) return false;
-            string name = token;
-            if (name.Length >= 2 && name[0] == '"' && name[name.Length - 1] == '"') name = name.Substring(1, name.Length - 2);
-            if (name.Length == 0) return false;
-            int at = 0;
-            while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
-            if (at >= text.Length || text[at] != '{') return false;
-            at++;
-            while (true)
-            {
-                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
-                if (at >= text.Length || text[at] == '}') return false;
-                int start = at;
-                if (!SkipString(text, ref at)) return false;
-                if (at - start - 2 == name.Length && string.CompareOrdinal(text, start + 1, name, 0, name.Length) == 0) return true;
-                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
-                if (at >= text.Length || text[at] != ':') return false;
-                at++;
-                if (!SkipValue(text, ref at)) return false;
-                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
-                if (at >= text.Length) return false;
-                if (text[at] == ',') { at++; continue; }
-                return false;
-            }
-        }
-
-        private static bool SkipString(string text, ref int at)
-        {
-            if (at >= text.Length || text[at] != '"') return false;
-            at++;
-            while (at < text.Length)
-            {
-                char c = text[at];
-                if (c == '\\') { at += 2; continue; }
-                if (c == '"') { at++; return true; }
-                at++;
-            }
-            return false;
-        }
-
-        private static bool SkipValue(string text, ref int at)
-        {
-            while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
-            if (at >= text.Length) return false;
-            if (text[at] == '"') return SkipString(text, ref at);
-            if (text[at] == '{' || text[at] == '[')
-            {
-                int depth = 0;
-                while (at < text.Length)
+                if (Ordinary(transcripts))
                 {
-                    char c = text[at];
-                    if (c == '"') { if (!SkipString(text, ref at)) return false; continue; }
-                    if (c == '{' || c == '[') { depth++; at++; continue; }
-                    if (c == '}' || c == ']') { depth--; at++; if (depth == 0) return true; continue; }
-                    at++;
+                    DateTime cutoff = now.Date.AddDays(-TranscriptDays);
+                    foreach (string path in Directory.GetFiles(transcripts, "????-??-??.md"))
+                    {
+                        DateTime day;
+                        if (DateTime.TryParseExact(Path.GetFileNameWithoutExtension(path), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day)
+                            && day < cutoff) DeleteRecognized(path, text => IsTranscript(text, day));
+                    }
                 }
-                return false;
             }
-            while (at < text.Length && text[at] != ',' && text[at] != '}' && text[at] != ']') at++;
-            return at < text.Length;
-        }
-
-        // Reads a settings file only when it is whole, so a half-written one can't hand back a silent default and let
-        // a sweep run with keep-all reset. The caller passes its own settings type.
-        internal static bool Readable<T>(string path, out T saved) where T : class
-        {
-            saved = null;
-            try
-            {
-                string text = File.ReadAllText(path);
-                if (!Whole(text)) return false;
-                byte[] bytes = Encoding.UTF8.GetBytes(text);
-                using (MemoryStream stream = new MemoryStream(bytes)) saved = (T)new DataContractJsonSerializer(typeof(T)).ReadObject(stream);
-                return saved != null;
-            }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-            catch (SerializationException) { return false; }
-            catch (System.Xml.XmlException) { return false; }
-            catch (Exception) { return false; }
-        }
-
-        // True when every brace opened is closed and no quote is left hanging, so a half-written file can't pass
-        // for a whole one and lose itself to a sweep.
-        internal static bool WholeFile(string path)
-        {
-            try { return Whole(File.ReadAllText(path)); }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-        }
-
-        // Deletes the keep-all marker. False means her file is still there, so the caller can keep the choice on
-        // instead of showing off while the marker still protects everything.
-        internal static bool ClearMarker(string path)
-        {
-            try { if (File.Exists(path)) File.Delete(path); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-            return !File.Exists(path);
+
+            DeleteRecognized(chat, text => IsOldChat(text, now));
         }
 
-        private static bool Whole(string text)
+        private static bool Ordinary(string path)
         {
-            text = text ?? "";
-            int depth = 0;
-            bool quoted = false, escaped = false;
-            for (int i = 0; i < text.Length; i++)
+            return !string.IsNullOrEmpty(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0;
+        }
+
+        private static bool CanRead(string path)
+        {
+            if (!Ordinary(path)) return false;
+            for (DirectoryInfo parent = new FileInfo(path).Directory; parent != null; parent = parent.Parent)
+                if (!Ordinary(parent.FullName)) return false;
+            return new FileInfo(path).Length <= ReadLimit;
+        }
+
+        private static Dictionary<string, object> Read(string path)
+        {
+            try { return CanRead(path) ? PluginJson.Parse(File.ReadAllText(path, Utf8), strict: true) as Dictionary<string, object> : null; }
+            catch (FormatException) { return null; }
+            catch (DecoderFallbackException) { return null; }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
+        }
+
+        private static void DeleteRecognized(string path, Func<string, bool> recognized)
+        {
+            try
             {
-                char c = text[i];
-                if (quoted)
+                if (!CanRead(path)) return;
+                var before = new FileInfo(path);
+                long length = before.Length;
+                DateTime changed = before.LastWriteTimeUtc;
+                if (!recognized(File.ReadAllText(path, Utf8))) return;
+                before.Refresh();
+                if (before.Exists && before.Length == length && before.LastWriteTimeUtc == changed && Ordinary(path))
+                    File.Delete(path);
+            }
+            catch (DecoderFallbackException) { }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private static bool IsTranscript(string text, DateTime date)
+        {
+            using (var lines = new StringReader(text))
+            {
+                if (lines.ReadLine() != "# Capri and you, " + date.ToString("dddd d MMMM yyyy", CultureInfo.InvariantCulture)
+                    || lines.ReadLine() != TranscriptNote || lines.ReadLine() != "") return false;
+                string line = lines.ReadLine();
+                if (line == null) return false;
+                do { if (!TranscriptLine.IsMatch(line)) return false; } while ((line = lines.ReadLine()) != null);
+                return text.EndsWith("\n", StringComparison.Ordinal);
+            }
+        }
+
+        private static bool IsOldChat(string text, DateTime now)
+        {
+            Dictionary<string, object> chat;
+            try { chat = PluginJson.Parse(text, strict: true) as Dictionary<string, object>; }
+            catch (FormatException) { return false; }
+            if (chat == null) return false;
+            foreach (string name in chat.Keys)
+                if (name != "at" && name != "messages" && name != "seen" && name != "typed") return false;
+
+            object stamp, rawMessages, rawSeen, rawTyped;
+            DateTimeOffset at;
+            if (!chat.TryGetValue("at", out stamp) || !DateTimeOffset.TryParseExact(stamp as string, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out at)
+                || now.ToUniversalTime() - at.UtcDateTime <= TimeSpan.FromDays(ChatDays)
+                || !chat.TryGetValue("messages", out rawMessages)) return false;
+            var messages = rawMessages as List<object>;
+            if (messages == null) return false;
+            foreach (object message in messages)
+            {
+                var fields = message as Dictionary<string, object>;
+                object role, content;
+                if (fields == null || fields.Count != 2 || !fields.TryGetValue("role", out role)
+                    || ((role as string) != "user" && (role as string) != "assistant")
+                    || !fields.TryGetValue("content", out content) || !(content is string)) return false;
+            }
+            if (chat.TryGetValue("typed", out rawTyped))
+            {
+                var typed = rawTyped as List<object>;
+                if (typed == null || typed.Count != messages.Count || typed.Exists(line => line != null && !(line is string))) return false;
+            }
+            if (chat.TryGetValue("seen", out rawSeen))
+            {
+                var seen = rawSeen as List<object>;
+                if (seen == null) return false;
+                foreach (object sight in seen)
                 {
-                    if (escaped) { escaped = false; continue; }
-                    if (c == '\\') { escaped = true; continue; }
-                    if (c == '"') quoted = false;
-                    continue;
-                }
-                if (c == '"') { quoted = true; continue; }
-                if (c == '{' || c == '[') { depth++; continue; }
-                if (c == '}' || c == ']') { depth--; if (depth < 0) return false; continue; }
-                // A comma right before a closing brace is not JSON, even though her own serializer reads it.
-                if (c == ',')
-                {
-                    int next = i + 1;
-                    while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
-                    if (next < text.Length && (text[next] == '}' || text[next] == ']')) return false;
+                    var fields = sight as Dictionary<string, object>;
+                    object time, saw, said, asked;
+                    if (fields == null || !fields.TryGetValue("at", out time) || !(time is string)
+                        || !fields.TryGetValue("saw", out saw) || !(saw is string)
+                        || (fields.TryGetValue("said", out said) && !(said is string))
+                        || (fields.TryGetValue("asked", out asked) && !(asked is bool))) return false;
+                    foreach (string name in fields.Keys)
+                        if (name != "at" && name != "saw" && name != "said" && name != "asked") return false;
                 }
             }
-            return !quoted && depth == 0;
+            return true;
         }
     }
 }

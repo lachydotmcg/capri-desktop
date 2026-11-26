@@ -26,7 +26,7 @@ globalThis.fetch = async url => {
 };
 const prompts = [];
 globalThis.claudeCall = async body => {
-  prompts.push(body.system);
+  prompts.push(Array.isArray(body.system) ? body.system.map(block => block.text).join('') : body.system);
   return { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Stand-in reply.' }] };
 };
 const logs = [];
@@ -490,9 +490,14 @@ for (const route of ['/help', '/discord']) for (const question of ['where is cap
   const word = expected(test, question);
   got = await send(test, question, route);
   await got.done();
-  assert.notEqual(headings(got.system)[0], pcLabel, question);
-  if (question === 'capri is not in installed apps') assert.ok(word.includes(pcLabel));
-  else assert.ok(!headings(got.system).includes(pcLabel), question);
+  assert.deepEqual(test.mod.pick(pcSections, question), test.mod.pick(pcSections, question, 'ordinary question'), question);
+  if (question === 'capri is not in installed apps') {
+    assert.deepEqual(headings(got.system), [...word, 'Quick facts > What is Capri?', 'Quick facts > What does it run on?'], question);
+    assert.ok(word.includes(pcLabel));
+  } else {
+    assert.notEqual(headings(got.system)[0], pcLabel, question);
+    assert.ok(!headings(got.system).includes(pcLabel), question);
+  }
 }
 console.log('PASS the remaining review searches avoid PC priority and its body still finds a missing Installed apps entry');
 

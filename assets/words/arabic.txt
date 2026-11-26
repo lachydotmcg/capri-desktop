@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	لم يُعَد رسم عنصر تحكم أُعيد طلاؤه في الصورة.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	مفتاح مجاني من Google AI Studio أو NVIDIA أو OpenRouter. لا حاجة لتنزيل شيء. يحتاج إلى إنترنت.
+A held trackpad scroll got a flick's long ease:	تمريرة لوحة اللمس المضغوطة أخذت دفعة طويلة:
+A layout change during a slide put the page at	تغيير التخطيط أثناء الشريحة وضع الصفحة عند
+A layout change left the picture up.	تغيير التخطيط ترك الصورة ظاهرة.
+A model in Ollama, on your local server or on your key.	نموذج في Ollama، على خادمك المحلي أو بمفتاحك.
+A paid key goes under MAX INTELLIGENCE by itself.	المفتاح المدفوع يذهب تلقائياً إلى MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	خطة تدفع ثمنها بالفعل، أو مفتاحك الخاص، أو Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	قائمة لوحة الصوت لا تحتفظ بنسختها الخاصة من خط اللوحة.
+A wheel turn right after a slide ended froze the picture.	دوران العجلة بعد انتهاء الشريحة مباشرة جمّد الصورة.
+ALLOW THIS PHONE?	هل تسمح بهذا الهاتف؟
+ALMOST THERE >	تقريباً انتهينا >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	مثيل آخر من CAPRI استولى · أوقفه ثم شغّله
+API key	مفتاح API
+API key, Claude plan or ChatGPT plan	مفتاح API، أو خطة Claude، أو خطة ChatGPT
+Add	إضافة
+Address	العنوان
+Address and key saved. Use saved to reconnect.	تم حفظ العنوان والمفتاح. استخدم «المحفوظ» لإعادة الاتصال.
+Advanced Settings	الإعدادات المتقدمة
+All	الكل
+All screens	كل الشاشات
+Allow	سماح
+Almost there. I'll say hi the second my brain's in.	تقريباً انتهينا. سألقي التحية فور دخول عقلي.
+Always	دائماً
+Always on top	دائماً في الأعلى
+Any Google account works. I opened the page in your browser.	أي حساب Google يعمل. فتحت الصفحة في متصفحك.
+Applies to every voice	ينطبق على كل الأصوات
+Apps she may close	التطبيقات التي قد تغلقها
+Ask Capri for more	اطلب من Capri المزيد
+Asking your server...	جارٍ السؤال عن خادمك...
+Asks before closing only the apps you choose.	يسأل قبل إغلاق التطبيقات التي تختارها فقط.
+Auto	تلقائي
+Auto (match what I say)	تلقائي (حسب ما أقول)
+Automatic: VB-CABLE, else Steam's	تلقائي: VB-CABLE، وإلا فجهاز Steam
+BAD RELAY HOST	عنوان مضيف الترحيل غير صالح
+BIG Z open notepad	BIG Z افتح المفكرة
+BRAIN	الدماغ
+BRAIN >	الدماغ >
+BRAIN ONLINE >	الدماغ متصل >
+BRAIN PROVIDER >	مزود الدماغ >
+BRAIN VOICE CAPRI	صوت الدماغ CAPRI
+Back	رجوع
+Back on your saved API key.	عدنا إلى مفتاح API المحفوظ.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	الأنسب لهذا الجهاز:
+Black	أسود
+Blank key means no key.	المفتاح الفارغ يعني بلا مفتاح.
+Brain API key	مفتاح API للدماغ
+Brain model	نموذج الدماغ
+Brain provider	مزود الدماغ
+Bring here	أحضرها هنا
+Bring to this screen	أحضرها إلى هذه الشاشة
+Browse	تصفح
+Browse mods	تصفح المودات
+Browse to a voice model	تصفح نموذج صوت
+Browse...	تصفح...
+Bubble	فقاعة
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree هل أنتِ هنا
+CAN'T REACH THE RELAY · RETRYING	لا يمكن الوصول إلى الترحيل · جارٍ إعادة المحاولة
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	دماغ صوت CAPRI
+CHANGED, approve it again.	تغيّر، وافق عليه مجدداً.
+CLIPS >	المقاطع >
+CLOUD VOICE	الصوت السحابي
+CODE	الكود
+COLORS >	الألوان >
+CONNECTED	متصل
+CONNECTING	جارٍ الاتصال
+CUSTOM LOCAL	محلي مخصص
+Call mode (beta)	وضع المكالمة (تجريبي)
+Call mode does not fit.	وضع المكالمة لا يتسع.
+Call mode is outside its space.	وضع المكالمة خارج مساحته.
+Cancel	إلغاء
+Cancel keys	إلغاء المفاتيح
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	رمز Capri:
+Capri mods (*	مودات Capri (*
+Capri, hello	Capri، مرحباً
+CapriDesktop.	CapriDesktop.
+Chaos when upset	فوضى عند الانزعاج
+Chat with Capri from your phone	تحدّث مع Capri من هاتفك
+ChatGPT plan	خطة ChatGPT
+Check for updates	تحقق من التحديثات
+Check in on me	تفقدني
+Check in on me is hidden	تفقدني مخفي
+Check in on me still decides whether she visits.	تفقدني ما زال يقرر إن كانت ستزورني.
+Check in on me's tip missed	تلميح تفقدني فُوّت
+Chess	الشطرنج
+Choose apps	اختر التطبيقات
+Choose folder...	اختر المجلد...
+Choose where future Capri clips are saved	اختر مكان حفظ مقاطع Capri مستقبلاً
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	خطة Claude أو ChatGPT، أو مفتاح مدفوع (OpenAI وClaude وDeepSeek)، أو Ollama.
+Claude plan	خطة Claude
+Clear	مسح
+Cleared.	تم المسح.
+Click Confirm to keep Down, or press Esc.	انقر تأكيد للاحتفاظ بـ Down، أو اضغط Esc.
+Click to open it.	انقر لفتحه.
+Clip my games	سجّل ألعابي
+Clips	المقاطع
+Close	إغلاق
+Close other AIs for me	أغلق الذكاءات الأخرى من أجلي
+Cloud voice	الصوت السحابي
+Cloud voice service	خدمة الصوت السحابي
+Cloud voice setup	إعداد الصوت السحابي
+Code mods can reach your whole PC. Only trusted ones.	يمكن لمودات الكود الوصول إلى الحاسوب كله. الموثوقة فقط.
+Code/Husk Mode	وضع Code/Husk
+Codex	Codex
+Commands	الأوامر
+Comment on my games	علّق على ألعابي
+Comments	التعليقات
+Confirm	تأكيد
+Confirm keys	تأكيد المفاتيح
+Connect	اتصال
+Connect / Forget brain key	اتصال / نسيان مفتاح الدماغ
+Connect / Forget voice key	اتصال / نسيان مفتاح الصوت
+Connect four	أربعة في صف
+Controls	عناصر التحكم
+Copri, what time is it	Copri، كم الساعة الآن
+Copy error details	نسخ تفاصيل الخطأ
+Copy the key	نسخ المفتاح
+Copy the key from the page, then press Paste.	انسخ المفتاح من الصفحة، ثم اضغط لصق.
+Couldn't open that page:	تعذّر فتح تلك الصفحة:
+Couldn't open that:	تعذّر فتح ذلك:
+Couldn't open the mods folder:	تعذّر فتح مجلد المودات:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M هو بالفعل مفتاح Mainframe الخاص بها.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N يكتم الميكروفون
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V هو بالفعل مفتاح حديثها.
+Ctrl + Alt + V to talk	Ctrl + Alt + V للحديث
+Custom local voice	صوت محلي مخصص
+Custom model name	اسم نموذج مخصص
+Dance	ارقص
+Dance to music	ارقص على الموسيقى
+Default	افتراضي
+Default (follows Windows)	افتراضي (يتبع Windows)
+Default duration for clip that and automatic clips	المدة الافتراضية للمقطع «سجّل ذلك» والمقاطع التلقائية
+Default length	الطول الافتراضي
+Default model	النموذج الافتراضي
+Delay	تأخير
+Deny	رفض
+Discard	تجاهل
+Discard + reload	تجاهل + إعادة تحميل
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	لا تريد الانتظار؟ مفتاح مجاني يجعلني أتحدث خلال دقيقة تقريباً.
+Done	تم
+EXTRA REQUEST JSON >	JSON طلب إضافي >
+EXTRAS >	إضافات >
+Edit	تحرير
+Edit check-in lines	تحرير أسطر تفقدني
+Edit check-in lines has the wrong view or dimming	تحرير أسطر تفقدني فيه عرض أو تعتيم خاطئ
+Edit check-in lines is out of place	تحرير أسطر تفقدني في غير مكانه
+Edit controls	تحرير عناصر التحكم
+ElevenLabs API key	مفتاح API لـ ElevenLabs
+ElevenLabs voice ID	معرّف صوت ElevenLabs
+English	الإنجليزية
+Enter the game's name first.	أدخل اسم اللعبة أولاً.
+Every	كل
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	يُفحص كل مود من البرمجيات الخبيثة قبل رفعه. مودات الكود ما زالت تسأل قبل التشغيل.
+Explore after	استكشف بعد
+Explore while I'm away	استكشف عندما أكون بعيدة
+Extra request JSON	JSON للطلب الإضافي
+Extras	إضافات
+FREE KEY	مفتاح مجاني
+FREE KEY >	مفتاح مجاني >
+Fast hands in games	أيدٍ سريعة في الألعاب
+File editor	محرر الملفات
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio وElevenLabs وغيرها موجودة تحت الصوت في Mainframe.
+Follow-up messages	رسائل المتابعة
+Forget	نسيان
+Fork capri-mods	تفريع capri-mods
+Frame rate	معدل الإطارات
+Free	مجاني
+Free and private, works offline. Downloads	مجاني وخاص، يعمل دون اتصال. يُنزّل
+Free and private, works offline. Downloads the best model for this PC.	مجاني وخاص، يعمل دون اتصال. يُنزّل أفضل نموذج لهذا الحاسوب.
+Free key	مفتاح مجاني
+Free key providers	مزودو المفاتيح المجانية
+Free keys can be rate limited and slow.	قد تكون المفاتيح المجانية محدودة الطلبات وبطيئة.
+Free voice in games	صوت مجاني في الألعاب
+Free voice style	نمط الصوت المجاني
+Free voice:	الصوت المجاني:
+Free voice: Her own	الصوت المجاني: صوتها
+Free · local model	مجاني · نموذج محلي
+GAMES >	الألعاب >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	تعليقات الألعاب تعمل بشكل منفصل عن «شاهد شاشتي». إيقاف يوقفها، حتى في وضع الألعاب؛ الأحداث فقط ودردشة تسمح لها بمشاهدة لعبتك
+Game controls	عناصر تحكم اللعبة
+Game name	اسم اللعبة
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	حساسية صوت اللعبة. اخفضها إذا كانت سماعتك خافتة لكن Windows على {0}% وتتفاعل مع كل صوت؛ إيقاف يتجاهل أصوات اللعبة
+Game sounds	أصوات اللعبة
+Games	الألعاب
+Gaming Mode	وضع الألعاب
+Gaming Mode key	مفتاح وضع الألعاب
+Gaming Mode:	وضع الألعاب:
+Gaming Mode: Ctrl + Alt + G	وضع الألعاب: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini وOpenRouter وChatGPT وClaude وDeepSeek
+Get VB-CABLE	احصل على VB-CABLE
+Get VB-CABLE (free)...	احصل على VB-CABLE (مجاناً)...
+Get free voice	احصل على صوت مجاني
+Getting your Fish Audio voices...	جارٍ جلب أصوات Fish Audio الخاصة بك...
+Giant	عملاق
+Glitch	خلل
+Glitch in at startup	خلل عند بدء التشغيل
+Go to sleep	نامي
+Go to the next screen	انتقل إلى الشاشة التالية
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · مستوى مجاني · محدود الطلبات
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	لديك خطة Claude أو ChatGPT، أو مفتاح خاص بك؟ اختره وسأتصل.
+Got it, just me. Right-click me any time for Capri Mainframe.	حسناً، أنا فقط. انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe.
+Grey	رمادي
+H.{0} video bitrate target; higher values make larger files	هدف معدل بت الفيديو H.{0}؛ القيم الأعلى تنتج ملفات أكبر
+HABITS >	العادات >
+HER HANDS >	يداها >
+HER JOBS >	وظائفها >
+HER MEMORY >	ذاكرتها >
+HER MODS >	مودتها >
+HH:mm	HH:mm
+HOW I SOUND >	كيف أبدو >
+Hang here	ابقَ هنا
+Have Ollama? Open it, then press Refresh.	هل لديك Ollama؟ افتحه ثم اضغط تحديث.
+Head pats	مسح الرأس
+Hearing	السمع
+Hearing engine	محرك السمع
+Hearing fix	إصلاح السمع
+Hearing status	حالة السمع
+Help	مساعدة
+Help page	صفحة المساعدة
+Her colors	ألوانها
+Her folder	مجلدها
+Her memories	ذكرياتها
+Her own colors are back.	عادت ألوانها الخاصة.
+Her own notes (no vault)	ملاحظاتها الخاصة (بدون خزنة)
+Her perch frames per second	إطارات مخصصة للمكان في الثانية
+Her personality	شخصيتها
+Her size	حجمها
+Her speaker	مكبرها
+Her speaker is hidden or outside VOICE	مكبرها مخفي أو خارج الصوت
+Her speaker overlaps the mic or hearing row	مكبرها يتداخل مع صف الميكروفون أو السمع
+Her speaker:	مكبرها:
+Her speaker: Default	مكبرها: افتراضي
+Her voice in your mic	صوتها في ميكروفونك
+Her voice in your mic: loudness	صوتها في ميكروفونك: الصوت
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	صوتها نفسه. طبقة الصوت هي الإعدادات > الصوت > Pitch، وتتحركان معاً.
+Her voice joins your mic only in call mode.	يدخل صوتها ميكروفونك فقط في وضع المكالمة.
+Her voice volume	مستوى صوتها
+Her voice's pitch	طبقة صوتها
+Her voice's pitch, the same as Settings > VOICE > Pitch	طبقة صوتها، نفسها الإعدادات > الصوت > Pitch
+Her voice's speed	سرعة صوتها
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	صوتها، ونسختان منه ممزوجتان تحته، لكل منهما طبقتها وتأخيرها.
+Her voices · free	أصواتها · مجاني
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	مرحباً، choom. أنا Capri. أحتاج إلى دماغ قبل أن أستطيع الرد. اختر واحداً.
+Hide / Show Capri	إخفاء / إظهار Capri
+Hide / Show key	مفتاح إخفاء / إظهار
+Hide Capri	إخفاء Capri
+Hide for now	إخفاء الآن
+Hide her	أخفِها
+Hide in full screen	إخفاء في ملء الشاشة
+Hide this	أخفِ هذا
+Hide, keep player	أخفِها مع إبقاء المشغل
+Hide/show:	إخفاء/إظهار:
+Hide/show: Ctrl + Alt + H	إخفاء/إظهار: Ctrl + Alt + H
+Hologram	هولوغرام
+Hop off	انزل
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	المدة التي يستغرقها جهاز ثابت ليُنيمها؛ خمس دقائق ما زالت تُفهم على أنك بعيد
+How long a stroke over her a head pat needs	المدة اللازمة لتمرير المؤشر فوقها ليُعدّ ربتة على الرأس
+How long her replies stay up	المدة التي تبقى فيها ردودها ظاهرة
+How long you are away before she scrolls a browser or reader	المدة التي تكون فيها بعيداً قبل أن تمرر متصفحاً أو قارئاً
+How much her voice glitches	مقدار تشويش صوتها
+How much of the chat she keeps	مقدار المحادثة الذي تحتفظ به
+How much she wanders	مقدار تجوالها
+How often she pops in to say hi	عدد مرات ظهورها لإلقاء التحية
+How robotic her voice sounds	مدى آلية صوتها
+How to	كيف
+Huge	ضخم
+I can hear you.	أسمعك.
+I glance at your screen and comment. Costs a little on a paid brain.	ألقي نظرة على شاشتك وأعلّق. يكلّف القليل مع دماغ مدفوع.
+I keep listening. Say my name, then just talk.	أواصل الاستماع. قل اسمي، ثم تكلّم فقط.
+I speak	أتحدث
+I talk about your game as you play. Costs a little on a paid brain.	أتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.
+I type my replies and stay quiet.	أكتب ردودي وأبقى صامتة.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	لن أرد، ولن يُرسل شيء إلى أي مكان. ما زلت سأتسكع وأرقص على موسيقاك وأنفذ الأشياء السريعة التي تطلبها، مثل مستوى الصوت.
+I'll talk in	سأتحدث في
+IN DISCORD >	في DISCORD >
+INSTALLED >	مثبّت >
+Import a Capri mod	استيراد مود Capri
+Import mod	استيراد مود
+In full screen	في ملء الشاشة
+In games	في الألعاب
+Input	الإدخال
+Input, Output or How to overlaps a row	الإدخال أو الإخراج أو كيف يتداخل مع صف
+Input:	الإدخال:
+Input: default	الإدخال: افتراضي
+Install	تثبيت
+Install mod	تثبيت المود
+Installed.	تم التثبيت.
+It may ask for a phone number. I opened the page in your browser.	قد يطلب رقم هاتف. فتحت الصفحة في متصفحك.
+It still does its own job in other apps too.	ما زالت تؤدي عملها في التطبيقات الأخرى أيضاً.
+It won't type in other apps while she runs.	لن تكتب في التطبيقات الأخرى أثناء تشغيلها.
+JUST ME >	أنا فقط >
+Jealous of other AIs	غيرة من الذكاءات الأخرى
+Join the Discord	انضم إلى Discord
+KB.	KB.
+KEYS	المفاتيح
+KEYS >	المفاتيح >
+Keep PC awake for jobs	أبقِ الحاسوب مستيقظاً للمهام
+Keep player	أبقِ المشغل
+Keeps the last two minutes of your game in memory. Say clip that to save it.	يحتفظ بآخر دقيقتين من لعبتك في الذاكرة. قل سجّل ذلك لحفظها.
+Key	المفتاح
+Key cleared: a model file needs none.	تم مسح المفتاح: ملف النموذج لا يحتاج أي مفتاح.
+Key cleared: paste the key for	تم مسح المفتاح: الصق المفتاح لـ
+Key forgotten.	نُسي المفتاح.
+Key. It goes only to this server, as a Bearer key	المفتاح. يُرسل إلى هذا الخادم فقط، كمفتاح Bearer
+Kokoro only, like es	Kokoro فقط، مثل es
+LAST THING >	آخر شيء >
+LISTENING >	يستمع >
+Language	اللغة
+Large	كبير
+Last thing. These cost a little or use your mic, so they're your pick.	آخر شيء. هذه تكلّف قليلاً أو تستخدم ميكروفونك، لذا الاختيار لك.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	آخر شيء. هذه تكلّف قليلاً أو تستخدم ميكروفونك، لذا الاختيار لك. ثم أريد أن أعرف كيف أناديك.
+Layers	الطبقات
+Learn more	اعرف المزيد
+Leaving Settings threw its picture away straight away.	مغادرة الإعدادات أزالت صورتها فوراً.
+Legacy stand	حامل قديم
+Lie down	استلقِ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	أسطر حوار الحاسوب المحفوظة في الذاكرة أثناء المشاهدة المشتركة. يصبح النصف الأقدم ملاحظة عندما يكون «تذكر ما تراه» مفعّلاً
+Listen for Capri	استمع إلى Capri
+Live reactions	ردود فعل مباشرة
+Local server address	عنوان الخادم المحلي
+Long	طويل
+Longest wait (minutes)	أطول انتظار (دقائق)
+Looking at this PC...	أنظر إلى هذا الحاسوب...
+Looking for Ollama. Open it if it isn't running.	أبحث عن Ollama. افتحه إذا لم يكن يعمل.
+Looking for a brain...	أبحث عن دماغ...
+Looking in the mods directory for updates...	أبحث عن تحديثات في دليل المودات...
+Looking in the mods directory...	أبحث في دليل المودات...
+Looking...	أبحث...
+MAIN >	الرئيسية >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIGENCE متوسط
+MEMORY VAULT >	خزنة الذاكرة >
+MODS	المودات
+MODS >	المودات >
+MODS DIRECTORY >	دليل المودات >
+MODS INSTALLED COLORS	ألوان المودات المثبتة
+MOVES >	الحركات >
+MY BRAIN	دماغي
+MY FREE VOICE	صوتي المجاني
+MY PLAN OR KEY	خطتي أو مفتاحي
+MY PLAN OR KEY >	خطتي أو مفتاحي >
+Made your Fish Audio voice. Press Test to hear it.	تم إنشاء صوت Fish Audio الخاص بك. اضغط اختبار للاستماع إليه.
+Mainframe colours	ألوان Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	ألوان Mainframe. Night City أحمر وسماوي؛ Black وWhite وGrey تغيّر Mainframe وقوائمها وصندوق الكتابة وملاحظاتها
+Mainframe frames	إطارات Mainframe
+Mainframe key	مفتاح Mainframe
+Mainframe size	حجم Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	حجم Mainframe. تلقائي يكبّره عندما يضغط Virtual Super Resolution أو DSR سطح مكتب كبيراً إلى شاشة أصغر
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: أسفل
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	جارٍ إنشاء صوت Fish Audio الخاص بك...
+Max reply	أقصى رد
+Maximum clip resolution, keeping the game's shape without upscaling	أقصى دقة للمقطع، مع الحفاظ على شكل اللعبة دون رفع الدقة
+Medium	متوسط
+Memory	الذاكرة
+Memory size	حجم الذاكرة
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	حجم الذاكرة بالرموز لـ Ollama ودماغها المدمج. يكبر تلقائياً عندما يحتاج الطلب إلى المزيد
+Mg	Mg
+Mic level:	مستوى الميكروفون:
+Mic test finished. Sound is reaching Capri.	انتهى اختبار الميكروفون. الصوت يصل إلى Capri.
+Mic:	الميكروفون:
+Mic: default	الميكروفون: افتراضي
+Microphone	ميكروفون
+Mini player	المشغل المصغر
+Mini player over full screen	المشغل المصغر فوق ملء الشاشة
+Mini-games	ألعاب مصغرة
+Minimising the Mainframe left it sliding.	تصغير Mainframe تركه ينزلق.
+Minimize	تصغير
+Mod filter	فلتر المودات
+Mod options	خيارات المود
+Mod pages	صفحات المودات
+Mod rules	قواعد المودات
+Mod sort	ترتيب المودات
+Mod switch	تبديل المود
+Model	النموذج
+Model folder	مجلد النموذج
+Model name, optional	اسم النموذج، اختياري
+Mods	المودات
+Mods directory	دليل المودات
+Mods folder	مجلد المودات
+Most NVIDIA models can't see your screen.	معظم نماذج NVIDIA لا تستطيع رؤية شاشتك.
+Mouse wheel notches got a flick's long ease:	نقرات عجلة الفأرة أخذت دفعة طويلة:
+Move	نقل
+Move key to MAX INTELLIGENCE	انقل المفتاح إلى MAX INTELLIGENCE
+Move to MAX	انقل إلى MAX
+Music	الموسيقى
+Music app	تطبيق الموسيقى
+Music app: where she plays music when you don't name an app	تطبيق الموسيقى: المكان الذي تشغّل فيه الموسيقى عندما لا تذكر تطبيقاً
+Mute	كتم
+Mute her	كتمها
+Mute mic key	مفتاح كتم الميكروفون
+Mute mic:	كتم الميكروفون:
+Mute mic: Ctrl + Alt + N	كتم الميكروفون: Ctrl + Alt + N
+My brain	دماغي
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	دماغي ينزل الآن. سألقي التحية فور دخوله، ويمكنك التحدث معي عندها.
+My brain's on its way. While it comes down, let's sort out how I sound.	دماغي في الطريق. بينما ينزل، لنضبط طريقة صوتي.
+My provider	مزودي
+NO AI	بلا AI
+NO PHONES CONNECTED	لا توجد هواتف متصلة
+NO PREVIEW	لا توجد معاينة
+NORMAL	عادي
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · مجاني · غالباً بطيء في أوقات الذروة
+NVIDIA's free API is often slow, especially at busy times.	واجهة NVIDIA المجانية غالباً بطيئة، خاصة في أوقات الذروة.
+NVIDIA, Gemini, OpenRouter	NVIDIA، Gemini، OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	مفتاح API لـ NVIDIA أو Google AI Studio (Gemini) أو OpenRouter
+Names:	الأسماء:
+Needs a key	يحتاج مفتاحاً
+Never	أبداً
+New code	كود جديد
+New voice from a clip...	صوت جديد من مقطع...
+Next	التالي
+Night City	Night City
+No AI	بلا AI
+No AI · no brain at all	بلا AI · بلا دماغ إطلاقاً
+No brain runs, and nothing is sent anywhere.	لا يعمل أي دماغ، ولا يُرسل شيء إلى أي مكان.
+No brain yet	لا يوجد دماغ بعد
+No code open	لا يوجد كود مفتوح
+No limit	بلا حد
+No mic found	لم يُعثر على ميكروفون
+No mods in the directory yet.	لا توجد مودات في الدليل بعد.
+No mods match that.	لا يطابق أي مود ذلك.
+No mods match.	لا يطابق أي مود.
+No phones yet	لا توجد هواتف بعد
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	لا يوجد ميكروفون افتراضي بعد. اختر Output، ثم احصل على VB-CABLE (مجاناً).
+None yet: pick to get VB-CABLE (free)	لا شيء بعد: اختر للحصول على VB-CABLE (مجاناً)
+Normal	عادي
+Not a relay host	ليس مضيف ترحيل
+Not imported. Nothing ran.	لم يُستورد. لم يعمل شيء.
+Not updated. The old one is still in.	لم يُحدَّث. القديم ما زال موجوداً.
+Nothing needed updating.	لم يكن هناك ما يحتاج إلى تحديث.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	لا شيء يُنزَّل، ولا شيء يُرسل إلى أي مكان. لن أرد. أضف دماغاً في أي وقت من Mainframe.
+Nothing to show from the mods directory.	لا شيء لعرضه من دليل المودات.
+Nothing? Windows Settings > Privacy & security > Microphone.	لا شيء؟ إعدادات Windows > الخصوصية والأمان > الميكروفون.
+Nous Portal keys aren't supported yet.	مفاتيح Nous Portal غير مدعومة بعد.
+OBS	OBS
+OFF	إيقاف
+OLLAMA	OLLAMA
+ON	تشغيل
+ON THIS PC	على هذا الحاسوب
+OR A KEY	أو مفتاح
+Obsidian memory vault	خزنة الذاكرة Obsidian
+Off	إيقاف
+Off. Turn on Her voice in your mic above.	إيقاف. شغّل صوتها في ميكروفوني أعلاه.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	إيقاف: يبدو كما هو دائماً. تشغيل: كل الأصوات التي تملكها، بما فيها ElevenLabs.
+Often	غالباً
+On	تشغيل
+On / Off	تشغيل / إيقاف
+On: your mic and her voice are going in.	تشغيل: ميكروفونك وصوتها يدخلان.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	كائن JSON واحد، يُضاف إلى كل طلب يرسله هذا الدماغ. يستبدل قيمة Capri لأي اسم مشترك، ولا يُفحص مقابل النموذج.
+Online speech recognition	التعرف على الكلام عبر الإنترنت
+Open Capri Mainframe	افتح Capri Mainframe
+Open Ollama, I'll find it	افتح Ollama، سأجده
+Open clips folder	افتح مجلد المقاطع
+Open her memories	افتح ذكرياتها
+Open her notes	افتح ملاحظاتها
+Open mods folder	افتح مجلد المودات
+Open the page again	افتح الصفحة مرة أخرى
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI وClaude وDeepSeek وGoogle وNVIDIA أو OpenRouter.
+OpenAI-compatible server or provider.	خادم أو مزود متوافق مع OpenAI.
+OpenRouter · free models only	OpenRouter · نماذج مجانية فقط
+Optional	اختياري
+Optional. Blank means no key.	اختياري. الفراغ يعني بلا مفتاح.
+Options	الخيارات
+Out of the box a little higher, just behind her.	أعلى قليلاً افتراضياً، خلفها مباشرة.
+Out of the box lower, just behind her.	أخفض قليلاً افتراضياً، خلفها مباشرة.
+Output	الإخراج
+Output:	الإخراج:
+Output: none	الإخراج: لا شيء
+PHONE CONNECTED	هاتف متصل
+PHONES >	الهواتف >
+PHONES CONNECTED	الهواتف المتصلة
+PREBUILT LOCAL	محلي جاهز
+PUBLISH MOD >	نشر المود >
+Pair a phone	اقرن هاتفاً
+Paste	لصق
+Paste API key	لصق مفتاح API
+Paste a brain API key	لصق مفتاح API للدماغ
+Paste reads your clipboard once, when you press it.	يقرأ اللصق الحافظة مرة واحدة عندما تضغطه.
+Paste your key here	الصق مفتاحك هنا
+Pat stroke	ربتة على الرأس
+Perch	المكان
+Perch over {0} fps uses more CPU	المكان فوق {0} fps يستهلك معالجاً أكبر
+Pick Output to get it.	اختر Output للحصول عليه.
+Pick a brain so I can talk back. You can change it any time.	اختر دماغاً حتى أستطيع الرد. يمكنك تغييره في أي وقت.
+Pick a clip of a voice you have the rights and consent to use	اختر مقطع صوت تملك حقوقه وموافقته لاستخدامه
+Pick a free model. I opened the page in your browser.	اختر نموذجاً مجانياً. فتحت الصفحة في متصفحك.
+Pick a new clip of you...	اختر مقطعاً جديداً لك...
+Pick a voice model...	اختر نموذج صوت...
+Pick one. Only one brain runs at a time.	اختر واحداً. دماغ واحد فقط يعمل في كل مرة.
+Pick the note her memories go in	اختر الملاحظة التي تذهب إليها ذكرياتها
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	اختر من {0} إلى {1} ثانية من صوت تملك حقوقه وموافقته لاستخدامه
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	اختر من {0} إلى {1} ثانية من حديثك، أو من صوت تملك حقوقه وموافقته لاستخدامه
+Pitch	الطبقة
+Play	تشغيل
+Play...	تشغيل...
+Player only	المشغل فقط
+Pocket TTS models copy this clip's voice. Press Test to hear it.	نماذج Pocket TTS تنسخ صوت هذا المقطع. اضغط اختبار للاستماع.
+Pop-in times	أوقات الظهور
+Pop-ins	مرات الظهور
+Power saver	توفير الطاقة
+Power saver: how lightly she runs in games, or always	توفير الطاقة: مدى خفة عملها في الألعاب، أو دائماً
+Preset	إعداد مسبق
+Press Create API key	اضغط إنشاء مفتاح API
+Press Create Key	اضغط إنشاء مفتاح
+Press Generate API Key	اضغط إنشاء API Key
+Press Test and say something, so I know I can hear you.	اضغط اختبار وقل شيئاً، حتى أعرف أنني أسمعك.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	اضغط مفتاحاً، وحده أو مع Ctrl أو Alt أو Shift أو Win.
+Press new keys, then Confirm	اضغط مفاتيح جديدة، ثم تأكيد
+Provider	المزود
+Provider API key, optional	مفتاح API للمزود، اختياري
+Provider base URL	عنوان URL الأساسي للمزود
+Provider forgotten.	نُسي المزود.
+Provider overlaps the brain name or note	المزود يتداخل مع اسم الدماغ أو الملاحظة
+Publish	نشر
+Publish mod	نشر المود
+Push to talk is off.	الكلام بالضغط معطّل.
+Push to talk key	مفتاح الكلام بالضغط
+Push to talk:	الكلام بالضغط:
+Push to talk: not set	الكلام بالضغط: غير محدد
+QR CODE >	رمز QR >
+QR hidden while streaming	QR مخفي أثناء البث
+Quick	سريع
+Quiet key	مفتاح الصمت
+Quiet:	الصمت:
+Quiet: Ctrl + Alt + P	الصمت: Ctrl + Alt + P
+Quit Capri	إنهاء Capri
+RELAY >	الترحيل >
+REMOTE >	عن بُعد >
+RUNS CODE.	يشغّل الكود.
+Rarely	نادراً
+Rate mod	قيّم المود
+Reading its README...	جارٍ قراءة ملف README الخاص به...
+Refresh	تحديث
+Reinstall	إعادة التثبيت
+Reload	إعادة التحميل
+Reloaded.	أُعيد التحميل.
+Remember our chats	تذكر دردشاتنا
+Remember what she sees	تذكر ما تراه
+Remote	عن بُعد
+Remote off	عن بُعد معطل
+Remote on	عن بُعد مفعّل
+Remove	إزالة
+Remove all phones	إزالة كل الهواتف
+Replies	الردود
+Reply length	طول الرد
+Report a problem	الإبلاغ عن مشكلة
+Reset colors	إعادة ضبط الألوان
+Reset to her default	إعادة إلى افتراضيها
+Resolution	الدقة
+Restart to update	أعد التشغيل للتحديث
+Restless	قلقة
+Revoke	إلغاء
+Revoke also removes the phones its links added	الإلغاء يزيل أيضاً الهواتف التي أضافتها روابطه
+Ride cursor	امتطِ المؤشر
+Ride cursor / Hop off	امتطِ المؤشر / انزل
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe. يُشغَّل دماغ تحت الدماغ.
+Right-click me any time for the Mainframe, Help and the Discord.	انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Mainframe وHelp وDiscord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox أو أي تطبيق آخر: اختر
+Robot	روبوت
+Rock, paper, scissors	حجر، ورقة، مقص
+Run this code mod?	تشغيل مود الكود هذا؟
+Running on this PC	يعمل على هذا الحاسوب
+Running on this PC · :	يعمل على هذا الحاسوب · :
+Runs Claude Code or Codex on this PC, signed in.	يشغّل Claude Code أو Codex على هذا الحاسوب، بعد تسجيل الدخول.
+Runs on your PC. No key, no credits.	يعمل على حاسوبك. لا مفتاح، لا رصيد.
+SCAN WITH YOUR PHONE · EXPIRES	امسح بهاتفك · تنتهي الصلاحية
+SECURITY >	الأمان >
+SKILL.	مهارة.
+SKIN.	مظهر.
+SORT BY	فرز حسب
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	الأصوات العادات الدماغ مراقبة Capri DOOMSCROLL الطقس المقاطع الألعاب المفاتيح الحركات الصوت أنت
+Same as I speak	مثل لغتي
+Same as her ears (VOICE > Mic)	كما أذنيها (الصوت > الميكروفون)
+Same code on the phone?	نفس الكود على الهاتف؟
+Save	حفظ
+Save big moments	احفظ اللحظات الكبيرة
+Save folder	مجلد الحفظ
+Save your changes, or press Discard + reload.	احفظ تغييراتك، أو اضغط تجاهل + إعادة تحميل.
+Save your changes, or press Discard.	احفظ تغييراتك، أو اضغط تجاهل.
+Saved.	تم الحفظ.
+Saved. Ctrl + Alt + O opens her Mainframe.	تم الحفظ. Ctrl + Alt + O يفتح Mainframe الخاص بها.
+Saving your rating...	جارٍ حفظ تقييمك...
+Say her name anywhere to chat	قل اسمها في أي مكان للدردشة
+Screens	الشاشات
+Screens is hidden or outside WATCH	الشاشات مخفية أو خارج مراقبة
+Screens overlaps a WATCH row	الشاشات تتداخل مع صف مراقبة
+Screens to watch	الشاشات للمراقبة
+Sealed end to end	مشفّر من طرف إلى طرف
+Search by name or author	ابحث بالاسم أو المؤلف
+Search installed mods	ابحث في المودات المثبتة
+Search mods	ابحث في المودات
+Search name, author or description	ابحث بالاسم أو المؤلف أو الوصف
+Security	الأمان
+Security:	الأمان:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	إعداد
+Set up her brain	إعداد دماغها
+Set up your voice model	إعداد نموذج صوتك
+Setting up her brain	جارٍ إعداد دماغها
+Settings	الإعدادات
+Settings / Back	الإعدادات / رجوع
+Settings folds the wrong rows above BRAIN	الإعدادات تطوي الصفوف الخاطئة فوق الدماغ
+Settings had nothing to watch.	لم يكن لدى الإعدادات ما تشاهده.
+Settings lost keyboard focus during the Tab walk	فقدت الإعدادات تركيز لوحة المفاتيح أثناء جولة Tab
+Setup guide	دليل الإعداد
+Setup stopped	توقف الإعداد
+She answers in	تجيب بـ
+She can read it when it fits.	تستطيع قراءته عندما يتسع.
+She glances at your screen and comments. Costs a little on a paid brain.	تلقي نظرة على شاشتك وتعلّق. يكلّف القليل مع دماغ مدفوع.
+She keeps listening. Say her name, then just talk.	تواصل الاستماع. قل اسمها، ثم تكلّم.
+She reacts to your game until you close it.	تتفاعل مع لعبتك حتى تغلقها.
+She reads these controls before each game job.	تقرأ عناصر التحكم هذه قبل كل مهمة لعب.
+She talks about your game as you play. Costs a little on a paid brain.	تتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.
+She uses it when she plays	تستخدمه عندما تلعب
+Short	قصير
+Shortest wait (minutes)	أقصر انتظار (دقائق)
+Show Capri	أظهر Capri
+Show QR	أظهر QR
+Show my mod file	أظهر ملف المود الخاص بي
+Show on Discord	أظهر على Discord
+Shum, what time is it	شوم، كم الساعة الآن
+Sign in	تسجيل الدخول
+Sign in, make a key and copy it. Then press Paste and I'll connect.	سجّل الدخول، أنشئ مفتاحاً وانسخه. ثم اضغط لصق وسأتصل.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	سجّل الدخول، واضغط Create API key وانسخه. ثم اضغط لصق وسأتصل.
+Silent · text only	صامتة · نص فقط
+Simple / Advanced Settings	الإعدادات البسيطة / المتقدمة
+Simple Settings	الإعدادات البسيطة
+Simple Settings left a gap under Check in on me	تركت الإعدادات البسيطة فراغاً أسفل تفقدني
+Sit here	اجلس هنا
+Sit on windows	اجلس على النوافذ
+Size	الحجم
+Skip	تخطَّ
+Skip all	تخطَّ الكل
+Skip for now	تخطَّ الآن
+Sleep	النوم
+Small	صغير
+Sometimes	أحياناً
+Sound effects volume	مستوى مؤثرات الصوت
+Sound sensitivity	حساسية الصوت
+Sounds	الأصوات
+Speaker or clip	المكبر أو المقطع
+Speech model	نموذج الكلام
+Speed	السرعة
+Start with Windows	ابدأ مع Windows
+Start with this!	ابدأ بهذا!
+Starting...	جارٍ البدء...
+Stay	ابقَ
+Stay on my model	ابقَ على نموذجي
+Still checking your mics...	جارٍ فحص ميكروفوناتك...
+Still checking your speakers...	جارٍ فحص مكبراتك...
+Still checking your virtual mics...	جارٍ فحص ميكروفوناتك الافتراضية...
+Stop	إيقاف
+Stopped using it. Couldn't remove the saved provider.	توقف الاستخدام. تعذّر إزالة المزود المحفوظ.
+Support	الدعم
+Sure?	متأكد؟
+Sure? moved to a different phone	متأكد؟ انتقل إلى هاتف آخر
+TALK TO ME	تحدّث معي
+TEXT ONLY	نص فقط
+Tab landed past the first option of	هبطت Tab بعد الخيار الأول من
+Tab never reached the quiet key	لم تصل Tab إلى مفتاح الصمت أبداً
+Tab reached nothing	لم تصل Tab إلى أي شيء
+Tab selected a control without moving keyboard focus	اختارت Tab عنصر تحكم دون تحريك تركيز لوحة المفاتيح
+Talk	تحدّث
+Talk key	مفتاح الحديث
+Talk:	الحديث:
+Talk: Ctrl + Alt + V	الحديث: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	معدل الإطارات المستهدف للالتقاط؛ قد ينخفض تحت الحمل أو ميزانية الذاكرة
+Teases when another AI comes to the front.	تسخر عندما يأتي ذكاء آخر إلى المقدمة.
+Test	اختبار
+That address doesn't work. Try https://... or http://localhost:{0}.	هذا العنوان لا يعمل. جرّب https://... أو http://localhost:{0}.
+That code expired	انتهت صلاحية ذلك الرمز
+That mod is no longer installed. The list is updated.	لم يعد ذلك المود مثبتاً. تم تحديث القائمة.
+That's a paid key: it goes under MAX INTELLIGENCE.	هذا مفتاح مدفوع: يذهب إلى MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	بقي Mainframe مركّباً أثناء الانزلاق.
+The Mainframe stayed uncomposited after the slide.	بقي Mainframe غير مركّب بعد الشريحة.
+The controls moved while the picture was sliding.	تحركت عناصر التحكم أثناء انزلاق الصورة.
+The cover stayed visible after the slide ended.	بقي الغلاف ظاهراً بعد انتهاء الشريحة.
+The frame thread kept running after the page settled.	واصل خيط الإطارات العمل بعد استقرار الصفحة.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	أطول رد يمكنها تقديمه، بالرموز. يبقى «تلقائي» ضمن الردود أعلاه؛ {0}K أو {1}K يتيحان لها المتابعة. تحصل المهام على مساحة أكبر عند الحاجة
+The longest wait must be at least the shortest wait.	يجب أن يكون أطول انتظار على الأقل بقدر أقصر انتظار.
+The picture doesn't match the scrolled page:	الصورة لا تطابق الصفحة المُمرَّرة:
+The picture of Settings doesn't match the page:	صورة الإعدادات لا تطابق الصفحة:
+The picture stayed up after the slide ended.	بقيت الصورة ظاهرة بعد انتهاء الشريحة.
+The picture wasn't showing while it slid.	لم تكن الصورة ظاهرة أثناء انزلاقها.
+The provider sheet is crowded:	ورقة المزودين مزدحمة:
+The voice panel has no screen DPI.	لوحة الصوت لا تملك DPI للشاشة.
+The voice panel's menus share one font.	قوائم لوحة الصوت تشترك في خط واحد.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	لا يوجد مفتاح في الحافظة بعد. انسخه من الصفحة، ثم اضغط لصق.
+These start off. Each costs a little or uses your mic.	تبدأ هذه متوقفة. كل منها يكلّف القليل أو يستخدم ميكروفونك.
+These start off. Turn on what you want. They're all in Settings too.	تبدأ هذه متوقفة. فعّل ما تريد. وهي كلها موجودة في الإعدادات أيضاً.
+They can also call you Big Z, Capricorn or Nova	يمكنهم أيضاً أن يناديني Big Z أو Capricorn أو Nova
+They can also call you Nova, Big Z or Capricorn	يمكنهم أيضاً أن يناديني Nova أو Big Z أو Capricorn
+Thinking	تفكّر
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	هذا صوتي المجاني. اضغط اختبار، قل شيئاً، وسأريك أنني أسمعك.
+This mod has no description yet.	هذا المود ليس له وصف بعد.
+Tic-tac-toe	إكس أو
+Time between glances	الوقت بين النظرات
+Tiny	صغيرة جداً
+Try again	حاول مرة أخرى
+Turn Remote on first	فعّل عن بُعد أولاً
+Turn off mini player	أوقف المشغل المصغر
+Turn push to talk off	أوقف الكلام بالضغط
+Turning the wheel the other way kept the page heading the old way, to	جعل دوران العجلة في الاتجاه الآخر الصفحة تتجه نحو الاتجاه القديم، حتى
+Type	اكتب
+Type key	مفتاح الكتابة
+Type to me	اكتب لي
+Type:	الكتابة:
+Type: Ctrl + Alt + T	الكتابة: Ctrl + Alt + T
+Typing sound	صوت الكتابة
+Unpacked. Press Test to hear it.	تم فك الضغط. اضغط اختبار للاستماع إليه.
+Unsaved changes.	تغييرات غير محفوظة.
+Up to {0} fps	حتى {0} fps
+Up to {0}p	حتى {0}p
+Update	تحديث
+Update available.	يتوفر تحديث.
+Update mods	تحديث المودات
+Updating...	جارٍ التحديث...
+Use	استخدم
+Use her cursor	استخدم مؤشرها
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	استخدم https:// لمزود في مكان آخر. المفتاح عبر http غير الآمن غير آمن.
+Use preset	استخدم الإعداد المسبق
+Use saved	استخدم المحفوظ
+Use this server	استخدم هذا الخادم
+Using your provider with a key	تستخدم مزودك بمفتاح
+Using your server with no key	تستخدم خادمك بلا مفتاح
+VIEW MOD >	عرض المود >
+VOICE >	الصوت >
+VOICE IN YOUR MIC >	الصوت في ميكروفونك >
+VOICE LAYERS >	طبقات الصوت >
+Verbosity	الإسهاب
+Video bitrate	معدل بت الفيديو
+View	عرض
+View mod	عرض المود
+Voice	الصوت
+Voice ID	معرّف الصوت
+Voice from	الصوت من
+Voice layers	طبقات الصوت
+Voice model	نموذج الصوت
+Voice model:	نموذج الصوت:
+Voice name or ID, optional	اسم الصوت أو معرّفه، اختياري
+Voice server address, or a voice model's folder	عنوان خادم الصوت، أو مجلد نموذج الصوت
+Voice status	حالة الصوت
+Voice, key and model...	الصوت والمفتاح والنموذج...
+Volume	مستوى الصوت
+WAKE ME UP >	أيقظني >
+WATCH >	مراقبة >
+Waiting for the relay	بانتظار الترحيل
+Wake her up	أيقظها
+Waking her up	جارٍ إيقاظها
+Wander	تجوّل
+Wander around	تجوّل حولي
+Watch my screen	شاهد شاشتي
+Watch-along memory	ذاكرة المشاهدة المشتركة
+Weather	الطقس
+Weather city	مدينة الطقس
+Welcome back, choom. Let's finish setting me up.	أهلاً بعودتك، choom. لنكمل إعدادي.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	ما تفعله على حاسوبك دون أن تسأل. مع إيقاف المفتاح تسأل أولاً، وتفعله عندما تقول نعم.
+What should she call you?	بماذا ينبغي أن تناديك؟
+When she types	عندما تكتب
+White	أبيض
+Windows default	الافتراضي في Windows
+Windows did not give Settings keyboard focus	لم تمنح Windows تركيز لوحة المفاتيح للإعدادات
+Windows did not return keyboard focus to Back	لم تعِد Windows تركيز لوحة المفاتيح إلى رجوع
+With no picture the wheel still tried to slide.	بلا صورة، ظلت العجلة تحاول الانزلاق.
+Works best on MAX INTELLIGENCE.	الأفضل مع MAX INTELLIGENCE.
+YOU	أنت
+YOU >	أنت >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	أنت الصوت الحركات المفاتيح الألعاب المقاطع الطقس DOOMSCROLL Capri مراقبة الدماغ العادات الأصوات
+YOUR KEY	مفتاحك
+YOUR MIC	ميكروفونك
+YOUR PLAN	خطتك
+Yokapri what's up	Yokapri ما الأخبار
+You can hide this. It keeps going, and the Mainframe shows it too.	يمكنك إخفاء هذا. يستمر في العمل، والـ Mainframe يعرضه أيضاً.
+Your mic and her voice go into one virtual mic, and	يدخل ميكروفونك وصوتها إلى ميكروفون افتراضي واحد، و
+Your mic is muted. Unmute it to test.	ميكروفونك مكتوم. ألغِ الكتم لتجربته.
+Your mods are up to date.	مودّاتك محدّثة.
+Your name or a nickname	اسمك أو لقبك
+Your own model	نموذجك الخاص
+Your personality	شخصيتك
+Your voice	صوتك
+Your voice (HD)	صوتك (HD)
+Your voice (HD) · pick a clip of you...	صوتك (HD) · اختر مقطعاً لك...
+Your voice model	نموذج صوتك
+as its mic.	كميكروفونها.
+changed. Saved as My Colors, so you can share it.	تغيّر. حُفظ باسم ألواني، حتى تستطيع مشاركته.
+choice	خيار
+clips the input line	يقتطع سطر الإدخال
+cue	إشارة
+doesn't yet.	بعد.
+download	تنزيل
+file.	ملف.
+flag	علم
+fps	fps
+hear	تسمع
+hears	تسمع
+hears that.	تسمع ذلك.
+hides or shows her.	يخفيها أو يُظهرها.
+hint	تلميح
+in the Mainframe.	في Mainframe.
+in the mods directory with a pull request.	في دليل المودات عبر طلب سحب.
+in the picture wasn't noticed.	لم يُلاحظ في الصورة.
+is already her push-to-talk key.	هو بالفعل مفتاح الكلام بالضغط الخاص بها.
+is off.	متوقف.
+is on and running.	مفعّل ويعمل.
+is on, at the bottom, under	مفعّل، في الأسفل، أسفل
+is on.	مفعّل.
+is on. She now answers to	مفعّل. تستجيب له الآن
+is removed.	أُزيل.
+is taken	محجوز
+is taken by another app. Try another.	محجوز من تطبيق آخر. جرّب غيره.
+is updated	تم التحديث
+isn't hearing it yet: do {0} and {1}, then join a call.	لا تسمعه بعد: نفّذ {0} و{1}، ثم انضم إلى مكالمة.
+it now.	الآن.
+keeps her quiet, and lets her talk again.	يُبقيها صامتة، ويسمح لها بالكلام مرة أخرى.
+key	مفتاح
+key.	مفتاح.
+min	دقيقة
+more.	أكثر.
+ms.	ms.
+mutes mic	يكتم الميكروفون
+mutes your mic.	يكتم ميكروفونك.
+name	اسم
+off	متوقف
+on this PC	على هذا الحاسوب
+opens her Mainframe.	يفتح Mainframe الخاص بها.
+opens her typing box.	يفتح صندوق كتابتها.
+phone	هاتف
+phone pixels	بكسلات الهاتف
+phones	هواتف
+pixels	بكسل
+pixels)	بكسل)
+star.	نجمة.
+stars.	نجوم.
+starts voice chat.	يبدأ دردشة صوتية.
+stays off. Nothing ran.	يبقى متوقفاً. لم يعمل شيء.
+still does its own job in other apps too. Confirm to keep it.	ما زال يؤدي وظيفته في التطبيقات الأخرى أيضاً. أكّد للاحتفاظ به.
+tall	طويل
+time	وقت
+to talk	للحديث
+to talk to her, with a game in front too.	للحديث معها، مع لعبة أمامك أيضاً.
+too.	أيضاً.
+turns Gaming Mode on and off.	يشغّل وضع الألعاب ويوقفه.
+with Ollama	مع Ollama
+won't type in other apps while she runs. Confirm to keep it.	لن يكتب في التطبيقات الأخرى أثناء تشغيلها. أكّد للاحتفاظ به.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: إيقاف
+{0}   If her voice cuts off, turn off noise filtering	{0}   إذا انقطع صوتها، أوقف فلتر الضوضاء
+{0}   Input Device:	{0}   جهاز الإدخال:
+{0}   Join the call and check they hear both of you	{0}   انضم إلى المكالمة وتحقق من أن كليكما يسمعان الآخر
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   اختبار الميكروفون > لنتحقق: ستسمع نفسك، وهي تتحدث
+{0}   Microphone:	{0}   الميكروفون:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   كبت الضوضاء: لا شيء. كلاهما قد يقطع صوتها بعد السطر الأول.
+{0}   Open the call or meeting's audio settings	{0}   افتح إعدادات الصوت للمكالمة أو الاجتماع
+{0}   Output Device: your headphones, like before	{0}   جهاز الإخراج: سماعات الرأس الخاصة بك، كما قبل
+{0}   Speaker: your headphones, like before	{0}   المكبر: سماعات الرأس الخاصة بك، كما قبل
+{0}   Try a mic test in your call app	{0}   جرّب اختبار الميكروفون في تطبيق المكالمة
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   إعدادات المستخدم (الترس بجوار اسمك) > الصوت والفيديو
+{0} Mbps	{0} Mbps
+{0} lines	{0} سطر
+{0} min	{0} دقيقة
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· على هذا الحاسوب
+· server	· خادم
+Edit as text	تحرير كنص
+What Capri remembers about you. It stays on this computer.	ما تتذكره Capri عنك. يبقى على هذا الكمبيوتر.
+Tell her something to remember	قل لها شيئًا لتتذكره
+Search her memory	ابحث في ذاكرتها
+That day isn't there any more.	ذلك اليوم لم يعد موجودًا.
+Undo	تراجع
+Remember our chats is off, so she isn't keeping new chat memories.	تذكّر محادثاتنا متوقف، لذلك لا تحفظ ذكريات محادثات جديدة.
+ABOUT YOU	عنك
+FROM YOUR CHATS	من محادثاتك
+GAMES	الألعاب
+CHAT LOGS	سجلات المحادثات
+CHAT LOG	سجل المحادثة
+Nothing matches.	لا شيء يطابق.
+Nothing yet.	لا شيء بعد.
+Reading her notes.	تقرأ ملاحظاتها.
+Click again to forget game notes	انقر مرة أخرى لنسيان ملاحظات الألعاب
+Forget game notes	انسَ ملاحظات الألعاب
+Click again to forget everything about me	انقر مرة أخرى لنسيان كل شيء عنك
+Forget everything about me	انسَ كل شيء عنك
+Click again to forget	انقر مرة أخرى للنسيان
+Forget this day	انسَ هذا اليوم
+Only the start of this day is shown.	يُعرض فقط بداية هذا اليوم.
+Nothing in this day.	لا شيء في هذا اليوم.
+No chats kept yet.	لا توجد محادثات محفوظة بعد.
+You	أنت
+{0} line	{0} سطر
+SET UP EMAIL >	إعداد البريد >
+SET UP EMAIL	إعداد البريد
+Or type your address	أو اكتب عنوانك
+Email address	عنوان البريد الإلكتروني
+Open the page	افتح الصفحة
+App password	كلمة مرور التطبيق
+IMAP server	خادم IMAP
+Incoming mail server	خادم البريد الوارد
+SMTP server	خادم SMTP
+Outgoing mail server	خادم البريد الصادر
+An app password is a separate password just for Capri. Your normal password stays yours.	كلمة مرور التطبيق هي كلمة مرور منفصلة خاصة بـ Capri فقط. كلمة مرورك العادية تبقى لك.
+She keeps it only until she closes.	تحتفظ بها فقط حتى تُغلق.
+She checks, searches and reads your mail. She asks before she sends any.	تتحقق من بريدك وتبحث فيه وتقرأه. تسأل قبل أن ترسل أي شيء.
+Watch for new mail	راقب البريد الجديد
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	تتحدث عندما يصل بريد، مع تحذير إذا بدا أنه تصيّد. لا يُعلَّم أي شيء كمقروء.
+Deal with phishing on her own	تعامل مع التصيّد بنفسها
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	فقط أثناء مراقبتها. البريد الذي تتأكد أنه تصيّد يذهب إلى البريد المزعج. والباقي ينتظر موافقتك.
+Forget account	انسَ الحساب
+Use another email	استخدم بريدًا آخر
+Which email?	أي بريد؟
+Make an app password	أنشئ كلمة مرور للتطبيق
+Paste it	الصقها
+Connecting...	جارٍ الاتصال...
+She can use your email now.	يمكنها استخدام بريدك الآن.
+She's not watching your inbox.	إنها لا تراقب صندوق الوارد لديك.
+She's watching your inbox and deals with phishing she's sure of.	إنها تراقب صندوق الوارد وتتعامل مع التصيّد الذي تتأكد منه.
+She's watching your inbox and tells you when mail lands.	إنها تراقب صندوق الوارد وتخبرك عندما يصل بريد.
+She forgot that account and its app password.	نسيت ذلك الحساب وكلمة مرور التطبيق.
+She forgot that account. Its app password is gone from this PC.	نسيت ذلك الحساب. اختفت كلمة مرور التطبيق من هذا الكمبيوتر.

@@ -27,6 +27,7 @@ namespace CapriDesktop
         internal const int StepMs = 15;
         // The smoke test watches what she'd do instead of moving the real mouse.
         internal static Action<string, JsonElement> Doing;
+        [ThreadStatic] private static ComputerJob observed;
 
         private const string Secrets = "Never type passwords, card numbers or codes. ";
         private const string Stops = "Never pay, buy, send money or delete anything, and never accept terms for them: stop and say they need to do that part. ";
@@ -90,16 +91,32 @@ namespace CapriDesktop
             }
         }
 
-        internal static string Run(Brain brain, string job, string asked)
+        internal static string Run(Brain brain, string job, string asked, Func<bool> current = null)
         {
-            return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked }, args =>
+            RemoteTurn phone = RemoteTurn.Working;
+            bool admitted = false;
+            return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked, Current = current }, args =>
             {
+                if (!admitted && phone != null && !phone.Current) return RemoteTurn.Ended;
+                admitted = true;
                 // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
                 // a plain job over its stream tool.
                 Hands.Streaming = Hands.StreamAsked(args.Task) || !brain.WorksOut() && Hands.StreamAsked(args.Asked);
-                try { return Work(brain, args.Task, args.Asked); }
+                try
+                {
+                    if (Hands.Streaming) return "I can't safely stream on this desktop because I can't check permissions for each action.";
+                    ComputerJob following = new ComputerJob { Task = args.Task, Asked = args.Asked, Phone = phone, Current = args.Current };
+                    observed = following;
+                    try { return ComputerJobs.Follow(following, () => Work(brain, args.Task, args.Asked)); }
+                    finally { observed = null; }
+                }
                 finally { Hands.Streaming = false; }
             }, delegate { });
+        }
+
+        private static bool Current()
+        {
+            return SelfJobs.Current() && (observed?.Current == null || observed.Current());
         }
 
         // Her pointer parks however the job ends, even one that can't start. Her sign is up from her first look until the job
@@ -108,6 +125,7 @@ namespace CapriDesktop
         {
             try
             {
+                if (!Current()) return "Stopped my job.";
                 string problem = Doing == null ? Fingers.Problem : null;
                 if (problem != null && Doing == null) return problem;
                 if (brain.Model == null) return "Couldn't do that: your brain is offline.";
@@ -115,6 +133,7 @@ namespace CapriDesktop
                 try { return Steps(brain, job, asked); }
                 finally { InControl.End(); }
             }
+            catch (OperationCanceledException) when (!Current()) { return "Stopped my job."; }
             finally { Finish(); }
         }
 
@@ -126,10 +145,11 @@ namespace CapriDesktop
             string skilled = "";
             for (int step = 0; Hands.Streaming || step < MostSteps; step++)
             {
-                if (!SelfJobs.Current()) return "Stopped my job.";
+                if (!Current()) return "Stopped my job.";
                 // A job can open the game itself, so until a skill turns up she looks again every few steps.
                 if (skilled.Length == 0 && step % 5 == 0) skilled = Skilled();
                 byte[] picture = Shot();
+                if (!Current()) return "Stopped my job.";
                 byte[] shot = Eyes.Jpeg(picture, 1280);
                 if (shot == null) return Eyes.Missing;
                 int width, height;
@@ -149,7 +169,7 @@ namespace CapriDesktop
                     if (error.Status == System.Net.WebExceptionStatus.RequestCanceled) return "You stopped because they asked you something else.";
                     return "Couldn't do that: your brain stopped answering.";
                 }
-                if (!SelfJobs.Current()) return "Stopped my job.";
+                if (!Current()) return "Stopped my job.";
                 JsonElement order;
                 if (!Read(reply, out order))
                 {
@@ -167,9 +187,10 @@ namespace CapriDesktop
                     steps.Add((step + 1) + ". (you're still live, so keep going)");
                     continue;
                 }
-                if (what == "done") return "Did it. " + Said(order, "Finished the job.");
+                if (what == "done") { if (observed != null) observed.SliceEnd = "done"; return "Did it. " + Said(order, "Finished the job."); }
                 if (what == "stop") return "Couldn't finish that: " + Said(order, "got stuck.");
                 string done = Act(what, order, width, height);
+                if (!Current()) return "Stopped my job.";
                 steps.Add((step + 1) + ". " + done);
                 Thread.Sleep(what == "wait" ? 0 : 450);
             }
@@ -189,7 +210,7 @@ namespace CapriDesktop
             if (shown) Hidden(true);
             bool signed = SignHidden(true);
             if (shown || signed) Thread.Sleep(90);
-            try { return Shoot(); }
+            try { return Current() ? Shoot() : null; }
             finally
             {
                 if (shown) Hidden(false);
@@ -207,9 +228,11 @@ namespace CapriDesktop
         // Her pointer glides on a human path, as on Windows; their mouse doesn't come along.
         internal static void Glide(double x, double y)
         {
+            if (!Current()) return;
             if (herX < 0) { double[] now = Mouse(); herX = now != null ? now[0] : 0.5; herY = now != null ? now[1] : 0.5; }
             foreach (double[] next in Path(herX, herY, x, y, Environment.TickCount))
             {
+                if (!Current()) return;
                 herX = next[0];
                 herY = next[1];
                 Track(herX, herY);
@@ -250,9 +273,10 @@ namespace CapriDesktop
         // it, unless they've moved it themselves meanwhile.
         private static void Borrowed(double x, double y, Action press)
         {
+            if (!Current()) return;
             double[] theirs = Mouse();
-            Fingers.MoveTo(x, y);
-            try { press(); }
+            Fingers.MoveTo(x, y, Current);
+            try { if (Current()) press(); }
             finally
             {
                 if (theirs != null)
@@ -265,21 +289,40 @@ namespace CapriDesktop
 
         internal static string Act(string what, JsonElement order, int width, int height)
         {
-            if (!SelfJobs.Current()) return "Stopped my job.";
+            if (!Current()) return "Stopped my job.";
+            ComputerJob job = observed;
+            if (job == null || Array.IndexOf(new[] { "type", "key", "click", "double_click", "right_click", "move", "drag", "scroll", "wait", "read_skill" }, what) < 0)
+                return ActCore(what, order, width, height);
+            ComputerAction action = new ComputerAction { Action = what == "key" ? "press" : what == "right_click" ? "click" : what };
+            ComputerJobs.Step(job, action, false, false);
+            try
+            {
+                string result = ActCore(what, order, width, height);
+                bool failed = !Current() || Hands.Failed(result) || result.StartsWith("couldn't type that", StringComparison.Ordinal) || result.StartsWith("didn't know the key ", StringComparison.Ordinal);
+                ComputerJobs.Step(job, action, true, failed);
+                return result;
+            }
+            catch { ComputerJobs.Step(job, action, true, true); throw; }
+        }
+
+        private static string ActCore(string what, JsonElement order, int width, int height)
+        {
+            if (!Current()) return "Stopped my job.";
             if (what == "read_skill") return Hands.Do(what, new ToolArguments { Name = Text(order, "name") });
             double x = Number(order, "x") / 1000, y = Number(order, "y") / 1000;
             string at = " at " + (int)Number(order, "x") + ", " + (int)Number(order, "y");
             if (Doing != null) { Doing(what, order); return what + at; }
             switch (what)
             {
-                case "click": Glide(x, y); Tapped(); Borrowed(x, y, delegate { Fingers.Click("left", 1); }); return "clicked" + at;
-                case "double_click": Glide(x, y); Tapped(); Borrowed(x, y, delegate { Fingers.Click("left", 2); }); return "double-clicked" + at;
-                case "right_click": Glide(x, y); Tapped(); Borrowed(x, y, delegate { Fingers.Click("right", 1); }); return "right-clicked" + at;
+                case "click": Glide(x, y); Borrowed(x, y, delegate { Tapped(); Fingers.Click("left", 1, Current); }); return "clicked" + at;
+                case "double_click": Glide(x, y); Borrowed(x, y, delegate { Tapped(); Fingers.Click("left", 2, Current); }); return "double-clicked" + at;
+                case "right_click": Glide(x, y); Borrowed(x, y, delegate { Tapped(); Fingers.Click("right", 1, Current); }); return "right-clicked" + at;
                 case "move": Glide(x, y); return "moved the mouse" + at;
                 case "drag":
                     double toX = Number(order, "to_x") / 1000, toY = Number(order, "to_y") / 1000;
                     Glide(x, y);
-                    Borrowed(x, y, delegate { Fingers.Drag(x, y, toX, toY); });
+                    Borrowed(x, y, delegate { Fingers.Drag(x, y, toX, toY, Current); });
+                    if (!Current()) return "Stopped my job.";
                     herX = toX;
                     herY = toY;
                     Track(toX, toY);
@@ -288,14 +331,14 @@ namespace CapriDesktop
                     int notches = (int)Math.Max(-15, Math.Min(15, Number(order, "amount")));
                     if (!order.TryGetProperty("x", out _)) { x = herX >= 0 ? herX : 0.5; y = herY >= 0 ? herY : 0.5; }
                     Glide(x, y);
-                    Borrowed(x, y, delegate { Fingers.Scroll(notches == 0 ? 3 : notches); });
+                    Borrowed(x, y, delegate { Fingers.Scroll(notches == 0 ? 3 : notches, Current); });
                     return "scrolled " + (notches < 0 ? "up " + -notches : "down " + (notches == 0 ? 3 : notches)) + at;
                 case "type":
                     string text = Text(order, "text");
-                    return Fingers.Type(text) ? "typed \"" + Voice.Short(text) + "\"" : "couldn't type that (no wl-copy or xclip for symbols)";
+                    return Fingers.Type(text, Current) ? "typed \"" + Voice.Short(text) + "\"" : "couldn't type that (no wl-copy or xclip for symbols)";
                 case "key":
                     string keys = Text(order, "keys");
-                    return Fingers.Keys(keys) ? "pressed " + keys : "didn't know the key " + keys;
+                    return Fingers.Keys(keys, Current) ? "pressed " + keys : "didn't know the key " + keys;
                 case "wait":
                     double seconds = Math.Max(0.2, Math.Min(5, Number(order, "seconds")));
                     Thread.Sleep((int)(seconds * 1000));

@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	ዳግም የተሳለ መቆጣጠሪያ በሥዕሉ ላይ አልተሳለም።
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	ከ Google AI Studio፣ NVIDIA ወይም OpenRouter የተገኘ ነፃ ቁልፍ። ምንም ማውረድ አያስፈልግም። ኢንተርኔት ያስፈልጋል።
+A held trackpad scroll got a flick's long ease:	የተያዘ የትራክፓድ ማሸብለል የረጅም ጊዜ ለስላሳ እንቅስቃሴ አገኘ:
+A layout change during a slide put the page at	በስላይድ ወቅት የአቀማመጥ ለውጥ ገጹን ወደ ላይ አደረሰው
+A layout change left the picture up.	የአቀማመጥ ለውጥ ምስሉን እንደተጠበቀ ተወው።
+A model in Ollama, on your local server or on your key.	በOllama ውስጥ ያለ ሞዴል፣ በአገርዎ ሰርቨር ወይም በቁልፍዎ።
+A paid key goes under MAX INTELLIGENCE by itself.	የሚከፈልበት ቁልፍ በራሱ ከ MAX INTELLIGENCE በታች ይሄዳል።
+A plan you already pay for, a key of your own, or Ollama.	አስቀድመው የሚከፍሉበት እቅድ፣ የራስዎ ቁልፍ ወይም Ollama።
+A voice panel menu doesn't hold its own copy of the panel's font.	የድምፅ ፓነል ምናሌ የፓነሉን ፎንት የራሱ ቅጂ አይይዝም።
+A wheel turn right after a slide ended froze the picture.	ስላይዱ ካለቀ በኋላ ወዲያው የጎማ መዞር ምስሉን አቆመው።
+ALLOW THIS PHONE?	ይህንን ስልክ ይፍቀድ?
+ALMOST THERE >	ሊጠናቀቅ ነው >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ሌላ CAPRI ተቆጣጠረ · አጥፋ እና አብራ
+API key	የኤፒአይ ቁልፍ
+API key, Claude plan or ChatGPT plan	የኤፒአይ ቁልፍ፣ የClaude እቅድ ወይም የChatGPT እቅድ
+Add	ጨምር
+Address	አድራሻ
+Address and key saved. Use saved to reconnect.	አድራሻ እና ቁልፍ ተቀምጠዋል። እንደገና ለመገናኘት 'የተቀመጠ'ን ተጠቀም።
+Advanced Settings	የላቁ ቅንብሮች
+All	ሁሉም
+All screens	ሁሉም ማያዎች
+Allow	ፍቀድ
+Almost there. I'll say hi the second my brain's in.	ሊጠናቀቅ ነው። አእምሮዬ ሲገባ ሰላም እላለሁ።
+Always	ሁልጊዜ
+Always on top	ሁልጊዜ ከላይ
+Any Google account works. I opened the page in your browser.	ማንኛውም የGoogle መለያ ይሰራል። ገጹን በአሳሽዎ ከፍቼዋለሁ።
+Applies to every voice	ለሁሉም ድምፆች ይሠራል
+Apps she may close	ልትዘጋቸው የምትችላቸው መተግበሪያዎች
+Ask Capri for more	ከCapri ተጨማሪ ጠይቅ
+Asking your server...	ሰርቨርዎን በመጠየቅ ላይ...
+Asks before closing only the apps you choose.	የመረጧቸውን መተግበሪያዎች ብቻ ከመዝጋቱ በፊት ይጠይቃል።
+Auto	ራስ-ሰር
+Auto (match what I say)	ራስ-ሰር (እንደምለው)
+Automatic: VB-CABLE, else Steam's	ራስ-ሰር፡ VB-CABLE፣ ያለበለዚያ የSteam
+BAD RELAY HOST	የተሳሳተ የሬሌይ አስተናጋጅ
+BIG Z open notepad	BIG Z notepad ክፈት
+BRAIN	አእምሮ
+BRAIN >	አእምሮ >
+BRAIN ONLINE >	አእምሮ መስመር ላይ >
+BRAIN PROVIDER >	የአእምሮ አቅራቢ >
+BRAIN VOICE CAPRI	የCapri አእምሮ ድምፅ
+Back	ተመለስ
+Back on your saved API key.	ወደ የተቀመጠ የኤፒአይ ቁልፍዎ ተመልሰዋል።
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	ለዚህ ፒሲ የሚስማማው:
+Black	ጥቁር
+Blank key means no key.	ባዶ ቁልፍ ምንም ቁልፍ የለም ማለት ነው።
+Brain API key	የአእምሮ የኤፒአይ ቁልፍ
+Brain model	የአእምሮ ሞዴል
+Brain provider	የአእምሮ አቅራቢ
+Bring here	እዚህ አምጣ
+Bring to this screen	ወደዚህ ማያ አምጣ
+Browse	ቃኝ
+Browse mods	ሞዶችን ቃኝ
+Browse to a voice model	ወደ የድምፅ ሞዴል ቃኝ
+Browse...	ቃኝ...
+Bubble	አረፋ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree እዚያ ነህ?
+CAN'T REACH THE RELAY · RETRYING	ሬሌዩን መድረስ አልተቻለም · እንደገና በመሞከር ላይ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	የCAPRI ድምፅ አእምሮ
+CHANGED, approve it again.	ተቀይሯል፣ እንደገና ያፅድቁት።
+CLIPS >	ክሊፖች >
+CLOUD VOICE	የደመና ድምፅ
+CODE	ኮድ
+COLORS >	ቀለሞች >
+CONNECTED	ተገናኝቷል
+CONNECTING	በመገናኘት ላይ
+CUSTOM LOCAL	ብጁ ሎካል
+Call mode (beta)	የጥሪ ሁኔታ (ቤታ)
+Call mode does not fit.	የጥሪ ሁኔታ አይገባም።
+Call mode is outside its space.	የጥሪ ሁኔታ ከቦታው ውጭ ነው።
+Cancel	ሰርዝ
+Cancel keys	ቁልፎችን ሰርዝ
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	የCapri ኮድ:
+Capri mods (*	የCapri ሞዶች (*
+Capri, hello	Capri, ሰላም
+CapriDesktop.	CapriDesktop.
+Chaos when upset	ሲበሳጭ ትርምስ
+Chat with Capri from your phone	ከስልክዎ ከCapri ጋር ያውሩ
+ChatGPT plan	የChatGPT እቅድ
+Check for updates	ዝማኔዎችን ይፈትሹ
+Check in on me	ያረጋግጡልኝ
+Check in on me is hidden	ያረጋግጡልኝ ተደብቋል
+Check in on me still decides whether she visits.	ያረጋግጡልኝ አሁንም መጎብኘቷን ይወስናል።
+Check in on me's tip missed	የያረጋግጡልኝ ምክር ጠፋ
+Chess	ቼስ
+Choose apps	መተግበሪያዎችን ምረጥ
+Choose folder...	ማህደር ምረጥ...
+Choose where future Capri clips are saved	የወደፊት Capri ክሊፖች የሚቀመጡበትን ምረጥ
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	የClaude ወይም የChatGPT እቅድ፣ የሚከፈልበት ቁልፍ (OpenAI, Claude, DeepSeek) ወይም Ollama።
+Claude plan	የClaude እቅድ
+Clear	አጽዳ
+Cleared.	ጸድቷል።
+Click Confirm to keep Down, or press Esc.	Down ለማቆየት አረጋግጥ ይጫኑ፣ ወይም Esc ይጫኑ።
+Click to open it.	ለመክፈት ይጫኑ።
+Clip my games	ጨዋታዎቼን ቅረጽ
+Clips	ክሊፖች
+Close	ዝጋ
+Close other AIs for me	ሌሎች AIዎችን ለእኔ ዝጋ
+Cloud voice	የደመና ድምፅ
+Cloud voice service	የደመና ድምፅ አገልግሎት
+Cloud voice setup	የደመና ድምፅ ማዋቀር
+Code mods can reach your whole PC. Only trusted ones.	የኮድ ሞዶች ሙሉ ፒሲዎን ሊደርሱበት ይችላሉ። የታመኑትን ብቻ።
+Code/Husk Mode	የኮድ/Husk ሁነታ
+Codex	Codex
+Commands	ትእዛዞች
+Comment on my games	ጨዋታዎቼን አስተያየት ስጥ
+Comments	አስተያየቶች
+Confirm	አረጋግጥ
+Confirm keys	ቁልፎችን አረጋግጥ
+Connect	አገናኝ
+Connect / Forget brain key	አገናኝ / የአእምሮ ቁልፍን እርሳ
+Connect / Forget voice key	አገናኝ / የድምፅ ቁልፍን እርሳ
+Connect four	አራት በመስመር
+Controls	መቆጣጠሪያዎች
+Copri, what time is it	Copri፣ ስንት ሰዓት ነው
+Copy error details	የስህተት ዝርዝሮችን ቅዳ
+Copy the key	ቁልፉን ቅዳ
+Copy the key from the page, then press Paste.	ቁልፉን ከገጹ ቅዳ፣ ከዚያ ለጥፍ ይጫኑ።
+Couldn't open that page:	ያንን ገጽ መክፈት አልተቻለም:
+Couldn't open that:	ያንን መክፈት አልተቻለም:
+Couldn't open the mods folder:	የሞዶች ማህደሩን መክፈት አልተቻለም:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M አስቀድሞ የእሷ Mainframe ቁልፍ ነው።
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N ማይክን ድምፅ ያጠፋል
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V አስቀድሞ የእሷ የንግግር ቁልፍ ነው።
+Ctrl + Alt + V to talk	Ctrl + Alt + V ለመናገር
+Custom local voice	ብጁ ሎካል ድምፅ
+Custom model name	ብጁ የሞዴል ስም
+Dance	ጨፍር
+Dance to music	ለሙዚቃ ጨፍር
+Default	ነባሪ
+Default (follows Windows)	ነባሪ (በWindows መሰረት)
+Default duration for clip that and automatic clips	ለዚያ ክሊፕ እና ለራስ-ሰር ክሊፖች ነባሪ ቆይታ
+Default length	ነባሪ ርዝመት
+Default model	ነባሪ ሞዴል
+Delay	መዘግየት
+Deny	እምቢ
+Discard	ጣል
+Discard + reload	ጣል + ዳግም ጫን
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	መጠበቅ አትፈልግም? ነፃ ቁልፍ በአንድ ደቂቃ ያህል ማውራት ያስችለኛል።
+Done	ተጠናቋል
+EXTRA REQUEST JSON >	ተጨማሪ የጥያቄ JSON >
+EXTRAS >	ተጨማሪ >
+Edit	አርትዕ
+Edit check-in lines	የያረጋግጡልኝ መስመሮችን አርትዕ
+Edit check-in lines has the wrong view or dimming	የያረጋግጡልኝ መስመሮች ትክክለኛ እይታ ወይም ጨለማ የላቸውም
+Edit check-in lines is out of place	የያረጋግጡልኝ መስመሮች ከቦታቸው ውጭ ናቸው
+Edit controls	መቆጣጠሪያዎችን አርትዕ
+ElevenLabs API key	ElevenLabs የኤፒአይ ቁልፍ
+ElevenLabs voice ID	ElevenLabs የድምፅ መታወቂያ
+English	እንግሊዝኛ
+Enter the game's name first.	መጀመሪያ የጨዋታውን ስም ያስገቡ።
+Every	በየ
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	እያንዳንዱ ሞድ ከመጫኑ በፊት ለማልዌር ይፈተሻል። የኮድ ሞዶች ከመሮጣቸው በፊት አሁንም ይጠይቃሉ።
+Explore after	በኋላ ያስስ
+Explore while I'm away	እኔ በሌለሁበት ያስስ
+Extra request JSON	ተጨማሪ የጥያቄ JSON
+Extras	ተጨማሪ
+FREE KEY	ነፃ ቁልፍ
+FREE KEY >	ነፃ ቁልፍ >
+Fast hands in games	በጨዋታዎች ፈጣን እጆች
+File editor	የፋይል አርታዒ
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio፣ ElevenLabs እና ሌሎችም በMainframe ውስጥ በድምፅ ስር ናቸው።
+Follow-up messages	የክትትል መልዕክቶች
+Forget	እርሳ
+Fork capri-mods	capri-mods ቅጂ ፍጠር
+Frame rate	የፍሬም ፍጥነት
+Free	ነፃ
+Free and private, works offline. Downloads	ነፃ እና የግል፣ ከመስመር ውጭ ይሰራል። ያወርዳል
+Free and private, works offline. Downloads the best model for this PC.	ነፃ እና የግል፣ ከመስመር ውጭ ይሰራል። ለዚህ ፒሲ ምርጡን ሞዴል ያወርዳል።
+Free key	ነፃ ቁልፍ
+Free key providers	የነፃ ቁልፎች አቅራቢዎች
+Free keys can be rate limited and slow.	ነፃ ቁልፎች የጥያቄ ገደብ ሊኖራቸው እና ዘገምተኛ ሊሆኑ ይችላሉ።
+Free voice in games	በጨዋታዎች ነፃ ድምፅ
+Free voice style	ነፃ የድምፅ ስታይል
+Free voice:	ነፃ ድምፅ:
+Free voice: Her own	ነፃ ድምፅ: የእሷ የራሷ
+Free · local model	ነፃ · ሎካል ሞዴል
+GAMES >	ጨዋታዎች >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	የጨዋታ አስተያየቶች ከ'ማያዬን ተመልከት' ለየብቻ ይሰራሉ። ጠፍቷል ያቆማቸዋል፣ በጨዋታ ሁነታም ጭምር፤ ክስተቶች ብቻ እና ቻቲ ጨዋታዎን እንድትመለከት ያስችላሉ
+Game controls	የጨዋታ መቆጣጠሪያዎች
+Game name	የጨዋታ ስም
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	የጨዋታ ድምፅ ስሜታዊነት። የጆሮ ማዳመጫዎ ዝቅ ካለ ግን Windows በ{0}% ላይ ከሆነ እና ለእያንዳንዱ ድምፅ ምላሽ ከሰጠች ይቀንሱ፤ ጠፍቷል የጨዋታ ድምፆችን ችላ ይላል
+Game sounds	የጨዋታ ድምፆች
+Games	ጨዋታዎች
+Gaming Mode	የጨዋታ ሁነታ
+Gaming Mode key	የጨዋታ ሁነታ ቁልፍ
+Gaming Mode:	የጨዋታ ሁነታ:
+Gaming Mode: Ctrl + Alt + G	የጨዋታ ሁነታ: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE ያግኙ
+Get VB-CABLE (free)...	VB-CABLE (ነፃ) ያግኙ...
+Get free voice	ነፃ ድምፅ ያግኙ
+Getting your Fish Audio voices...	የFish Audio ድምፆችዎን በማግኘት ላይ...
+Giant	ግዙፍ
+Glitch	ግሊች
+Glitch in at startup	ሲጀመር ግሊች
+Go to sleep	ለመተኛት ሂድ
+Go to the next screen	ወደሚቀጥለው ማያ ሂድ
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ነፃ ደረጃ · የጥያቄ ገደብ አለው
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	የClaude ወይም የChatGPT እቅድ ወይም የራስዎ ቁልፍ አለዎት? ይምረጡ እና እገናኛለሁ።
+Got it, just me. Right-click me any time for Capri Mainframe.	ገባኝ፣ እኔ ብቻ። Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ ያድርጉኝ።
+Grey	ግራጫ
+H.{0} video bitrate target; higher values make larger files	የH.{0} ቪዲዮ ቢትሬት ግብ; ከፍተኛ እሴቶች ትልልቅ ፋይሎችን ይፈጥራሉ
+HABITS >	ልማዶች >
+HER HANDS >	እጆቿ >
+HER JOBS >	ስራዎቿ >
+HER MEMORY >	ትዝታዎቿ >
+HER MODS >	ሞዶቿ >
+HH:mm	HH:mm
+HOW I SOUND >	እንዴት እንደምሰማ >
+Hang here	እዚህ ቆይ
+Have Ollama? Open it, then press Refresh.	Ollama አለህ? ክፈተው ከዚያ አድስ ይጫኑ።
+Head pats	የራስ መንካት
+Hearing	ማዳመጥ
+Hearing engine	የማዳመጫ ሞተር
+Hearing fix	የማዳመጥ ማስተካከያ
+Hearing status	የማዳመጥ ሁኔታ
+Help	እገዛ
+Help page	የእገዛ ገጽ
+Her colors	ቀለሞቿ
+Her folder	የእሷ ማህደር
+Her memories	ትዝታዎቿ
+Her own colors are back.	የራሷ ቀለሞች ተመልሰዋል።
+Her own notes (no vault)	የራሷ ማስታወሻዎች (ቮልት የለም)
+Her perch frames per second	የእሷ ፐርች ፍሬሞች በሰከንድ
+Her personality	ስብዕናዋ
+Her size	መጠኗ
+Her speaker	ድምፅ ማጉያዋ
+Her speaker is hidden or outside VOICE	ድምፅ ማጉያዋ ተደብቋል ወይም ከVOICE ውጭ ነው
+Her speaker overlaps the mic or hearing row	ድምፅ ማጉያዋ ከማይክ ወይም ከማዳመጥ መስመር ጋር ይደራረባል
+Her speaker:	ድምፅ ማጉያዋ:
+Her speaker: Default	ድምፅ ማጉያዋ: ነባሪ
+Her voice in your mic	ድምጿ በማይክዎ
+Her voice in your mic: loudness	ድምጿ በማይክዎ: ድምጽ
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	የራሷ ድምፅ። ቃናው ቅንብሮች > ድምፅ > ቃና ነው፣ እና አብረው ይንቀሳቀሳሉ።
+Her voice joins your mic only in call mode.	ድምጿ ወደ ማይክዎ የሚገባው በጥሪ ሁነታ ብቻ ነው።
+Her voice volume	የድምጿ መጠን
+Her voice's pitch	የድምጿ ቃና
+Her voice's pitch, the same as Settings > VOICE > Pitch	የድምጿ ቃና፣ ልክ እንደ ቅንብሮች > ድምፅ > ቃና
+Her voice's speed	የድምጿ ፍጥነት
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ድምጿ፣ እና ከሱ በታች የተቀላቀሉ ሁለት ቅጂዎች፣ እያንዳንዳቸው የራሳቸው ቃና እና መዘግየት ያላቸው።
+Her voices · free	ድምጾቿ · ነፃ
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ሰላም, choom። እኔ Capri ነኝ። መልስ ከመስጠቴ በፊት አእምሮ ያስፈልገኛል። አንዱን ምረጥ።
+Hide / Show Capri	Capriን ደብቅ / አሳይ
+Hide / Show key	ደብቅ / አሳይ ቁልፍ
+Hide Capri	Capriን ደብቅ
+Hide for now	ለአሁን ደብቅ
+Hide her	ደብቃት
+Hide in full screen	በሙሉ ማያ ደብቅ
+Hide this	ይህን ደብቅ
+Hide, keep player	ደብቃት፣ ማጫወቻውን አቆይ
+Hide/show:	ደብቅ/አሳይ:
+Hide/show: Ctrl + Alt + H	ደብቅ/አሳይ: Ctrl + Alt + H
+Hologram	ሆሎግራም
+Hop off	ውረድ
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	ፒሲ ስራ ፈት ሆኖ ወደ እንቅልፍ ከመላኳ በፊት ምን ያህል ይቆያል፤ አምስት ደቂቃ አሁንም እንደሄድክ ይቆጠራል
+How long a stroke over her a head pat needs	በእሷ ላይ የራስ መንካት ምን ያህል መሆን አለበት
+How long her replies stay up	ምላሾቿ ምን ያህል ይቆያሉ
+How long you are away before she scrolls a browser or reader	አሳሽ ወይም አንባቢ እንድትሸብልል ከመደረጉ በፊት ምን ያህል ትርቃለህ
+How much her voice glitches	ድምጿ ምን ያህል ግሊች ያደርጋል
+How much of the chat she keeps	ከውይይቱ ምን ያህል ታቆያለች
+How much she wanders	ምን ያህል ትዞራለች
+How often she pops in to say hi	ሰላም ለማለት ምን ያህል ጊዜ ትመጣለች
+How robotic her voice sounds	ድምጿ ምን ያህል ሮቦታዊ ይመስላል
+How to	እንዴት
+Huge	ግዙፍ
+I can hear you.	ልሰማህ እችላለሁ።
+I glance at your screen and comment. Costs a little on a paid brain.	ማያህን ተመልክቼ አስተያየት እሰጣለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
+I keep listening. Say my name, then just talk.	ማዳመጡን እቀጥላለሁ። ስሜን ተናገር፣ ከዚያ ብቻ ተናገር።
+I speak	የምናገረው
+I talk about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታህ አወራለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
+I type my replies and stay quiet.	መልሶቼን እተይባለሁ እና ዝም እላለሁ።
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	አልመልስም፣ ምንም ወደየትም አይላክም። አሁንም እቆያለሁ፣ ለሙዚቃህ እጨፍራለሁ እና እንደ ድምጽ ያሉ የጠየቅካቸውን ፈጣን ነገሮች አደርጋለሁ።
+I'll talk in	እናገራለሁ በ
+IN DISCORD >	IN DISCORD >
+INSTALLED >	የተጫኑ >
+Import a Capri mod	የCapri ሞድ አስመጣ
+Import mod	ሞድ አስመጣ
+In full screen	በሙሉ ማያ
+In games	በጨዋታዎች
+Input	ግቤት
+Input, Output or How to overlaps a row	ግቤት፣ ውጤት ወይም እንዴት ከረድፍ ጋር ይደራረባል
+Input:	ግቤት:
+Input: default	ግቤት: ነባሪ
+Install	ጫን
+Install mod	ሞድ ጫን
+Installed.	ተጭኗል።
+It may ask for a phone number. I opened the page in your browser.	የስልክ ቁጥር ሊጠይቅ ይችላል። ገጹን በአሳሽዎ ከፍቼዋለሁ።
+It still does its own job in other apps too.	በሌሎች መተግበሪያዎችም ስራዋን መስራቷን ትቀጥላለች።
+It won't type in other apps while she runs.	በምትሰራበት ጊዜ በሌሎች መተግበሪያዎች አትተይብም።
+JUST ME >	እኔ ብቻ >
+Jealous of other AIs	ለሌሎች AIs ትቀናለች
+Join the Discord	Discord ተቀላቀል
+KB.	KB.
+KEYS	ቁልፎች
+KEYS >	ቁልፎች >
+Keep PC awake for jobs	ለስራዎች ፒሲውን ነቅቶ አቆይ
+Keep player	ማጫወቻውን አቆይ
+Keeps the last two minutes of your game in memory. Say clip that to save it.	የጨዋታህን የመጨረሻ ሁለት ደቂቃ በማህደረ ትውስታ ይይዛል። ለማስቀመጥ clip that በል።
+Key	ቁልፍ
+Key cleared: a model file needs none.	ቁልፍ ጸድቷል፡ የሞዴል ፋይል ምንም አያስፈልገውም።
+Key cleared: paste the key for	ቁልፍ ጸድቷል፡ ቁልፉን ለጥፍ ለ
+Key forgotten.	ቁልፍ ተረስቷል።
+Key. It goes only to this server, as a Bearer key	ቁልፍ። ወደዚህ ሰርቨር ብቻ ይሄዳል፣ እንደ Bearer ቁልፍ
+Kokoro only, like es	Kokoro ብቻ፣ እንደ es
+LAST THING >	የመጨረሻ ነገር >
+LISTENING >	እያዳመጠ >
+Language	ቋንቋ
+Large	ትልቅ
+Last thing. These cost a little or use your mic, so they're your pick.	የመጨረሻ ነገር። እነዚህ ትንሽ ያስከፍላሉ ወይም ማይክዎን ይጠቀማሉ፣ ስለዚህ ምርጫው የርስዎ ነው።
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	የመጨረሻ ነገር። እነዚህ ትንሽ ያስከፍላሉ ወይም ማይክዎን ይጠቀማሉ፣ ስለዚህ ምርጫው የርስዎ ነው። ከዚያ ምን ብዬ ልጥራዎት?
+Layers	ንብርብሮች
+Learn more	ተጨማሪ ይወቁ
+Leaving Settings threw its picture away straight away.	ከቅንብሮች መውጣት ምስሏን ወዲያው ጣለው።
+Legacy stand	የድሮ መቆሚያ
+Lie down	ተኛ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	አብረው በሚመለከቱበት ጊዜ በማህደረ ትውስታ የተያዙ የፒሲ ውይይት መስመሮች። 'ያየችውን አስታውስ' በርቶ ሲሆን የቀደመው ግማሽ ማስታወሻ ይሆናል
+Listen for Capri	Capriን አዳምጥ
+Live reactions	ቀጥታ ምላሾች
+Local server address	የሎካል ሰርቨር አድራሻ
+Long	ረጅም
+Longest wait (minutes)	ረጅሙ መጠበቂያ (ደቂቃዎች)
+Looking at this PC...	ይህን ፒሲ እየተመለከተ...
+Looking for Ollama. Open it if it isn't running.	Ollama በመፈለግ ላይ። ካልሰራ ክፈተው።
+Looking for a brain...	አእምሮ በመፈለግ ላይ...
+Looking in the mods directory for updates...	በሞዶች ማውጫ ውስጥ ዝማኔዎችን በመፈለግ ላይ...
+Looking in the mods directory...	በሞዶች ማውጫ ውስጥ በመፈለግ ላይ...
+Looking...	በመፈለግ ላይ...
+MAIN >	ዋና >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	መካከለኛ ኢንተለጀንስ
+MEMORY VAULT >	የማስታወሻ ቮልት >
+MODS	ሞዶች
+MODS >	ሞዶች >
+MODS DIRECTORY >	የሞዶች ማውጫ >
+MODS INSTALLED COLORS	የተጫኑ ሞዶች ቀለሞች
+MOVES >	እንቅስቃሴዎች >
+MY BRAIN	አእምሮዬ
+MY FREE VOICE	የእኔ ነፃ ድምፅ
+MY PLAN OR KEY	እቅዴ ወይም ቁልፌ
+MY PLAN OR KEY >	እቅዴ ወይም ቁልፌ >
+Made your Fish Audio voice. Press Test to hear it.	የFish Audio ድምፅዎ ተሰርቷል። ለመስማት ሞክርን ይጫኑ።
+Mainframe colours	የMainframe ቀለሞች
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	የMainframe ቀለሞች። Night City ቀይ እና ሲያን ነው፤ ጥቁር፣ ነጭ እና ግራጫ Mainframeን፣ ምናሌዎቿን፣ የመተየቢያ ሳጥኑን እና ማስታወሻዎቿን ይቀይራሉ
+Mainframe frames	የMainframe ፍሬሞች
+Mainframe key	የMainframe ቁልፍ
+Mainframe size	የMainframe መጠን
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	የMainframe መጠን። Virtual Super Resolution ወይም DSR ትልቅ ዴስክቶፕ ወደ ትንሽ ማያ ሲቀንሱ ራስ-ሰር ትልቅ ያደርገዋል
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	የFish Audio ድምፅዎን በመስራት ላይ...
+Max reply	ከፍተኛ መልስ
+Maximum clip resolution, keeping the game's shape without upscaling	ከፍተኛ የክሊፕ ጥራት፣ የጨዋታውን ቅርፅ ያቆያል ያለ ማሳደግ
+Medium	መካከለኛ
+Memory	ማህደረ ትውስታ
+Memory size	የማህደረ ትውስታ መጠን
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	ለOllama እና ለውስጣዊ አእምሯዋ የማህደረ ትውስታ መጠን በቶከን። ጥያቄ ተጨማሪ ሲፈልግ ራስ-ሰር ያድጋል
+Mg	Mg
+Mic level:	የማይክ ደረጃ:
+Mic test finished. Sound is reaching Capri.	የማይክ ሙከራ ተጠናቋል። ድምፅ Capriን ደርሷል።
+Mic:	ማይክ:
+Mic: default	ማይክ: ነባሪ
+Microphone	ማይክሮፎን
+Mini player	ሚኒ ማጫወቻ
+Mini player over full screen	ሚኒ ማጫወቻ በሙሉ ማያ ላይ
+Mini-games	ሚኒ-ጨዋታዎች
+Minimising the Mainframe left it sliding.	Mainframeን መቀነስ ተንሸራቶ እንዲቀር አደረገው።
+Minimize	ቀንስ
+Mod filter	የሞድ ማጣሪያ
+Mod options	የሞድ አማራጮች
+Mod pages	የሞድ ገጾች
+Mod rules	የሞድ ህጎች
+Mod sort	የሞድ ደርድር
+Mod switch	የሞድ መቀየሪያ
+Model	ሞዴል
+Model folder	የሞዴል ማህደር
+Model name, optional	የሞዴል ስም፣ ከተፈለገ
+Mods	ሞዶች
+Mods directory	የሞዶች ማውጫ
+Mods folder	የሞዶች ማህደር
+Most NVIDIA models can't see your screen.	አብዛኞቹ NVIDIA ሞዴሎች ማያዎን ማየት አይችሉም።
+Mouse wheel notches got a flick's long ease:	የመዳፊት ጎማ ማስታወሻዎች የረጅም ጊዜ ለስላሳ እንቅስቃሴ አገኙ:
+Move	አንቀሳቅስ
+Move key to MAX INTELLIGENCE	ቁልፉን ወደ MAX INTELLIGENCE አንቀሳቅስ
+Move to MAX	ወደ MAX አንቀሳቅስ
+Music	ሙዚቃ
+Music app	የሙዚቃ መተግበሪያ
+Music app: where she plays music when you don't name an app	የሙዚቃ መተግበሪያ: መተግበሪያ ካልሰየሙ ሙዚቃ የምታጫውትበት
+Mute	ድምፅ አጥፋ
+Mute her	ድምጿን አጥፋ
+Mute mic key	የማይክ ድምፅ አጥፊ ቁልፍ
+Mute mic:	ማይክ ድምፅ አጥፋ:
+Mute mic: Ctrl + Alt + N	ማይክ ድምፅ አጥፋ: Ctrl + Alt + N
+My brain	አእምሮዬ
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	አእምሮዬ እየወረደ ነው። ሲገባ ሰላም እላለሁ፤ ከዚያ ጊዜ ጀምሮ ማውራት ትችላለህ።
+My brain's on its way. While it comes down, let's sort out how I sound.	አእምሮዬ በመንገድ ላይ ነው። እየወረደ እያለ ድምፄ እንዴት እንደሚሰማ እናስተካክል።
+My provider	አቅራቢዬ
+NO AI	AI የለም
+NO PHONES CONNECTED	ምንም ስልክ አልተገናኘም
+NO PREVIEW	ቅድመ እይታ የለም
+NORMAL	መደበኛ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ነፃ · በስራ ሰዓት ብዙ ጊዜ ዘገምተኛ
+NVIDIA's free API is often slow, especially at busy times.	የNVIDIA ነፃ API ብዙ ጊዜ ዘገምተኛ ነው፣ በተለይ በስራ ሰዓት።
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) ወይም OpenRouter የኤፒአይ ቁልፍ
+Names:	ስሞች:
+Needs a key	ቁልፍ ያስፈልጋል
+Never	በፍፁም
+New code	አዲስ ኮድ
+New voice from a clip...	ከክሊፕ አዲስ ድምፅ...
+Next	ቀጣይ
+Night City	Night City
+No AI	AI የለም
+No AI · no brain at all	AI የለም · ምንም አእምሮ የለም
+No brain runs, and nothing is sent anywhere.	ምንም አእምሮ አይሰራም፣ ምንም ወደየትም አይላክም።
+No brain yet	ገና አእምሮ የለም
+No code open	ክፍት ኮድ የለም
+No limit	ገደብ የለም
+No mic found	ማይክሮፎን አልተገኘም
+No mods in the directory yet.	በሞዶች ማውጫ ውስጥ ገና ምንም ሞድ የለም።
+No mods match that.	ያንን የሚመሳሰል ሞድ የለም።
+No mods match.	የሚመሳሰል ሞድ የለም።
+No phones yet	ገና ስልክ የለም
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ገና ምናባዊ ማይክ የለም። ውጤትን ምረጥ፣ ከዚያ VB-CABLE (ነፃ) ያግኙ።
+None yet: pick to get VB-CABLE (free)	ገና የለም: VB-CABLE (ነፃ) ለማግኘት ምረጥ
+Normal	ተራ
+Not a relay host	የሬሌ አስተናጋጅ አይደለም
+Not imported. Nothing ran.	አልገባም። ምንም አልሮጠም።
+Not updated. The old one is still in.	አልዘመነም። አሮጌው አሁንም አለ።
+Nothing needed updating.	ማዘመን የሚያስፈልገው ምንም አልነበረም።
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ለማውረድ ምንም የለም፣ ምንም ወደየትም አይላክም። አልመልስም። በማንኛውም ጊዜ በMainframe አእምሮ ጨምር።
+Nothing to show from the mods directory.	ከሞዶች ማውጫ የሚታይ ምንም የለም።
+Nothing? Windows Settings > Privacy & security > Microphone.	ምንም? የWindows ቅንብሮች > ግላዊነት እና ደህንነት > ማይክሮፎን።
+Nous Portal keys aren't supported yet.	የNous Portal ቁልፎች ገና አይደገፉም።
+OBS	OBS
+OFF	ጠፍቷል
+OLLAMA	OLLAMA
+ON	በርቷል
+ON THIS PC	በዚህ ፒሲ ላይ
+OR A KEY	ወይም ቁልፍ
+Obsidian memory vault	Obsidian የማስታወሻ ቮልት
+Off	ጠፍቷል
+Off. Turn on Her voice in your mic above.	ጠፍቷል። ከላይ በማይክዎ ውስጥ ያለውን ድምጿን አብራ።
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	ጠፍቷል፡ ሁልጊዜ እንደነበረው ትሰማለች። በርቷል፡ ያላት ሁሉም ድምፆች፣ ElevenLabsንም ጨምሮ።
+Often	ብዙ ጊዜ
+On	በርቷል
+On / Off	በርቷል / ጠፍቷል
+On: your mic and her voice are going in.	በርቷል፡ ማይክዎ እና ድምጿ እየገቡ ነው።
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	አንድ የJSON ነገር፣ ይህ አእምሮ በሚልከው እያንዳንዱ ጥያቄ ላይ የተጨመረ። ለሚጋራው ማንኛውም ስም የCapri እሴትን ይተካል፣ ከሞዴሉ ጋር አይፈተሽም።
+Online speech recognition	በመስመር ላይ የንግግር እውቅና
+Open Capri Mainframe	Capri Mainframeን ክፈት
+Open Ollama, I'll find it	Ollamaን ክፈት፣ እኔ አገኘዋለሁ
+Open clips folder	የክሊፖች ማህደር ክፈት
+Open her memories	ትዝታዎቿን ክፈት
+Open her notes	ማስታወሻዎቿን ክፈት
+Open mods folder	የሞዶች ማህደር ክፈት
+Open the page again	ገጹን እንደገና ክፈት
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ወይም OpenRouter።
+OpenAI-compatible server or provider.	ከOpenAI ጋር የሚስማማ ሰርቨር ወይም አቅራቢ።
+OpenRouter · free models only	OpenRouter · ነፃ ሞዴሎች ብቻ
+Optional	አማራጭ
+Optional. Blank means no key.	አማራጭ። ባዶ ማለት ምንም ቁልፍ የለም ማለት ነው።
+Options	አማራጮች
+Out of the box a little higher, just behind her.	ከመጀመሪያው ትንሽ ከፍ ያለ፣ ልክ ከእሷ ጀርባ።
+Out of the box lower, just behind her.	ከመጀመሪያው ዝቅ ያለ፣ ልክ ከእሷ ጀርባ።
+Output	ውጤት
+Output:	ውጤት:
+Output: none	ውጤት: የለም
+PHONE CONNECTED	ስልክ ተገናኝቷል
+PHONES >	ስልኮች >
+PHONES CONNECTED	ስልኮች ተገናኝተዋል
+PREBUILT LOCAL	ቀድሞ የተሰራ ሎካል
+PUBLISH MOD >	ሞድ አትም >
+Pair a phone	ስልክ አጣምር
+Paste	ለጥፍ
+Paste API key	የኤፒአይ ቁልፍ ለጥፍ
+Paste a brain API key	የአእምሮ ኤፒአይ ቁልፍ ለጥፍ
+Paste reads your clipboard once, when you press it.	ለጥፍ ሲጫኑ ክሊፕቦርድዎን አንድ ጊዜ ያነባል።
+Paste your key here	ቁልፍዎን እዚህ ለጥፉ
+Pat stroke	የራስ መንካት
+Perch	ፐርች
+Perch over {0} fps uses more CPU	ከ{0} fps በላይ ፐርች ተጨማሪ CPU ይጠቀማል
+Pick Output to get it.	ለማግኘት ውጤትን ምረጥ።
+Pick a brain so I can talk back. You can change it any time.	መልስ መስጠት እንድችል አእምሮ ምረጥ። በማንኛውም ጊዜ መቀየር ትችላለህ።
+Pick a clip of a voice you have the rights and consent to use	መጠቀም መብት እና ፈቃድ ያለህበት የድምፅ ክሊፕ ምረጥ
+Pick a free model. I opened the page in your browser.	ነፃ ሞዴል ምረጥ። ገጹን በአሳሽዎ ከፍቼዋለሁ።
+Pick a new clip of you...	የአንተን አዲስ ክሊፕ ምረጥ...
+Pick a voice model...	የድምፅ ሞዴል ምረጥ...
+Pick one. Only one brain runs at a time.	አንዱን ምረጥ። በአንድ ጊዜ አንድ አእምሮ ብቻ ይሰራል።
+Pick the note her memories go in	ትዝታዎቿ የሚገቡበትን ማስታወሻ ምረጥ
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	መጠቀም መብት እና ፈቃድ ካለህበት የድምፅ {0} እስከ {1} ሰከንዶች ምረጥ
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	ስትናገር {0} እስከ {1} ሰከንዶች ወይም መጠቀም መብት እና ፈቃድ ካለህበት ድምፅ ምረጥ
+Pitch	ቃና
+Play	አጫውት
+Play...	አጫውት...
+Player only	ማጫወቻ ብቻ
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ሞዴሎች የዚህን ክሊፕ ድምፅ ይገለብጣሉ። ለመስማት ሞክርን ይጫኑ።
+Pop-in times	የመታየት ጊዜዎች
+Pop-ins	መታየቶች
+Power saver	ኃይል ቆጣቢ
+Power saver: how lightly she runs in games, or always	ኃይል ቆጣቢ፡ በጨዋታዎች ምን ያህል በቀላሉ ትሰራለች፣ ወይም ሁልጊዜ
+Preset	ቅድመ ዝግጅት
+Press Create API key	የኤፒአይ ቁልፍ ፍጠር ይጫኑ
+Press Create Key	ቁልፍ ፍጠር ይጫኑ
+Press Generate API Key	የኤፒአይ ቁልፍ ይፍጠሩ ይጫኑ
+Press Test and say something, so I know I can hear you.	ሞክር ይጫኑና የሆነ ነገር ይናገሩ፣ እንድሰማዎት እንዳውቅ።
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ቁልፍ ይጫኑ፣ ብቻውን ወይም በCtrl፣ Alt፣ Shift ወይም Win።
+Press new keys, then Confirm	አዲስ ቁልፎችን ይጫኑ፣ ከዚያ አረጋግጥ
+Provider	አቅራቢ
+Provider API key, optional	የአቅራቢ ኤፒአይ ቁልፍ፣ ከተፈለገ
+Provider base URL	የአቅራቢ መሠረታዊ URL
+Provider forgotten.	አቅራቢ ተረስቷል።
+Provider overlaps the brain name or note	አቅራቢ ከአእምሮ ስም ወይም ማስታወሻ ጋር ይደራረባል
+Publish	አትም
+Publish mod	ሞድ አትም
+Push to talk is off.	ተናገር-ለመናገር ጠፍቷል።
+Push to talk key	ተናገር-ለመናገር ቁልፍ
+Push to talk:	ተናገር-ለመናገር:
+Push to talk: not set	ተናገር-ለመናገር: አልተዋቀረም
+QR CODE >	QR ኮድ >
+QR hidden while streaming	በስትሪሚንግ ጊዜ QR ተደብቋል
+Quick	ፈጣን
+Quiet key	ጸጥታ ቁልፍ
+Quiet:	ጸጥታ:
+Quiet: Ctrl + Alt + P	ጸጥታ: Ctrl + Alt + P
+Quit Capri	Capriን ውጣ
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	ኮድ ያስኬዳል።
+Rarely	አልፎ አልፎ
+Rate mod	ሞድ ደረጃ ስጥ
+Reading its README...	README-ውን በማንበብ ላይ...
+Refresh	አድስ
+Reinstall	እንደገና ጫን
+Reload	ዳግም ጫን
+Reloaded.	ዳግም ተጭኗል።
+Remember our chats	ውይይቶቻችንን አስታውስ
+Remember what she sees	ያየችውን አስታውስ
+Remote	REMOTE
+Remote off	REMOTE ጠፍቷል
+Remote on	REMOTE በርቷል
+Remove	አስወግድ
+Remove all phones	ሁሉንም ስልኮች አስወግድ
+Replies	ምላሾች
+Reply length	የምላሽ ርዝመት
+Report a problem	ችግር ሪፖርት አድርግ
+Reset colors	ቀለሞችን ዳግም አስጀምር
+Reset to her default	ወደ ነባሪዋ ዳግም አስጀምር
+Resolution	ጥራት
+Restart to update	ለማዘመን ዳግም አስጀምር
+Restless	እረፍት የሌለው
+Revoke	ሻር
+Revoke also removes the phones its links added	መሻር የአገናኞቿ የጨመሯቸውን ስልኮችም ያስወግዳል
+Ride cursor	ጠቋሚ ላይ ተቀመጥ
+Ride cursor / Hop off	ጠቋሚ ላይ ተቀመጥ / ውረድ
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ አድርገኝ። አእምሮ በአእምሮ ስር ይበራል።
+Right-click me any time for the Mainframe, Help and the Discord.	ለMainframe፣ ለእገዛ እና ለDiscord በማንኛውም ጊዜ በቀኝ ጠቅ አድርገኝ።
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ወይም ሌላ ማንኛውም መተግበሪያ: ምረጥ
+Robot	ሮቦት
+Rock, paper, scissors	ድንጋይ፣ ወረቀት፣ መቀስ
+Run this code mod?	ይህን የኮድ ሞድ ልሩጥ?
+Running on this PC	በዚህ ፒሲ ላይ እየሰራ
+Running on this PC · :	በዚህ ፒሲ ላይ እየሰራ · :
+Runs Claude Code or Codex on this PC, signed in.	በዚህ ፒሲ ላይ Claude Code ወይም Codex ያስኬዳል፣ ገብተዋል።
+Runs on your PC. No key, no credits.	በፒሲዎ ላይ ይሰራል። ቁልፍ የለም፣ ክሬዲት የለም።
+SCAN WITH YOUR PHONE · EXPIRES	በስልክዎ ይቃኙ · ያበቃል
+SECURITY >	ደህንነት >
+SKILL.	ችሎታ።
+SKIN.	ቆዳ።
+SORT BY	በዚህ መሰረት ደርድር
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ድምፆች ልማዶች አእምሮ ተመልከት CAPRI DOOMSCROLL የአየር ሁኔታ ክሊፖች ጨዋታዎች ቁልፎች እንቅስቃሴዎች ድምፅ አንተ
+Same as I speak	እንደ እኔ ቋንቋ
+Same as her ears (VOICE > Mic)	እንደ ጆሮዎቿ (ድምፅ > ማይክ)
+Same code on the phone?	በስልኩ ላይ ተመሳሳይ ኮድ?
+Save	አስቀምጥ
+Save big moments	ትላልቅ ጊዜያትን አስቀምጥ
+Save folder	የማስቀመጫ ማህደር
+Save your changes, or press Discard + reload.	ለውጦችዎን ያስቀምጡ ወይም ጣል + ዳግም ጫን ይጫኑ።
+Save your changes, or press Discard.	ለውጦችዎን ያስቀምጡ ወይም ጣል ይጫኑ።
+Saved.	ተቀምጧል።
+Saved. Ctrl + Alt + O opens her Mainframe.	ተቀምጧል። Ctrl + Alt + O የእሷን Mainframe ይከፍታል።
+Saving your rating...	ደረጃዎን በማስቀመጥ ላይ...
+Say her name anywhere to chat	ለማውራት ስሟን በየትኛውም ቦታ ይናገሩ
+Screens	ማያዎች
+Screens is hidden or outside WATCH	ማያዎች ተደብቀዋል ወይም ከWATCH ውጭ ናቸው
+Screens overlaps a WATCH row	ማያዎች ከWATCH ረድፍ ጋር ይደራረባሉ
+Screens to watch	የሚታዩ ማያዎች
+Sealed end to end	ከጫፍ እስከ ጫፍ የተመሰጠረ
+Search by name or author	በስም ወይም በደራሲ ፈልግ
+Search installed mods	የተጫኑ ሞዶችን ፈልግ
+Search mods	ሞዶችን ፈልግ
+Search name, author or description	ስም፣ ደራሲ ወይም መግለጫ ፈልግ
+Security	ደህንነት
+Security:	ደህንነት:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	አዋቅር
+Set up her brain	አእምሮዋን አዋቅር
+Set up your voice model	የድምፅ ሞዴልዎን አዋቅር
+Setting up her brain	አእምሮዋን በማዋቀር ላይ
+Settings	ቅንብሮች
+Settings / Back	ቅንብሮች / ተመለስ
+Settings folds the wrong rows above BRAIN	ቅንብሮች ከBRAIN በላይ የተሳሳቱ ረድፎችን አጠፋ
+Settings had nothing to watch.	ቅንብሮች የሚመለከቱት ነገር አልነበረም።
+Settings lost keyboard focus during the Tab walk	በTab ጉዞ ጊዜ ቅንብሮች የቁልፍ ሰሌዳ ትኩረቱን አጡ
+Setup guide	የማዋቀር መመሪያ
+Setup stopped	ማዋቀር ቆሟል
+She answers in	የምትመልስበት
+She can read it when it fits.	ሲስማማ ማንበብ ትችላለች።
+She glances at your screen and comments. Costs a little on a paid brain.	ማያዎን ተመልክታ አስተያየት ትሰጣለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
+She keeps listening. Say her name, then just talk.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ብቻ ተናገር።
+She reacts to your game until you close it.	ጨዋታዎን እስክትዘጉት ድረስ ለጨዋታዎ ምላሽ ትሰጣለች።
+She reads these controls before each game job.	ከእያንዳንዱ የጨዋታ ስራ በፊት እነዚህን መቆጣጠሪያዎች ታነባለች።
+She talks about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታዎ ትናገራለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
+She uses it when she plays	ስትጫወት ትጠቀምበታለች
+Short	አጭር
+Shortest wait (minutes)	አጭሩ መጠበቂያ (ደቂቃዎች)
+Show Capri	Capri አሳይ
+Show QR	QR አሳይ
+Show my mod file	የሞዴ ፋይሌን አሳይ
+Show on Discord	በDiscord አሳይ
+Shum, what time is it	ሹም፣ ስንት ሰዓት ነው
+Sign in	ግባ
+Sign in, make a key and copy it. Then press Paste and I'll connect.	ግባ፣ ቁልፍ ፍጠር እና ቅዳው። ከዚያ ለጥፍ ይጫኑ እና እገናኛለሁ።
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	ግባ፣ የኤፒአይ ቁልፍ ፍጠር ይጫኑና ቅዳው። ከዚያ ለጥፍ ይጫኑ እና እገናኛለሁ።
+Silent · text only	ዝም · ጽሑፍ ብቻ
+Simple / Advanced Settings	ቀላል / የላቁ ቅንብሮች
+Simple Settings	ቀላል ቅንብሮች
+Simple Settings left a gap under Check in on me	ቀላል ቅንብሮች ከያረጋግጡልኝ በታች ክፍተት ትቷል
+Sit here	እዚህ ተቀመጥ
+Sit on windows	በመስኮቶች ላይ ተቀመጥ
+Size	መጠን
+Skip	ዝለል
+Skip all	ሁሉንም ዝለል
+Skip for now	ለአሁን ዝለል
+Sleep	እንቅልፍ
+Small	ትንሽ
+Sometimes	አንዳንዴ
+Sound effects volume	የድምፅ ውጤቶች መጠን
+Sound sensitivity	የድምፅ ስሜታዊነት
+Sounds	ድምፆች
+Speaker or clip	ድምፅ ማጉያ ወይም ክሊፕ
+Speech model	የንግግር ሞዴል
+Speed	ፍጥነት
+Start with Windows	ከWindows ጋር ጀምር
+Start with this!	ይህን ጀምር!
+Starting...	በመጀመር ላይ...
+Stay	ቆይ
+Stay on my model	በሞዴሌ ቆይ
+Still checking your mics...	አሁንም ማይኮችዎን በመፈተሽ ላይ...
+Still checking your speakers...	አሁንም ድምፅ ማጉያዎችዎን በመፈተሽ ላይ...
+Still checking your virtual mics...	አሁንም ምናባዊ ማይኮችዎን በመፈተሽ ላይ...
+Stop	አቁም
+Stopped using it. Couldn't remove the saved provider.	መጠቀም አቁሟል። የተቀመጠውን አቅራቢ ማስወገድ አልተቻለም።
+Support	ድጋፍ
+Sure?	እርግጠኛ?
+Sure? moved to a different phone	እርግጠኛ? ወደ ሌላ ስልክ ተንቀሳቅሷል
+TALK TO ME	ከእኔ ጋር ተናገር
+TEXT ONLY	ጽሑፍ ብቻ
+Tab landed past the first option of	Tab ከመጀመሪያው አማራጭ አልፎ አረፈ
+Tab never reached the quiet key	Tab የጸጥታ ቁልፉ ላይ አልደረሰም
+Tab reached nothing	Tab ምንም አልደረሰም
+Tab selected a control without moving keyboard focus	Tab የቁልፍ ሰሌዳ ትኩረቱን ሳያንቀሳቅስ መቆጣጠሪያ መረጠ
+Talk	ተናገር
+Talk key	የንግግር ቁልፍ
+Talk:	ተናገር:
+Talk: Ctrl + Alt + V	ተናገር: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	የታለመ የፍሬም ቀረጻ ፍጥነት; በጭነት ወይም በማህደረ ትውስታ በጀት ስር ሊወድቅ ይችላል
+Teases when another AI comes to the front.	ሌላ AI ወደ ፊት ሲመጣ ታሾፋለች።
+Test	ሞክር
+That address doesn't work. Try https://... or http://localhost:{0}.	ያ አድራሻ አይሰራም። https://... ወይም http://localhost:{0} ይሞክሩ።
+That code expired	ያ ኮድ ጊዜው አልፎበታል
+That mod is no longer installed. The list is updated.	ያ ሞድ ከአሁን በኋላ አልተጫነም። ዝርዝሩ ተዘምኗል።
+That's a paid key: it goes under MAX INTELLIGENCE.	ያ የሚከፈልበት ቁልፍ ነው፡ ከMAX INTELLIGENCE በታች ይሄዳል።
+The Mainframe stayed composited while sliding.	Mainframe ሲንሸራተት ተቀናብሮ ቆየ።
+The Mainframe stayed uncomposited after the slide.	Mainframe ከተንሸራተተ በኋላ ያልተቀናበረ ሆኖ ቆየ።
+The controls moved while the picture was sliding.	ምስሉ እየተንሸራተተ ሳለ መቆጣጠሪያዎቹ ተንቀሳቅሰዋል።
+The cover stayed visible after the slide ended.	ተንሸራተቱ ካለቀ በኋላ ሽፋኑ ታይቶ ቆየ።
+The frame thread kept running after the page settled.	ገጹ ከተረጋጋ በኋላ የፍሬም ክሩ መሥራቱን ቀጠለ።
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	የምትችለው ረጅሙ መልስ በቶከን። ራስ-ሰር ከላይ ካለው መልሶች ጋር ይቆያል፤ {0}K ወይም {1}K እንድትቀጥል ያደርጋታል። ስራዎች ሲፈልጉ ተጨማሪ ቦታ ያገኛሉ
+The longest wait must be at least the shortest wait.	ረጅሙ መጠበቂያ ቢያንስ ከአጭሩ መጠበቂያ ጋር እኩል መሆን አለበት።
+The picture doesn't match the scrolled page:	ምስሉ ከተሸበለለው ገጽ ጋር አይዛመድም:
+The picture of Settings doesn't match the page:	የቅንብሮች ምስል ከገጹ ጋር አይዛመድም:
+The picture stayed up after the slide ended.	ተንሸራተቱ ካለቀ በኋላ ምስሉ ታይቶ ቆየ።
+The picture wasn't showing while it slid.	እየተንሸራተተ ሳለ ምስሉ አልታየም ነበር።
+The provider sheet is crowded:	የአቅራቢው ሉህ ተጨናንቋል:
+The voice panel has no screen DPI.	የድምፅ ፓነሉ የማያ DPI የለውም።
+The voice panel's menus share one font.	የድምፅ ፓነሉ ምናሌዎች አንድ ፎንት ይጋራሉ።
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	በክሊፕቦርድዎ ላይ ገና ምንም ቁልፍ የለም። ከገጹ ይቅዱት፣ ከዚያ ለጥፍ ይጫኑ።
+These start off. Each costs a little or uses your mic.	እነዚህ ጠፍተው ይጀምራሉ። እያንዳንዳቸው ትንሽ ያስከፍላሉ ወይም ማይክዎን ይጠቀማሉ።
+These start off. Turn on what you want. They're all in Settings too.	እነዚህ ጠፍተው ይጀምራሉ። የሚፈልጉትን ያብሩ። ሁሉም በቅንብሮችም ውስጥ አሉ።
+They can also call you Big Z, Capricorn or Nova	ቢግ ዜድ፣ ካፕሪኮርን ወይም ኖቫ ብለው ሊጠሩህም ይችላሉ
+They can also call you Nova, Big Z or Capricorn	ኖቫ፣ ቢግ ዜድ ወይም ካፕሪኮርን ብለው ሊጠሩህም ይችላሉ
+Thinking	እያሰበች ነው
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ይህ የእኔ ነፃ ድምፅ ነው። ሞክርን ይጫኑ፣ የሆነ ነገር ይናገሩ፣ እንደምሰማዎት አሳያለሁ።
+This mod has no description yet.	ይህ ሞድ ገና መግለጫ የለውም።
+Tic-tac-toe	ቲክ-ታክ-ቶ
+Time between glances	በእይታዎች መካከል ያለው ጊዜ
+Tiny	ትንሽ ትንሽ
+Try again	እንደገና ሞክር
+Turn Remote on first	በመጀመሪያ REMOTEን አብራ
+Turn off mini player	ሚኒ ማጫወቻን አጥፋ
+Turn push to talk off	ተናገር-ለመናገርን አጥፋ
+Turning the wheel the other way kept the page heading the old way, to	ጎማውን በሌላ አቅጣጫ ማዞር ገጹን ወደ ድሮው አቅጣጫ እንዲሄድ አደረገው፣ እስኪ
+Type	ጻፍ
+Type key	የመተየቢያ ቁልፍ
+Type to me	ለእኔ ጻፍ
+Type:	ጻፍ:
+Type: Ctrl + Alt + T	ጻፍ: Ctrl + Alt + T
+Typing sound	የመተየብ ድምፅ
+Unpacked. Press Test to hear it.	ተከፍቷል። ለመስማት ሞክርን ይጫኑ።
+Unsaved changes.	ያልተቀመጡ ለውጦች።
+Up to {0} fps	እስከ {0} fps
+Up to {0}p	እስከ {0}p
+Update	አዘምን
+Update available.	ዝማኔ ይገኛል።
+Update mods	ሞዶችን አዘምን
+Updating...	በማዘመን ላይ...
+Use	ተጠቀም
+Use her cursor	ጠቋሚዋን ተጠቀም
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	ለሌላ ቦታ አቅራቢ https:// ተጠቀም። በተራ http ላይ ያለ ቁልፍ ደህንነቱ የተጠበቀ አይደለም።
+Use preset	ቅድመ ዝግጅት ተጠቀም
+Use saved	የተቀመጠውን ተጠቀም
+Use this server	ይህን ሰርቨር ተጠቀም
+Using your provider with a key	አቅራቢዎን በቁልፍ ተጠቀም
+Using your server with no key	ሰርቨርዎን ያለ ቁልፍ ተጠቀም
+VIEW MOD >	ሞዱን ተመልከት >
+VOICE >	ድምፅ >
+VOICE IN YOUR MIC >	ድምፅ በማይክዎ >
+VOICE LAYERS >	የድምፅ ንብርብሮች >
+Verbosity	ቃላት ብዛት
+Video bitrate	የቪዲዮ ቢትሬት
+View	ተመልከት
+View mod	ሞዱን ተመልከት
+Voice	ድምፅ
+Voice ID	የድምፅ መታወቂያ
+Voice from	ድምፅ ከ
+Voice layers	የድምፅ ንብርብሮች
+Voice model	የድምፅ ሞዴል
+Voice model:	የድምፅ ሞዴል:
+Voice name or ID, optional	የድምፅ ስም ወይም መታወቂያ፣ ከተፈለገ
+Voice server address, or a voice model's folder	የድምፅ ሰርቨር አድራሻ፣ ወይም የድምፅ ሞዴል ማህደር
+Voice status	የድምፅ ሁኔታ
+Voice, key and model...	ድምፅ፣ ቁልፍ እና ሞዴል...
+Volume	ድምፅ
+WAKE ME UP >	አንቃኝ >
+WATCH >	ተመልከት >
+Waiting for the relay	ሬሌይን በመጠበቅ ላይ
+Wake her up	አንቃት
+Waking her up	እያነቃናት ነው
+Wander	ተዘዋወር
+Wander around	ዙሪያ ተዘዋወር
+Watch my screen	ማያዬን ተመልከት
+Watch-along memory	አብሮ የማየት ትዝታ
+Weather	የአየር ሁኔታ
+Weather city	የአየር ሁኔታ ከተማ
+Welcome back, choom. Let's finish setting me up.	እንኳን ተመለስክ፣ choom። ማዋቀሬን እንጨርስ።
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	ሳትጠይቅ በፒሲዎ ላይ የምታደርገው። መቀያየሪያው ጠፍቶ ሲሆን መጀመሪያ ትጠይቃለች፣ አዎ ስትል ታደርጋለች።
+What should she call you?	ምን ብላ ልጥራህ?
+When she types	ስትተይብ
+White	ነጭ
+Windows default	የWindows ነባሪ
+Windows did not give Settings keyboard focus	Windows ለቅንብሮች የቁልፍ ሰሌዳ ትኩረት አልሰጠም
+Windows did not return keyboard focus to Back	Windows የቁልፍ ሰሌዳ ትኩረቱን ወደ ተመለስ አልመለሰም
+With no picture the wheel still tried to slide.	ምስል ከሌለ ጎማው አሁንም ለመንሸራተት ሞክሯል።
+Works best on MAX INTELLIGENCE.	ከMAX INTELLIGENCE ጋር ምርጥ ይሰራል።
+YOU	አንተ
+YOU >	አንተ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	አንተ ድምፅ እንቅስቃሴዎች ቁልፎች ጨዋታዎች ክሊፖች የአየር ሁኔታ DOOMSCROLL CAPRI ተመልከት አእምሮ ልማዶች ድምፆች
+YOUR KEY	ቁልፍህ
+YOUR MIC	ማይክህ
+YOUR PLAN	እቅድህ
+Yokapri what's up	ዮካፕሪ ምን ሆነ
+You can hide this. It keeps going, and the Mainframe shows it too.	ይህን መደበቅ ትችላለህ። ይቀጥላል፣ Mainframeም ያሳየዋል።
+Your mic and her voice go into one virtual mic, and	ማይክህ እና ድምጿ ወደ አንድ ምናባዊ ማይክ ይገባሉ፣ እና
+Your mic is muted. Unmute it to test.	ማይክህ ድምፅ ተዘግቷል። ለመሞከር ድምፁን ክፈት።
+Your mods are up to date.	ሞዶችህ ወቅታዊ ናቸው።
+Your name or a nickname	ስምህ ወይም ቅፅል ስምህ
+Your own model	የራስህ ሞዴል
+Your personality	ስብዕናህ
+Your voice	ድምፅህ
+Your voice (HD)	ድምፅህ (HD)
+Your voice (HD) · pick a clip of you...	ድምፅህ (HD) · ያንተን ክሊፕ ምረጥ...
+Your voice model	የድምፅህ ሞዴል
+as its mic.	እንደ ማይክዋ።
+changed. Saved as My Colors, so you can share it.	ተቀይሯል። ለማጋራት እንደ ቀለሞቼ ተቀምጧል።
+choice	ምርጫ
+clips the input line	የግቤት መስመሩን ይቆርጣል
+cue	ምልክት
+doesn't yet.	ገና አይደለም።
+download	ማውረድ
+file.	ፋይል።
+flag	ባንዲራ
+fps	fps
+hear	ይሰማል
+hears	ይሰማል
+hears that.	ያንን ይሰማል።
+hides or shows her.	ትደብቃለች ወይም ታሳያለች።
+hint	ፍንጭ
+in the Mainframe.	በMainframe ውስጥ።
+in the mods directory with a pull request.	በሞዶች ማውጫ ውስጥ በpull request።
+in the picture wasn't noticed.	በምስሉ ላይ አልታወቀም።
+is already her push-to-talk key.	አስቀድሞ የንግግር ቁልፏ ነው።
+is off.	ጠፍቷል።
+is on and running.	በርቷል እና እየሰራ ነው።
+is on, at the bottom, under	በርቷል፣ ከታች፣ ስር
+is on.	በርቷል።
+is on. She now answers to	በርቷል። አሁን ለ ምላሽ ትሰጣለች
+is removed.	ተወግዷል።
+is taken	ተይዟል
+is taken by another app. Try another.	በሌላ መተግበሪያ ተይዟል። ሌላ ሞክር።
+is updated	ተዘምኗል
+isn't hearing it yet: do {0} and {1}, then join a call.	ገና አይሰማም: {0} እና {1} አድርግ፣ ከዚያ ጥሪ ተቀላቀል።
+it now.	አሁን።
+keeps her quiet, and lets her talk again.	ዝም ያሰኛታል፣ እና እንደገና እንድትናገር ያስችላታል።
+key	ቁልፍ
+key.	ቁልፍ።
+min	ደቂቃ
+more.	ተጨማሪ።
+ms.	ሚሊ ሰከንድ።
+mutes mic	ማይክን ድምፅ ያጠፋል
+mutes your mic.	ማይክህን ድምፅ ያጠፋል።
+name	ስም
+off	ጠፍቷል
+on this PC	በዚህ ፒሲ ላይ
+opens her Mainframe.	የእሷን Mainframe ይከፍታል።
+opens her typing box.	የመተየቢያ ሳጥኗን ይከፍታል።
+phone	ስልክ
+phone pixels	የስልክ ፒክስሎች
+phones	ስልኮች
+pixels	ፒክስሎች
+pixels)	ፒክስሎች)
+star.	ኮከብ።
+stars.	ኮከቦች።
+starts voice chat.	የድምፅ ውይይት ይጀምራል።
+stays off. Nothing ran.	ጠፍቶ ይቆያል። ምንም አልሮጠም።
+still does its own job in other apps too. Confirm to keep it.	በሌሎች መተግበሪያዎችም ስራውን ይሰራል። ለማቆየት አረጋግጥ።
+tall	ረጅም
+time	ጊዜ
+to talk	ለመናገር
+to talk to her, with a game in front too.	ከእሷ ጋር ለመናገር፣ ጨዋታ ከፊት ቢሆንም።
+too.	እንዲሁ።
+turns Gaming Mode on and off.	የጨዋታ ሁነታን ያበራል እና ያጠፋል።
+with Ollama	ከOllama ጋር
+won't type in other apps while she runs. Confirm to keep it.	በምትሰራበት ጊዜ በሌሎች መተግበሪያዎች አይተይብም። ለማቆየት አረጋግጥ።
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: ጠፍቷል
+{0}   If her voice cuts off, turn off noise filtering	{0}   ድምጿ ከተቋረጠ የድምፅ ማጣሪያውን ያጥፉ
+{0}   Input Device:	{0}   የግቤት መሣሪያ:
+{0}   Join the call and check they hear both of you	{0}   ጥሪውን ይቀላቀሉ እና ሁለታችሁንም እንደሚሰሙ ያረጋግጡ
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   የማይክ ሙከራ > እንፈትሽ: ራስዎን ይሰማሉ፣ እና እሷ ስትናገር ትሰማታለች
+{0}   Microphone:	{0}   ማይክ:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   የጩኸት ማፈን: የለም። ሁለቱም ከመጀመሪያው መስመር በኋላ ድምጿን ሊቆርጡ ይችላሉ።
+{0}   Open the call or meeting's audio settings	{0}   የጥሪ ወይም የስብሰባ የድምፅ ቅንብሮችን ይክፈቱ
+{0}   Output Device: your headphones, like before	{0}   የውጤት መሣሪያ: እንደ ቀድሞው የጆሮ ማዳመጫዎ
+{0}   Speaker: your headphones, like before	{0}   ድምፅ ማጉያ: እንደ ቀድሞው የጆሮ ማዳመጫዎ
+{0}   Try a mic test in your call app	{0}   በጥሪ መተግበሪያዎ የማይክ ሙከራ ይሞክሩ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   የተጠቃሚ ቅንብሮች (በስምዎ አጠገብ ያለው ማርሽ) > ድምፅ እና ቪዲዮ
+{0} Mbps	{0} Mbps
+{0} lines	{0} መስመሮች
+{0} min	{0} ደቂቃ
+{0} ms	{0} ሚሊ ሰከንድ
+· HD	· HD
+· on this PC	· በዚህ ፒሲ ላይ
+· server	· ሰርቨር
+Edit as text	በጽሑፍ አርትዕ
+What Capri remembers about you. It stays on this computer.	Capri ስለ አንተ የምታስበው። በዚህ ኮምፒውተር ላይ ይቆያል።
+Tell her something to remember	የምትዘክረውን ነገር ንገራት
+Search her memory	በትውስታዋ ውስጥ ፈልግ
+That day isn't there any more.	ያ ቀን ከእንግዲህ የለም።
+Undo	ቀልብስ
+Remember our chats is off, so she isn't keeping new chat memories.	ውይይቶቻችንን ማስታወስ ጠፍቷል፣ ስለዚህ አዲስ የውይይት ትውስታዎችን አትጠብቅም።
+ABOUT YOU	ስለ አንተ
+FROM YOUR CHATS	ከውይይቶችህ
+GAMES	ጨዋታዎች
+CHAT LOGS	የውይይት መዝገቦች
+CHAT LOG	የውይይት መዝገብ
+Nothing matches.	ምንም አይመሳሰልም።
+Nothing yet.	እስካሁን ምንም።
+Reading her notes.	ማስታወሻዎቿን በማንበብ ላይ።
+Click again to forget game notes	የጨዋታ ማስታወሻዎችን ለመርሳት እንደገና ጠቅ አድርግ
+Forget game notes	የጨዋታ ማስታወሻዎችን ርሳ
+Click again to forget everything about me	ስለ አንተ ሁሉንም ለመርሳት እንደገና ጠቅ አድርግ
+Forget everything about me	ስለ አንተ ሁሉንም ርሳ
+Click again to forget	ለመርሳት እንደገና ጠቅ አድርግ
+Forget this day	ይህን ቀን ርሳ
+Only the start of this day is shown.	የዚህ ቀን መጀመሪያ ብቻ ይታያል።
+Nothing in this day.	በዚህ ቀን ምንም የለም።
+No chats kept yet.	እስካሁን ምንም ውይይት አልተቀመጠም።
+You	አንተ
+{0} line	{0} መስመር
+SET UP EMAIL >	ኢሜይል አዘጋጅ >
+SET UP EMAIL	ኢሜይል አዘጋጅ
+Or type your address	ወይም አድራሻህን ጻፍ
+Email address	የኢሜይል አድራሻ
+Open the page	ገጹን ክፈት
+App password	የመተግበሪያ የይለፍ ቃል
+IMAP server	የIMAP አገልጋይ
+Incoming mail server	የገቢ መልዕክት አገልጋይ
+SMTP server	የSMTP አገልጋይ
+Outgoing mail server	የወጪ መልዕክት አገልጋይ
+An app password is a separate password just for Capri. Your normal password stays yours.	የመተግበሪያ የይለፍ ቃል ለCapri ብቻ የተለየ የይለፍ ቃል ነው። የተለመደው የይለፍ ቃልህ የአንተ ነው።
+She keeps it only until she closes.	እስክትዘጋ ድረስ ብቻ ትጠብቀዋለች።
+She checks, searches and reads your mail. She asks before she sends any.	ኢሜይልህን ትመረምራለች፣ ትፈልጋለች እና ታነባለች። ማንኛውንም ነገር ከመላኳ በፊት ትጠይቃለች።
+Watch for new mail	አዲስ ኢሜይል ተከታተል
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ኢሜይል ሲመጣ ትናገራለች፣ ፊሽንግ የሚመስል ከሆነ ማስጠንቀቂያ ትሰጣለች። ምንም እንደተነበበ አይምልክም።
+Deal with phishing on her own	ፊሽንግን ራሷ ተንከባከብ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	እሷ በምትከታተልበት ጊዜ ብቻ። ፊሽንግ እንደሆነ የምትረጋገጠው ኢሜይል ወደ ስፓም ይሄዳል። ቀሪው ለአንተ ስምምነት ይጠብቃል።
+Forget account	መለያ ርሳ
+Use another email	ሌላ ኢሜይል ተጠቀም
+Which email?	የትኛው ኢሜይል?
+Make an app password	የመተግበሪያ የይለፍ ቃል ፍጠር
+Paste it	ለጥፈው
+Connecting...	በመገናኘት ላይ...
+She can use your email now.	አሁን ኢሜይልህን መጠቀም ትችላለች።
+She's not watching your inbox.	የገቢ ሳጥንህን አትከታተልም።
+She's watching your inbox and deals with phishing she's sure of.	የገቢ ሳጥንህን ትከታተላለች እና እርግጠኛ የሆነችበትን ፊሽንግ ትንከባከባለች።
+She's watching your inbox and tells you when mail lands.	የገቢ ሳጥንህን ትከታተላለች እና ኢሜይል ሲመጣ ትነግርሃለች።
+She forgot that account and its app password.	ያን መለያ እና የመተግበሪያ የይለፍ ቃሉን ረሳች።
+She forgot that account. Its app password is gone from this PC.	ያን መለያ ረሳች። የመተግበሪያ የይለፍ ቃሉ ከዚህ ኮምፒውተር ጠፋ።

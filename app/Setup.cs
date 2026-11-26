@@ -24,7 +24,7 @@ namespace CapriSetup
         internal static bool Wanted(string file, string[] args)
         {
             if (Array.IndexOf(args, "--silent") >= 0 || Array.IndexOf(args, "--package") >= 0) return true;
-            if (args.Length > 0 && Array.IndexOf(new[] { "--close", "--update", "--verify", "--verify-voice", "--remove-files", "--uninstall" }, args[0]) >= 0) return true;
+            if (args.Length > 0 && Array.IndexOf(new[] { "--close", "--update", "--verify", "--verify-voice", "--remove-files", "--remove-copy", "--uninstall" }, args[0]) >= 0) return true;
             string name = Path.GetFileNameWithoutExtension(file);
             return name.IndexOf("setup", StringComparison.OrdinalIgnoreCase) >= 0 || string.Equals(name, "Uninstall", StringComparison.OrdinalIgnoreCase);
         }
@@ -35,11 +35,12 @@ namespace CapriSetup
             // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
             int mode;
             string package;
-            try { mode = SetupFiles.Mode(args, out package); }
+            bool forget;
+            try { mode = SetupFiles.Mode(args, out package, out forget); }
             catch (ArgumentException error) { Console.Error.WriteLine(error.Message); return 2; }
             try
             {
-                if (mode == 2) return RemoveFiles(true);
+                if (mode == 2) return RemoveFiles(true, forget);
                 if (mode == 1)
                 {
                     string unsaved = Install(false, true);
@@ -56,10 +57,29 @@ namespace CapriSetup
             if (args.Length > 0 && args[0] == "--update") return Update(args);
             if (args.Length == 2 && args[0] == "--verify") return Verify(args[1]);
             if (args.Length == 2 && args[0] == "--verify-voice") return VerifyVoice(args[1]);
-            if (args.Length == 1 && args[0] == "--remove-files") return RemoveFiles(false);
-            using (SetupWindow window = new SetupWindow(args.Length == 1 && args[0] == "--uninstall")) Application.Run(window);
+            if (args.Length > 0 && (args[0] == "--remove-files" || args[0] == "--remove-copy"))
+            {
+                Removal plan = Removal.Read(args);
+                if (plan == null) { Notice.Tell(null, "That uninstall command is invalid.", "Capri could not be removed", true); return 2; }
+                plan.Wait();
+                return plan.Copy ? RemoveCopy(plan) : RemoveFiles(false, plan.Forget);
+            }
+            using (SetupWindow window = new SetupWindow(Removing(Application.ExecutablePath, args))) Application.Run(window);
             return 0;
         }
+
+        internal static bool Removing(string file, string[] args)
+        {
+            if (args.Length == 1 && args[0] == "--uninstall") return true;
+            return string.Equals(Path.GetFileNameWithoutExtension(file), "Uninstall", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static string UninstallCommand(string folder, bool silent)
+        {
+            return "\"" + Path.Combine(folder, "Uninstall.exe") + "\" " + (silent ? "--silent --uninstall" : "--uninstall");
+        }
+
+        internal static string UninstallCopy() { return Path.Combine(Path.GetTempPath(), "Capri-Uninstall-" + Guid.NewGuid().ToString("N") + ".exe"); }
 
         [DllImport("user32.dll")] private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
 
@@ -128,13 +148,28 @@ namespace CapriSetup
                     Snap(farewell, Path.Combine(output, "installer-remove.png"));
                     farewell.Close();
                 }
+                foreach (bool uninstall in new[] { false, true })
+                    using (SetupWindow doubled = new SetupWindow(uninstall, 192))
+                    {
+                        doubled.StartPosition = FormStartPosition.Manual;
+                        doubled.Location = Screen.PrimaryScreen.WorkingArea.Location;
+                        doubled.Show();
+                        Application.DoEvents();
+                        Snap(doubled, Path.Combine(output, uninstall ? "installer-remove-200.png" : "installer-200.png"));
+                        doubled.Close();
+                    }
                 // Her notices, which stand in for Windows' grey boxes, fit their message under their title with OK below it.
-                using (Notice told = new Notice("Capri has been removed.\n\nYour position and size settings were kept in " + InstallPath + ".", "Capri", false))
+                using (Notice told = new Notice("Capri has been removed.\n\nHer memories, chats and settings were kept in " + InstallPath + ", in case you come back.", "Capri", false))
                 using (Notice failed = new Notice("There's a Capri.exe in " + InstallPath + " that isn't this Capri. Move it out of that folder, then install again.", "Capri couldn't install", true))
+                using (Notice wiped = new Notice(Forgotten(0, InstallPath), "Capri", false))
+                using (Notice stuck = new Notice(Forgotten(3, InstallPath), "Capri", true))
                 {
                     told.Show();
                     failed.Show();
+                    wiped.Show();
+                    stuck.Show();
                     Application.DoEvents();
+                    if (!wiped.Fits || !stuck.Fits || !stuck.Said.Contains(InstallPath)) throw new InvalidDataException("Her uninstall's goodbye doesn't fit or name her folder: " + wiped.Said + " / " + stuck.Said);
                     if (!told.Fits || !failed.Fits || !told.Said.StartsWith("CAPRI\nCapri has been removed.", StringComparison.Ordinal) || !failed.Said.StartsWith("CAPRI COULDN'T INSTALL\n", StringComparison.Ordinal)) throw new InvalidDataException("A notice doesn't fit or show its message: " + told.Said + " / " + failed.Said);
                     Snap(told, Path.Combine(output, "notice.png"));
                     Snap(failed, Path.Combine(output, "notice-error.png"));
@@ -196,9 +231,9 @@ namespace CapriSetup
                 key.SetValue("Publisher", "Capri fan project");
                 key.SetValue("InstallLocation", destination);
                 key.SetValue("DisplayIcon", Path.Combine(destination, "Capri.exe"));
-                key.SetValue("UninstallString", "\"" + Path.Combine(destination, "Uninstall.exe") + "\" --uninstall");
+                key.SetValue("UninstallString", UninstallCommand(destination, false));
                 // Package managers like winget remove her through this one, with no window.
-                key.SetValue("QuietUninstallString", "\"" + Path.Combine(destination, "Uninstall.exe") + "\" --silent --uninstall");
+                key.SetValue("QuietUninstallString", UninstallCommand(destination, true));
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
                 key.SetValue("EstimatedSize", new FileInfo(Application.ExecutablePath).Length * 2 / 1024, RegistryValueKind.DWord);
@@ -311,6 +346,7 @@ namespace CapriSetup
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+            VoicePack.Seal(staging);
             if (!VoicePack.Complete(staging)) throw new IOException("The download is missing files.");
             if (Directory.Exists(folder)) Directory.Delete(folder, true);
             Directory.Move(staging, folder);
@@ -388,14 +424,73 @@ namespace CapriSetup
             void SetPath([MarshalAs(UnmanagedType.LPWStr)] string file);
         }
 
-        internal static void BeginUninstall()
+        internal static void BeginUninstall(bool forget) { Launch(Application.ExecutablePath, new Removal { Forget = forget }); }
+
+        internal static void Launch(string exe, Removal plan)
         {
-            string temporary = Path.Combine(Path.GetTempPath(), "Capri-Uninstall-" + Guid.NewGuid().ToString("N") + ".exe");
-            File.Copy(Application.ExecutablePath, temporary);
-            Process.Start(new ProcessStartInfo(temporary, "--remove-files") { UseShellExecute = true });
+            string temporary = UninstallCopy();
+            File.Copy(exe, temporary);
+            using (Process.Start(new ProcessStartInfo(temporary, plan.Arguments()) { UseShellExecute = true })) { }
         }
 
-        private static int RemoveFiles(bool silent)
+        internal static string Local { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
+
+        internal static bool Installed(string exe)
+        {
+            try { return File.Exists(Path.Combine(InstallPath, ".capri-install")) && string.Equals(Path.GetFullPath(exe), Path.Combine(InstallPath, "Capri.exe"), StringComparison.OrdinalIgnoreCase); }
+            catch (ArgumentException) { return false; }
+            catch (NotSupportedException) { return false; }
+        }
+
+        internal static string Forgotten(int left, string folder)
+        {
+            return left == 0 ? "Capri has been removed, along with everything she knew on this PC." : "Capri has been removed, but a few of her files were still in use. Restart your PC, then delete " + folder + ".";
+        }
+
+        private static int RemoveCopy(Removal plan)
+        {
+            try
+            {
+                string data = Path.Combine(Local, "Capri");
+                if (plan.Forget && File.Exists(Path.Combine(data, ".capri-install"))) throw new IOException("Capri is also installed on this PC, so her memories were kept. Remove her in Settings > Apps > Installed apps and tick Also delete everything she knows.");
+                if (plan.App != null)
+                {
+                    string app = Path.GetFullPath(plan.App);
+                    if (!Ours(app) || Installed(app) || app.IndexOf("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase) >= 0) throw new IOException("That isn't a copy of Capri this can remove.");
+                    CloseCopy(app);
+                    SetupFiles.RemoveApp(app);
+                }
+                int left = 0;
+                if (plan.Forget)
+                {
+                    foreach (string folder in Forgetting.Folders(Local)) if (Directory.Exists(folder)) CloseEverything(folder);
+                    left = Forgetting.Wipe(Local, null);
+                }
+                Notice.Tell(null, plan.Forget ? Forgotten(left, data) : "This copy of Capri has been removed.\n\nHer memories, chats and settings were kept in " + data + ".", "Capri", left > 0);
+                return 0;
+            }
+            catch (Exception error) { Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
+        }
+
+        private static void CloseCopy(string app)
+        {
+            foreach (Process process in Process.GetProcesses())
+                using (process)
+                {
+                    try
+                    {
+                        bool held;
+                        if (!string.Equals(SetupFiles.FileOf(process, out held), app, StringComparison.OrdinalIgnoreCase) || Gone(process, 0)) continue;
+                        process.Kill();
+                        process.WaitForExit(5000);
+                    }
+                    catch (System.ComponentModel.Win32Exception) { }
+                    catch (InvalidOperationException) { }
+                    catch (NotSupportedException) { }
+                }
+        }
+
+        private static int RemoveFiles(bool silent, bool forget)
         {
             try
             {
@@ -409,7 +504,8 @@ namespace CapriSetup
                     if (CloseEverything(destination)) throw new IOException(AdminCopy);
                 }
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
-                SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
+                bool self = string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase);
+                SetupFiles.Retire(uninstaller, self);
                 try
                 {
                     SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
@@ -430,7 +526,18 @@ namespace CapriSetup
                 }
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
-                if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
+                int left = forget ? Forgetting.Wipe(Local, self ? uninstaller + ".old" : null) : 0;
+                if (!silent && Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Capri Camera")))
+                {
+                    try
+                    {
+                        using (Process camera = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--camera-remove") { UseShellExecute = true, Verb = "runas" }))
+                            if (camera != null) camera.WaitForExit(60000);
+                    }
+                    catch (System.ComponentModel.Win32Exception) { }
+                }
+                if (silent && left > 0) Console.Error.WriteLine(Forgotten(left, destination));
+                if (!silent) Notice.Tell(null, forget ? Forgotten(left, destination) : "Capri has been removed.\n\nHer memories, chats and settings were kept in " + destination + ", in case you come back.", "Capri", left > 0);
                 return 0;
             }
             catch (Exception error) { if (silent) Console.Error.WriteLine(error.Message); else Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
@@ -515,17 +622,71 @@ namespace CapriSetup
         }
     }
 
+    internal sealed class Removal
+    {
+        internal bool Copy;
+        internal bool Forget;
+        internal string App;
+        internal int After;
+        internal long Started;
+
+        internal static Removal Read(string[] args)
+        {
+            if (args.Length == 0 || (args[0] != "--remove-files" && args[0] != "--remove-copy")) return null;
+            Removal plan = new Removal { Copy = args[0] == "--remove-copy" };
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i] == "--forget" && !plan.Forget) plan.Forget = true;
+                else if (args[i] == "--app" && plan.Copy && plan.App == null && i + 1 < args.Length && args[i + 1].Length > 0 && !args[i + 1].StartsWith("--", StringComparison.Ordinal)) plan.App = args[++i];
+                else if (args[i] == "--after" && plan.After == 0 && i + 2 < args.Length)
+                {
+                    if (!int.TryParse(args[i + 1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out plan.After) || plan.After <= 0) return null;
+                    if (!long.TryParse(args[i + 2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out plan.Started) || plan.Started <= 0) return null;
+                    i += 2;
+                }
+                else return null;
+            }
+            return plan;
+        }
+
+        internal string Arguments()
+        {
+            System.Text.StringBuilder line = new System.Text.StringBuilder(Copy ? "--remove-copy" : "--remove-files");
+            if (Forget) line.Append(" --forget");
+            if (App != null) line.Append(" --app \"").Append(App).Append('"');
+            if (After > 0) line.Append(" --after ").Append(After.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(' ').Append(Started.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return line.ToString();
+        }
+
+        internal void Wait()
+        {
+            if (After <= 0) return;
+            Process process;
+            try { process = Process.GetProcessById(After); }
+            catch (ArgumentException) { return; }
+            using (process)
+            {
+                try { if (process.StartTime.ToUniversalTime().Ticks == Started) process.WaitForExit(60000); }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+        }
+    }
+
     // Her installer in her Mainframe's look: a borderless window cut at the corners with a red rim and hot red strokes over her
     // wine glow, INSTALL CAPRI in rose for its title, its options on a band, cyan tick boxes, and a solid cyan Install Capri
     // (a red Remove Capri). It drags from anywhere that isn't a control and lays itself out for the screen's scale.
     internal sealed class SetupWindow : Form
     {
         private readonly bool removing;
-        private readonly float s;
+        private float s;
+        private readonly System.Collections.Generic.List<Spot> spots = new System.Collections.Generic.List<Spot>();
+        private Font type;
         private readonly PictureBox chip;
         private readonly Plate primary;
         private readonly Tick desktop;
         private readonly Tick launch;
+        private readonly Tick forget;
         private readonly Label section;
         private readonly Label status;
         private readonly Label stage;
@@ -536,63 +697,62 @@ namespace CapriSetup
         private bool fetching;
         private volatile bool stopping;
 
-        internal SetupWindow(bool uninstall)
+        internal SetupWindow(bool uninstall) : this(uninstall, Arrange.DpiAt(MousePosition)) { }
+
+        internal SetupWindow(bool uninstall, int dpi)
         {
             removing = uninstall;
+            s = dpi / 96f;
             Text = removing ? "Remove Capri" : "Install Capri";
             FormBorderStyle = FormBorderStyle.None;
             MaximizeBox = false;
             MinimizeBox = true;
             StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.None;
-            s = DeviceDpi / 96f;
-            ClientSize = new Size(Px(680), Px(470));
             BackColor = Neon.Ground;
             ForeColor = Neon.White;
             DoubleBuffered = true;
-            Font = Neon.Type(10.5f);
             using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico")) if (source != null) Icon = new Icon(source);
-            LabelAt(removing ? "REMOVE CAPRI" : "INSTALL CAPRI", 24, 14, 420, 32, Neon.Display(15f), Neon.Rose);
+            LabelAt(removing ? "REMOVE CAPRI" : "INSTALL CAPRI", 24, 14, 420, 32, Face.Display, 15f, Neon.Rose);
             Glyph(1, 680 - 86, delegate { WindowState = FormWindowState.Minimized; });
             Glyph(2, 680 - 54, delegate { Close(); });
-            LabelAt(removing ? "See you around." : "Unofficial\nDesktop Mate!", 32, 64, 420, 124, Neon.Display(30f), Neon.White);
+            LabelAt(removing ? "See you around." : "Unofficial\nDesktop Mate!", 32, 64, 420, 124, Face.Display, 30f, Neon.White);
             chip = new PictureBox();
-            chip.Bounds = Box(462, 74, 180, 112);
             chip.SizeMode = PictureBoxSizeMode.Zoom;
             chip.BackColor = Color.Transparent;
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.png")) if (image != null) using (Bitmap loaded = new Bitmap(image)) chip.Image = new Bitmap(loaded);
-            Controls.Add(chip);
-            LabelAt(removing ? "Remove the app and its shortcuts for this Windows user.\nQuit Capri from the tray before continuing." : File.Exists(Path.Combine(Program.InstallPath, "settings.json")) ? "Right-click for her menu." : "She'll show you around when she opens.", 34, 198, 610, 50, Neon.Type(11f), Neon.Faint);
-            section = LabelAt("OPTIONS", 34, 254, 400, 20, Neon.Type(10f, true), Neon.White);
-            section.Visible = !removing;
+            Place(chip, 462, 74, 180, 112, Face.Kept, 0);
+            LabelAt(removing ? "Remove the app and its shortcuts for this Windows user.\nQuit Capri from the tray before continuing." : File.Exists(Path.Combine(Program.InstallPath, "settings.json")) ? "Right-click for her menu." : "She'll show you around when she opens.", 34, 198, 610, 50, Face.Plain, 11f, Neon.Faint);
+            section = LabelAt("OPTIONS", 34, 254, 400, 20, Face.Bold, 10f, Neon.White);
             desktop = new Tick();
             desktop.Text = "Add a desktop shortcut";
-            desktop.Bounds = Box(34, 284, 340, 26);
             desktop.Visible = !removing;
+            Place(desktop, 34, 284, 340, 26, Face.Kept, 0);
             launch = new Tick();
             launch.Text = "Open Capri when finished";
             launch.Checked = true;
-            launch.Bounds = Box(34, 314, 340, 26);
             launch.Visible = !removing;
-            Controls.Add(desktop);
-            Controls.Add(launch);
-            status = LabelAt(removing ? "Your saved position and size will be kept." : "", 34, 352, 604, 22, Neon.Type(9.5f), Neon.Faint);
-            stage = LabelAt("", 34, 282, 604, 28, Neon.Type(13f, true), Neon.White);
+            Place(launch, 34, 314, 340, 26, Face.Kept, 0);
+            forget = new Tick();
+            forget.Text = "Also delete everything she knows";
+            forget.AccessibleName = "Also delete everything she knows: her memories, chats, notes, keys, settings, mods, her computer and her downloads";
+            forget.Visible = removing;
+            Place(forget, 34, 284, 604, 26, Face.Kept, 0);
+            status = LabelAt(removing ? Keeping(false) : "", 34, 352, 604, 22, Face.Plain, 9.5f, Neon.Faint);
+            forget.CheckedChanged += delegate { status.Text = Keeping(forget.Checked); };
+            stage = LabelAt("", 34, 282, 604, 28, Face.Bold, 13f, Neon.White);
             stage.Visible = false;
-            note = LabelAt("", 34, 314, 604, 22, Neon.Type(10f), Neon.Faint);
+            note = LabelAt("", 34, 314, 604, 22, Face.Plain, 10f, Neon.Faint);
             note.Visible = false;
             primary = new Plate();
             primary.Text = removing ? "Remove Capri" : "Install Capri";
             primary.Accent = removing ? Neon.Hot : Neon.Cyan;
             primary.Solid = true;
-            primary.Font = Neon.Type(11.5f, true);
-            primary.Bounds = Box(450, 400, 194, 42);
             primary.Click += Perform;
-            Controls.Add(primary);
+            Place(primary, 450, 400, 194, 42, Face.Bold, 11.5f);
             cancel = new Plate();
             cancel.Text = "Cancel";
-            cancel.Font = Neon.Type(11f, true);
-            cancel.Bounds = Box(318, 400, 116, 42);
+            Place(cancel, 318, 400, 116, 42, Face.Bold, 11f);
             cancel.Click += delegate
             {
                 if (!fetching) { Close(); return; }
@@ -601,10 +761,58 @@ namespace CapriSetup
                 cancel.Enabled = false;
                 status.Text = "Skipping it…";
             };
-            Controls.Add(cancel);
             AcceptButton = primary;
             CancelButton = cancel;
+            Lay(Location);
+        }
+
+        internal static string Keeping(bool forget) { return forget ? "Her memories, chats, notes, keys, settings, mods and downloads go too." : "Her memories, chats and settings stay, in case you come back."; }
+
+        internal bool Wiping { get { return forget.Checked; } set { forget.Checked = value; } }
+
+        private enum Face { Kept, Plain, Bold, Display }
+
+        private sealed class Spot
+        {
+            internal Control Control;
+            internal Rectangle Box;
+            internal Face Face;
+            internal float Points;
+            internal Font Made;
+        }
+
+        private void Place(Control control, int x, int y, int width, int height, Face face, float points)
+        {
+            spots.Add(new Spot { Control = control, Box = new Rectangle(x, y, width, height), Face = face, Points = points });
+            Controls.Add(control);
+        }
+
+        private void Lay(Point at)
+        {
+            Bounds = new Rectangle(at, new Size(Px(680), Px(470)));
+            Font was = type;
+            type = Typed(Face.Plain, 10.5f);
+            Font = type;
+            foreach (Spot spot in spots)
+            {
+                spot.Control.Bounds = Box(spot.Box.X, spot.Box.Y, spot.Box.Width, spot.Box.Height);
+                Plate plate = spot.Control as Plate;
+                if (plate != null) plate.Unit = s;
+                if (spot.Face == Face.Kept) continue;
+                Font old = spot.Made;
+                spot.Made = Typed(spot.Face, spot.Points);
+                spot.Control.Font = spot.Made;
+                if (old != null) old.Dispose();
+            }
+            if (was != null) was.Dispose();
             Neon.Clip(this, 16 * s, 6 * s);
+            Invalidate(true);
+        }
+
+        private Font Typed(Face face, float points)
+        {
+            using (Font chosen = face == Face.Display ? Neon.Display(points) : Neon.Type(points, face == Face.Bold))
+                return new Font(chosen.FontFamily, chosen.Size * s * 96f / 72f, chosen.Style, GraphicsUnit.Pixel);
         }
 
         // Without a title bar it keeps a taskbar button that minimizes and restores it, and Alt + Space's menu.
@@ -622,14 +830,12 @@ namespace CapriSetup
 
         private Rectangle Box(int x, int y, int width, int height) { return new Rectangle(Px(x), Px(y), Px(width), Px(height)); }
 
-        private Label LabelAt(string text, int x, int y, int width, int height, Font font, Color color)
+        private Label LabelAt(string text, int x, int y, int width, int height, Face face, float points, Color color)
         {
             Label label = new Neon.Caption();
             label.Text = text;
-            label.Bounds = Box(x, y, width, height);
-            label.Font = font;
             label.ForeColor = color;
-            Controls.Add(label);
+            Place(label, x, y, width, height, face, points);
             return label;
         }
 
@@ -640,9 +846,8 @@ namespace CapriSetup
             mark.Glyph = glyph;
             mark.TabStop = false;
             mark.AccessibleName = glyph == 1 ? "Minimize" : "Close";
-            mark.Bounds = Box(x, 14, 30, 26);
             mark.Click += click;
-            Controls.Add(mark);
+            Place(mark, x, 14, 30, 26, Face.Kept, 0);
         }
 
         // It drags from anywhere that isn't a control.
@@ -650,6 +855,11 @@ namespace CapriSetup
         {
             base.WndProc(ref message);
             if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            if (message.Msg != 0x02E0) return;
+            int dpi = (int)(message.WParam.ToInt64() & 0xFFFF);
+            if (dpi <= 0 || dpi == (int)Math.Round(s * 96)) return;
+            s = dpi / 96f;
+            Lay(new Point(Marshal.ReadInt32(message.LParam, 0), Marshal.ReadInt32(message.LParam, 4)));
         }
 
         protected override void OnPaintBackground(PaintEventArgs e) { Neon.Backdrop(e.Graphics, ClientSize, 210 * s); }
@@ -691,7 +901,7 @@ namespace CapriSetup
             primary.Enabled = false;
             try
             {
-                if (removing) { Program.BeginUninstall(); Close(); return; }
+                if (removing) { Program.BeginUninstall(forget.Checked); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
                 try { SetupFiles.Mark(Program.InstallPath, "manual"); }
@@ -766,6 +976,34 @@ namespace CapriSetup
 
         internal bool Saying(string title, string heading, string warning) { return stage.Visible && note.Visible && section.Text == title && stage.Text == heading && note.Text == warning; }
 
+        internal string Misfit()
+        {
+            Rectangle area = new Rectangle(0, 0, Px(680), Px(470));
+            Size most = SystemInformation.MaxWindowTrackSize;
+            if (ClientSize.Width < Math.Min(area.Width, most.Width) || ClientSize.Height < Math.Min(area.Height, most.Height)) return "the window is " + ClientSize.Width + " x " + ClientSize.Height + ", smaller than its " + area.Width + " x " + area.Height + " layout";
+            System.Collections.Generic.List<Control> shown = new System.Collections.Generic.List<Control>();
+            foreach (Control control in Controls) if (control.Visible) shown.Add(control);
+            for (int i = 0; i < shown.Count; i++)
+            {
+                Control control = shown[i];
+                string name = control.Text.Length > 0 ? control.Text.Replace("\n", " ") : control.GetType().Name;
+                if (!area.Contains(control.Bounds)) return name + " is outside the window";
+                for (int j = i + 1; j < shown.Count; j++)
+                    if (control.Bounds.IntersectsWith(shown[j].Bounds)) return name + " overlaps " + (shown[j].Text.Length > 0 ? shown[j].Text.Replace("\n", " ") : shown[j].GetType().Name);
+                if (control.Text.Length == 0) continue;
+                Size needed;
+                int room;
+                if (control is Label) { needed = ((Label)control).GetPreferredSize(new Size(control.Width, 0)); room = control.Width; }
+                else
+                {
+                    needed = TextRenderer.MeasureText(control.Text, control.Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                    room = control is Tick ? control.Width - (int)Math.Ceiling(27.5f * s) : control.Width - Px(12);
+                }
+                if (needed.Width > room || needed.Height > control.Height) return name + " needs " + needed.Width + " x " + needed.Height + " but has " + room + " x " + control.Height;
+            }
+            return null;
+        }
+
         private void Fetched(string failed)
         {
             fetching = false;
@@ -781,7 +1019,14 @@ namespace CapriSetup
             Invalidate();
         }
 
-        protected override void Dispose(bool disposing) { if (disposing && chip.Image != null) chip.Image.Dispose(); base.Dispose(disposing); }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && chip.Image != null) chip.Image.Dispose();
+            base.Dispose(disposing);
+            if (!disposing) return;
+            foreach (Spot spot in spots) if (spot.Made != null) spot.Made.Dispose();
+            if (type != null) type.Dispose();
+        }
 
         // A tick box in her look: a small dark box with a red rim that fills cyan with a dark tick when it's on, its words in
         // white beside it. The rim lights up under the mouse or with keyboard focus.
@@ -802,7 +1047,8 @@ namespace CapriSetup
 
             protected override void OnPaint(PaintEventArgs e)
             {
-                float s = DeviceDpi / 96f;
+                SetupWindow window = Parent as SetupWindow;
+                float s = window != null ? window.s : DeviceDpi / 96f;
                 Graphics graphics = e.Graphics;
                 Neon.Behind(graphics, this, 210 * s);
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;

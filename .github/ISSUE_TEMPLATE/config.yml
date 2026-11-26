@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Capri Discord
+    url: https://discord.gg/capridesktop
+    about: Quick questions and big-change coordination before opening an issue

@@ -1058,7 +1058,7 @@ namespace CapriDesktop
                 Need("chat");
                 capri.OnWindow(delegate { contexts.Clear(); capri.modContextAt = -10; });
             }
-            string ICapriChat.LastHeard { get { Need("chat"); return capri.FromWindow(() => capri.heard ?? ""); } }
+            string ICapriChat.LastHeard { get { Need("chat"); return capri.FromWindow(() => capri.ModLastHeard ?? ""); } }
             string ICapriChat.LastReply { get { Need("chat"); return capri.FromWindow(() => capri.reply ?? ""); } }
             bool ICapriChat.Busy { get { return capri.FromWindow(() => capri.talkState != TalkState.Off || capri.job != null); } }
 
@@ -1507,7 +1507,7 @@ namespace CapriDesktop
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     string said = null;
-                    try { said = capri.brain.Quick(system.Length == 0 ? "You answer briefly and plainly." : system, asked, 600); }
+                    try { said = capri.brain.Quick((system.Length == 0 ? "You answer briefly and plainly." : system) + "\n" + Brain.Safety, asked, 600); }
                     catch (Exception error) { Brain.Log("mod " + id, -1, "Her brain didn't answer: " + error.Message); }
                     if (answered == null) return;
                     capri.Post(delegate

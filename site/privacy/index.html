@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="What Capri keeps on your PC and what goes to the services you pick.">
-  <title>Capri privacy</title>
+  <title>Capri privacy and safety</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.9.0">
+  <link rel="stylesheet" href="../style.css?v=0.9.7">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.9.0" defer></script>
+  <script src="../helper.js?v=0.9.7" defer></script>
 </head>
 <body>
   <div class="page">
@@ -23,8 +23,8 @@
       </div>
     </header>
     <main class="guide">
-      <h1><em>Capri</em> privacy</h1>
-      <nav class="guide-jump" aria-label="Sections"><a href="#short">In short</a><a href="#pc">Your PC</a><a href="#remote">Capri Remote</a><a href="#services">Services</a><a href="#connections">Connections</a><a href="#site">Website</a><a href="#mods">Mod rules</a><a href="#contact">Contact</a></nav>
+      <h1><em>Capri</em> privacy and safety</h1>
+      <nav class="guide-jump" aria-label="Sections"><a href="#short">In short</a><a href="#safety">Safety</a><a href="#pc">Your PC</a><a href="#remote">Capri Remote</a><a href="#services">Services</a><a href="#connections">Connections</a><a href="#site">Website</a><a href="#mods">Mod rules</a><a href="#contact">Contact</a></nav>
 
       <section id="short" class="step">
         <h2>In short</h2>
@@ -33,13 +33,27 @@
           <dt>Ads</dt><dd>None</dd>
           <dt>Analytics</dt><dd>None in the app</dd>
           <dt>Your words</dt><dd>Stay on your PC, and your phone if you use Capri Remote, unless you pick a cloud service</dd>
+          <dt>Crash reports</dt><dd>Off unless you turn them on</dd>
+        </dl>
+      </section>
+
+      <section id="safety" class="step">
+        <h2>Safety</h2>
+        <dl class="keys">
+          <dt>She's an AI</dt><dd>Capri is an AI character, not a person. Her replies come from the brain you pick. Ask her if she's real and she'll tell you</dd>
+          <dt>Age</dt><dd>For ages 13 and up. Under 18, use her with a parent or guardian's OK. She can't tell how old you are, so her lines are the same for everyone</dd>
+          <dt>Her lines</dt><dd>Nothing sexual or romantic, no swearing, slurs or gore, no help with anything illegal, and she never asks for your real name, address, school, passwords or photos. They're built into her code and come after any personality you give her</dd>
+          <dt>Hard moments</dt><dd>If you tell her you want to hurt yourself, she stays with you and points you to a free crisis line: 988 in the US and Canada, Samaritans on 116 123 in the UK and Ireland, Lifeline on 13 11 14 in Australia, 1737 in New Zealand, or <a href="https://findahelpline.com/">findahelpline.com</a> anywhere. On Windows a card with the line for your region shows next to her reply, even with no brain set up. Nothing about it leaves your PC</dd>
+          <dt>In danger now</dt><dd>Call your local emergency number. Capri can't call anyone for you</dd>
+          <dt>Report a reply</dt><dd>Open a GitHub issue, or use Help &gt; Report a problem in a Store copy</dd>
         </dl>
       </section>
 
       <section id="pc" class="step">
         <h2>On your PC</h2>
         <dl class="keys">
-          <dt>Stays here</dt><dd>Settings, chats, <code>me.md</code>, <code>memories.md</code>, transcripts, reminders, routines and check-ins</dd>
+          <dt>Stays here</dt><dd>Settings, chats, <code>me.md</code>, <code>memories.md</code>, transcripts, reminders, routines, check-ins and the replays of jobs on her own computer</dd>
+          <dt>Crash reports</dt><dd>Off until you pick Help &gt; Send crash reports. Then, after a crash, she sends her version, your Windows version, whether she's a Store copy, and up to 30 of her own crash, close and freeze lines. Saved keys, your user folder, your Windows user name and your PC's name are taken out first. Never chats, notes, screenshots or keys. Our server keeps them 90 days and counts reports against a scrambled form of your connection address that changes daily, so it doesn't save addresses</dd>
           <dt>Runs here</dt><dd>Her built-in brain, free voice, ears and wake word</dd>
           <dt>Keys</dt><dd>Encrypted for your Windows user</dd>
           <dt>Folder</dt><dd><code>%LOCALAPPDATA%\Capri</code>, or a private folder Windows gives a fresh Microsoft Store copy</dd>
@@ -50,7 +64,7 @@
       <section id="remote" class="step">
         <h2>Capri Remote</h2>
         <dl class="keys">
-          <dt>Default</dt><dd>Off. Windows only for now</dd>
+          <dt>Default</dt><dd>Off. Chat, pictures and jobs work on Windows, Mac and Linux; calls from your phone and watching your screen are Windows only</dd>
           <dt>Your traffic</dt><dd>Messages, her replies, screen frames, call audio, her voice and keys you send to your PC are end-to-end encrypted. The relay can't read them</dd>
           <dt>Pairing keys</dt><dd>The pairing key follows <code>#</code> in the link, so GitHub Pages and the relay never get it. Device and session keys stay on your devices</dd>
           <dt>Relay sees</dt><dd>Room and device ids, sign-in tokens, the one-time code, timestamps, online phones, and encrypted frame sizes and timing. Cloudflare sees connection details such as your IP</dd>
@@ -61,6 +75,7 @@
           <dt>In your browser</dt><dd>Pairing credentials in IndexedDB; the PC's name and pairing date in localStorage</dd>
           <dt>Phone chats</dt><dd>Saved in localStorage with no timed expiry. Unpairing or removal keeps them. Clear capriai.app site data to erase them</dd>
           <dt>Keys to your PC</dt><dd>Sent end-to-end encrypted, saved with Windows DPAPI like a Mainframe key, and never sent back to your phone</dd>
+          <dt>Her memory</dt><dd>A paired phone can read and change her notes, chat memories, game notes and chat logs on your PC, end-to-end encrypted. The phone keeps none of it: nothing is saved in the browser, and there are no share links</dd>
           <dt>Screen view</dt><dd>Encrypted frames only while a phone watches. A badge shows on your PC while a phone watches or calls</dd>
           <dt>Phone only</dt><dd>With your own key, it's saved in this browser's localStorage on capriai.app and sent straight to your chosen provider with your chat. Saved chats stay here; no relay is used</dd>
           <dt>Phone providers</dt><dd>Anthropic, OpenAI, Google AI, OpenRouter or DeepSeek</dd>
@@ -118,7 +133,7 @@
         <dl class="keys">
           <dt>Questions</dt><dd><a href="https://github.com/lachydotmcg/capri-desktop/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a></dd>
           <dt>Made by</dt><dd>Lachy's Web Dev</dd>
-          <dt>Updated</dt><dd>12 November 2026</dd>
+          <dt>Updated</dt><dd>20 November 2026</dd>
         </dl>
       </section>
     </main>

@@ -24,6 +24,8 @@
   <true/>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Capri uses your mic for TALK or when you turn on Hey Capri listening. Recognized requests may be sent to your chosen AI provider.</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>Capri controls Spotify or Music and opens your requested commands in Terminal after checking her Security settings.</string>
 </dict>

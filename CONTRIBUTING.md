@@ -17,6 +17,7 @@ Thanks for helping her out, choom.
 | `assets/sprites/` | Her animation strips |
 | `site/` | The website |
 | `ci/` | Build scripts the CI uses |
+| `skills/` | Contributor guides agents load, like the parity skill |
 
 ## Build and test
 
@@ -27,6 +28,8 @@ Thanks for helping her out, choom.
 ```
 
 This builds `out/windows/Capri.exe` and `Capri-Setup.exe`, then runs her smoke test. Every line should say `PASS`.
+
+For faster local runs, pass `-Suggest` to pick groups from your git diff, or `-Group` (`UI`, `Animations`, `Brain`, `Voice`, `Mods`, `Games`, `Remote`), `-Only`, `-Steps`, or `-Step`. CI still runs the full smoke test.
 
 The smoke output folder also contains `smoke-timings.txt`, a tab-separated diagnostic for completed sections. `inclusive_ms` includes child sections; `own_ms` excludes their measured time, `depth` shows nesting, and `parent` names the enclosing section, so recovery credits only its own completed children. Only sections that ran and reached their exit have rows; interrupted sections and timer steps are not measured here. A new full run clears the file when writable, while worker recovery keeps completed rows and counts a resumed parent's kept children in its inclusive time, so nesting still reads top-down. This optional diagnostic does not change checks, timeouts, or normal app behavior; an unavailable timing file does not fail the checks. Do not compare runs using a timing file that could not be reset.
 
@@ -63,3 +66,7 @@ On Windows, use `out\cross\Capri.exe` instead. CI runs all three on every pull r
 - **No new network calls or tracking** without asking. API keys stay encrypted on the user's PC.
 - **Ask before risky actions.** Anything that sends, posts, buys or deletes must go through her ask step, unless the user asked for that exact thing.
 - **Commit messages** say what she does now, in plain words. For example: `She dances when music plays`.
+
+## Releases
+
+Start the notes from [docs/release-notes-template.md](docs/release-notes-template.md), which ends with the official-downloads line. Once every file is on the draft release, run **Actions > Release checksums** with its tag. It downloads every asset, Windows, Mac, Linux and Quest, and uploads `SHA256SUMS.txt`. Mac and Linux self-updates refuse a release without it. The same check runs again when the release is published: it adds the file if it's missing, and fails without touching anything if the file on the release doesn't match its assets.

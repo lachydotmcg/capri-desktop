@@ -3,11 +3,16 @@ import asyncio
 import ctypes
 import json
 import signal
+import sys
+import os
+from pathlib import Path
+import hashlib
 from sources import physical_sources
 
 
 def parent_guard():
-    ctypes.CDLL(None).prctl(1, signal.SIGTERM, 0, 0, 0)
+    if sys.platform == 'linux':
+        ctypes.CDLL(None).prctl(1, signal.SIGTERM, 0, 0, 0)
 
 
 async def message(reader):
@@ -18,7 +23,26 @@ async def message(reader):
 
 
 async def verified_microphone(source, fingerprint):
-    """Verify the selected physical node before name-listen capture."""
+    """Verify that the selected audio input has not changed."""
+    if sys.platform == 'darwin':
+        if source != 'mac-default' or not isinstance(fingerprint, str) or len(fingerprint) != 64:
+            raise ValueError('Approve the current macOS microphone first')
+        helper = Path(__file__).resolve().parents[2] / 'capri-mic'
+        process = await asyncio.create_subprocess_exec(str(helper), '--identity',
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        try:
+            raw = await asyncio.wait_for(process.stdout.read(8193), 5)
+            await asyncio.wait_for(process.wait(), 5)
+            if process.returncode != 0 or len(raw) > 8192:
+                raise ValueError('The macOS microphone is unavailable')
+            uid = json.loads(raw)['uid']
+            if not isinstance(uid, str) or hashlib.sha256(uid.encode()).hexdigest() != fingerprint:
+                raise ValueError('Your macOS default microphone changed. Re-enable name listening.')
+        finally:
+            if process.returncode is None:
+                process.kill()
+                await process.wait()
+        return
     if not isinstance(fingerprint, str) or not 1 <= len(fingerprint) <= 512:
         raise ValueError('Select an explicit near-field microphone')
     if not isinstance(source, str) or not 1 <= len(source) <= 256 or source.startswith('-') or any(ord(c) < 32 for c in source) or any(v in source.lower() for v in ('monitor', 'loopback', 'virtual', 'echo-cancel')):

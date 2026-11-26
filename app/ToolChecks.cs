@@ -42,6 +42,7 @@ namespace CapriDesktop
             Func<string, string, string> lookOnWas = Hands.LookOn;
             bool windowsOn = Security.On(Security.Windows);
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            string nvidiaWas = Brain.Nvidia;
             bool keepingWas = Brain.Keeping;
             TcpListener fake = null;
             try
@@ -302,7 +303,53 @@ namespace CapriDesktop
                     || !sent[0].Contains("\"move_to_screen\"") || !sent[0].Contains("To arrange a window, use app_window") || !sent[1].Contains("Monitors, left to right: main screen 1920 x 1080; screen 2 1080 x 1920, portrait")
                     || !sent[1].Contains("940 x 800 at 70, 200") || !sent[2].Contains("Snapped discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."))
                     throw new Exception("Her planner didn't check where the window was, or didn't hear where it really went: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up");
+                // A small planner that answers "close discord" with an old remark and no tool still gets discord closed (Gale, 11 Nov).
+                fake.Stop();
+                asked.Clear();
+                Brain.OpenAi = FakeServer(new[] { says("That hill looked too peaceful."), says("Closed Discord for you.") }, asked, out fake);
+                List<string> skipped = new List<string>();
+                Brain small = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                small.Act = delegate(string name, ToolArguments args) { skipped.Add(name + ":" + args.Name + ":" + args.Action); return name == "app_window" && args.Action == "close" ? "Closed " + args.Name + "." : "No result."; };
+                string smallReply = small.Ask("close discord");
+                if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || smallReply.IndexOf("hill", StringComparison.OrdinalIgnoreCase) >= 0)
+                    throw new Exception("A planner's words without a tool left a plain close undone: " + smallReply + " / " + string.Join(",", skipped.ToArray()));
+                // On Gale's own model the same goes for a call written out as words and for reasoning cut off before its call (11 Nov).
+                string[] wordy = { "app_window: close discord", "Okay, let's break this down. The user is asking me to close discord. Looking at the tools, the correct tool call would be app_window with name: \"discord\", action:" };
+                foreach (string words in wordy)
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    skipped.Clear();
+                    Brain.Nvidia = FakeServer(new[] { says(words), says(words), says(words) }, asked, out fake);
+                    Brain bolt = new Brain { Model = "nvidia/nemotron-3.5-bolt-e4b", Remote = new Cloud("nvapi-test", "nvidia/nemotron-3.5-bolt-e4b"), OwnSteps = true };
+                    bolt.Act = small.Act;
+                    string boltReply = bolt.Ask("close discord");
+                    if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || boltReply != "Closed discord.")
+                        throw new Exception("Her brain's words for a call didn't close discord: " + words + " / " + boltReply + " / " + string.Join(",", skipped.ToArray()));
+                }
+                // A question her hands would only search for stays her brain's answer. They search when it says it can't know, writes
+                // the call out as words, or they were told to google it.
+                List<string> searched = new List<string>();
+                string[,] lookups = {
+                    { "what is rain", "Rain is water falling from clouds.", "" },
+                    { "look up capri ai", "Capri is a desktop companion.", "" },
+                    { "what's the weather in Sydney", "I can't check live weather, choom.", "open_website::what's the weather in Sydney" },
+                    { "what's the weather in Sydney", "open_website: weather in Sydney", "open_website::what's the weather in Sydney" },
+                    { "google capri ai", "Capri is a desktop companion.", "open_website:google:capri ai" } };
+                for (int row = 0; row < lookups.GetLength(0); row++)
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    searched.Clear();
+                    Brain.OpenAi = FakeServer(new[] { says(lookups[row, 1]), says("Pulled it up."), says("Pulled it up.") }, asked, out fake);
+                    Brain reader = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                    reader.Act = delegate(string name, ToolArguments args) { searched.Add(name + ":" + args.Site + ":" + args.Search); return "No result."; };
+                    string lookedUp = reader.Ask(lookups[row, 0]);
+                    if (string.Join(",", searched.ToArray()) != lookups[row, 2] || (lookups[row, 2].Length == 0) != (lookedUp == lookups[row, 1]))
+                        throw new Exception("A look-up her brain answered in words went wrong: " + lookups[row, 0] + " / " + lookedUp + " / " + string.Join(",", searched.ToArray()));
+                }
+                checks.Add("PASS a question her hands would only search for stays her brain's answer; they search when it says it can't know or writes the call out as words, and when told to google it");
+                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up; a planner that answers a plain \"close discord\" with only words, the call written as words or its reasoning cut off still gets it closed");
             }
             finally
             {
@@ -328,6 +375,7 @@ namespace CapriDesktop
                 Security.Drop();
                 Security.Set(Security.Windows, windowsOn);
                 Brain.OpenAi = openAiWas;
+                Brain.Nvidia = nvidiaWas;
                 Brain.MemoryPath = notesWas;
                 Brain.MemoriesPath = memoriesWas;
                 Brain.TranscriptPath = transcriptsWas;
@@ -841,6 +889,47 @@ namespace CapriDesktop
             }
         }
 
+        // A Store app, like Windows 11's Notepad, opens through Windows' app activation and never through Explorer, and Windows saying
+        // no is said instead of "Opened" (the Saac fan, 11 Nov: with 360 Total Security, "open notepad" opened Documents).
+        private static void SmokeStoreLaunch(List<string> checks)
+        {
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, int> activationWas = Hands.Activation;
+            Func<string, string> openedWas = Hands.Opened;
+            Action<string> runWas = Hands.Run;
+            try
+            {
+                const string notepad = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App";
+                const string notepadPlus = @"{6D809377-6AF0-444B-8957-A3773F02200E}\Notepad++\notepad++.exe";
+                if (!Hands.Packaged(notepad) || !Hands.Packaged("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic") || Hands.Packaged(notepadPlus)
+                    || Hands.Packaged(@"C:\Games\game.exe") || Hands.Packaged("spotify:") || Hands.Packaged("https://example.com/a!b") || Hands.Packaged("fake-calculator"))
+                    throw new Exception("A Store app's id was read wrong.");
+                List<string> activated = new List<string>();
+                int answer = 0;
+                Hands.Activation = delegate(string id) { activated.Add(id); return answer; };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Notepad", notepad), new InstalledApp("Notepad++", notepadPlus) }; };
+                Hands.Opened = delegate { return ""; };
+                Hands.Run = Hands.Start;
+                Hands.Forget();
+                string opened = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                answer = unchecked((int)0x80270254);
+                string refused = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                if (opened != "Opened Notepad." || string.Join(",", activated.ToArray()) != notepad + "," + notepad
+                    || refused != "Couldn't open Notepad: Windows wouldn't start it. Try opening it from the Start menu." || !Hands.Failed(refused))
+                    throw new Exception("A Store app didn't open through Windows' activation, or a refusal still said it opened: " + opened + " / " + refused + " / " + string.Join(",", activated.ToArray()));
+                if (Hands.Launch(notepad).FileName != "explorer.exe") throw new Exception("A Store app's fallback launch lost Explorer.");
+                checks.Add("PASS a Store app like Notepad opens through Windows' app activation instead of Explorer, so nothing in between can turn it into a File Explorer window on Documents, and when Windows won't start it she says so instead of \"Opened\"; Store ids are told apart from program paths, launch links and addresses");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Activation = activationWas;
+                Hands.Opened = openedWas;
+                Hands.Run = runWas;
+                Hands.Forget();
+            }
+        }
+
         // An ask opens each app, site or song once, however many times her brain repeats the call (a tester saw YouTube or Spotify
         // open about 20 times in a row on 0.7.10): her one-shot hands writing the same call over and over, and a planner calling it
         // twenty times at once and again a round later. Media still goes twice, like skipping two songs.
@@ -928,7 +1017,7 @@ namespace CapriDesktop
             string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
             string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "", timing = SelfKnow.Matching("how do timers work?") ?? "";
             if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
-                || !SelfKnow.Matching("how do I move a window to my other monitor?").Contains("keep Discord on top, until unpin Discord") || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                || !SelfKnow.Matching("how do I move a window to my other monitor?").Contains("keep Discord on top, until unpin Discord") || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees and Remember our chats stay yours"))
                 throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
             string root = null;
             foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -965,8 +1054,8 @@ namespace CapriDesktop
             TcpListener fake = null;
             try
             {
-                Dictionary<string, bool?> switches = new Dictionary<string, bool?> { { "wander", true }, { "head_pats", true }, { "sit_on_windows", true }, { "typing_sound", false } };
-                Dictionary<string, int> levels = new Dictionary<string, int> { { "size", 3 }, { "wander", 1 }, { "pop_ins", 1 }, { "sleep", 3 }, { "volume", 8 }, { "voice_speed", 5 }, { "replies", 1 }, { "bubble", 1 } };
+                Dictionary<string, bool?> switches = new Dictionary<string, bool?> { { "wander", true }, { "head_pats", true }, { "sit_on_windows", true }, { "typing_sound", false }, { "voice", true } };
+                Dictionary<string, int> levels = new Dictionary<string, int> { { "size", 3 }, { "wander", 1 }, { "pop_ins", 1 }, { "sleep", 3 }, { "volume", 7 }, { "voice_speed", 5 }, { "replies", 1 }, { "bubble", 1 } };
                 List<string> moved = new List<string>();
                 Hands.SettingOn = delegate(string name) { return switches.ContainsKey(name) ? switches[name] : null; };
                 Hands.SetSetting = delegate(string name, bool on) { switches[name] = on; return null; };
@@ -979,7 +1068,7 @@ namespace CapriDesktop
                     { "size", "bigger", "Set my size to Medium+." }, { "size", "Giant", "Set my size to Giant." }, { "size", "a bit bigger", "My size is already Giant, as far as it goes." },
                     { "size", "giant", "My size is already Giant." }, { "size", "smallest", "Set my size to Tiny." }, { "size", "huge+", "Set my size to Huge+." },
                     { "wander", "off", "Set Wander to Off." }, { "wander", "more", "Set Wander to Rarely." }, { "wander", "Restless", "Set Wander to Restless." },
-                    { "volume", "50", "Set my voice's volume to 50%." }, { "volume", "louder", "Set my voice's volume to 60%." }, { "volume", "max", "Set my voice's volume to 150%." }, { "volume", "mute", "Set my voice's volume to Mute." },
+                    { "volume", "50", "Set my voice's volume to 50%." }, { "volume", "louder", "Set my voice's volume to 60%." }, { "volume", "max", "Set my voice's volume to 150%." }, { "volume", "mute", "Turned my voice off." }, { "volume", "quietest", "Set my voice's volume to 10%." },
                     { "voice_speed", "1.3", "Set my voice's speed to 1.3x." }, { "voice_speed", "slower", "Set my voice's speed to 1.2x." }, { "voice_speed", "1x", "Set my voice's speed to Normal." }, { "voice_speed", "normal", "My voice's speed is already Normal." },
                     { "sleep", "10 minutes", "Set Sleep to 10 min." }, { "sleep", "never", "Set Sleep to Never." }, { "sleep", "to 30 min", "Set Sleep to 30 min." },
                     { "pop_ins", "often", "Set Pop-ins to Often." }, { "replies", "shorter", "Set Replies to Short." }, { "replies", "shorter", "Replies is already Short, as far as it goes." },
@@ -1027,7 +1116,7 @@ namespace CapriDesktop
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");
                 // Her sliders' steps are the ones her Mainframe's sliders stop on, by name and by value.
-                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "Lengths", "BubbleNames" };
+                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "ReplyNames", "BubbleNames" };
                 for (int i = 0; i < mainframeNames.Length; i++)
                 {
                     string[] shown = (string[])typeof(Mainframe).GetField(mainframeNames[i], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);

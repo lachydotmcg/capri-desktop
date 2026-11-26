@@ -19,14 +19,14 @@ namespace CapriDesktop
     {
         internal string Kind = "", Text = "", Name = "", Id = "", Turn = "", Input = "", Decision = "", Cost = "", Files = "";
         internal double Seconds;
-        internal bool Retry;
+        internal bool Retry, Growing;
         internal WorkspaceApproval Ask;
         internal WorkspaceUndo Undo;
 
         internal Dictionary<string, object> Json()
         {
             string text = Kind == "result" && Text.Length > 2000 ? Text.Substring(0, 2000) : Text;
-            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", Kind == "tool" ? Input : "",
+            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", Kind == "tool" || Kind == "error" ? Input : "",
                 "decision", Decision, "seconds", Seconds, "cost", Cost, "retry", Retry, "files", Files);
         }
 
@@ -52,7 +52,9 @@ namespace CapriDesktop
         internal readonly List<string> Folders = new List<string>(), Files = new List<string>();
         internal readonly HashSet<string> Sent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         internal volatile WorkspaceTurn Live;
-        internal bool Deleted, TrustAsked, SaveWarning;
+        internal bool Deleted, TrustAsked, SaveWarning, HomePending;
+        internal string HomeIdentity = "";
+        internal volatile bool HomeSaved;
         internal string PendingText;
         internal WorkspaceItem TrustItem;
         internal WorkspaceUndo Undoing;
@@ -65,6 +67,8 @@ namespace CapriDesktop
         internal readonly ManualResetEvent Answered = new ManualResetEvent(false);
         internal WorkspaceItem Item;
         internal WorkspaceTurn Turn;
+        internal Dictionary<string, object> Input;
+        internal string Cwd;
         internal string Choice, Reason = "";
         internal bool Announced, Queued;
     }
@@ -83,36 +87,61 @@ namespace CapriDesktop
         internal readonly List<WorkspaceApproval> Asks = new List<WorkspaceApproval>();
         internal readonly HashSet<string> Tools = new HashSet<string>(StringComparer.Ordinal);
         internal readonly Dictionary<string, Dictionary<string, object>> Edits = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
-        internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder();
+        internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder(), ReportedErrors = new StringBuilder();
         internal readonly List<string> Extra = new List<string>(), Files = new List<string>();
-        internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false);
+        internal readonly Dictionary<string, WorkspaceMessage> Messages = new Dictionary<string, WorkspaceMessage>(StringComparer.Ordinal);
+        internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false), Ready = new ManualResetEvent(false);
         internal WorkspaceChat Chat;
-        internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
+        internal string Mode = "", LaunchMode, Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault, AssistantFault = "";
         internal Process Process;
         internal WorkspaceJob Job;
         internal volatile bool Stopped, Result, Failed;
-        internal bool TextSeen, SessionSeen, StopRecorded, Trusted, Uncovered;
+        internal bool TextSeen, SessionSeen, StopRecorded, Trusted, Uncovered, Partials, Streamed;
+        internal string Message = "", Latest = "";
+        internal Timer StreamTimer;
         internal int Attempt, Active;
         internal long ResultAt;
     }
 
+    // One main-conversation message as it streams: its text blocks in the order they started, and finished text that
+    // arrived before its block began streaming, by its place among the message's text blocks.
+    internal sealed class WorkspaceMessage
+    {
+        internal readonly Dictionary<int, WorkspaceText> Blocks = new Dictionary<int, WorkspaceText>();
+        internal readonly List<WorkspaceText> Texts = new List<WorkspaceText>();
+        internal readonly Dictionary<int, WorkspaceItem> Ahead = new Dictionary<int, WorkspaceItem>();
+        internal int Finished;
+    }
+
+    internal sealed class WorkspaceText
+    {
+        internal readonly StringBuilder Text = new StringBuilder();
+        internal WorkspaceItem Item;
+        internal bool Final, Dirty;
+    }
+
     internal sealed class Workspace : IDisposable
     {
+        internal const string SignIn = "Claude Code isn't signed in. Open a terminal, run claude, sign in, then press Retry.";
+        internal const string UsageLimit = "Claude Code has reached a usage limit.";
         internal const string Missing = "Workspace runs Claude Code on this PC. Install it from claude.com/claude-code and sign in, then press Retry.";
-        internal static readonly string[] Modes = { "Ask me", "Edits only", "Plan only", "Everything" };
+        internal const string BlackwallMode = "Blackwall Mode";
+        internal static readonly string[] Modes = { "Ask me", "Edits only", "Plan only", BlackwallMode };
         internal static readonly string[] Models = { "Default", "Opus", "Sonnet", "Haiku" };
         internal readonly string Root, Pipe;
         internal string Executable;
         // Her own folder for chats started without picking one: Capri\Workspace in their profile folder, the same on every PC.
         // Not Documents, which is often inside OneDrive, where Claude Code's fast small writes (.git, node_modules) would be
         // uploaded and fought over. Only made when a chat first needs it, and never emptied or deleted by her.
-        internal string Home = HomeFolder();
+        private static readonly string defaultHome = HomeFolder(), defaultFallback = Spare();
+        internal string Home = defaultHome, HomeFallback;
         internal int ApprovalWait = 600000;
         internal Action<WorkspaceChat, WorkspaceItem> Changed;
         internal Action<WorkspaceChat> Finished;
         internal Action<WorkspaceChat, WorkspaceApproval> Waiting;
         internal Action<string, string> ReplaceFile;
         internal string Version = "";
+        internal bool ManualStreams;
         internal readonly List<string> Problems = new List<string>();
         private readonly object gate = new object(), pipeGate = new object(), versionGate = new object(), trustGate = new object();
         private readonly HashSet<string> trusted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -123,6 +152,7 @@ namespace CapriDesktop
         private Thread server, saver;
         private bool versionRead;
         private volatile bool closed;
+        private volatile bool partials = true;
 
         internal Workspace(string data, string pipe)
         {
@@ -147,7 +177,9 @@ namespace CapriDesktop
                     string id = HuskJson.Text(row, "id");
                     if (!Key(id) || !string.Equals(Path.GetFileNameWithoutExtension(file), id, StringComparison.Ordinal)) throw new FormatException("Invalid chat id.");
                     WorkspaceChat chat = new WorkspaceChat { Id = id, Title = HuskJson.Text(row, "title"), Folder = HuskJson.Text(row, "folder"), Session = HuskJson.Text(row, "session"),
-                        Mode = Mode(HuskJson.Text(row, "mode")), Model = Model(HuskJson.Text(row, "model")), TrustAsked = true.Equals(HuskJson.Get(row, "trustAsked")) };
+                        Mode = Mode(HuskJson.Text(row, "mode")), Model = Model(HuskJson.Text(row, "model")), TrustAsked = true.Equals(HuskJson.Get(row, "trustAsked")),
+                        HomePending = true.Equals(HuskJson.Get(row, "homePending")), HomeIdentity = HuskJson.Text(row, "homeIdentity") };
+                    chat.HomeSaved = chat.HomeIdentity.Length > 0;
                     long updated;
                     if (long.TryParse(HuskJson.Text(row, "updated"), NumberStyles.None, CultureInfo.InvariantCulture, out updated)) chat.Updated = updated;
                     List<object> items = HuskJson.List(HuskJson.Get(row, "items")), turns = HuskJson.List(HuskJson.Get(row, "turns")), allowed = HuskJson.List(HuskJson.Get(row, "allowed"));
@@ -160,6 +192,15 @@ namespace CapriDesktop
                         if (found.Kind == "trust" && found.Decision.Length == 0) { found.Decision = "deny"; found.Text = "Folder not trusted."; }
                         if (found.Kind == "undo-ask") { found.Kind = "undo"; found.Text = "Undo paused. Use Undo last edits to choose again."; }
                         chat.Items.Add(found);
+                    }
+                    bool latest = true;
+                    for (int i = chat.Items.Count - 1; i >= 0; i--)
+                    {
+                        WorkspaceItem item = chat.Items[i];
+                        if (item.Kind == "user" || item.Kind == "stopped" || item.Kind == "end") latest = false;
+                        if (!item.Retry) continue;
+                        item.Retry = latest && item.Kind == "error";
+                        latest = false;
                     }
                     if (turns != null) foreach (object turn in turns) if (turn is string && Key((string)turn)) chat.Turns.Add((string)turn);
                     if (allowed != null) foreach (object tool in allowed) if (tool is string) chat.Allowed.Add((string)tool);
@@ -176,8 +217,32 @@ namespace CapriDesktop
             saver.Start();
         }
 
+        private static string ResetTime(string details)
+        {
+            const string clock = @"\d{1,2}(?::\d\d(?:\s*[ap]\.?m\.?)?|\s*[ap]\.?m\.?)";
+            const string date = @"(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}";
+            const string iso = @"\d{4}-\d\d-\d\d(?:T[\d:.+-]+Z?)?";
+            const string zone = @"(?:\s*\([^()\r\n]+\)|\s+(?:UTC|GMT)[+-]?[\d:]*)?";
+            string pattern = @"\breset(?:s|ting)?\s+(?:(?<when>at|on|in)\s+)?(?<time>(?:" + iso + "|" + date + @"(?:,?\s+(?:at\s+)?" +
+                clock + @")?|" + clock + @"|\d+\s+(?:seconds?|minutes?|hours?|days?)|tomorrow)" + zone + ")";
+            Match found = Regex.Match(details, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            if (!found.Success) return "";
+            string when = found.Groups["when"].Value;
+            string time = found.Groups["time"].Value.TrimEnd(' ', '.');
+            if (when.Length == 0 && !time.Equals("tomorrow", StringComparison.OrdinalIgnoreCase))
+                when = Regex.IsMatch(time, @"\b(?:seconds?|minutes?|hours?|days?)\b", RegexOptions.IgnoreCase) ? "in" : char.IsDigit(time[0]) && !time.Contains("-") ? "at" : "on";
+            return " It resets " + (when.Length > 0 ? when + " " : "") + time + ".";
+        }
+
+        private static WorkspaceItem FailureCard(string reason, string details, string turn)
+        {
+            PlanBrain.Failure failure = PlanBrain.ProblemKind(details);
+            string text = failure == PlanBrain.Failure.SignIn ? SignIn : failure == PlanBrain.Failure.Limit ? UsageLimit + ResetTime(details) : reason;
+            return new WorkspaceItem { Kind = "error", Text = text, Input = details == text ? "" : details, Turn = turn, Retry = true };
+        }
+
         internal static bool Key(string value) { return Regex.IsMatch(value ?? "", "\\A[a-f0-9]{32}\\z", RegexOptions.CultureInvariant); }
-        internal static string Mode(string value) { return Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
+        internal static string Mode(string value) { return value == "Everything" ? BlackwallMode : Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
         internal static string Model(string value) { return Array.IndexOf(Models, value) < 0 ? Models[0] : value; }
         internal static double Number(Dictionary<string, object> row, string key)
         {
@@ -199,11 +264,11 @@ namespace CapriDesktop
 
         internal WorkspaceChat NewChat(string folder, bool blackwall) { return NewChat(folder, blackwall, true); }
 
-        private WorkspaceChat NewChat(string folder, bool blackwall, bool there)
+        private WorkspaceChat NewChat(string folder, bool blackwall, bool picked)
         {
             folder = Path.GetFullPath(folder);
-            if (there && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
-            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = new DirectoryInfo(folder).Name, Mode = blackwall ? "Everything" : "Ask me" };
+            if (picked && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
+            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = picked ? new DirectoryInfo(folder).Name : "New chat", Mode = blackwall ? BlackwallMode : "Ask me", HomePending = !picked };
             if (chat.Title.Length == 0) chat.Title = folder;
             lock (gate)
             {
@@ -257,7 +322,7 @@ namespace CapriDesktop
 
         internal void Flush(WorkspaceChat chat) { WriteChat(chat, true); }
 
-        private void WriteChat(WorkspaceChat chat, bool force)
+        private bool WriteChat(WorkspaceChat chat, bool force)
         {
             lock (chat.SaveGate)
             {
@@ -265,9 +330,10 @@ namespace CapriDesktop
                 long revision;
                 lock (chat.Gate)
                 {
-                    if (chat.Deleted || !force && (chat.Revision == chat.SavedRevision || chat.Running && Stopwatch.GetTimestamp() - chat.LastSave < Stopwatch.Frequency / 2)) return;
+                    if (chat.Deleted) return false;
+                    if (!force && (chat.Revision == chat.SavedRevision || chat.Running && Stopwatch.GetTimestamp() - chat.LastSave < Stopwatch.Frequency / 2)) return true;
                     List<object> items = new List<object>(), allowed = new List<object>(), turns = new List<object>();
-                    foreach (WorkspaceItem item in chat.Items) items.Add(item.Json());
+                    foreach (WorkspaceItem item in chat.Items) if (!item.Growing) items.Add(item.Json());
                     foreach (string tool in chat.Allowed) allowed.Add(tool);
                     foreach (string turn in chat.Turns) turns.Add(turn);
                     List<object> folders = new List<object>(), files = new List<object>(), sent = new List<object>();
@@ -277,8 +343,8 @@ namespace CapriDesktop
                     revision = chat.Revision;
                     chat.LastSave = Stopwatch.GetTimestamp();
                     copy = HuskJson.Map("id", chat.Id, "title", chat.Title, "folder", chat.Folder,
-                        "session", chat.Session, "mode", chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
-                        "trustAsked", chat.TrustAsked, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
+                        "session", chat.Session, "mode", chat.Mode == BlackwallMode ? "Everything" : chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
+                        "trustAsked", chat.TrustAsked, "homePending", chat.HomePending, "homeIdentity", chat.HomeIdentity, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
                 }
                 string text = HuskJson.Write(copy);
                 Exception failed = null;
@@ -291,6 +357,7 @@ namespace CapriDesktop
                 lock (chat.Gate)
                 {
                     chat.SavedRevision = revision;
+                    if (failed == null && chat.HomeIdentity.Length > 0 && chat.HomeIdentity == HuskJson.Text(copy, "homeIdentity")) chat.HomeSaved = true;
                     if (failed != null && !chat.SaveWarning && !chat.Deleted)
                     {
                         chat.SaveWarning = true;
@@ -299,6 +366,7 @@ namespace CapriDesktop
                     }
                 }
                 if (warning != null) Notify(chat, warning);
+                return failed == null;
             }
         }
 
@@ -328,22 +396,84 @@ namespace CapriDesktop
 
         private static string Spare() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri", "Workspace"); }
 
+        private string FallbackHome()
+        {
+            return HomeFallback ?? (Same(Home, defaultHome) ? defaultFallback : Home);
+        }
+
         internal bool IsHome(string folder)
         {
-            try { return Home != null && folder != null && Same(Tidy(folder), Tidy(Home)); }
+            try { return folder != null && (Same(Tidy(folder), Tidy(Home)) || Same(Tidy(folder), Tidy(FallbackHome()))); }
             catch (Exception) { return false; }
         }
 
-        // Makes her folder when the first message in it goes. If the profile folder can't take it, it goes in local app data.
-        internal string MakeHome()
+        internal bool IsHome(WorkspaceChat chat)
         {
-            try { Directory.CreateDirectory(Home); }
-            catch (Exception)
+            lock (chat.Gate)
             {
-                Home = Spare();
-                Directory.CreateDirectory(Home);
+                if (IsHome(chat.Folder)) return true;
+                if (string.IsNullOrEmpty(chat.HomeIdentity)) return false;
+                try { return IsHome(Path.GetDirectoryName(chat.Folder)) && chat.HomeIdentity == WorkspacePaths.DirectoryIdentity(chat.Folder); }
+                catch (Exception) { return false; }
             }
-            return Home;
+        }
+
+        private static string HomeName(string title)
+        {
+            StringBuilder cleaned = new StringBuilder();
+            char[] invalid = Path.GetInvalidFileNameChars();
+            foreach (char letter in title)
+                if (Array.IndexOf(invalid, letter) < 0) cleaned.Append(letter);
+            string name = HomePrefix(cleaned.ToString().Trim(' ', '.'), 40);
+            string stem = name.Split('.')[0].TrimEnd(' ');
+            if (Regex.IsMatch(stem, @"\A(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                name = "Chat " + HomePrefix(name, 35);
+            return name.Length == 0 ? "Chat" : name;
+        }
+
+        private static string HomePrefix(string name, int length)
+        {
+            int end = Math.Min(name.Length, length);
+            if (end > 0 && char.IsHighSurrogate(name[end - 1])) end--;
+            return name.Substring(0, end).TrimEnd(' ', '.');
+        }
+
+        private static SafeFileHandle MakeChatHome(string root, string name, out string folder)
+        {
+            Directory.CreateDirectory(root);
+            using (SafeFileHandle parent = WorkspacePaths.OpenDirectory(WorkspacePaths.Final(root), 3))
+            {
+                if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("The Workspace folder points to another folder.");
+                for (int number = 1; ; number++)
+                {
+                    string suffix = number == 1 ? "" : " " + number.ToString(CultureInfo.InvariantCulture);
+                    string leaf = HomePrefix(name, 40 - suffix.Length) + suffix;
+                    folder = Path.Combine(root, leaf);
+                    SafeFileHandle made = WorkspacePaths.CreateDirectory(parent, leaf);
+                    if (made != null) return made;
+                }
+            }
+        }
+
+        private void AssignChatHome(WorkspaceChat chat)
+        {
+            string name = HomeName(chat.Title), fallback = FallbackHome(), folder;
+            SafeFileHandle made;
+            try { made = MakeChatHome(chat.Folder, name, out folder); }
+            catch (Exception error)
+            {
+                if (Same(chat.Folder, fallback) || !(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
+                made = MakeChatHome(fallback, name, out folder);
+            }
+            using (made)
+            {
+                try { chat.HomeIdentity = WorkspacePaths.DirectoryIdentity(made); }
+                catch (IOException error) { throw new IOException("Couldn't verify the new Workspace folder at " + folder + ".", error); }
+                chat.Folder = folder;
+                chat.HomePending = false;
+                Save(chat);
+            }
         }
 
         // A chat in her folder is named from its first message: the first words, up to about 40 letters, cut at a word, on
@@ -356,7 +486,9 @@ namespace CapriDesktop
             if (cut)
             {
                 int at = words.LastIndexOf(' ', 40);
-                words = at >= 12 ? words.Substring(0, at) : words.Substring(0, 40);
+                int end = at >= 12 ? at : 40;
+                if (char.IsHighSurrogate(words[end - 1])) end--;
+                words = words.Substring(0, end);
             }
             words = words.TrimEnd(' ', '.', ',', ';', ':', '!', '?', '-', '\u2013', '\u2014', '(', '"', '\'');
             // A title made from a longer message looks cut: the dots sit tight against the last word.
@@ -367,11 +499,7 @@ namespace CapriDesktop
         // folder itself isn't made until a message goes: opening Workspace leaves nothing behind on the PC.
         internal WorkspaceChat HomeChat(bool blackwall)
         {
-            WorkspaceChat chat = NewChat(Home, blackwall, false);
-            lock (chat.Gate) chat.Title = "New chat";
-            Save(chat);
-            Notify(chat, null);
-            return chat;
+            return NewChat(Home, blackwall, false);
         }
 
         // Until the first message the folder Claude Code runs in can change: the first picked folder takes its place and the
@@ -393,6 +521,9 @@ namespace CapriDesktop
                 string old = chat.Folder, oldName = new DirectoryInfo(old).Name;
                 List<string> rest = new List<string>(chat.Folders);
                 chat.Folder = folders[0];
+                chat.HomePending = false;
+                chat.HomeIdentity = "";
+                chat.HomeSaved = false;
                 chat.Folders.Clear();
                 List<string> joining = folders.GetRange(1, folders.Count - 1);
                 joining.AddRange(rest);
@@ -417,7 +548,11 @@ namespace CapriDesktop
         internal List<string> Untrusted(WorkspaceChat chat)
         {
             List<string> untrusted = new List<string>();
-            foreach (string folder in AllFolders(chat)) if (!Trusted(folder)) untrusted.Add(folder);
+            lock (chat.Gate)
+            {
+                if (!IsHome(chat) && !Trusted(chat.Folder)) untrusted.Add(chat.Folder);
+                foreach (string folder in chat.Folders) if (!Trusted(folder)) untrusted.Add(folder);
+            }
             return untrusted;
         }
 
@@ -439,7 +574,11 @@ namespace CapriDesktop
             if (yes)
             {
                 List<string> folders = new List<string>();
-                foreach (string each in AllFolders(chat)) folders.Add(WorkspacePaths.Final(each));
+                lock (chat.Gate)
+                {
+                    if (!IsHome(chat)) folders.Add(WorkspacePaths.Final(chat.Folder));
+                    foreach (string each in chat.Folders) folders.Add(WorkspacePaths.Final(each));
+                }
                 lock (trustGate)
                 {
                     HashSet<string> copy = new HashSet<string>(trusted, StringComparer.OrdinalIgnoreCase);
@@ -473,7 +612,19 @@ namespace CapriDesktop
             lock (chat.Gate)
             {
                 if (title != null && title.Trim().Length > 0) chat.Title = title.Trim();
-                if (mode != null) chat.Mode = Mode(mode);
+                if (mode != null)
+                {
+                    chat.Mode = Mode(mode);
+                    WorkspaceTurn turn = chat.Live;
+                    if (turn != null)
+                    {
+                        turn.Mode = chat.Mode;
+                        if (turn.LaunchMode != "Plan only" && (chat.Mode == "Edits only" || chat.Mode == BlackwallMode))
+                            foreach (WorkspaceApproval ask in turn.Asks)
+                                if (ask.Choice == null && ModeAllows(chat, turn.Mode, ask.Item.Name, ask.Input, ask.Cwd))
+                                    Answer(chat, ask, true, false, null);
+                    }
+                }
                 if (model != null) chat.Model = Model(model);
                 Save(chat);
             }
@@ -596,6 +747,128 @@ namespace CapriDesktop
             if (changed != null && !closed && !chat.Deleted) changed(chat, item);
         }
 
+        internal const string FilesTitle = "Her files";
+        internal Func<string, string> UndoFiles = delegate(string id) { return Hands.Keeper.Undo(id); };
+
+        internal WorkspaceChat FilesChat()
+        {
+            foreach (WorkspaceChat one in Chats())
+                lock (one.Gate) if (!one.Deleted && one.Title == FilesTitle) return one;
+            WorkspaceChat chat = HomeChat(false);
+            Change(chat, FilesTitle, null, null);
+            return chat;
+        }
+
+        internal static string FilesText(FileChange change)
+        {
+            StringBuilder text = new StringBuilder(char.ToUpperInvariant(change.What[0]) + change.What.Substring(1) + ".");
+            int shown = 0;
+            foreach (FileStep step in change.Steps)
+            {
+                if (string.IsNullOrEmpty(step.From)) continue;
+                if (++shown > 8) continue;
+                text.Append('\n').Append(step.From).Append(" \u2192 ").Append(step.To);
+            }
+            if (shown > 8) text.Append('\n').Append(shown - 8).Append(" more");
+            return text.ToString();
+        }
+
+        internal void LogFiles(FileChange change)
+        {
+            if (change == null || change.Steps == null || string.IsNullOrEmpty(change.What)) return;
+            WorkspaceChat chat = FilesChat();
+            WorkspaceItem logged;
+            lock (chat.Gate) logged = chat.Items.Find(delegate(WorkspaceItem item) { return item.Kind == "files" && item.Id == change.Id; });
+            if (logged == null) { if (!change.Undone) Add(chat, new WorkspaceItem { Kind = "files", Id = change.Id, Text = FilesText(change) }); return; }
+            if (!change.Undone || logged.Decision.Length > 0) return;
+            lock (chat.Gate) logged.Decision = "undone";
+            Add(chat, new WorkspaceItem { Kind = "note", Text = "Put back: " + change.What + "." });
+        }
+
+        internal void LogFilesCall(string call, string result)
+        {
+            if (string.IsNullOrEmpty(call)) return;
+            WorkspaceChat chat = FilesChat();
+            string id = Guid.NewGuid().ToString("N"), turn = "files-" + id;
+            result = result ?? "";
+            WorkspaceItem tool = new WorkspaceItem { Kind = "tool", Name = "files", Id = id, Turn = turn, Text = "files " + call };
+            WorkspaceItem done = new WorkspaceItem { Kind = "result", Id = id, Turn = turn, Text = result.Length > 2000 ? result.Substring(0, 2000) : result };
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return;
+                chat.Items.Add(tool);
+                chat.Items.Add(done);
+                chat.Updated = DateTime.UtcNow.Ticks;
+                Save(chat);
+            }
+            Notify(chat, tool);
+            Notify(chat, done);
+        }
+
+        internal string UndoFile(WorkspaceChat chat, WorkspaceItem item)
+        {
+            lock (chat.Gate) { if (item.Decision.Length > 0) return null; item.Decision = "undone"; }
+            string told = UndoFiles(item.Id);
+            Add(chat, new WorkspaceItem { Kind = "note", Text = told });
+            return told;
+        }
+
+        internal const string DeedsTitle = "What she did";
+        internal Func<string, string> UndoDeeds = delegate(string id) { return Timeline.Undo(id); };
+
+        internal WorkspaceChat DeedsChat()
+        {
+            foreach (WorkspaceChat one in Chats())
+                lock (one.Gate) if (!one.Deleted && one.Title == DeedsTitle) return one;
+            WorkspaceChat chat = HomeChat(false);
+            Change(chat, DeedsTitle, null, null);
+            return chat;
+        }
+
+        internal static string DeedText(Deed deed)
+        {
+            StringBuilder text = new StringBuilder(deed.At.ToString("ddd h:mm tt", CultureInfo.InvariantCulture)).Append("  ");
+            if (deed.Job)
+            {
+                text.Append("Job: ").Append(deed.What);
+                int shown = Math.Min(deed.Steps.Count, 12), hidden = deed.StepCount - shown;
+                if (hidden > 0) text.Append('\n').Append(hidden).Append(hidden == 1 ? " step before" : " steps before");
+                for (int i = deed.Steps.Count - shown; i < deed.Steps.Count; i++) text.Append('\n').Append(deed.Steps[i]);
+                if (deed.Ended != null && deed.Ended != "done") text.Append('\n').Append(deed.Ended == "asked" ? "Stopped to ask you something." : deed.Ended == "failed" ? "Didn't finish." : "Stopped.");
+            }
+            else text.Append(deed.What);
+            if (deed.Undone) text.Append("\nPut back").Append(string.IsNullOrEmpty(deed.Back) ? "." : ": " + deed.Back);
+            else if (!deed.Failed && !deed.Undoable && !string.IsNullOrEmpty(deed.Kept)) text.Append('\n').Append(deed.Kept);
+            return text.ToString();
+        }
+
+        internal void LogDeed(Deed deed)
+        {
+            if (deed == null || string.IsNullOrEmpty(deed.Id)) return;
+            WorkspaceChat chat = DeedsChat();
+            WorkspaceItem logged;
+            lock (chat.Gate) logged = chat.Items.Find(delegate(WorkspaceItem item) { return item.Kind == "deed" && item.Id == deed.Id; });
+            if (logged == null) { Add(chat, new WorkspaceItem { Kind = "deed", Id = deed.Id, Text = DeedText(deed), Decision = deed.Undone ? "undone" : deed.Undoable ? "" : "kept" }); return; }
+            if (!deed.Undone) return;
+            lock (chat.Gate) { if (logged.Decision == "undone" || logged.Decision == "undoing") return; logged.Decision = "undone"; }
+            Add(chat, new WorkspaceItem { Kind = "note", Text = "Put back: " + deed.What.TrimEnd('.') + "." + (string.IsNullOrEmpty(deed.Back) ? "" : " " + deed.Back) });
+        }
+
+        internal bool UndoDeed(WorkspaceChat chat, WorkspaceItem item)
+        {
+            lock (chat.Gate) { if (item.Decision.Length > 0) return false; item.Decision = "undoing"; }
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string told;
+                try { told = UndoDeeds(item.Id) ?? ""; }
+                catch (Exception error) { told = Hands.Problem(error); }
+                bool back = told.StartsWith("Undid it", StringComparison.Ordinal) || told.StartsWith("Already put back", StringComparison.Ordinal);
+                lock (chat.Gate) item.Decision = back ? "undone" : told.StartsWith("I can't undo", StringComparison.Ordinal) ? "kept" : "";
+                Add(chat, new WorkspaceItem { Kind = "note", Text = back ? "Put back: " + told.Substring(told.IndexOf(':') + 1).Trim() : told });
+            });
+            return true;
+        }
+
         internal void Add(WorkspaceChat chat, WorkspaceItem item)
         {
             lock (chat.Gate)
@@ -620,8 +893,15 @@ namespace CapriDesktop
 
         internal static List<string> Arguments(string mode, string session, string model, string settings, bool trusted, List<string> extra)
         {
-            string permission = mode == "Edits only" ? "acceptEdits" : mode == "Plan only" ? "plan" : mode == "Everything" ? "bypassPermissions" : "default";
+            return Arguments(mode, session, model, settings, trusted, extra, true);
+        }
+
+        internal static List<string> Arguments(string mode, string session, string model, string settings, bool trusted, List<string> extra, bool partial)
+        {
+            mode = Mode(mode);
+            string permission = mode == "Edits only" ? "acceptEdits" : mode == "Plan only" ? "plan" : mode == BlackwallMode ? "bypassPermissions" : "default";
             List<string> args = new List<string> { "-p", "--verbose", "--input-format", "stream-json", "--output-format", "stream-json", "--permission-mode", permission };
+            if (partial) args.Add("--include-partial-messages");
             if (!string.IsNullOrEmpty(session)) { args.Add("--resume"); args.Add(session); }
             if (!string.IsNullOrEmpty(model) && model != "Default") { args.Add("--model"); args.Add(model.ToLowerInvariant()); }
             if (!string.IsNullOrEmpty(settings)) { args.Add("--settings"); args.Add(settings); }
@@ -660,13 +940,13 @@ namespace CapriDesktop
                 HuskJson.Map("matcher", "*", "hooks", new List<object> { hook }) })));
         }
 
-        private void ReadVersion(string exe, string folder)
+        private void ReadVersion(string exe, WorkspaceChat chat)
         {
             lock (versionGate)
             {
                 if (versionRead) return;
                 versionRead = true;
-                using (Process process = new Process { StartInfo = StartInfo(exe, new List<string> { "--version" }, folder) })
+                using (Process process = new Process { StartInfo = StartInfo(exe, new List<string> { "--version" }, chat.Folder) })
                 using (ManualResetEvent read = new ManualResetEvent(false))
                 {
                     StringBuilder text = new StringBuilder();
@@ -676,9 +956,10 @@ namespace CapriDesktop
                         else try { read.Set(); } catch (ObjectDisposedException) { }
                     };
                     process.ErrorDataReceived += delegate { };
+                    List<SafeFileHandle> pinned = null;
                     try
                     {
-                        process.Start();
+                        pinned = StartProcess(process, chat);
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
                         process.StandardInput.Close();
@@ -691,6 +972,7 @@ namespace CapriDesktop
                     finally
                     {
                         KillTree(process);
+                        WorkspacePaths.Release(pinned);
                         try { process.CancelOutputRead(); process.CancelErrorRead(); } catch (InvalidOperationException) { }
                     }
                 }
@@ -706,6 +988,7 @@ namespace CapriDesktop
                 bool files = retry ? LastFiles(chat).Count > 0 : chat.Files.Exists(delegate(string file) { return !chat.Sent.Contains(file); });
                 if (string.IsNullOrWhiteSpace(text) && !files) return false;
                 if (chat.Live != null || chat.Deleted || chat.PendingText != null || chat.Undoing != null) return false;
+                for (int i = chat.Items.Count - 1; i >= 0 && chat.Items[i].Kind != "user"; i--) chat.Items[i].Retry = false;
                 if (!retry)
                 {
                     List<string> riding = chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); });
@@ -726,14 +1009,23 @@ namespace CapriDesktop
                 }
                 string exe = Executable == null ? PlanBrain.Find("claude") : File.Exists(Executable) ? Executable : null;
                 if (exe == null) { Add(chat, new WorkspaceItem { Kind = "error", Text = Missing, Retry = true }); return false; }
-                turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
+                if (chat.HomePending)
+                {
+                    try { AssignChatHome(chat); }
+                    catch (Exception error)
+                    {
+                        Add(chat, new WorkspaceItem { Kind = "error", Text = error.Message, Retry = true });
+                        return false;
+                    }
+                }
+                turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, LaunchMode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
                 turn.Extra.AddRange(chat.Folders);
                 for (int i = chat.Items.Count - 1; i >= 0; i--)
                     if (chat.Items[i].Kind == "user") { foreach (string file in chat.Items[i].Files.Split('\n')) if (file.Length > 0) turn.Files.Add(file); break; }
                 chat.Live = turn;
                 try
                 {
-                    if (IsHome(chat.Folder) && !Directory.Exists(chat.Folder)) chat.Folder = MakeHome();
+                    if (IsHome(chat.Folder) && !Directory.Exists(chat.Folder)) Directory.CreateDirectory(chat.Folder);
                     if (!Directory.Exists(chat.Folder)) throw new IOException("That folder isn't here.");
                     foreach (string extra in turn.Extra) if (!Directory.Exists(extra)) throw new IOException("That folder isn't here: " + extra);
                     BeginUndo(chat, turn.Id);
@@ -745,7 +1037,7 @@ namespace CapriDesktop
                 catch (Exception error)
                 {
                     chat.Live = null;
-                    Add(chat, new WorkspaceItem { Kind = "error", Text = error.Message, Turn = turn.Id });
+                    Add(chat, FailureCard(error.Message, error.Message, turn.Id));
                     turn.Done.Set();
                     return false;
                 }
@@ -764,11 +1056,20 @@ namespace CapriDesktop
             return files;
         }
 
-        internal void Retry(WorkspaceChat chat)
+        internal void Retry(WorkspaceChat chat, WorkspaceItem failed = null)
         {
-            string text = null;
-            lock (chat.Gate) for (int i = chat.Items.Count - 1; i >= 0; i--) if (chat.Items[i].Kind == "user") { text = chat.Items[i].Text; break; }
-            if (text != null) Send(chat, text, true);
+            lock (chat.Gate)
+            {
+                WorkspaceItem current = null;
+                for (int i = chat.Items.Count - 1; i >= 0; i--)
+                {
+                    WorkspaceItem item = chat.Items[i];
+                    if (item.Retry && current == null) current = item;
+                    if (item.Kind != "user") continue;
+                    if (current != null && (failed == null || failed == current)) Send(chat, item.Text, true);
+                    return;
+                }
+            }
         }
 
         internal static ProcessStartInfo StartInfo(string exe, List<string> args, string folder)
@@ -797,10 +1098,22 @@ namespace CapriDesktop
             return start;
         }
 
+        private static List<SafeFileHandle> StartProcess(Process process, WorkspaceChat chat)
+        {
+            if (chat.HomeIdentity.Length > 0) return WorkspacePaths.StartInDirectory(process, chat.Folder, chat.HomeIdentity);
+            process.Start();
+            return null;
+        }
+
         private static void Tail(StringBuilder text, string line)
         {
             text.Append(line).Append('\n');
             if (text.Length > 8000) text.Remove(0, text.Length - 8000);
+        }
+
+        private static string DiagnosticTail(string raw)
+        {
+            return (raw.Length > 8000 ? raw.Substring(raw.Length - 8000) : raw).Trim();
         }
 
         private void Run(WorkspaceTurn turn, string exe, string text)
@@ -809,22 +1122,25 @@ namespace CapriDesktop
             int code = -1;
             try
             {
-                ReadVersion(exe, chat.Folder);
+                if (chat.HomeIdentity.Length > 0 && !chat.HomeSaved && !WriteChat(chat, true))
+                    throw new IOException("Couldn't save the chat's folder at " + chat.Folder + ".");
+                if (!turn.Stopped && !chat.Deleted) ReadVersion(exe, chat);
                 Atomic(turn.Settings, Settings(chat, turn.Id, Packaged.Launcher(System.Windows.Forms.Application.ExecutablePath), turn.Wrapper));
-                for (int attempt = 0; attempt < 2; attempt++)
+                bool renewed = false;
+                while (true)
                 {
                     code = RunProcess(turn, exe, text);
-                    if (!Restart(turn, attempt)) break;
+                    if (RetryPartials(turn, code))
+                    {
+                        ResetAttempt(turn);
+                        continue;
+                    }
+                    if (!Restart(turn, renewed ? 1 : 0)) break;
+                    renewed = true;
                     lock (chat.Gate)
                     {
                         chat.Session = turn.Session = "";
-                        turn.Result = turn.Failed = turn.TextSeen = turn.SessionSeen = false;
-                        turn.ResultText = "";
-                        turn.Fault = null;
-                        turn.Output.Clear();
-                        turn.Tools.Clear();
-                        turn.Edits.Clear();
-                        lock (turn.Errors) turn.Errors.Clear();
+                        ResetAttempt(turn);
                     }
                     Add(chat, new WorkspaceItem { Kind = "note", Text = "That Claude Code session expired, so this chat starts a new one.", Turn = turn.Id });
                 }
@@ -835,6 +1151,7 @@ namespace CapriDesktop
                 try
                 {
                     End(turn);
+                    EndStreams(turn);
                     try { FinishUndo(chat, turn.Id); }
                     catch (Exception error) { Add(chat, new WorkspaceItem { Kind = "note", Text = "Couldn't finish the undo copies: " + error.Message, Turn = turn.Id }); }
                     lock (chat.Gate)
@@ -844,14 +1161,24 @@ namespace CapriDesktop
                         if (!turn.Stopped && !chat.Deleted)
                         {
                             string stderr;
-                            lock (turn.Errors) stderr = turn.Errors.ToString().Trim();
+                            lock (turn.Errors) stderr = turn.Errors.ToString();
                             if (turn.Failed || !turn.Result)
                             {
                                 string reason = turn.Fault ?? (turn.Failed && turn.ResultText.Length > 0 ? turn.ResultText : "");
-                                if (stderr.Length > 0) reason += (reason.Length > 0 ? "\n" : "") + stderr;
-                                if (reason.Length == 0) reason = turn.Output.ToString().Trim();
+                                string stderrTail = DiagnosticTail(stderr);
+                                if (stderrTail.Length > 0) reason += (reason.Length > 0 ? "\n" : "") + stderrTail;
+                                string stdout = turn.Output.ToString();
+                                if (reason.Length == 0) reason = DiagnosticTail(stdout);
                                 if (reason.Length == 0) reason = "Claude Code ended without a reply (exit " + code + ").";
-                                Add(chat, new WorkspaceItem { Kind = "error", Text = reason, Turn = turn.Id });
+                                List<string> details = new List<string>();
+                                foreach (string raw in new[] { turn.ResultText, stderr, stdout, turn.AssistantFault })
+                                {
+                                    string detail = raw.Trim();
+                                    if (detail.Length > 0 && !details.Exists(delegate(string kept) { return kept.Contains(detail); })) details.Add(detail);
+                                }
+                                string diagnostic = details.Count == 0 ? reason : string.Join("\n", details.ToArray());
+                                if (turn.Fault != null && !diagnostic.Contains(turn.Fault)) diagnostic = turn.Fault + "\n" + diagnostic;
+                                Add(chat, FailureCard(reason, diagnostic, turn.Id));
                             }
                         }
                         if (chat.Live == turn) chat.Live = null;
@@ -864,7 +1191,7 @@ namespace CapriDesktop
                     lock (chat.Gate)
                     {
                         if (chat.Live == turn) chat.Live = null;
-                        chat.Items.Add(new WorkspaceItem { Kind = "error", Text = error.Message, Turn = turn.Id });
+                        if (!turn.Stopped && !chat.Deleted) Add(chat, FailureCard(error.Message, error.Message, turn.Id));
                     }
                 }
                 finally
@@ -891,7 +1218,8 @@ namespace CapriDesktop
                 turn.OutputDone.Reset();
                 turn.ErrorDone.Reset();
             }
-            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted, turn.Extra), turn.Chat.Folder) })
+            turn.Partials = partials;
+            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.LaunchMode ?? turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted, turn.Extra, turn.Partials), turn.Chat.Folder) })
             using (WorkspaceJob job = new WorkspaceJob())
             {
                 process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs row)
@@ -910,15 +1238,16 @@ namespace CapriDesktop
                     {
                         if (turn.Active != attempt) return;
                         if (row.Data == null) { turn.ErrorDone.Set(); return; }
-                        lock (turn.Errors) Tail(turn.Errors, row.Data);
+                        lock (turn.Errors) turn.Errors.Append(row.Data).Append('\n');
                     }
                 };
+                List<SafeFileHandle> pinned = null;
                 try
                 {
                     lock (turn.ProcessGate)
                     {
                         if (turn.Stopped) return -1;
-                        process.Start();
+                        pinned = StartProcess(process, turn.Chat);
                         turn.Process = process;
                         turn.Job = job;
                         if (!job.Bind(process)) throw new IOException("Workspace couldn't track Claude Code's processes.");
@@ -940,6 +1269,7 @@ namespace CapriDesktop
                 finally
                 {
                     End(turn);
+                    WorkspacePaths.Release(pinned);
                     try { process.CancelOutputRead(); process.CancelErrorRead(); } catch (InvalidOperationException) { }
                     lock (turn.Chat.Gate) turn.Active = 0;
                     lock (turn.ProcessGate) { turn.Process = null; turn.Job = null; }
@@ -948,6 +1278,173 @@ namespace CapriDesktop
         }
 
         internal static bool Expired(string text) { return (text ?? "").IndexOf("No conversation found", StringComparison.OrdinalIgnoreCase) >= 0; }
+
+        private static bool RejectedPartials(string text)
+        {
+            return Regex.IsMatch(text ?? "", @"(?:unknown|unrecognized|unrecognised|unsupported|unexpected|invalid)\s+(?:option|argument|flag)s?[^\r\n]*--include-partial-messages|--include-partial-messages[^\r\n]*(?:unknown|unrecognized|unrecognised|unsupported|not supported)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        private bool RetryPartials(WorkspaceTurn turn, int code)
+        {
+            lock (turn.Chat.Gate)
+            {
+                if (!turn.Partials || code == 0 || turn.Stopped || turn.Result || turn.TextSeen || turn.Streamed || turn.SessionSeen || turn.Tools.Count > 0 || turn.Asks.Count > 0) return false;
+                string errors;
+                lock (turn.Errors) errors = turn.Errors.ToString();
+                if (!RejectedPartials(errors) && !RejectedPartials(turn.Output.ToString()) && !RejectedPartials(turn.Fault)) return false;
+                partials = false;
+                return true;
+            }
+        }
+
+        private void ResetAttempt(WorkspaceTurn turn)
+        {
+            lock (turn.Chat.Gate)
+            {
+                EndStreams(turn);
+                turn.Messages.Clear();
+                turn.Message = turn.Latest = "";
+                turn.Result = turn.Failed = turn.TextSeen = turn.Streamed = turn.SessionSeen = false;
+                turn.ResultText = turn.AssistantFault = "";
+                turn.ReportedErrors.Clear();
+                turn.Fault = null;
+                turn.Output.Clear();
+                turn.Tools.Clear();
+                turn.Edits.Clear();
+                lock (turn.Errors) turn.Errors.Clear();
+            }
+        }
+
+        private static WorkspaceMessage Message(WorkspaceTurn turn, string id)
+        {
+            WorkspaceMessage message;
+            if (!turn.Messages.TryGetValue(id, out message)) turn.Messages[id] = message = new WorkspaceMessage();
+            return message;
+        }
+
+        private void Stream(WorkspaceTurn turn, Dictionary<string, object> row)
+        {
+            if (HuskJson.Get(row, "parent_tool_use_id") is string) return;
+            Dictionary<string, object> part = HuskJson.Get(row, "event") as Dictionary<string, object>;
+            string type = HuskJson.Text(part, "type");
+            if (type == "message_start")
+            {
+                turn.Message = HuskJson.Text(HuskJson.Get(part, "message") as Dictionary<string, object>, "id");
+                return;
+            }
+            if (type == "message_stop") { PublishStreams(turn); turn.Message = ""; return; }
+            if (turn.Message.Length == 0 || HuskJson.Get(part, "index") == null) return;
+            double number = Number(part, "index");
+            if (number < 0 || number > int.MaxValue || number != Math.Floor(number)) return;
+            int index = (int)number;
+            WorkspaceMessage message = Message(turn, turn.Message);
+            WorkspaceText text;
+            if (type == "content_block_start")
+            {
+                Dictionary<string, object> block = HuskJson.Get(part, "content_block") as Dictionary<string, object>;
+                if (HuskJson.Text(block, "type") != "text" || message.Blocks.ContainsKey(index)) return;
+                turn.Streamed = true;
+                WorkspaceItem ahead;
+                if (message.Ahead.TryGetValue(message.Texts.Count, out ahead))
+                {
+                    text = new WorkspaceText { Item = ahead, Final = true };
+                    message.Ahead.Remove(message.Texts.Count);
+                }
+                else
+                {
+                    string first = HuskJson.Text(block, "text");
+                    if (!string.IsNullOrWhiteSpace(first)) turn.Latest = turn.Message;
+                    text = new WorkspaceText { Item = new WorkspaceItem { Kind = "text", Text = first, Turn = turn.Id, Growing = true } };
+                    text.Text.Append(first);
+                    turn.Chat.Items.Add(text.Item);
+                    Notify(turn.Chat, null);
+                }
+                message.Texts.Add(text);
+                message.Blocks[index] = text;
+                if (turn.StreamTimer == null && !ManualStreams)
+                    turn.StreamTimer = new Timer(delegate(object state)
+                    {
+                        try { PublishStreams(turn); }
+                        catch (Exception error) { turn.Fault = error.Message; End(turn); }
+                    }, null, 40, 40);
+            }
+            else if (message.Blocks.TryGetValue(index, out text))
+            {
+                if (type == "content_block_stop") { PublishStreams(turn); return; }
+                Dictionary<string, object> delta = HuskJson.Get(part, "delta") as Dictionary<string, object>;
+                if (type != "content_block_delta" || text.Final || HuskJson.Text(delta, "type") != "text_delta") return;
+                string words = HuskJson.Text(delta, "text");
+                text.Text.Append(words);
+                if (!string.IsNullOrWhiteSpace(words)) turn.Latest = turn.Message;
+                text.Dirty = true;
+            }
+        }
+
+        internal void PublishStreams(WorkspaceTurn turn)
+        {
+            lock (turn.Chat.Gate)
+            {
+                if (turn.Chat.Deleted) return;
+                foreach (WorkspaceMessage message in turn.Messages.Values)
+                foreach (WorkspaceText text in message.Texts)
+                {
+                    if (!text.Dirty || text.Final) continue;
+                    text.Item.Text = text.Text.ToString();
+                    text.Dirty = false;
+                    Notify(turn.Chat, text.Item);
+                }
+            }
+        }
+
+        internal void EndStreams(WorkspaceTurn turn)
+        {
+            EndStreams(turn, turn.Result && !turn.Failed);
+        }
+
+        // A turn that ended well has had every real block finished, so a stream still unfinished then was abandoned, as when
+        // Claude Code retries a request, and goes. After Stop or a failure what streamed is all there is, so it stays, unless
+        // a newer message has words: then it was a request Claude Code retried, and the retry took its place.
+        internal void EndStreams(WorkspaceTurn turn, bool succeeded)
+        {
+            lock (turn.Chat.Gate)
+            {
+                if (turn.StreamTimer != null) { turn.StreamTimer.Dispose(); turn.StreamTimer = null; }
+                PublishStreams(turn);
+                bool saved = false;
+                foreach (KeyValuePair<string, WorkspaceMessage> message in turn.Messages)
+                foreach (WorkspaceText text in message.Value.Texts)
+                {
+                    if (!text.Item.Growing) continue;
+                    text.Item.Growing = false;
+                    text.Final = true;
+                    if (succeeded || message.Key != turn.Latest || text.Text.Length == 0) { turn.Chat.Items.Remove(text.Item); Notify(turn.Chat, null); }
+                    else { saved = true; Notify(turn.Chat, text.Item); }
+                }
+                if (saved) { turn.Chat.Updated = DateTime.UtcNow.Ticks; Save(turn.Chat); }
+            }
+        }
+
+        // Claude Code repeats each streamed text block in a finished row, in block order, so a message's next finished text
+        // belongs to its next text block whatever either says.
+        private void FinishedText(WorkspaceTurn turn, WorkspaceMessage message, string value)
+        {
+            int place = message.Finished++;
+            if (place >= message.Texts.Count)
+            {
+                WorkspaceItem item = new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id };
+                message.Ahead[place] = item;
+                Add(turn.Chat, item);
+                return;
+            }
+            WorkspaceText text = message.Texts[place];
+            if (text.Final) return;
+            text.Item.Text = value;
+            text.Item.Growing = text.Dirty = false;
+            text.Final = true;
+            turn.Chat.Updated = DateTime.UtcNow.Ticks;
+            Save(turn.Chat);
+            Notify(turn.Chat, text.Item);
+        }
 
         private static bool Restart(WorkspaceTurn turn, int attempt)
         {
@@ -959,7 +1456,7 @@ namespace CapriDesktop
         {
             Dictionary<string, object> row;
             try { row = HuskJson.Read(line) as Dictionary<string, object>; }
-            catch (FormatException) { lock (turn.Chat.Gate) Tail(turn.Output, line); return; }
+            catch (FormatException) { lock (turn.Chat.Gate) turn.Output.Append(line).Append('\n'); return; }
             if (row == null) return;
             WorkspaceChat chat = turn.Chat;
             lock (chat.Gate)
@@ -972,8 +1469,11 @@ namespace CapriDesktop
                     chat.Session = session;
                     Save(chat);
                 }
+                if (type == "stream_event") { Stream(turn, row); return; }
                 Dictionary<string, object> message = HuskJson.Get(row, "message") as Dictionary<string, object>;
                 List<object> blocks = HuskJson.List(HuskJson.Get(message, "content"));
+                string idMessage = HuskJson.Text(message, "id");
+                WorkspaceMessage streamed = type == "assistant" && idMessage.Length > 0 && !(HuskJson.Get(row, "parent_tool_use_id") is string) ? Message(turn, idMessage) : null;
                 if (blocks != null) foreach (object block in blocks)
                 {
                     Dictionary<string, object> content = block as Dictionary<string, object>;
@@ -982,7 +1482,16 @@ namespace CapriDesktop
                     if (kind == "text" && type == "assistant")
                     {
                         turn.TextSeen = true;
-                        Add(chat, new WorkspaceItem { Kind = "text", Text = HuskJson.Text(content, "text"), Turn = turn.Id });
+                        string value = HuskJson.Text(content, "text");
+                        if (streamed == null) Add(chat, new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id });
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(value)) turn.Latest = idMessage;
+                            FinishedText(turn, streamed, value);
+                        }
+                        PlanBrain.Failure failure = PlanBrain.ProblemKind(value);
+                        if (failure != PlanBrain.Failure.Other) turn.AssistantFault = value;
+                        if (value.Length > 0 && failure != PlanBrain.Failure.SignIn) turn.Ready.Set();
                     }
                     else if (kind == "tool_use")
                     {
@@ -991,6 +1500,7 @@ namespace CapriDesktop
                         Dictionary<string, object> input = HuskJson.Get(content, "input") as Dictionary<string, object>;
                         if (EditTool(tool)) turn.Edits[id] = HuskJson.Map("tool", tool, "input", input);
                         Add(chat, new WorkspaceItem { Kind = "tool", Name = tool, Id = id, Text = Summary(tool, input), Turn = turn.Id, Input = Shown(tool, input) });
+                        turn.Ready.Set();
                     }
                     else if (kind == "tool_result")
                     {
@@ -1004,6 +1514,9 @@ namespace CapriDesktop
                     turn.ResultText = HuskJson.Text(row, "result");
                     if (turn.ResultText.Length == 0) turn.ResultText = Content(HuskJson.Get(row, "errors"));
                     turn.Failed = true.Equals(HuskJson.Get(row, "is_error")) || HuskJson.Text(row, "subtype").StartsWith("error", StringComparison.Ordinal);
+                    EndStreams(turn, !turn.Failed);
+                    if (!turn.Failed && turn.ReportedErrors.Length > 0)
+                        Add(chat, new WorkspaceItem { Kind = "error", Text = turn.ReportedErrors.ToString().TrimEnd(), Turn = turn.Id });
                     if (!turn.TextSeen && !turn.Failed && turn.ResultText.Length > 0) Add(chat, new WorkspaceItem { Kind = "text", Text = turn.ResultText, Turn = turn.Id });
                     string cost = "";
                     object price = HuskJson.Get(row, "total_cost_usd") ?? HuskJson.Get(row, "cost_usd");
@@ -1017,8 +1530,8 @@ namespace CapriDesktop
                 else if (type == "error")
                 {
                     string error = Content(HuskJson.Get(row, "error") ?? HuskJson.Get(row, "message"));
-                    Tail(turn.Output, error);
-                    if (turn.Session.Length == 0 || !Expired(error)) Add(chat, new WorkspaceItem { Kind = "error", Text = error, Turn = turn.Id });
+                    turn.Output.Append(error).Append('\n');
+                    turn.ReportedErrors.Append(error).Append('\n');
                 }
             }
         }
@@ -1071,6 +1584,7 @@ namespace CapriDesktop
             {
                 if (turn.StopRecorded || turn.Chat.Deleted) return;
                 turn.StopRecorded = true;
+                EndStreams(turn);
                 Add(turn.Chat, new WorkspaceItem { Kind = "stopped", Text = "Stopped.", Turn = turn.Id });
             }
         }
@@ -1279,6 +1793,22 @@ namespace CapriDesktop
             }
         }
 
+        private static bool ModeAllows(WorkspaceChat chat, string mode, string tool, Dictionary<string, object> input, string cwd)
+        {
+            if (mode == BlackwallMode) return true;
+            bool quiet = mode == "Edits only" ? ReadTool(tool) || EditTool(tool) : QuietTool(tool);
+            return quiet && Inside(AllFolders(chat), AllFiles(chat), tool, input, cwd);
+        }
+
+        internal static string ModeHint(WorkspaceChat chat)
+        {
+            WorkspaceTurn turn = chat == null ? null : chat.Live;
+            if (turn == null || turn.LaunchMode == chat.Mode) return "";
+            if (turn.LaunchMode == "Plan only") return "This reply is still in Claude Code's Plan mode. The new mode applies to the next message.";
+            if (chat.Mode == "Plan only") return "New tool calls can only read here. Claude Code starts Plan mode on the next message.";
+            return "";
+        }
+
         internal Dictionary<string, object> Permission(Dictionary<string, object> row)
         {
             string id = HuskJson.Text(row, "chat"), key = HuskJson.Text(row, "turn"), tool = HuskJson.Text(row, "tool_name"), cwd = HuskJson.Text(row, "cwd");
@@ -1292,13 +1822,13 @@ namespace CapriDesktop
             {
                 turn = chat.Live;
                 if (turn == null || turn.Id != key || turn.Stopped || turn.Result || closed || chat.Deleted) return WorkspaceHook.Decision(false, "That Workspace turn isn't running.");
-                if (turn.Mode == "Plan only") return HuskJson.Map();
-                bool inside = Inside(AllFolders(chat), AllFiles(chat), tool, input, cwd);
-                bool quiet = turn.Mode == "Everything" || inside && (turn.Mode == "Edits only" ? ReadTool(tool) || EditTool(tool) : QuietTool(tool));
+                if ((turn.LaunchMode ?? turn.Mode) == "Plan only") return HuskJson.Map();
+                bool quiet = ModeAllows(chat, turn.Mode, tool, input, cwd);
+                if (turn.Mode == "Plan only" && !quiet) return WorkspaceHook.Decision(false, "Workspace is in Plan only.");
                 if (!quiet && !chat.Allowed.Contains(tool))
                 {
                     WorkspaceItem item = new WorkspaceItem { Kind = "approval", Name = tool, Text = Summary(tool, input), Input = HuskJson.Write(input), Turn = turn.Id };
-                    ask = new WorkspaceApproval { Item = item, Turn = turn };
+                    ask = new WorkspaceApproval { Item = item, Turn = turn, Input = input, Cwd = cwd };
                     item.Ask = ask;
                     turn.Asks.Add(ask);
                     Add(chat, item);
@@ -1308,6 +1838,7 @@ namespace CapriDesktop
             string reason = "Allowed in Workspace.";
             if (ask != null)
             {
+                turn.Ready.Set();
                 Action<WorkspaceChat, WorkspaceApproval> pending = Waiting;
                 if (pending != null) pending(chat, ask);
                 WaitHandle.WaitAny(new WaitHandle[] { ask.Answered, turn.Cancel }, ApprovalWait);
@@ -1689,7 +2220,11 @@ namespace CapriDesktop
                     foreach (WorkspaceChat chat in copy)
                     {
                         bool pending;
-                        lock (chat.Gate) pending = !chat.Deleted && chat.Revision != chat.SavedRevision;
+                        lock (chat.Gate)
+                        {
+                            if (chat.Live != null) EndStreams(chat.Live);
+                            pending = !chat.Deleted && chat.Revision != chat.SavedRevision;
+                        }
                         if (pending) WriteChat(chat, true);
                     }
                 }
@@ -1743,6 +2278,129 @@ namespace CapriDesktop
                 || (path.StartsWith("/", StringComparison.Ordinal) && !path.StartsWith("//", StringComparison.Ordinal)))
                 return Path.GetFullPath(Path.Combine(Path.GetPathRoot(cwd), path.TrimStart('\\', '/')));
             return Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(cwd, path));
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FileIdentity
+        {
+            internal uint Attributes, CreatedLow, CreatedHigh, AccessedLow, AccessedHigh, WrittenLow, WrittenHigh;
+            internal uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetFileInformationByHandle(SafeFileHandle file, out FileIdentity identity);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ObjectName
+        {
+            internal ushort Length, Capacity;
+            internal IntPtr Buffer;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ObjectAttributes
+        {
+            internal int Length;
+            internal IntPtr Parent, Name;
+            internal uint Attributes;
+            internal IntPtr Security, Quality;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IoStatus
+        {
+            internal IntPtr Status, Information;
+        }
+
+        [DllImport("ntdll.dll")]
+        private static extern int NtCreateFile(out SafeFileHandle file, uint access, ref ObjectAttributes attributes, out IoStatus io,
+            IntPtr allocation, uint flags, uint share, uint disposition, uint options, IntPtr extra, uint extraLength);
+
+        [DllImport("ntdll.dll")]
+        private static extern int RtlNtStatusToDosError(int status);
+
+        internal static SafeFileHandle CreateDirectory(SafeFileHandle root, string leaf)
+        {
+            IntPtr buffer = Marshal.StringToHGlobalUni(leaf), name = IntPtr.Zero;
+            try
+            {
+                ObjectName text = new ObjectName { Length = (ushort)(leaf.Length * 2), Capacity = (ushort)((leaf.Length + 1) * 2), Buffer = buffer };
+                name = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(ObjectName)));
+                Marshal.StructureToPtr(text, name, false);
+                ObjectAttributes attributes = new ObjectAttributes
+                {
+                    Length = Marshal.SizeOf(typeof(ObjectAttributes)), Parent = root.DangerousGetHandle(), Name = name, Attributes = 0x40
+                };
+                SafeFileHandle made;
+                IoStatus io;
+                int status = NtCreateFile(out made, 0x80, ref attributes, out io, IntPtr.Zero, 0x80, 1, 2, 0x00200001, IntPtr.Zero, 0);
+                if (status >= 0 && made != null && !made.IsInvalid) return made;
+                if (made != null) made.Dispose();
+                int error = RtlNtStatusToDosError(status);
+                if (error == 80 || error == 183) return null;
+                throw new System.ComponentModel.Win32Exception(error);
+            }
+            finally
+            {
+                if (name != IntPtr.Zero) Marshal.FreeHGlobal(name);
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        internal static SafeFileHandle OpenDirectory(string path, uint share)
+        {
+            SafeFileHandle directory = CreateFile(path, 0xA0, share, IntPtr.Zero, 3, 0x02200000, IntPtr.Zero);
+            try { DirectoryIdentity(directory); return directory; }
+            catch { directory.Dispose(); throw; }
+        }
+
+        internal static string DirectoryIdentity(string path)
+        {
+            using (SafeFileHandle directory = OpenDirectory(path, 7)) return DirectoryIdentity(directory);
+        }
+
+        internal static string DirectoryIdentity(SafeFileHandle file)
+        {
+            FileIdentity identity;
+            if (file.IsInvalid || !GetFileInformationByHandle(file, out identity)) throw new IOException("Couldn't read the Workspace folder.");
+            FileAttributes attributes = (FileAttributes)identity.Attributes;
+            if ((attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != FileAttributes.Directory)
+                throw new IOException("The Workspace folder points to another location.");
+            return string.Format(CultureInfo.InvariantCulture, "{0:x8}{1:x8}{2:x8}{3:x8}{4:x8}",
+                identity.Volume, identity.IndexHigh, identity.IndexLow, identity.CreatedHigh, identity.CreatedLow);
+        }
+
+        internal static List<SafeFileHandle> StartInDirectory(Process process, string path, string identity)
+        {
+            string canonical = Final(path);
+            Stack<string> parents = new Stack<string>();
+            for (string folder = canonical; !string.IsNullOrEmpty(Path.GetDirectoryName(folder)); folder = Path.GetDirectoryName(folder))
+                parents.Push(folder);
+            List<SafeFileHandle> pinned = new List<SafeFileHandle>();
+            try
+            {
+                while (parents.Count > 0)
+                {
+                    string folder = parents.Pop();
+                    pinned.Add(OpenDirectory(folder, parents.Count == 0 ? 1u : 3u));
+                }
+                if (pinned.Count == 0 || DirectoryIdentity(pinned[pinned.Count - 1]) != identity)
+                    throw new IOException("The chat's folder at " + path + " has changed.");
+                process.StartInfo.WorkingDirectory = canonical;
+                process.Start();
+                return pinned;
+            }
+            catch
+            {
+                Release(pinned);
+                throw;
+            }
+        }
+
+        internal static void Release(List<SafeFileHandle> pinned)
+        {
+            if (pinned == null) return;
+            for (int i = pinned.Count - 1; i >= 0; i--) pinned[i].Dispose();
         }
 
         internal static string Final(string path)

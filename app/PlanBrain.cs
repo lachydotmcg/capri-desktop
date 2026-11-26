@@ -61,6 +61,8 @@ namespace CapriDesktop
                 string system;
                 List<string> pictures;
                 string prompt = Prompt(messages, kind == "codex", out system, out pictures);
+                ChatMessage imageMessage = messages.Find(delegate(ChatMessage message) { return message.ImageMime != null; });
+                string mime = imageMessage == null ? "image/jpeg" : imageMessage.ImageMime;
                 List<string> args = new List<string>();
                 if (kind == "codex")
                 {
@@ -92,7 +94,7 @@ namespace CapriDesktop
                 {
                     List<string> asked = new List<string>(args);
                     lock (dropped) foreach (string flag in Newer) if (!dropped.Contains(flag)) asked.Add(flag);
-                    claude = Start(kind, app, asked, Streamed(prompt, pictures), run, cancelled);
+                    claude = Start(kind, app, asked, Streamed(prompt, pictures, mime), run, cancelled);
                     // An older Claude Code that doesn't know one of the newer flags runs again without it, and keeps running without it.
                     Match unknown = Regex.Match(claude.Errors + claude.Output, @"unknown option '(--[a-z-]+)'");
                     if (!unknown.Success || Array.IndexOf(Newer, unknown.Groups[1].Value) < 0) break;
@@ -109,7 +111,7 @@ namespace CapriDesktop
                     said = HuskJson.Get(row, "result") as string ?? "";
                     failed = HuskJson.Get(row, "is_error") is bool && (bool)HuskJson.Get(row, "is_error");
                 }
-                if (said == null || failed || said.Trim().Length == 0) throw Problem(kind, (said ?? "") + "\n" + claude.Errors);
+                if (said == null || failed || said.Trim().Length == 0) throw Problem(kind, Brain.RedactedImages((said ?? "") + "\n" + claude.Errors, string.Join(" ", pictures.ToArray())));
                 return said.Trim();
             }
             finally
@@ -155,22 +157,35 @@ namespace CapriDesktop
         }
 
         // Claude Code's stream-json input: one message from them, with any screenshots as pictures.
-        internal static string Streamed(string prompt, List<string> pictures)
+        internal static string Streamed(string prompt, List<string> pictures, string mime = "image/jpeg")
         {
             List<object> blocks = new List<object>();
-            foreach (string picture in pictures) blocks.Add(HuskJson.Map("type", "image", "source", HuskJson.Map("type", "base64", "media_type", "image/jpeg", "data", picture)));
+            foreach (string picture in pictures) blocks.Add(HuskJson.Map("type", "image", "source", HuskJson.Map("type", "base64", "media_type", mime, "data", picture)));
             blocks.Add(HuskJson.Map("type", "text", "text", prompt));
             return HuskJson.Write(HuskJson.Map("type", "user", "message", HuskJson.Map("role", "user", "content", blocks))) + "\n";
+        }
+
+        internal enum Failure { Other, SignIn, Limit }
+
+        internal static Failure ProblemKind(string output)
+        {
+            string text = Regex.Replace(output ?? "", @"\s+", " ").Trim();
+            if (Regex.IsMatch(text, @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase))
+                return Failure.SignIn;
+            if (Regex.IsMatch(text, @"usage limit|limit reached|hit your limit|rate.?limit|quota|too many requests|\b429\b|limit will reset|resets? at|\breset(?:s|ting)?\s+\d", RegexOptions.IgnoreCase))
+                return Failure.Limit;
+            return Failure.Other;
         }
 
         // What went wrong, in her words: signed out, out of plan for now, or the app's own reason.
         internal static BrainException Problem(string kind, string output)
         {
-            string text = Regex.Replace(output ?? "", @"\s+", " ").Trim();
+            string text = Regex.Replace(Brain.Redacted(Brain.Scrubbed(output)), @"\s+", " ").Trim();
             string app = Plans.App(kind);
-            if (Regex.IsMatch(text, @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase))
+            Failure failure = ProblemKind(text);
+            if (failure == Failure.SignIn)
                 return new BrainException(kind == "codex" ? "Codex isn't signed in. Run codex login first." : "Claude Code isn't signed in. Run claude and sign in.", true);
-            if (Regex.IsMatch(text, @"usage limit|limit reached|hit your limit|rate.?limit|quota|too many requests|\b429\b|limit will reset|resets? at", RegexOptions.IgnoreCase))
+            if (failure == Failure.Limit)
                 return new BrainException("Your " + Plans.Plan(kind) + " is out of messages for now.", true) { Detail = app + " says: " + Short(text) };
             return new BrainException(app + " couldn't answer" + (text.Length == 0 ? "." : ": " + Short(text)), true);
         }
@@ -181,6 +196,43 @@ namespace CapriDesktop
         {
             internal int Code;
             internal string Output = "", Errors = "";
+        }
+
+        internal static void ListModels(string kind, string app, List<string> models)
+        {
+            if (Brain.Off) return;
+            try
+            {
+                List<string> listed = kind == "codex"
+                    ? BetterModels.Codex(BetterModels.CodexCache(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)))
+                    : ClaudeModels(app);
+                if (!Brain.Off) foreach (string model in listed) BetterModels.Add(models, model);
+            }
+            catch (BrainException) { }
+            catch (WebException) { }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (FormatException) { }
+            catch (ArgumentException) { }
+        }
+
+        private static List<string> ClaudeModels(string app)
+        {
+            string run = Path.Combine(FolderOverride ?? Path.Combine(HuskHook.Data, "plan"), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(run);
+            try
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                Ran found = Start("claudecode", app, BetterModels.ClaudeArgs(), BetterModels.ClaudeQuery, run,
+                    delegate { return Brain.Off || waited.ElapsedMilliseconds >= 6000; });
+                return BetterModels.Claude(found.Output);
+            }
+            finally
+            {
+                try { Directory.Delete(run, false); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         // Runs the app hidden in her folder with their input on stdin. A .cmd from npm runs through cmd.exe, and none of the

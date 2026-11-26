@@ -1,0 +1,79 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+def site = rootProject.file('../site')
+def sprites = rootProject.file('../quest/Assets/Capri/Resources/CapriSprites')
+def webAssets = layout.buildDirectory.dir('generated/capri/assets')
+def webRes = layout.buildDirectory.dir('generated/capri/res')
+
+def capriAssets = tasks.register('capriAssets', Sync) {
+    into webAssets
+    into('web/remote') {
+        from(new File(site, 'remote'))
+    }
+    into('web/assets/sprites') {
+        from(new File(site, 'assets/sprites'))
+    }
+    into('web/assets/fonts') {
+        from(new File(site, 'assets/fonts'))
+    }
+    into('sprites') {
+        from(sprites) {
+            include 'idle.png', 'blink.png', 'dangle.png', 'sleep.png', 'wake.png', 'grin.png'
+        }
+    }
+}
+
+def capriRes = tasks.register('capriRes', Sync) {
+    into webRes
+    into('drawable-nodpi') {
+        from(new File(site, 'remote/icons')) {
+            include 'icon-512.png'
+            rename { 'capri_icon.png' }
+        }
+    }
+}
+
+android {
+    namespace 'app.capriai.capri'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'app.capriai.capri'
+        minSdk 26
+        targetSdk 35
+        versionCode 940
+        versionName '0.9.4'
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets.main.assets.srcDir(webAssets)
+    sourceSets.main.res.srcDir(webRes)
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+tasks.named('preBuild') {
+    dependsOn capriAssets, capriRes
+}
+
+dependencies {
+    implementation 'com.google.ar:core:1.56.0'
+}

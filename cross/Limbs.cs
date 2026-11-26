@@ -46,7 +46,7 @@ namespace CapriDesktop
 
         private static string Player()
         {
-            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : Music.Run("sh", new[] { "-c", "command -v paplay" }) != null ? "paplay" : "aplay";
+            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : SpeechAudio.OnPath("paplay") ? "paplay" : SpeechAudio.OnPath("pw-play") ? "pw-play" : "aplay";
             return soundPlayer;
         }
 
@@ -133,7 +133,7 @@ namespace CapriDesktop
             if (OnMac && Program.Smoke == null)
             {
                 Hands.HandsReady = () => MacFingers.Available;
-                Hands.HandsProblem = MacFingers.Problem;
+                Hands.HandsProblem = MacFingers.JobProblem;
                 Hands.MacClipboard = OperatingSystem.IsMacOSVersionAtLeast(26);
                 Chores.Shoot = MacFingers.Picture;
             }
@@ -142,6 +142,9 @@ namespace CapriDesktop
             // switched off in Security holds the call so she asks first, and their yes runs it.
             brain.Act = delegate(string tool, ToolArguments args)
             {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (args == null) args = new ToolArguments();
                 if (!VoiceActionRecovery.AllowCurrentTool()) return "That voice request ended; no action was dispatched.";
                 Func<bool> voiceGuard = VoiceActionRecovery.DispatchGuard;
                 if (voiceGuard != null)
@@ -151,14 +154,76 @@ namespace CapriDesktop
                 }
                 string unable = Hands.Unable(tool, args);
                 if (unable != null) return unable;
-                string held = Security.Gate(tool, args);
+                if (phone != null && RemoteTurn.AtPc(tool, args)) return phone.Refuse(tool, args);
+                string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
-                string done = Hands.Do(tool, args);
+                string done = RemoteDo(phone, tool, args);
+                if (phone != null && done == RemoteTurn.Ended) return done;
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
+            Hands.NativeWork = RemoteWork(Hands.NativeWork);
+            Hands.Work = RemoteWork(Hands.Work);
+        }
+
+        internal static string RemoteDo(RemoteTurn phone, string tool, ToolArguments args)
+        {
+            if (phone == null) return Hands.Do(tool, args);
+            if (!phone.Current) return RemoteTurn.Ended;
+            if (args == null) args = new ToolArguments();
+            string unable = Hands.Unable(tool, args);
+            if (unable != null) return unable;
+            Func<bool> previous = args.Current;
+            if (tool != "use_computer" && tool != "stream") args.Current = phone.Guard(previous);
+            if (!phone.Current || args.Current != null && !args.Current()) return RemoteTurn.Ended;
+            string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
+            string name = summary == "Using a tool" ? "tool" : tool;
+            string move = RemoteMessages.ToolMove(tool, args.Action, args.Name);
+            if (move == "heart") move = null;
+            phone.Tool(id, name, summary, "running");
+            string done;
+            try
+            {
+                if (!phone.Current) return RemoteTurn.Ended;
+                done = tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
+            }
+            catch
+            {
+                phone.Tool(id, name, summary, "failed");
+                throw;
+            }
+            phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
+            return done;
+        }
+
+        internal static bool MoveFailed(string result)
+        {
+            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name isn't on a Mac yet\.)");
+        }
+
+        internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
+        {
+            if (work == null) return null;
+            return delegate(ToolArguments args)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (phone != null && args != null) args.Current = phone.WorkGuard(args.Current);
+                return work(args);
+            };
+        }
+
+        internal static Func<string, string, string> RemoteWork(Func<string, string, string> work)
+        {
+            if (work == null) return null;
+            return delegate(string task, string asked)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                return work(task, asked);
+            };
         }
 
         internal static void Open(string id, bool mac)
@@ -400,6 +465,34 @@ namespace CapriDesktop
             return x11 != null && long.TryParse(x11.Trim(), out milliseconds) ? milliseconds / 1000.0 : -1;
         }
 
+        // Name listening asks on every tick, so logind's answer is kept for a few seconds instead of a busctl spawn every frame.
+        // Null still means this desktop can't say, and callers must keep listening rather than invent a lock.
+        private const int LockedKeep = 3000;
+        private static bool? lockedHint;
+        private static long lockedAt = -LockedKeep;
+        internal static Func<long> LockClock = () => Environment.TickCount64;
+
+        internal static bool? SessionLocked()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            long now = LockClock();
+            if (now - lockedAt < LockedKeep) return lockedHint;
+            lockedAt = now;
+            string hint = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "LockedHint" });
+            Match found = hint == null ? Match.Empty : Regex.Match(hint, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            lockedHint = found.Success ? found.Groups[1].Value == "true" : (bool?)null;
+            return lockedHint;
+        }
+
+        internal static bool? SessionAway()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            string hints = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "IdleHint", "LockedHint" });
+            MatchCollection found = hints == null ? null : Regex.Matches(hints, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            if (found == null || found.Count != 2) return null;
+            return found[0].Groups[1].Value == "true" || found[1].Groups[1].Value == "true";
+        }
+
         // Her app_window tool. On Mac it's the apps in the Dock, through System Events; on Linux it's the windows wmctrl lists,
         // which on Wayland are only the apps running through XWayland, except on KDE, where KWin lists them all.
         private static readonly Dictionary<string, string> Bundles = new Dictionary<string, string>();
@@ -421,7 +514,7 @@ namespace CapriDesktop
                 Blind = HyprlandDesktop.Current.LastError;
                 return native;
             }
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null)
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live)
             {
                 Blind = "This Wayland compositor does not expose a supported native window-control backend.";
                 return found;
@@ -493,7 +586,7 @@ namespace CapriDesktop
         {
             if (!mac && HyprlandDesktop.Current != null)
                 return action == "close_tab" ? ComputerJobs.CloseTab(window) : HyprlandDesktop.Current.Steer(window, action);
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null) return false;
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live) return false;
             if (mac)
             {
                 string name = Quoted(window.Program), bundle;
@@ -557,7 +650,8 @@ namespace CapriDesktop
                 && Regex.IsMatch(window.Title ?? "", @"^Minecraft\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(window.Title, @"^Minecraft\s+Launcher\b", RegexOptions.IgnoreCase);
         }
 
-        // Shortcuts with a tool of their own on Mac and Linux. The rest need key presses, which only Windows has so far.
+        // Shortcuts Mac and Linux handle without Windows' keys: a tool of their own, like the screenshot picker or the system
+        // monitor, or MacFingers' key presses on a Mac. The rest still need Windows.
         internal static string Shortcut(string name, bool mac)
         {
             if (mac)

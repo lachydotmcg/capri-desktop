@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Un control que se repintou non se volveu debuxar na imaxe.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Unha clave gratuíta de Google AI Studio, NVIDIA ou OpenRouter. Non hai nada que descargar. Precisa internet.
+A held trackpad scroll got a flick's long ease:	Un desprazamento mantido no trackpad tivo a suavidade longa dun toque:
+A layout change during a slide put the page at	Un cambio de deseño durante un desprazamento deixou a páxina en
+A layout change left the picture up.	Un cambio de deseño deixou a imaxe visible.
+A model in Ollama, on your local server or on your key.	Un modelo en Ollama, no teu servidor local ou coa túa clave.
+A paid key goes under MAX INTELLIGENCE by itself.	Unha clave de pago vai soa baixo MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Un plan que xa pagas, unha clave propia ou Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Un menú do panel de voz non garda copia propia da tipografía do panel.
+A wheel turn right after a slide ended froze the picture.	Un xiro da roda xusto despois dun desprazamento conxelou a imaxe.
+ALLOW THIS PHONE?	PERMITIR ESTE TELÉFONO?
+ALMOST THERE >	XA QUEDA POUCO >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	OUTRA CAPRI TOMOU O CONTROL · APAGA E ACENDE
+API key	Clave API
+API key, Claude plan or ChatGPT plan	Clave API, plan de Claude ou plan de ChatGPT
+Add	Engadir
+Address	Enderezo
+Address and key saved. Use saved to reconnect.	Enderezo e clave gardados. Usa Gardado para reconectar.
+Advanced Settings	Configuración avanzada
+All	Todos
+All screens	Todas as pantallas
+Allow	Permitir
+Almost there. I'll say hi the second my brain's in.	Xa queda pouco. Saúdote en canto estea o cerebro dentro.
+Always	Sempre
+Always on top	Sempre por riba
+Any Google account works. I opened the page in your browser.	Vale calquera conta de Google. Abrín a páxina no teu navegador.
+Applies to every voice	Aplícase a todas as voces
+Apps she may close	Aplicacións que pode pechar
+Ask Capri for more	Pídelle máis a Capri
+Asking your server...	Preguntando ao teu servidor...
+Asks before closing only the apps you choose.	Pregunta antes de pechar só as aplicacións que escolles.
+Auto	Auto
+Auto (match what I say)	Auto (segundo o que digo)
+Automatic: VB-CABLE, else Steam's	Automático: VB-CABLE, se non o de Steam
+BAD RELAY HOST	SERVIDOR DE RELÉ NON VÁLIDO
+BIG Z open notepad	BIG Z abre o bloc de notas
+BRAIN	CEREBRO
+BRAIN >	CEREBRO >
+BRAIN ONLINE >	CEREBRO EN LIÑA >
+BRAIN PROVIDER >	PROVEDOR DO CEREBRO >
+BRAIN VOICE CAPRI	CEREBRO VOZ CAPRI
+Back	Atrás
+Back on your saved API key.	De volta coa túa clave API gardada.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Mellor opción para este PC:
+Black	Negro
+Blank key means no key.	Clave en branco significa sen clave.
+Brain API key	Clave API do cerebro
+Brain model	Modelo do cerebro
+Brain provider	Provedor do cerebro
+Bring here	Traer aquí
+Bring to this screen	Traer a esta pantalla
+Browse	Examinar
+Browse mods	Examinar modificacións
+Browse to a voice model	Examinar un modelo de voz
+Browse...	Examinar...
+Bubble	Burbulla
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, estás aí
+CAN'T REACH THE RELAY · RETRYING	NON SE PODE CONECTAR AO RELÉ · REINTENTANDO
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CEREBRO DE VOZ CAPRI
+CHANGED, approve it again.	CAMBIADO, aproba de novo.
+CLIPS >	CLIPS >
+CLOUD VOICE	VOZ NA NUBE
+CODE	CÓDIGO
+COLORS >	CORES >
+CONNECTED	CONECTADO
+CONNECTING	CONECTANDO
+CUSTOM LOCAL	LOCAL PERSONALIZADO
+Call mode (beta)	Modo chamada (beta)
+Call mode does not fit.	O modo chamada non cabe.
+Call mode is outside its space.	O modo chamada está fóra do seu espazo.
+Cancel	Cancelar
+Cancel keys	Cancelar teclas
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remoto
+Capri code:	Código de Capri:
+Capri mods (*	Modificacións de Capri (*
+Capri, hello	Capri, ola
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Caos cando se enfada
+Chat with Capri from your phone	Fala con Capri desde o teu móbil
+ChatGPT plan	Plan de ChatGPT
+Check for updates	Buscar actualizacións
+Check in on me	Pasa a ver como estou
+Check in on me is hidden	Pasa a ver como estou está oculto
+Check in on me still decides whether she visits.	Pasa a ver como estou segue decidindo se vén.
+Check in on me's tip missed	Non se viu a pista de Pasa a ver como estou
+Chess	Xadrez
+Choose apps	Escoller aplicacións
+Choose folder...	Escoller cartafol...
+Choose where future Capri clips are saved	Escolle onde se gardarán os clips de Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Plan de Claude ou ChatGPT, unha clave de pago (OpenAI, Claude, DeepSeek) ou Ollama.
+Claude plan	Plan de Claude
+Clear	Limpar
+Cleared.	Limpado.
+Click Confirm to keep Down, or press Esc.	Preme Confirmar para manter Down, ou preme Esc.
+Click to open it.	Preme para abrilo.
+Clip my games	Grava os meus xogos
+Clips	Clips
+Close	Pechar
+Close other AIs for me	Pecha outras IAs por min
+Cloud voice	Voz na nube
+Cloud voice service	Servizo de voz na nube
+Cloud voice setup	Configuración da voz na nube
+Code mods can reach your whole PC. Only trusted ones.	As modificacións de código poden chegar a todo o teu PC. Só as de confianza.
+Code/Husk Mode	Modo Código/Husk
+Codex	Codex
+Commands	Comandos
+Comment on my games	Comenta os meus xogos
+Comments	Comentarios
+Confirm	Confirmar
+Confirm keys	Confirmar teclas
+Connect	Conectar
+Connect / Forget brain key	Conectar / Esquecer clave do cerebro
+Connect / Forget voice key	Conectar / Esquecer clave da voz
+Connect four	Conecta catro
+Controls	Controis
+Copri, what time is it	Copri, que hora é
+Copy error details	Copiar detalles do erro
+Copy the key	Copia a clave
+Copy the key from the page, then press Paste.	Copia a clave da páxina e logo preme Pegar.
+Couldn't open that page:	Non se puido abrir esa páxina:
+Couldn't open that:	Non se puido abrir iso:
+Couldn't open the mods folder:	Non se puido abrir o cartafol de modificacións:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M xa é a tecla do seu Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N silencia o micrófono
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V xa é a súa tecla de falar.
+Ctrl + Alt + V to talk	Ctrl + Alt + V para falar
+Custom local voice	Voz local personalizada
+Custom model name	Nome do modelo personalizado
+Dance	Bailar
+Dance to music	Bailar ao son da música
+Default	Predeterminado
+Default (follows Windows)	Predeterminado (segue Windows)
+Default duration for clip that and automatic clips	Duración predeterminada para o clip de agora e os clips automáticos
+Default length	Duración predeterminada
+Default model	Modelo predeterminado
+Delay	Atraso
+Deny	Denegar
+Discard	Descartar
+Discard + reload	Descartar e recargar
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Non queres esperar? Unha clave gratuíta me pon a falar en cuase un minuto.
+Done	Feito
+EXTRA REQUEST JSON >	JSON DE PETICIÓN EXTRA >
+EXTRAS >	EXTRAS >
+Edit	Editar
+Edit check-in lines	Editar frases de Pasa a ver como estou
+Edit check-in lines has the wrong view or dimming	Editar frases de Pasa a ver como estou ten a vista ou o atenuado incorrectos
+Edit check-in lines is out of place	Editar frases de Pasa a ver como estou está fóra de lugar
+Edit controls	Editar controis
+ElevenLabs API key	Clave API de ElevenLabs
+ElevenLabs voice ID	ID de voz de ElevenLabs
+English	Inglés
+Enter the game's name first.	Escribe primeiro o nome do xogo.
+Every	Cada
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Cada modificación revísase por malware antes de subir. As modificacións de código seguen preguntando antes de executarse.
+Explore after	Explorar despois
+Explore while I'm away	Explorar mentres estou fóra
+Extra request JSON	JSON de petición extra
+Extras	Extras
+FREE KEY	CLAVE GRATUÍTA
+FREE KEY >	CLAVE GRATUÍTA >
+Fast hands in games	Mans rápidas nos xogos
+File editor	Editor de ficheiros
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs e máis están en VOZ no Mainframe.
+Follow-up messages	Mensaxes de seguimento
+Forget	Esquecer
+Fork capri-mods	Bifurcar capri-mods
+Frame rate	Taxa de fotogramas
+Free	Gratuíto
+Free and private, works offline. Downloads	Gratuíto e privado, funciona sen conexión. Descarga
+Free and private, works offline. Downloads the best model for this PC.	Gratuíto e privado, funciona sen conexión. Descarga o mellor modelo para este PC.
+Free key	Clave gratuíta
+Free key providers	Provedores de claves gratuítas
+Free keys can be rate limited and slow.	As claves gratuítas poden ter límite de uso e ser lentas.
+Free voice in games	Voz gratuíta nos xogos
+Free voice style	Estilo de voz gratuíto
+Free voice:	Voz gratuíta:
+Free voice: Her own	Voz gratuíta: a propia
+Free · local model	Gratuíto · modelo local
+GAMES >	XOGOS >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Os comentarios de xogos funcionan á parte de Mirar a miña pantalla. Desactivado para eles, tamén no Modo Xogo; Só eventos e Charlatá deixan que mire o teu xogo
+Game controls	Controis do xogo
+Game name	Nome do xogo
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensibilidade do son do xogo. Baixaa se os auriculares están baixos pero Windows está en {0}% e ela reacciona a cada son; Desactivado ignora os sons do xogo
+Game sounds	Sons do xogo
+Games	Xogos
+Gaming Mode	Modo Xogo
+Gaming Mode key	Tecla do Modo Xogo
+Gaming Mode:	Modo Xogo:
+Gaming Mode: Ctrl + Alt + G	Modo Xogo: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Obter VB-CABLE
+Get VB-CABLE (free)...	Obter VB-CABLE (gratuíto)...
+Get free voice	Obter voz gratuíta
+Getting your Fish Audio voices...	Obtendo as túas voces de Fish Audio...
+Giant	Xigante
+Glitch	Fallo
+Glitch in at startup	Fallo ao iniciar
+Go to sleep	Ir durmir
+Go to the next screen	Ir á seguinte pantalla
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · nivel gratuíto · con límite de uso
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tes un plan de Claude ou ChatGPT, ou unha clave propia? Escóllea e conéctome.
+Got it, just me. Right-click me any time for Capri Mainframe.	Entendido, só eu. Preme co botón dereito sobre min en calquera momento para o Capri Mainframe.
+Grey	Gris
+H.{0} video bitrate target; higher values make larger files	Obxectivo de taxa de bits de vídeo H.{0}; valores máis altos fan ficheiros máis grandes
+HABITS >	HÁBITOS >
+HER HANDS >	AS SÚAS MANS >
+HER JOBS >	OS SEUS TRABALLOS >
+HER MEMORY >	A SÚA MEMORIA >
+HER MODS >	AS SÚAS MODIFICACIÓNS >
+HH:mm	HH:mm
+HOW I SOUND >	COMO SOOU >
+Hang here	Quédate aquí
+Have Ollama? Open it, then press Refresh.	Tes Ollama? Ábreo e logo preme Actualizar.
+Head pats	Caricias na cabeza
+Hearing	Audición
+Hearing engine	Motor de audición
+Hearing fix	Arranxo da audición
+Hearing status	Estado da audición
+Help	Axuda
+Help page	Páxina de axuda
+Her colors	As súas cores
+Her folder	A súa carpeta
+Her memories	As súas memorias
+Her own colors are back.	As súas cores propias volveron.
+Her own notes (no vault)	As súas notas propias (sen almacén)
+Her perch frames per second	Fotogramas por segundo do seu poleiro
+Her personality	A súa personalidade
+Her size	O seu tamaño
+Her speaker	O seu altofalante
+Her speaker is hidden or outside VOICE	O seu altofalante está oculto ou fóra de VOZ
+Her speaker overlaps the mic or hearing row	O seu altofalante solapa a fila do micrófono ou da audición
+Her speaker:	O seu altofalante:
+Her speaker: Default	O seu altofalante: Predeterminado
+Her voice in your mic	A súa voz no teu micrófono
+Her voice in your mic: loudness	A súa voz no teu micrófono: volume
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	A súa propia voz. O seu ton está en Configuración > VOZ > Ton, e móvense xuntos.
+Her voice joins your mic only in call mode.	A súa voz únese ao teu micrófono só no modo chamada.
+Her voice volume	Volume da súa voz
+Her voice's pitch	Ton da súa voz
+Her voice's pitch, the same as Settings > VOICE > Pitch	Ton da súa voz, o mesmo que Configuración > VOZ > Ton
+Her voice's speed	Velocidade da súa voz
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	A súa voz, e dúas copias mesturadas por baixo, cada unha co seu ton e atraso.
+Her voices · free	As súas voces · gratuítas
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ei, choom. Son Capri. Preciso dun cerebro antes de poder responder. Escolle un.
+Hide / Show Capri	Ocultar / Mostrar Capri
+Hide / Show key	Tecla ocultar / mostrar
+Hide Capri	Ocultar Capri
+Hide for now	Ocultar por agora
+Hide her	Ocultala
+Hide in full screen	Ocultar en pantalla completa
+Hide this	Ocultar isto
+Hide, keep player	Ocultala, deixar o reprodutor
+Hide/show:	Ocultar/mostrar:
+Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
+Hologram	Holograma
+Hop off	Baixar
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Canto tarda un PC inactivo en mandala durmir; cinco minutos segue indicando que estás fóra
+How long a stroke over her a head pat needs	Canto dura unha caricia na cabeza sobre ela
+How long her replies stay up	Canto tempo permanecen visibles as súas respostas
+How long you are away before she scrolls a browser or reader	Canto tempo fóra estás antes de que ela desprace un navegador ou lector
+How much her voice glitches	Canto falla a súa voz
+How much of the chat she keeps	Canta parte da conversa conserva
+How much she wanders	Canto deambula
+How often she pops in to say hi	Con que frecuencia aparece para saudar
+How robotic her voice sounds	Canto soa a robot a súa voz
+How to	Como
+Huge	Enorme
+I can hear you.	Escóitote.
+I glance at your screen and comment. Costs a little on a paid brain.	Miro a túa pantalla e comento. Custa un pouco con cerebro de pago.
+I keep listening. Say my name, then just talk.	Sigo escoitando. Di o meu nome e logo fala.
+I speak	Falo
+I talk about your game as you play. Costs a little on a paid brain.	Falo do teu xogo mentres xogas. Custa un pouco con cerebro de pago.
+I type my replies and stay quiet.	Escribo as miñas respostas e quedo calada.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Non responderei, e non se envía nada a ningún sitio. Seguirei por aquí, bailarei ao son da túa música e farei as cousas rápidas que pidas, como o volume.
+I'll talk in	Falarei en
+IN DISCORD >	EN DISCORD >
+INSTALLED >	INSTALADAS >
+Import a Capri mod	Importar unha modificación de Capri
+Import mod	Importar modificación
+In full screen	En pantalla completa
+In games	Nos xogos
+Input	Entrada
+Input, Output or How to overlaps a row	Entrada, Saída ou Como solapa unha fila
+Input:	Entrada:
+Input: default	Entrada: predeterminada
+Install	Instalar
+Install mod	Instalar modificación
+Installed.	Instalado.
+It may ask for a phone number. I opened the page in your browser.	Pode pedir un número de teléfono. Abrín a páxina no teu navegador.
+It still does its own job in other apps too.	Segue facendo o seu propio traballo tamén noutras aplicacións.
+It won't type in other apps while she runs.	Non escribirá noutras aplicacións mentres ela está en marcha.
+JUST ME >	SÓ EU >
+Jealous of other AIs	Celosa doutras IAs
+Join the Discord	Únete ao Discord
+KB.	KB.
+KEYS	TECLAS
+KEYS >	TECLAS >
+Keep PC awake for jobs	Manter o PC activo para os traballos
+Keep player	Deixar o reprodutor
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Garda os últimos dous minutos do teu xogo na memoria. Di clip que para gardalo.
+Key	Clave
+Key cleared: a model file needs none.	Clave borrada: un ficheiro de modelo non precisa ningunha.
+Key cleared: paste the key for	Clave borrada: pega a clave para
+Key forgotten.	Clave esquecida.
+Key. It goes only to this server, as a Bearer key	Clave. Vai só a este servidor, como clave Bearer
+Kokoro only, like es	Só Kokoro, como es
+LAST THING >	ÚLTIMA COUSA >
+LISTENING >	ESCOITANDO >
+Language	Idioma
+Large	Grande
+Last thing. These cost a little or use your mic, so they're your pick.	Última cousa. Estas custan un pouco ou usan o micrófono, así que escóllelas ti.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Última cousa. Estas custan un pouco ou usan o micrófono, así que escóllelas ti. Logo quero saber como te chamo.
+Layers	Capas
+Learn more	Saber máis
+Leaving Settings threw its picture away straight away.	Ao saír de Configuración descartou a súa imaxe de inmediato.
+Legacy stand	Soporte heredado
+Lie down	Deitarse
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Liñas de diálogo do PC gardadas na memoria mentres se mira xuntos. A metade máis antiga convértese nunha nota cando Lembrar o que ve está activado
+Listen for Capri	Escoitar a Capri
+Live reactions	Reaccións en directo
+Local server address	Enderezo do servidor local
+Long	Longo
+Longest wait (minutes)	Espera máxima (minutos)
+Looking at this PC...	Mirando este PC...
+Looking for Ollama. Open it if it isn't running.	Buscando Ollama. Ábreo se non está en execución.
+Looking for a brain...	Buscando un cerebro...
+Looking in the mods directory for updates...	Buscando actualizacións no directorio de modificacións...
+Looking in the mods directory...	Buscando no directorio de modificacións...
+Looking...	Buscando...
+MAIN >	PRINCIPAL >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELIXENCIA MEDIA
+MEMORY VAULT >	ALMACÉN DE MEMORIA >
+MODS	MODIFICACIÓNS
+MODS >	MODIFICACIÓNS >
+MODS DIRECTORY >	DIRECTORIO DE MODIFICACIÓNS >
+MODS INSTALLED COLORS	CORES DAS MODIFICACIÓNS INSTALADAS
+MOVES >	MOVEMENTOS >
+MY BRAIN	O MEU CEREBRO
+MY FREE VOICE	A MIÑA VOZ GRATUÍTA
+MY PLAN OR KEY	O MEU PLAN OU CLAVE
+MY PLAN OR KEY >	O MEU PLAN OU CLAVE >
+Made your Fish Audio voice. Press Test to hear it.	Creouse a túa voz de Fish Audio. Preme Probar para escoitala.
+Mainframe colours	Cores do Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Cores do Mainframe. Night City é vermello e cian; Negro, Branco e Gris cambian o Mainframe, os seus menús, a caixa de escritura e as súas notas
+Mainframe frames	Marcos do Mainframe
+Mainframe key	Tecla do Mainframe
+Mainframe size	Tamaño do Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Tamaño do Mainframe. Auto faino máis grande cando Virtual Super Resolution ou DSR reduce un escritorio grande a unha pantalla máis pequena
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Creando a túa voz de Fish Audio...
+Max reply	Resposta máxima
+Maximum clip resolution, keeping the game's shape without upscaling	Resolución máxima do clip, mantendo a forma do xogo sen escalar
+Medium	Media
+Memory	Memoria
+Memory size	Tamaño da memoria
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Tamaño da memoria en tokens para Ollama e o seu cerebro integrado. Auto medra cando unha pregunta precisa máis
+Mg	Mg
+Mic level:	Nivel do micrófono:
+Mic test finished. Sound is reaching Capri.	Probas de micrófono rematadas. O son chega a Capri.
+Mic:	Micrófono:
+Mic: default	Micrófono: predeterminado
+Microphone	Micrófono
+Mini player	Mini reprodutor
+Mini player over full screen	Mini reprodutor sobre pantalla completa
+Mini-games	Minixogos
+Minimising the Mainframe left it sliding.	Minimizar o Mainframe deixouno deslizando.
+Minimize	Minimizar
+Mod filter	Filtro de modificacións
+Mod options	Opcións de modificacións
+Mod pages	Páxinas de modificacións
+Mod rules	Regras de modificacións
+Mod sort	Orde de modificacións
+Mod switch	Interruptor de modificacións
+Model	Modelo
+Model folder	Cartafol do modelo
+Model name, optional	Nome do modelo, opcional
+Mods	Modificacións
+Mods directory	Directorio de modificacións
+Mods folder	Cartafol de modificacións
+Most NVIDIA models can't see your screen.	A maioría dos modelos NVIDIA non ven a túa pantalla.
+Mouse wheel notches got a flick's long ease:	Os pasos da roda do rato tiveron unha suavidade longa:
+Move	Mover
+Move key to MAX INTELLIGENCE	Mover clave a MAX INTELLIGENCE
+Move to MAX	Mover a MAX
+Music	Música
+Music app	Aplicación de música
+Music app: where she plays music when you don't name an app	Aplicación de música: onde reproduce música cando non nomeas unha aplicación
+Mute	Silenciar
+Mute her	Silenciala
+Mute mic key	Tecla silenciar micrófono
+Mute mic:	Silenciar micrófono:
+Mute mic: Ctrl + Alt + N	Silenciar micrófono: Ctrl + Alt + N
+My brain	O meu cerebro
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	O meu cerebro está baixando. Saudarei en canto estea dentro e poderás falar comigo entón.
+My brain's on its way. While it comes down, let's sort out how I sound.	O meu cerebro vén de camiño. Mentres baixa, arranxemos como soou.
+My provider	O meu provedor
+NO AI	SEN IA
+NO PHONES CONNECTED	NINGÚN TELÉFONO CONECTADO
+NO PREVIEW	SEN VISTA PREVIA
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratuíto · a miúdo lento nas horas punta
+NVIDIA's free API is often slow, especially at busy times.	A API gratuíta de NVIDIA adoita ser lenta, sobre todo nas horas punta.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Clave API de NVIDIA, Google AI Studio (Gemini) ou OpenRouter
+Names:	Nomes:
+Needs a key	Precisa unha clave
+Never	Nunca
+New code	Código novo
+New voice from a clip...	Nova voz a partir dun clip...
+Next	Seguinte
+Night City	Night City
+No AI	Sen IA
+No AI · no brain at all	Sen IA · sen cerebro ningún
+No brain runs, and nothing is sent anywhere.	Non funciona ningún cerebro e non se envía nada a ningún sitio.
+No brain yet	Aínda sen cerebro
+No code open	Non hai código aberto
+No limit	Sen límite
+No mic found	Non se atopou micrófono
+No mods in the directory yet.	Aínda non hai modificacións no directorio.
+No mods match that.	Non hai modificacións que coincidan.
+No mods match.	Non hai modificacións coincidentes.
+No phones yet	Aínda non hai teléfonos
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Aínda non hai micrófono virtual. Escolle Saída e logo Obter VB-CABLE (gratuíto).
+None yet: pick to get VB-CABLE (free)	Ningún aínda: escolle para obter VB-CABLE (gratuíto)
+Normal	Normal
+Not a relay host	Non é un servidor de relé
+Not imported. Nothing ran.	Non importado. Non se executou nada.
+Not updated. The old one is still in.	Non actualizado. O antigo segue instalado.
+Nothing needed updating.	Non había nada que actualizar.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Non hai nada que descargar, nada se envía a ningún sitio. Non responderei. Engade un cerebro cando queiras no Mainframe.
+Nothing to show from the mods directory.	Nada que mostrar do directorio de modificacións.
+Nothing? Windows Settings > Privacy & security > Microphone.	Nada? Configuración de Windows > Privacidade e seguridade > Micrófono.
+Nous Portal keys aren't supported yet.	As claves de Nous Portal aínda non son compatibles.
+OBS	OBS
+OFF	DESACTIVADO
+OLLAMA	OLLAMA
+ON	ACTIVADO
+ON THIS PC	NESTE PC
+OR A KEY	OU UNHA CLAVE
+Obsidian memory vault	Almacén de memoria Obsidian
+Off	Desactivado
+Off. Turn on Her voice in your mic above.	Desactivado. Activa A súa voz no micrófono enriba.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Desactivado: soa como sempre. Activado: todas as voces que ten, tamén ElevenLabs.
+Often	Con frecuencia
+On	Activado
+On / Off	Activado / Desactivado
+On: your mic and her voice are going in.	Activado: o teu micrófono e a súa voz están entrando.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Un obxecto JSON, engadido a cada petición que envía este cerebro. Substitúe o valor de Capri para calquera nome que comparta, e non se comproba co modelo.
+Online speech recognition	Recoñecemento de fala en liña
+Open Capri Mainframe	Abrir Capri Mainframe
+Open Ollama, I'll find it	Abre Ollama, eu atopareino
+Open clips folder	Abrir cartafol de clips
+Open her memories	Abrir as súas memorias
+Open her notes	Abrir as súas notas
+Open mods folder	Abrir cartafol de modificacións
+Open the page again	Abrir de novo a páxina
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ou OpenRouter.
+OpenAI-compatible server or provider.	Servidor ou provedor compatible con OpenAI.
+OpenRouter · free models only	OpenRouter · só modelos gratuítos
+Optional	Opcional
+Optional. Blank means no key.	Opcional. En branco significa sen clave.
+Options	Opcións
+Out of the box a little higher, just behind her.	De fábrica un pouco máis alto, xusto detrás dela.
+Out of the box lower, just behind her.	De fábrica máis baixo, xusto detrás dela.
+Output	Saída
+Output:	Saída:
+Output: none	Saída: ningunha
+PHONE CONNECTED	TELÉFONO CONECTADO
+PHONES >	TELÉFONOS >
+PHONES CONNECTED	TELÉFONOS CONECTADOS
+PREBUILT LOCAL	LOCAL PREINSTALADO
+PUBLISH MOD >	PUBLICAR MODIFICACIÓN >
+Pair a phone	Vincular un teléfono
+Paste	Pegar
+Paste API key	Pegar clave API
+Paste a brain API key	Pegar unha clave API de cerebro
+Paste reads your clipboard once, when you press it.	Pegar lee o portapapeis unha vez, cando o prementes.
+Paste your key here	Pega aquí a túa clave
+Pat stroke	Caricia
+Perch	Poleiro
+Perch over {0} fps uses more CPU	Poleiro por riba de {0} fps usa máis CPU
+Pick Output to get it.	Escolle Saída para obtelo.
+Pick a brain so I can talk back. You can change it any time.	Escolle un cerebro para poder responder. Podes cambialo cando queiras.
+Pick a clip of a voice you have the rights and consent to use	Escolle un clip dunha voz que tes dereito a usar e consentimento
+Pick a free model. I opened the page in your browser.	Escolle un modelo gratuíto. Abrín a páxina no teu navegador.
+Pick a new clip of you...	Escolle un clip novo de ti...
+Pick a voice model...	Escolle un modelo de voz...
+Pick one. Only one brain runs at a time.	Escolle un. Só funciona un cerebro de cada vez.
+Pick the note her memories go in	Escolle a nota onde van as súas memorias
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Escolle de {0} a {1} segundos dunha voz que tes dereito a usar e consentimento
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Escolle de {0} a {1} segundos de ti falando, ou dunha voz que tes dereito a usar e consentimento
+Pitch	Ton
+Play	Reproducir
+Play...	Reproducir...
+Player only	Só o reprodutor
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Os modelos Pocket TTS copian a voz deste clip. Preme Probar para escoitala.
+Pop-in times	Momentos de aparición
+Pop-ins	Apariciones
+Power saver	Aforro de enerxía
+Power saver: how lightly she runs in games, or always	Aforro de enerxía: canto de lixeiro funciona nos xogos, ou sempre
+Preset	Preaxuste
+Press Create API key	Preme Crear clave API
+Press Create Key	Preme Crear clave
+Press Generate API Key	Preme Xerar clave API
+Press Test and say something, so I know I can hear you.	Preme Probar e di algo, para que saiba que te escoito.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Preme unha tecla, soa ou con Ctrl, Alt, Maiús ou Win.
+Press new keys, then Confirm	Preme novas teclas e logo Confirmar
+Provider	Provedor
+Provider API key, optional	Clave API do provedor, opcional
+Provider base URL	URL base do provedor
+Provider forgotten.	Provedor esquecido.
+Provider overlaps the brain name or note	O provedor solapa o nome ou a nota do cerebro
+Publish	Publicar
+Publish mod	Publicar modificación
+Push to talk is off.	Falar ao premer está desactivado.
+Push to talk key	Tecla de falar ao premer
+Push to talk:	Falar ao premer:
+Push to talk: not set	Falar ao premer: sen definir
+QR CODE >	CÓDIGO QR >
+QR hidden while streaming	QR oculto durante a emisión
+Quick	Rápido
+Quiet key	Tecla de silencio
+Quiet:	Silencio:
+Quiet: Ctrl + Alt + P	Silencio: Ctrl + Alt + P
+Quit Capri	Saír de Capri
+RELAY >	RELÉ >
+REMOTE >	REMOTO >
+RUNS CODE.	EXECUTA CÓDIGO.
+Rarely	Raramente
+Rate mod	Valorar modificación
+Reading its README...	Lendo o seu README...
+Refresh	Actualizar
+Reinstall	Reinstalar
+Reload	Recargar
+Reloaded.	Recargado.
+Remember our chats	Lembrar as nosas conversas
+Remember what she sees	Lembrar o que ve
+Remote	Remoto
+Remote off	Remoto desactivado
+Remote on	Remoto activado
+Remove	Quitar
+Remove all phones	Quitar todos os teléfonos
+Replies	Respostas
+Reply length	Lonxitude da resposta
+Report a problem	Informar dun problema
+Reset colors	Restablecer cores
+Reset to her default	Restablecer ao seu predeterminado
+Resolution	Resolución
+Restart to update	Reiniciar para actualizar
+Restless	Inquieta
+Revoke	Revogar
+Revoke also removes the phones its links added	Revogar tamén quita os teléfonos que engadiron as súas ligazóns
+Ride cursor	Montar no cursor
+Ride cursor / Hop off	Montar no cursor / Baixar
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Preme co botón dereito sobre min para o Capri Mainframe. Un cerebro acéndese en CEREBRO.
+Right-click me any time for the Mainframe, Help and the Discord.	Preme co botón dereito sobre min para o Mainframe, Axuda e o Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ou outra aplicación: escolle
+Robot	Robot
+Rock, paper, scissors	Pedra, papel, tesoira
+Run this code mod?	Executar esta modificación de código?
+Running on this PC	Funcionando neste PC
+Running on this PC · :	Funcionando neste PC · :
+Runs Claude Code or Codex on this PC, signed in.	Executa Claude Code ou Codex neste PC, con sesión iniciada.
+Runs on your PC. No key, no credits.	Funciona no teu PC. Sen clave, sen créditos.
+SCAN WITH YOUR PHONE · EXPIRES	ESCANEA CO TEU TELÉFONO · CADUCA
+SECURITY >	SEGURIDADE >
+SKILL.	HABILIDADE.
+SKIN.	PEL.
+SORT BY	ORDENAR POR
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÁBITOS CEREBRO MIRAR CAPRI DOOMSCROLL TEMPO CLIPS XOGOS TECLAS MOVEMENTOS VOZ TI
+Same as I speak	Igual que o meu
+Same as her ears (VOICE > Mic)	Igual que os seus oídos (VOZ > Micrófono)
+Same code on the phone?	Mesmo código no teléfono?
+Save	Gardar
+Save big moments	Gardar momentos importantes
+Save folder	Cartafol de gardado
+Save your changes, or press Discard + reload.	Garda os cambios, ou preme Descartar e recargar.
+Save your changes, or press Discard.	Garda os cambios, ou preme Descartar.
+Saved.	Gardado.
+Saved. Ctrl + Alt + O opens her Mainframe.	Gardado. Ctrl + Alt + O abre o seu Mainframe.
+Saving your rating...	Gardando a túa valoración...
+Say her name anywhere to chat	Di o seu nome en calquera lugar para falar
+Screens	Pantallas
+Screens is hidden or outside WATCH	Pantallas está oculto ou fóra de MIRAR
+Screens overlaps a WATCH row	Pantallas solapa unha fila de MIRAR
+Screens to watch	Pantallas a vixiar
+Sealed end to end	Cifrado de extremo a extremo
+Search by name or author	Buscar por nome ou autor
+Search installed mods	Buscar modificacións instaladas
+Search mods	Buscar modificacións
+Search name, author or description	Buscar nome, autor ou descrición
+Security	Seguridade
+Security:	Seguridade:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Configurar
+Set up her brain	Configurar o seu cerebro
+Set up your voice model	Configurar o teu modelo de voz
+Setting up her brain	Configurando o seu cerebro
+Settings	Configuración
+Settings / Back	Configuración / Atrás
+Settings folds the wrong rows above BRAIN	Configuración pregou as filas incorrectas sobre CEREBRO
+Settings had nothing to watch.	Configuración non tiña nada que vixiar.
+Settings lost keyboard focus during the Tab walk	Configuración perdeu o foco do teclado durante o recorrido con Tab
+Setup guide	Guía de configuración
+Setup stopped	Configuración detida
+She answers in	Responde en
+She can read it when it fits.	Pode lelo cando encaixe.
+She glances at your screen and comments. Costs a little on a paid brain.	Bota un ollo á túa pantalla e comenta. Custa un pouco con cerebro de pago.
+She keeps listening. Say her name, then just talk.	Segue escoitando. Di o seu nome e logo fala.
+She reacts to your game until you close it.	Reacciona ao teu xogo ata que o peches.
+She reads these controls before each game job.	Le estes controis antes de cada traballo de xogo.
+She talks about your game as you play. Costs a little on a paid brain.	Fala do teu xogo mentres xogas. Custa un pouco con cerebro de pago.
+She uses it when she plays	Úsao cando xoga
+Short	Curto
+Shortest wait (minutes)	Espera mínima (minutos)
+Show Capri	Mostrar Capri
+Show QR	Mostrar QR
+Show my mod file	Mostrar o ficheiro da miña modificación
+Show on Discord	Mostrar en Discord
+Shum, what time is it	Shum, que hora é
+Sign in	Iniciar sesión
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Inicia sesión, crea unha clave e cópiaa. Logo preme Pegar e conectarei.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Inicia sesión, preme Crear clave API e cópiaa. Logo preme Pegar e conectarei.
+Silent · text only	Silencioso · só texto
+Simple / Advanced Settings	Configuración sinxela / avanzada
+Simple Settings	Configuración sinxela
+Simple Settings left a gap under Check in on me	Configuración sinxela deixou un oco baixo Pasa a ver como estou
+Sit here	Sentar aquí
+Sit on windows	Sentar nas xanelas
+Size	Tamaño
+Skip	Saltar
+Skip all	Saltar todo
+Skip for now	Saltar por agora
+Sleep	Durmir
+Small	Pequeno
+Sometimes	Ás veces
+Sound effects volume	Volume dos efectos de son
+Sound sensitivity	Sensibilidade do son
+Sounds	Sons
+Speaker or clip	Altofalante ou clip
+Speech model	Modelo de fala
+Speed	Velocidade
+Start with Windows	Iniciar con Windows
+Start with this!	Comezar con isto!
+Starting...	Iniciando...
+Stay	Quedar
+Stay on my model	Quedar no meu modelo
+Still checking your mics...	Aínda comprobando os teus micrófonos...
+Still checking your speakers...	Aínda comprobando os teus altofalantes...
+Still checking your virtual mics...	Aínda comprobando os teus micrófonos virtuais...
+Stop	Parar
+Stopped using it. Couldn't remove the saved provider.	Deixou de usarse. Non se puido quitar o provedor gardado.
+Support	Asistencia
+Sure?	Seguro?
+Sure? moved to a different phone	Seguro? movido a outro teléfono
+TALK TO ME	FALA CONMIGO
+TEXT ONLY	SÓ TEXTO
+Tab landed past the first option of	Tab pasou a primeira opción de
+Tab never reached the quiet key	Tab nunca chegou á tecla de silencio
+Tab reached nothing	Tab non chegou a nada
+Tab selected a control without moving keyboard focus	Tab seleccionou un control sen mover o foco do teclado
+Talk	Falar
+Talk key	Tecla de falar
+Talk:	Falar:
+Talk: Ctrl + Alt + V	Falar: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Taxa de captura obxectivo; pode baixar con carga ou co orzamento de memoria
+Teases when another AI comes to the front.	Burlase cando outra IA pasa ao primeiro plano.
+Test	Probar
+That address doesn't work. Try https://... or http://localhost:{0}.	Ese enderezo non funciona. Proba https://... ou http://localhost:{0}.
+That code expired	Ese código caducou
+That mod is no longer installed. The list is updated.	Esa modificación xa non está instalada. A lista está actualizada.
+That's a paid key: it goes under MAX INTELLIGENCE.	Esa é unha clave de pago: vai baixo MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	O Mainframe seguiu composto mentres deslizaba.
+The Mainframe stayed uncomposited after the slide.	O Mainframe seguiu sen compoñer despois do desprazamento.
+The controls moved while the picture was sliding.	Os controis moviuse mentres a imaxe desprazaba.
+The cover stayed visible after the slide ended.	A portada seguiu visible despois de rematar o desprazamento.
+The frame thread kept running after the page settled.	O fío de marcos seguiu en execución despois de asentarse a páxina.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	A resposta máis longa que pode dar, en tokens. Auto respecta Respostas enriba; {0}K ou {1}K deixa que siga. Os traballos teñen máis espazo cando o precisan
+The longest wait must be at least the shortest wait.	A espera máxima debe ser polo menos a espera mínima.
+The picture doesn't match the scrolled page:	A imaxe non coincide coa páxina desprazada:
+The picture of Settings doesn't match the page:	A imaxe de Configuración non coincide coa páxina:
+The picture stayed up after the slide ended.	A imaxe seguiu visible despois de rematar o desprazamento.
+The picture wasn't showing while it slid.	A imaxe non se mostraba mentres desprazaba.
+The provider sheet is crowded:	A folla do provedor está chea:
+The voice panel has no screen DPI.	O panel de voz non ten DPI de pantalla.
+The voice panel's menus share one font.	Os menús do panel de voz comparten unha tipografía.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Aínda non hai clave no portapapeis. Cópiaa da páxina e logo preme Pegar.
+These start off. Each costs a little or uses your mic.	Estes comezan desactivados. Cada un custa un pouco ou usa o teu micrófono.
+These start off. Turn on what you want. They're all in Settings too.	Estes comezan desactivados. Activa o que queiras. Tamén están todos en Configuración.
+They can also call you Big Z, Capricorn or Nova	Tamén che poden chamar Big Z, Capricornio ou Nova
+They can also call you Nova, Big Z or Capricorn	Tamén che poden chamar Nova, Big Z ou Capricornio
+Thinking	Pensando
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Esta é a miña voz gratuíta. Preme Probar, di algo e mostrareiche que te escoito.
+This mod has no description yet.	Esta modificación aínda non ten descrición.
+Tic-tac-toe	Tres en raia
+Time between glances	Tempo entre miradas
+Tiny	Diminuto
+Try again	Probar de novo
+Turn Remote on first	Activa primeiro o Remoto
+Turn off mini player	Desactivar mini reprodutor
+Turn push to talk off	Desactivar falar ao premer
+Turning the wheel the other way kept the page heading the old way, to	Xirar a roda no outro sentido fixo que a páxina seguise o sentido antigo, ata
+Type	Escribir
+Type key	Tecla de escribir
+Type to me	Escribe para min
+Type:	Escribir:
+Type: Ctrl + Alt + T	Escribir: Ctrl + Alt + T
+Typing sound	Son de escritura
+Unpacked. Press Test to hear it.	Descomprimido. Preme Probar para escoitalo.
+Unsaved changes.	Cambios sen gardar.
+Up to {0} fps	Ata {0} fps
+Up to {0}p	Ata {0}p
+Update	Actualizar
+Update available.	Actualización dispoñible.
+Update mods	Actualizar modificacións
+Updating...	Actualizando...
+Use	Usar
+Use her cursor	Usar o seu cursor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Usa https:// para un provedor noutro sitio. Unha clave por http simple non é segura.
+Use preset	Usar preaxuste
+Use saved	Usar gardado
+Use this server	Usar este servidor
+Using your provider with a key	Usando o teu provedor cunha clave
+Using your server with no key	Usando o teu servidor sen clave
+VIEW MOD >	VER MODIFICACIÓN >
+VOICE >	VOZ >
+VOICE IN YOUR MIC >	VOZ NO TEU MICRÓFONO >
+VOICE LAYERS >	CAPAS DE VOZ >
+Verbosity	Verbosidade
+Video bitrate	Taxa de bits de vídeo
+View	Ver
+View mod	Ver modificación
+Voice	Voz
+Voice ID	ID de voz
+Voice from	Voz de
+Voice layers	Capas de voz
+Voice model	Modelo de voz
+Voice model:	Modelo de voz:
+Voice name or ID, optional	Nome ou ID da voz, opcional
+Voice server address, or a voice model's folder	Enderezo do servidor de voz, ou o cartafol dun modelo de voz
+Voice status	Estado da voz
+Voice, key and model...	Voz, clave e modelo...
+Volume	Volume
+WAKE ME UP >	DESPERTARME >
+WATCH >	MIRAR >
+Waiting for the relay	Agardando polo relé
+Wake her up	Espertala
+Waking her up	Espertándoa
+Wander	Deambular
+Wander around	Deambular por aí
+Watch my screen	Mirar a miña pantalla
+Watch-along memory	Memoria de ver xuntos
+Weather	Tempo
+Weather city	Cidade do tempo
+Welcome back, choom. Let's finish setting me up.	Benvido de volta, choom. Rematemos de configurarme.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	O que fai no teu PC sen preguntar. Con un interruptor desactivado pregunta primeiro e fai cando dis que si.
+What should she call you?	Como debería chamarte?
+When she types	Cando escribe
+White	Branco
+Windows default	Predeterminado de Windows
+Windows did not give Settings keyboard focus	Windows non lle deu o foco do teclado a Configuración
+Windows did not return keyboard focus to Back	Windows non devolveu o foco do teclado a Atrás
+With no picture the wheel still tried to slide.	Sen imaxe a roda aínda tentou desprazarse.
+Works best on MAX INTELLIGENCE.	Funciona mellor con MAX INTELLIGENCE.
+YOU	TI
+YOU >	TI >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TI VOZ MOVEMENTOS TECLAS XOGOS CLIPS TEMPO DOOMSCROLL CAPRI MIRAR CEREBRO HÁBITOS SONS
+YOUR KEY	A TÚA CLAVE
+YOUR MIC	O TEU MICRÓFONO
+YOUR PLAN	O TEU PLAN
+Yokapri what's up	Yokapri, que hai
+You can hide this. It keeps going, and the Mainframe shows it too.	Podes ocultalo. Segue funcionando e o Mainframe tamén o mostra.
+Your mic and her voice go into one virtual mic, and	O teu micrófono e a súa voz van a un único micrófono virtual, e
+Your mic is muted. Unmute it to test.	O teu micrófono está silenciado. Actívao para probar.
+Your mods are up to date.	As túas modificacións están ao día.
+Your name or a nickname	O teu nome ou un alcume
+Your own model	Un modelo propio
+Your personality	A túa personalidade
+Your voice	A túa voz
+Your voice (HD)	A túa voz (HD)
+Your voice (HD) · pick a clip of you...	A túa voz (HD) · escolle un clip de ti...
+Your voice model	O teu modelo de voz
+as its mic.	como o seu micrófono.
+changed. Saved as My Colors, so you can share it.	cambiou. Gardado como As miñas cores, para que o compartas.
+choice	opción
+clips the input line	recorta a liña de entrada
+cue	indicación
+doesn't yet.	aínda non.
+download	descargar
+file.	ficheiro.
+flag	marca
+fps	fps
+hear	escoitar
+hears	escoita
+hears that.	escoita iso.
+hides or shows her.	oculta ou mostra a ela.
+hint	pista
+in the Mainframe.	no Mainframe.
+in the mods directory with a pull request.	no directorio de modificacións cunha solicitude de extracción.
+in the picture wasn't noticed.	na imaxe non se notou.
+is already her push-to-talk key.	xa é a súa tecla de falar ao premer.
+is off.	está desactivado.
+is on and running.	está activado e en execución.
+is on, at the bottom, under	está activado, abaixo, baixo
+is on.	está activado.
+is on. She now answers to	está activado. Agora responde por
+is removed.	foi eliminado.
+is taken	está ocupado
+is taken by another app. Try another.	está ocupado por outra aplicación. Proba outro.
+is updated	está actualizado
+isn't hearing it yet: do {0} and {1}, then join a call.	aínda non o escoita: fai {0} e {1}, logo únete a unha chamada.
+it now.	agora.
+keeps her quiet, and lets her talk again.	mantena calada, e deixaa falar de novo.
+key	clave
+key.	clave.
+min	min
+more.	máis.
+ms.	ms.
+mutes mic	silencia o micrófono
+mutes your mic.	silencia o teu micrófono.
+name	nome
+off	desactivado
+on this PC	neste PC
+opens her Mainframe.	abre o seu Mainframe.
+opens her typing box.	abre a súa caixa de escritura.
+phone	teléfono
+phone pixels	píxeles do teléfono
+phones	teléfonos
+pixels	píxeles
+pixels)	píxeles)
+star.	estrela.
+stars.	estrelas.
+starts voice chat.	inicia o chat de voz.
+stays off. Nothing ran.	queda desactivado. Non se executou nada.
+still does its own job in other apps too. Confirm to keep it.	segue facendo o seu propio traballo tamén noutras aplicacións. Confirma para mantelo.
+tall	alto
+time	tempo
+to talk	para falar
+to talk to her, with a game in front too.	para falar con ela, tamén con un xogo por diante.
+too.	tamén.
+turns Gaming Mode on and off.	activa e desactiva o Modo Xogo.
+with Ollama	con Ollama
+won't type in other apps while she runs. Confirm to keep it.	non escribirá noutras aplicacións mentres ela funciona. Confirma para mantelo.
+{0}   Echo Cancellation: Off	{0}   Cancelación de eco: Desactivada
+{0}   If her voice cuts off, turn off noise filtering	{0}   Se a súa voz se corta, desactiva o filtro de ruído
+{0}   Input Device:	{0}   Dispositivo de entrada:
+{0}   Join the call and check they hear both of you	{0}   Únete á chamada e comproba que os dous vos escoitan
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Proba de micrófono > Comprobemos: oirás a ti, e a ela mentres fala
+{0}   Microphone:	{0}   Micrófono:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Supresión de ruído: Ningunha. Ambas poden cortar a súa voz despois da primeira liña.
+{0}   Open the call or meeting's audio settings	{0}   Abre a configuración de audio da chamada ou reunión
+{0}   Output Device: your headphones, like before	{0}   Dispositivo de saída: os teus auriculares, como antes
+{0}   Speaker: your headphones, like before	{0}   Altofalante: os teus auriculares, como antes
+{0}   Try a mic test in your call app	{0}   Proba o micrófono na túa aplicación de chamadas
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Configuración de usuario (a roda xunto ao teu nome) > Voz e vídeo
+{0} Mbps	{0} Mbps
+{0} lines	{0} liñas
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· neste PC
+· server	· servidor
+Edit as text	Editar como texto
+What Capri remembers about you. It stays on this computer.	O que a Capri recorda de ti. Fica neste ordenador.
+Tell her something to remember	Dille algo que recordar
+Search her memory	Buscar na súa memoria
+That day isn't there any more.	Ese día xa non está.
+Undo	Desfacer
+Remember our chats is off, so she isn't keeping new chat memories.	Lembrar as nosas conversas está desactivado, así que non garda novos recordos de chat.
+ABOUT YOU	SOBRE TI
+FROM YOUR CHATS	DAS TÚAS CONVERSAS
+GAMES	XOGOS
+CHAT LOGS	REXISTROS DE CHAT
+CHAT LOG	REXISTRO DE CHAT
+Nothing matches.	Nada coincide.
+Nothing yet.	Aínda nada.
+Reading her notes.	Lendo as súas notas.
+Click again to forget game notes	Fai clic outra vez para esquecer as notas dos xogos
+Forget game notes	Esquecer notas dos xogos
+Click again to forget everything about me	Fai clic outra vez para esquecelo todo sobre ti
+Forget everything about me	Esquecelo todo sobre ti
+Click again to forget	Fai clic outra vez para esquecer
+Forget this day	Esquecer este día
+Only the start of this day is shown.	Só se mostra o comezo deste día.
+Nothing in this day.	Nada neste día.
+No chats kept yet.	Aínda non hai conversas gardadas.
+You	Ti
+{0} line	{0} liña
+SET UP EMAIL >	CONFIGURAR O CORREO >
+SET UP EMAIL	CONFIGURAR O CORREO
+Or type your address	Ou escribe o teu enderezo
+Email address	Enderezo de correo
+Open the page	Abrir a páxina
+App password	Contrasinal da aplicación
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correo entrante
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correo saínte
+An app password is a separate password just for Capri. Your normal password stays yours.	Un contrasinal da aplicación é un contrasinal aparte só para a Capri. O teu contrasinal normal segue sendo teu.
+She keeps it only until she closes.	Ela só o garda ata que se pecha.
+She checks, searches and reads your mail. She asks before she sends any.	Ela revisa, busca e le o teu correo. Pregunta antes de enviar nada.
+Watch for new mail	Vixiar correo novo
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ela fala cando chega correo, cun aviso se parece phishing. Nada se marca como lido.
+Deal with phishing on her own	Encargarse do phishing por si mesma
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Só mentres vixía. O correo que ten claro que é phishing vai a spam. O resto espera polo teu si.
+Forget account	Esquecer conta
+Use another email	Usar outro correo
+Which email?	Que correo?
+Make an app password	Crear un contrasinal da aplicación
+Paste it	Pégalo
+Connecting...	Conectando...
+She can use your email now.	Xa pode usar o teu correo.
+She's not watching your inbox.	Non está vixiando a túa caixa de entrada.
+She's watching your inbox and deals with phishing she's sure of.	Está vixiando a túa caixa e encárgase do phishing que ten claro.
+She's watching your inbox and tells you when mail lands.	Está vixiando a túa caixa e avísate cando chega correo.
+She forgot that account and its app password.	Esqueceu esa conta e o seu contrasinal da aplicación.
+She forgot that account. Its app password is gone from this PC.	Esqueceu esa conta. O seu contrasinal da aplicación xa non está neste PC.

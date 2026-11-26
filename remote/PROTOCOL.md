@@ -315,7 +315,7 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
 | `pair-deny` | PC | pair | `v`, `reason`: `denied`, `busy` or `bad-request` |
 | `hello` | phone | hello | `v`, `nonce` (phone nonce), `name`, `app` |
 | `hello-ok` | PC | hello | `v`, `nonce` (PC nonce), `echo` (the phone nonce), `name`, `app`, `features` (phase 1: `["chat"]`) |
-| `chat.send` | phone | session | `id`, `text` (1 to 8,000 characters) |
+| `chat.send` | phone | session | `id`, `text` (0 to 8,000 characters; empty only with `picture`), optional `picture` (`mime`, `data`, section 8.5) |
 | `chat.reply` | PC | session | `id`, `text`, `done`, `re` (optional) |
 | `chat.tool` | PC | session | `id`, `name`, `summary`, `state`, `re` (optional) |
 | `chat.typing` | either | session | `on`, `re` (optional) |
@@ -335,6 +335,7 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
   - Updates with the same `id` replace each other.
   - `state` is `running`, `done` or `failed`.
   - `summary` is at most 200 characters of plain words, like "Searching the web for train times". It never contains tool arguments that could hold secrets.
+- **Room moves:** `chat.tool` may include `move` on `state: "done"`: `sit`, `lie_down` or `heart`. These come from successful `move_yourself` (`sit`, `sit_on`, `sit_up`, `lie_down`) or `animate` (`heart`) tools. No arguments or text are sent in this field. Older phones ignore it.
 - **`chat.typing`:**
   - From the PC: Capri is thinking or typing.
   - From the phone: its user is typing. The PC may ignore this.
@@ -386,7 +387,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 
 ### 8.2 Screen view and call
 
-`hello-ok.features` lists `watch` when the PC can show its screen, `call` when it takes calls, and `hush` with `call` when a phone's `call.hush` stops her answer on the PC. A phone sends these only when its session's `hello-ok` listed the feature.
+`hello-ok.features` lists `watch` when the PC can show its screen, `call` when it takes calls, `hush` with `call` when a phone's `call.hush` stops her answer on the PC, and `call-look` with `call` and `pictures` when she can take a snapshot of the phone's camera with each line (Windows only). A phone sends these only when its session's `hello-ok` listed the feature.
 
 | `type` | Sender | Fields |
 |---|---|---|
@@ -397,11 +398,12 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 | `watch.monitors` | PC | `list` (each `id`, `name`, `w`, `h`, `primary`), `monitor` (the id shown), `auto`, `missing` (true when the picked monitor is gone) |
 | `watch.frame` | PC | `n`, `part`, `parts`, `data` (base64url JPEG bytes); part 0 also has `w`, `h`, `monitor`, `bytes`, `cx`, `cy` |
 | `watch.cursor` | PC | `cx`, `cy` |
-| `call.start` | phone | `hush` (true from a phone that sends `call.hush`) |
+| `call.start` | phone | `hush` (true from a phone that sends `call.hush`), optional `listen` (true for voice alone, with no phone audio) |
 | `call.stop` | phone | none |
-| `call.state` | PC | `on`; `voice` and `ears` (her voice and her ears are on) with `on: true`; `reason` with `on: false` (`not-allowed` or `ended`) |
+| `call.state` | PC | `on`; `voice` and `ears` (her voice and her ears are on) with `on: true`; `reason` with `on: false` (`not-allowed`, `busy` or `ended`) |
 | `call.audio` | phone | `id` (the line), `n`, `rate` (16000), `pcm`, `end` (on the last part) |
 | `call.cancel` | phone | `id` |
+| `call.look` | phone | `id` (the line), `picture` (`mime` and `data`, as in `chat.send` in 8.5), only to a PC that lists `call-look` |
 | `call.heard` | PC | `id`, `text` (what her ears heard: empty when nothing) |
 | `call.voice` | PC | `n`, `rate` (24000 or less), `pcm` |
 | `call.hush` | PC | none |
@@ -417,14 +419,24 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
   - `cx` and `cy` are the mouse in ten-thousandths of the frame's width and height, or -1 when it's on another monitor.
 - **Parts:** each frame is cut into parts of 44,000 JPEG bytes (58,667 base64url characters). Each sealed part stays under the 60,000-byte message limit, and each PC frame under the relay's 65,536 (section 4.1). Parts come in order, and part 0 starts a frame. A phone drops a frame with a part missing.
 - **Flow control:** the phone acks each frame once it's drawn. The PC stays at most two frames ahead of the acks. With no ack for 4 seconds it sends one more, and after 15 seconds it waits for an ack or a new `watch.start`.
+- **Her computer:** a Windows PC with Her own computer on also lists `{"id": "her", "name": "Capri's computer", "w": 1280, "h": 820}` in `watch.monitors`. Picking it shows her own computer's window as she draws it, even when it's behind other windows, and opens it on the PC if it was closed. Auto never picks it, and `cx` and `cy` are always -1 on it.
 - **Auto:** shows the monitor her pointer is on, else the one she's been asked to watch, else the one with the focused window. It moves once the new one has held for a second.
 - **Calls:** hands-free. The phone keeps its mic open for the whole call and sends each thing said as one line.
+  - Calls refused by the PC return `call.state {on: false, reason: "not-allowed"}`. Her voice being off does not refuse a call: it returns `call.state {on: true, voice: false, ears: <bool>}`. The phone can show that her voice is off from `voice: false`.
   - A line starts when talking starts, with about 300 ms from just before, and ends after about 0.8 seconds of quiet. Clicks and blips too short to be words send nothing.
   - No line starts while the phone is muted. While her voice plays, one starts only when he talks over her: his voice has to stay over a bar set by how loud she's been in the last 0.4 seconds (15 dB under it at least, so what the phone's echo cancelling leaves of her stays under) for about 300 ms, and nothing counts in the first 0.3 seconds after her voice starts. That line stops her: the phone drops what hasn't played and sends `call.hush`. With talking over her turned off on the phone (or no echo cancelling), no line starts while her voice plays, and for about a second after she stops it takes louder talking. Muting or hanging up mid-line sends `call.cancel`.
   - The phone sends a line as `call.audio` parts from `n: 0`: mono 16-bit little-endian PCM at 16 kHz, 320 ms a part, with `end: true` on the last. A line is at most 30 seconds.
   - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
   - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
   - `call.cancel` drops a line that's still coming in.
+  - **Video call:** with its camera on, a phone sends each line with one snapshot of him, so she can see him while he talks. A phone sends `call.look` only when `hello-ok.features` lists `call-look`, right after the line's last `call.audio` part (`end: true`), at most one a line, and only on an ordinary call: a listening Room phone's `call.look` gets `error {code: "not-allowed", re: <line id>}`. The `id` follows the same rules as a `call.audio` `id`, and the `picture` is a JPEG or PNG exactly as in 8.5 (the phone keeps it to 512 pixels on its long side or less), so the message stays under the 60,000-byte plaintext limit.
+  - The PC checks the picture's header exactly as it does for a `chat.send` picture: type, signature, size read from the header before any decode (1 to 1568 pixels each way), and canonical base64url. A bad picture gets `error {code: "bad-message", re: <line id>}`. A look for a line the PC doesn't have waiting, or with no call, is dropped without an answer, since it can race with the line being heard.
+  - Per caller the PC holds only the latest look, tied to its line, and drops it when the line is cancelled, the call ends, or after 15 seconds. It is never written to disk, chat history, memory or logs. When the line's words are heard and not empty, the words go to her together with the held picture as one turn, the way a `chat.send` with a picture does, and her answer still comes back as `chat.reply` with `re` set to the line id. A look that arrives within about 1.5 seconds after the words are ready still goes with them, once that call has sent a look. The turn tells her it is a live snapshot from their front camera on their video call, so she mentions it only when it matters.
+  - If her brain can't see pictures, the words go to her alone, with no sightless reply: a call never gets it every line. A line with no look goes exactly as before.
+- **Room listening:** a phone requires both `call` and `call-listen` in `hello-ok.features` and sends `call.start {listen: true, hush: true}` for voice alone, without opening its mic or call screen. The PC does not check or warm her ears, returns `ears: false` in `call.state`, and shows listening in its badge. Watching remains in the badge whenever any phone can see the screen. Any `call.audio` from that phone gets `error {code: "not-allowed", re: <line id>}` before parsing its audio. Listening and an ordinary call on another phone never share her voice. A listening request while another phone has an ordinary call returns `call.state {on: false, reason: "busy"}` and removes any earlier listener for the asking phone. Starting an ordinary call removes every other listening phone and sends each the same busy state. The ordinary call is left alone when a listener asks. Ordinary calls can still share with other ordinary calls.
+  - Switching Voice off on the phone, leaving the room or hiding the page sends `call.stop` and releases playback. A phone leaving, being removed or starting a new session also ends listening. Interrupt (`call.hush` with a valid `re`) ends listening and returns `call.state {on: false, reason: "ended"}`. A later `call.start` without `listen: true` is an ordinary call with ears. Starting an ordinary call closes the room before starting the usual call.
+  - Whenever her voice is switched off or on at the PC, every listening phone receives `call.state` again with the same acceptance shape: `{"type":"call.state","on":true,"voice":false,"ears":false}` or `{"type":"call.state","on":true,"voice":true,"ears":false}`. Listening stays active; the phone updates its voice-off note from `voice`. There is no new field and her ears stay off.
+  - Old PCs ignore `listen` and treat it as an ordinary call. The phone keeps Room silent and sends no listening request when the host lacks `call-listen`. Ordinary calls still use `call`.
 - **Her voice:** while she speaks, `call.voice` parts of a quarter second: mono 16-bit little-endian PCM at her speaker's rate, halved until it's 24 kHz or less. They're numbered from 0 in each call. `call.hush` means she stopped mid-line: drop whatever hasn't played.
   - A PC that lists `hush` voices its answer to a line or message from a phone whose `call.start` had `hush: true` a sentence at a time: each sentence's parts go as soon as it's voiced, while the next is made, so a pause can come between them. Other phones get each answer's parts at once.
 - **Interrupt:** the phone's `call.hush` stops her answer to `re` on the PC at once, with whatever of it is still to be voiced or sent, and the PC answers with its own `call.hush`. If she's saying something else by then, nothing changes and nothing comes back. A `call.hush` without a good `re` gets `bad-message`. Either way the phone drops her voice until it pauses for a second or the PC's `call.hush` comes. A PC that doesn't list `hush` never gets `call.hush`: the phone only drops her voice itself.
@@ -452,16 +464,16 @@ A PC that lists `pair` in `hello-ok.features` makes a pairing link for a paired 
 
 ### 8.4 Jobs (feature `jobs`)
 
-A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, stop and answer its PC jobs, whoever started them. A phone sends these messages only in a session that offers `jobs`. There is no new PC switch and no notification support in this phase. A phone starts a job by talking to Capri in chat or a call.
+A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, stop and answer its PC jobs, whoever started them. A phone sends these messages only in a session that offers `jobs`. There is no new PC switch. Notifications for jobs are in section 8.7. A phone starts a job by talking to Capri in chat or a call.
 
 | `type` | Sender | Fields |
 |---|---|---|
-| `job.state` | PC | `id`, `task` (her plain words, at most 200 characters), `state` (`running`, `asking`, `done`, `failed` or `stopped`), `steps` (count so far), `started` (Unix ms), `ended` (Unix ms, only once over), `ask` (her question with `asking`, at most 200 characters), `re` (the phone message that started it, when one did) |
+| `job.state` | PC | `id`, `task` (her plain words, at most 200 characters), `state` (`running`, `asking`, `done`, `failed` or `stopped`), `steps` (count so far), `started` (Unix ms), `ended` (Unix ms, only once over), `ask` (her question with `asking`, at most 200 characters), `ask_id` (the current question's opaque ID, on Mac and Linux), `re` (the phone message that started it, when one did) |
 | `job.step` | PC | `id` (the job), `n` (from 1), `tool`, `label` (at most 120 characters), `done`, `failed` |
 | `job.list` | phone | none; the PC answers with `job.recent` |
 | `job.recent` | PC | `list`: up to 10 most recent jobs, newest first, each `id`, `task`, `state`, `started`, `ended` (once over), `steps`, `last` (its last step's label, or empty) |
 | `job.stop` | phone | `id`; stops that job as Esc does, and the PC answers with `job.state` |
-| `job.answer` | phone | `id`, `yes` (true or false); answers her held question, only while that job is `asking` |
+| `job.answer` | phone | `id`, `yes` (true or false), `ask_id` (echo the ID from the question when provided); answers her held question, only while that job is `asking` |
 
 - **Updates.** Every paired phone with a live session gets each job's state and steps. Start, status changes, held questions and the end send `job.state`. Jobs are kept only in PC memory. Recent includes the current job.
 - **Steps.** A step's running and finished updates share its `n` and replace each other. `steps` counts steps, not updates. A phone that says hello while a job runs or asks gets its state followed by its last 30 steps, with their original numbers.
@@ -469,8 +481,94 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 - **Privacy.** Labels never carry what she typed, including the keys of a typed secret. A type step says "Typing some text" or "Typed some text" and may name where if the label safely says where. Clicked and opened labels may name the button or app. Job titles, questions and Recent follow the same rule. Use short summaries when the original words include typed content. Never send raw tool arguments, typed text, key sequences or failure results as job labels.
 - **Questions.** `ask` names the action being held, worked out from the tool and the SECURITY toggle it needs, or from the job's risk (sending, paying, deleting, shutting down, closing an app and so on), never from the task's words. A card for a job keeps the job's title; a card with no job behind it is named for the held action. With nothing to name, the title is "Using your computer" and the question "Allow this action?".
 - **Answers.** Allow runs the held action once through the same approval path as the PC. Deny leaves it alone. Only the first answer counts. Her reply then goes to the phone that answered as a `chat.reply` with no `re`, as after a typed yes or no. Stop ends it through the PC's stop path, including a held action. A held question stays current until answered or dropped on the PC.
-- **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`.
+- **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`. Mac and Linux reject a missing, malformed or obsolete `ask_id`; the PC and an updated phone can still answer the current question.
 - **Unknown values.** Ignore unknown types and fields, as in section 8.
+
+### 8.5 Pictures (feature `pictures`)
+
+A PC lists `pictures` in `hello-ok.features` when its host accepts picture messages. This describes the host, not the selected brain, which can change during a session. Windows supports it for local/API vision brains and the Claude plan. A blind brain or the Codex plan returns the existing sightless response; Codex's current image input requires a disk file. Mac and Linux list `pictures` too, with the same header checks; the confirm step uses the app's own decoder there. They do not advertise `call`. A phone must not open its Attach image picker or send a picture to a PC that did not list `pictures`; it says "Update Capri on your PC to send pictures."
+
+- `chat.send.picture` is one object: `{"mime":"image/jpeg","data":"<base64url JPEG bytes>"}`. `image/png` with PNG bytes is also accepted. `data` is canonical, unpadded base64url as in section 2. There is exactly one picture; an array, null, mismatched MIME, invalid encoding, wrong signature or undecodable image gets `error` `bad-message`, with `re` when the id is valid, before it reaches her brain.
+- `text` is still required, at most 8,000 UTF-16 code units, and may be empty when a valid picture is present. The existing message id and duplicate rules apply to the whole message.
+- Both dimensions are 1 to 1568 pixels. The phone decodes the selected file, draws it through a canvas, and encodes JPEG. This drops the original file's location and other metadata. It first limits the long side to 1568, then reduces JPEG quality and dimensions until the whole UTF-8 JSON message, including text and field names, is strictly below 60,000 bytes (sections 4.1, 6.3 and 10). No parts or new frame types are needed.
+- The picture and text share one session envelope, one sequence number and one receipt. At 59,999 plaintext bytes the envelope is 60,056 bytes, or 60,072 bytes with the device id, within the relay's unchanged 65,536-byte limit. The JSON budget includes base64url's expansion; there is no separate upload limit.
+- The PC checks the original plaintext byte count, MIME, signature and dimensions from the JPEG SOF or PNG IHDR header before any image decoder runs. It refuses unreadable headers and dimensions outside 1 to 1568 without decoding. One worker for the whole app confirms pictures in arrival order, outside the link lock. A confirmed picture gets its `chat.typing` receipt at once, before it waits for its turn, so the phone knows the PC has it even while an earlier picture is still being looked at; a refusal gets `error` `bad-message` with no receipt or brain dispatch. A text gets its receipt when it arrives. Every valid picture waits its turn; there is no busy refusal or queue limit for pictures. Each phone's chat messages are dispatched in its arrival order, with a picture holding later chat from that phone through decoding and the look until it enters her normal turn. The queue advances at turn entry, so later chat can still stop a job or answer a question. Call audio, pongs and other phones' chat keep moving while a picture waits or decodes. A queued picture from a stale session is dropped; a queued text is still dispatched, and its answer waits for the phone's next session like any other. It supplies the bytes in the existing brain image block for that turn. The existing sightless-brain response applies. The picture is never written to disk, chat history, memory files or error logs.
+- The phone preview has a Remove picture button. Their sent message shows its picture above the text. Preview and sent pictures live only in page memory; saved chat history holds text alone. Failed sends retain the draft picture and text. A picture with no receipt after 15 seconds keeps its id while the page stays connected, so sending that same draft again reaches the PC's duplicate filter; a receipt that arrives later clears the draft.
+- Phone-only mode bypasses the PC protocol. A provider that supports images receives the same JPEG in its image content block for that turn alone. A model without image support gets no request; the draft stays and the page says "This brain can't see pictures."
+
+### 8.6 Waking the PC (feature `wake`)
+
+A PC lists `wake` in `hello-ok.features` when it can say how to wake it with Wake-on-LAN. A phone must not send `wake.get` to a PC that doesn't list it.
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `wake.get` | phone | session | none |
+| `wake.info` | PC | session | `os` (`windows`, `mac` or `linux`), `cards` (at most 4, each `{mac, broadcast, name, wired, ready}`) |
+
+- **Cards** are the PC's network cards that are up with an IPv4 address, the one with the default route first, then wired ones. Virtual, VPN and Bluetooth adapters and locally administered MACs are left out. `mac` is `AA:BB:CC:DD:EE:FF`, `broadcast` the IPv4 broadcast address of the card's network, `name` the card's own name (at most 64 characters), `wired` false for Wi-Fi.
+- **`ready`** is `on` when the PC says it's armed to wake from that card (Windows' wake-armed devices, Mac's Wake for network access, Linux's `Wake-on: g`), `off` when it isn't, and empty when it can't tell. The BIOS setting can't be read, so `on` is a good sign, not a promise.
+- **The phone keeps them.** The phone asks once a session and stores the newest `wake.info` with its pairing, and forgets it when it unpairs. Nothing about waking goes through the relay: the PC is off by then.
+- **Sending it.** When the PC is offline, the phone sends a magic packet (6 bytes of `0xFF`, then the 6-byte MAC 16 times) as UDP to port 9 at each card's `broadcast` and at `255.255.255.255`. Browsers can't send UDP, so only the Android app does this (`CapriAndroid.wake`). The web app shows the MAC and broadcast address for any Wake-on-LAN app. Either way it only works from a phone on the same network as the PC.
+
+### 8.7 Phone notifications (feature `push`)
+
+A PC lists `push` in `hello-ok.features` when it can notify a phone that isn't looking: her answer to a message sent from that phone, a job asking to go ahead, a job ending, and a reminder. A phone must not send `push.*` to a PC that doesn't list it.
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `push.get` | phone | session | none |
+| `push.state` | PC | session | `key` (the PC's push key: an uncompressed P-256 point, 65 bytes, base64url), `on` (this phone gets notifications), `web` (the PC holds a web push subscription for this phone), `app` (it notifies this phone in its session) |
+| `push.sub` | phone | session | `id`, `on`; with `on: true`, `web` (`{endpoint, p256dh, auth}`, from `PushSubscription.toJSON()`) or `app: true` (the Android app), or both |
+| `push.away` | phone | session | `away`: true when the page is hidden, false when it shows again. Every session starts with `away: false`. |
+| `push.test` | phone | session | `id`; the PC sends a `test` notification to this phone by every route it has |
+| `push.result` | PC | session | `re` (the `push.sub` or `push.test` id), `ok`, `code` (`saved`, `off`, `sent`, `gone`, `failed` or `none`) |
+| `notify` | PC | session | `id`, `kind` (`reply`, `ask`, `done`, `reminder`, `checkin` or `test`), `title` (at most 60 characters), `body` (at most 200), `at` (Unix ms), and with `ask` or `done`: `job` (the job id); with `ask`: `ask_id` when the PC has one |
+
+- **Turning it on.** The phone asks `push.get`, subscribes with the PC's `key` as `applicationServerKey`, and sends `push.sub`. The PC answers `push.result` (`saved`, or `failed` for a subscription it refuses) and then `push.state`. `push.sub {on: false}` forgets both routes and answers `off`. The PC keeps a phone's subscription with its pairing (DPAPI on Windows) and forgets it when the phone is removed. A new `push.sub` replaces the old one.
+- **Subscriptions it takes.** `endpoint` must be `https`, at most 1,024 characters, with no user, password or port, on a push service's host: `fcm.googleapis.com`, or a host ending in `.push.services.mozilla.com`, `.push.apple.com` or `.notify.windows.com`. `p256dh` is a valid uncompressed P-256 point (65 bytes) and `auth` is 16 bytes. Anything else gets `failed` and nothing is saved, so a phone can't make the PC post to other addresses.
+- **Routes.** For each phone with notifications on:
+  - its session is live and `away` is false: nothing, since the page already shows it;
+  - its session is live, `away` is true and it asked for `app`: the `notify` message in that session;
+  - otherwise, with `web`: a web push. A hidden page's socket may already be frozen, so a live but away phone with `web` gets a web push too;
+  - otherwise nothing reaches it, and nothing waits for later.
+  - `test` uses every route the phone has, live or not.
+- **What sends one.** Each is sent once:
+  - `reply`: her whole answer to a `chat.send` from this phone, when that phone is away or offline as she finishes. `body` is the start of her answer, scrubbed like her chat replies.
+  - `ask`: a job goes `asking` (section 8.4) while the PC is away, or when a phone started it. `title` is the job's title and `body` its question. Every phone with notifications on gets it.
+  - `done`: a job ends `done` or `failed` while the PC is away. Jobs a phone started are left out, since its `reply` says how it went.
+  - `reminder`: one of her reminders comes due while the PC is away. `body` is the reminder.
+  - `checkin`: her own hello while the PC has been away for 45 minutes, with Check in on me on and her not hushed or asleep. At most two a day, three hours apart, between 10am and 9pm PC time, and not within an hour of a message from a phone. `body` is one of her own lines for the time of day (no brain call), in her language.
+  - The PC is **away** when it has had no keyboard or mouse input for 2 minutes. A PC that can't tell sends only `reply` and the `ask` of a job a phone started.
+- **Answering from a notification.** `ask` carries `job` and `ask_id` so a phone can answer it with `job.answer` (section 8.4) once it has a session. The phone must check that the job is still `asking` with that `ask_id` (or, without one, the same question) before it sends, and treat a lock screen as not the user: the Android app asks for the phone to be unlocked before Allow or Deny runs, and a web notification's buttons only open the page.
+- **Web push.** The payload is the `notify` object's UTF-8 JSON, at most 3,000 bytes, encrypted as RFC 8291 (`aes128gcm`, one record, `rs` 4096, a fresh sender key and salt for every message) and posted to `endpoint` with `Content-Encoding: aes128gcm`, `TTL` (`ask` and `reminder` 3600, `checkin` 7200, `test` 60, others 86400), `Urgency` (`high` for `ask` and `reminder`, else `normal`), `Topic` (`j` and the job id, for `ask` and `done`) and VAPID (RFC 8292): `Authorization: vapid t=<JWT>, k=<key>`, the JWT signed ES256 with `aud` the endpoint's origin, `exp` 12 hours on and `sub` `https://capriai.app/remote/`. The PC makes its push key once and keeps it with the room (DPAPI on Windows); a new room makes a new key, and phones subscribe again.
+  - The push service (Apple, Google, Mozilla or Microsoft) sees the PC's address, the time and the size, never the words. The relay sees nothing: the PC posts straight to the push service.
+  - `201`, `200` or `202` is `sent`. `404` or `410` is `gone`: the PC forgets that subscription and the phone's next `push.state` says `web: false`. Anything else is `failed` and isn't retried.
+- **The page** shows a notification with `tag` set to `job-<job>` for `ask` and `done` (so a job's end replaces its question) and to the `id` otherwise. Tapping it opens `https://capriai.app/remote/`, at the job for `ask` and `done`. An iPhone only gets web push in a home screen app (iOS 16.4 or later), so Safari says to add Capri to the Home Screen first.
+
+### 8.8 Her memory (feature `memory`)
+
+A PC lists `memory` in `hello-ok.features` when she keeps notes on it. Every paired phone can then read and change what she remembers about its user: the same files the PC's Mainframe opens, with nothing new stored anywhere. A phone must not send `memory.*` to a PC that doesn't list it.
+
+| `type` | Sender | Fields |
+|---|---|---|
+| `memory.get` | phone | none; the PC answers with `memory.list` |
+| `memory.list` | PC | `keeping` (Remember our chats is on), `private` (Keep personal details out of her memories is on), `cut` (some older entries were left out to fit), `about` (her notes, from me.md: `[{id, text}]`), `chats` (her memories of past chats, from memories.md, oldest day first: `[{day, items: [{id, text}]}]`), `games` (what she learned about each game: `[{game, items}]`), `days` (her daily chat logs, newest first: `[{date, lines}]`) |
+| `memory.add` | phone | `id`, `text`; a new note in me.md, through the same rule as "remember that ..." |
+| `memory.edit` | phone | `id`, `item` (an entry's `id`), `text` (its new words) |
+| `memory.forget` | phone | `id`, `item` |
+| `memory.day` | phone | `id`, `date` (`YYYY-MM-DD`); the PC answers with `memory.chat` |
+| `memory.chat` | PC | `re`, `date`, `ok`, `cut` (only the newest part fits), `lines` (`[{at, who, text}]`: `who` is `You`, `Capri` or `You (voice)`, empty for something she did) |
+| `memory.forget-day` | phone | `id`, `date`; deletes that day's chat log and the lines from it still waiting to become memories |
+| `memory.wipe` | phone | `id`, `what`: `about`, `chats`, `days`, `games`, or `all` (about, chats and days, never her game notes) |
+| `memory.undo` | phone | `id`, `undo` (the token from a `memory.done`) |
+| `memory.done` | PC | `re`, `ok`, `code`, `say` (her plain words for it, at most 200 characters), `undo` (a token, when the change can be undone) |
+
+- **Ids.** An entry's `id` comes from its file, its day or game, its words and how many times the same words came before it. Editing it makes a new id. An `edit` or `forget` whose `item` is no longer there gets `changed`, so a phone never changes something it hasn't seen. After every `memory.done` the PC sends a fresh `memory.list`.
+- **Codes.** `added`, `saved`, `forgot` and `undone` are `ok`. `changed` (it changed on the PC first), `private` (a password, address, number or other personal detail, refused like her own notes), `same` (already there, or nothing changed), `empty`, `full` (me.md is over 8,000 characters), `gone` (too late to undo), `bad` (a malformed date or `what`), `off` and `failed` are not.
+- **Undo.** The PC keeps the last 12 changes, up to 3 million characters, in memory only. An undo puts back exactly what that change took or replaced, and only if nothing has changed those files since; otherwise `changed`. Undos are lost when Capri closes.
+- **Sizes.** Text is at most 2,000 characters in and is cut to 200 for a note and 300 for other entries, on one line. `memory.list` stays under 56,000 bytes: older chat days, older game notes and the oldest day headings in memories.md are left out first, with `cut: true`. `memory.chat` holds at most about 40,000 characters of the day's newest lines.
+- **Privacy.** Memory only travels inside the end-to-end session, never in a notification or through the relay in the clear. There are no share links and no export. The phone keeps it in page memory only, never in localStorage, IndexedDB or the service worker cache, and clears it when the page is hidden, the session ends or it unpairs. Messages are handled one at a time, in order, for every phone.
+- **Errors.** A malformed `id` gets `error` `bad-message`. A PC that has stopped keeping notes answers `error` `not-allowed`.
 
 ## 9. Rules for each side
 
@@ -533,6 +631,7 @@ Limits and upgrade bindings live in `remote/relay/wrangler.jsonc`:
 Fixed in code:
 
 - Text frames are at most 16 KiB.
+- Picture messages use the existing strictly less than 60,000-byte plaintext budget, including text, JSON and base64url. Their decoded long side is at most 1568 pixels (section 8.5); the phone reduces quality or dimensions to fit. Relay frame and rate limits are unchanged.
 - At most 8 connections may be signing in at once per room. A ninth pushes out the oldest, so sockets held open without signing in cannot lock out a real client, which signs in within one round trip.
 - At most 2 phones may wait for Allow at once.
 - Address limits count an IPv6 address by its /64, and an IPv4 address written as IPv6 as that IPv4 address. A missing limit binding skips its check.
@@ -688,6 +787,15 @@ keys      session.phoneToPc   kind 3   dir 1   seq 0
 iv        505152535455565758595a5b5c5d5e5f
 plaintext 7b2274797065223a22636861742e73656e64222c226964223a226d31222c2274657874223a2248656c6c6f2c20436170726921227d
 envelope  0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba
+```
+
+**Envelope: chat.send with picture**
+
+```text
+keys      session.phoneToPc   kind 3   dir 1   seq 1
+iv        808182838485868788898a8b8c8d8e8f
+plaintext 7b2274797065223a22636861742e73656e64222c226964223a226d32222c2274657874223a22222c2270696374757265223a7b226d696d65223a22696d6167652f706e67222c2264617461223a226956424f5277304b47676f414141414e5355684555674141414145414141414243415941414141664663534a4141414144556c45515652346e4750345f5f5f5f6677414a2d7750394b6f626a696741414141424a52553545726b4a676767227d7d
+envelope  0103010000000001808182838485868788898a8b8c8d8e8f8b81a80611e1796649fc185c2c7c0b380cd2bec567ca32d7a76069e1779cbf0e915ce3c597d6e6ea5067dd733a58fde77af4ac1efd2f8c2e0bd900808371b27b9114adbf482877f0d8d197e0c227adbb93a7ec609a6d26e1f60986b34a5b1f168e83f19eeb0632f72530c34a28287c10d99350775fba880248d18475066a083aee9281afe784c2009aa4d9498b9ea96545a7fd47318ad04f9a76467776b4a2468f3e997a9a2f95849616a9ffd8019b8dd1b95231b6d37c1cd2c1c8374b33cba60b7f524e2597a61dd936572f93561cb6
 ```
 
 **Envelope: chat.typing (32-byte plaintext, so a whole block of padding)**

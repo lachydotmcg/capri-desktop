@@ -17,10 +17,15 @@ namespace CapriDesktop
         private void StartMods()
         {
             LegacyArt = Saved.LegacyStand;
+            Mods.WithStarters = Program.Smoke == null;
             ModList = new Mods(Program.Smoke ?? folder);
             Chores.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };
             Hands.ReadSkill = ModList.SkillText;
+            ModList.OnWindow = action => Dispatcher.UIThread.Post(() => Program.Guard(action));
+            Hands.RecipeTools = ModList.RecipeTools;
+            Hands.RunRecipe = ModList.RunRecipe;
+            Hands.MakeTool = ModList.MakeTool;
             ModList.SkinChanged = Reskinned;
             Reskinned();
             StartCodeMods();
@@ -29,6 +34,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            RebuildMoves();
             blinkWith = null;
             herPointer?.ReloadArt();
             if (body == null) return;
@@ -43,6 +49,12 @@ namespace CapriDesktop
         internal static bool HasArt(string name)
         {
             return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
+        }
+
+        private static bool SkinShips(string title)
+        {
+            string skin = SkinFolder;
+            return skin != null && title != null && File.Exists(Path.Combine(skin, title + ".png"));
         }
 
         internal static PixelSize ArtSize(string name)
@@ -215,6 +227,7 @@ namespace CapriDesktop
         private string[] frameModels = Array.Empty<string>();
         private int brainRequests;
         private int brainPending;
+        private int pcPending;
         private int cloudRequests;
         private int localRequests;
         private string frameProblem;
@@ -222,6 +235,14 @@ namespace CapriDesktop
         internal Mainframe Frame { get { return mainframe; } }
         internal int MainframeTier { get { return Math.Clamp(Saved.BrainTier ?? (Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2), 0, 2); } }
         internal string MainframeBrainKey { get { return Brain.Remote?.Key; } }
+        internal string MainframeBrainName { get { return Brain.Remote != null ? Brain.Remote.Name + " \u00b7 " + Brain.Model : Brain.Model ?? "Her brain isn't set up yet"; } }
+        internal string MainframeBrainNote { get { return BrainNote(false); } }
+
+        private string BrainNote(bool phone)
+        {
+            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : Brain.Local != null ? "Local model \u00b7 on this computer" : "Local model \u00b7 Ollama"));
+            return Brain.Brief(note) ?? note;
+        }
         internal bool MainframeConnecting { get { return brainPending > 0; } }
         internal string MainframeProblem { get { return frameProblem; } }
         internal string MainframeVoiceKey { get { return voice.Key; } }
@@ -229,7 +250,8 @@ namespace CapriDesktop
         internal string MainframeVoiceProblem { get { return voiceProblem; } }
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
-        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !fingers; } }
+        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !(Program.Smoke == null ? InputReady() : fingers); } }
+        internal bool MainframeRetainedVoiceReady { get { return ownedVoice.Ready; } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
@@ -260,8 +282,7 @@ namespace CapriDesktop
             MainframeTheme.Repaint(mainframe);
         }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
-        internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
-        internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetReplyLength(int index) { SetReplies(index <= 0 ? Brain.Wordiness : index == 1 ? 0 : 3); }
         internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
         // What's wrong with it, or null once it's saved for the brain she's on.
         internal string SetThinkingExtra(string typed)
@@ -275,8 +296,8 @@ namespace CapriDesktop
         }
         internal void NotifySettings()
         {
-            if (Dispatcher.UIThread.CheckAccess()) SettingsChanged?.Invoke();
-            else Dispatcher.UIThread.Post(() => SettingsChanged?.Invoke());
+            if (Dispatcher.UIThread.CheckAccess()) { RemoteBrainsChanged(); SettingsChanged?.Invoke(); }
+            else Dispatcher.UIThread.Post(() => { RemoteBrainsChanged(); SettingsChanged?.Invoke(); });
         }
         internal void OpenMainframe()
         {
@@ -302,6 +323,15 @@ namespace CapriDesktop
             mainframe.OpenPage(page);
             return "Opened Capri Mainframe.";
         }
+        private string ImportModTool(string path)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.Invoke(() => ImportModTool(path));
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            OpenMainframe();
+            mainframe.OpenPage("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
+        }
         private string MoveMainframe(string which)
         {
             OpenMainframe();
@@ -321,6 +351,13 @@ namespace CapriDesktop
             RefreshBrains();
         }
         internal void MainframeUpdateCheck() { CheckUpdate(true); }
+        internal UninstallPlan MainframeUninstallPlan(bool wipe) { return Uninstall.Live(wipe); }
+        internal void MainframeUninstall(bool wipe)
+        {
+            if (Program.Smoke != null) return;
+            if (Uninstall.Start(Uninstall.Live(wipe), Environment.ProcessId)) Quit();
+            else Talk.Answer("(uninstall)", "I couldn't start the helper that removes me, so nothing changed. You can delete my app by hand.");
+        }
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {
@@ -335,10 +372,11 @@ namespace CapriDesktop
             else if (Brain.Server != null) PickServerModel(model.Trim());
             else PickBrain(model.Trim());
         }
+        private string CloudProviderPick() { string picked = Speakers.Known(Saved.VoiceProvider); return picked == Speakers.Fish || picked == Speakers.OpenAi ? picked : Speakers.ElevenLabs; }
         internal void MainframeVoiceModePick(int mode)
         {
             if (mode == 0) SetSpeak(false);
-            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
+            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : CloudProviderPick()); SetSpeak(true); }
         }
         internal void MainframeForgetVoice() { ForgetVoice(); Save(); }
         internal void MainframeLoadVoices() { if (voices == null && Program.Smoke == null) ListVoices(); }
@@ -346,17 +384,18 @@ namespace CapriDesktop
         internal NativeMenu TrayMenu()
         {
             var menu = new NativeMenu();
-            Action fill = () => { Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
+            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? Lingo.Of("Show Capri") : Lingo.Of("Hide Capri"); FillMenu(menu, ContextMenu.Items); };
             fill(); menu.NeedsUpdate += (_, _) => fill(); return menu;
         }
-        private static void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
+        private void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
         {
             menu.Items.Clear();
             foreach (object value in source)
             {
+                if (OperatingSystem.IsLinux() && ReferenceEquals(source, securityMenu.Items) && value is Control && !((Control)value).IsVisible) continue;
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
-                var item = new NativeMenuItem(row.Header as string ?? "") { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
+                var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
                     ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
@@ -373,6 +412,8 @@ namespace CapriDesktop
             WriteSecret(TierKeyFile(tier), Brain.Remote.Key, "brain key");
             if (tier == 1) Saved.FreeModel = Brain.Remote.Model;
             else Saved.PaidModel = Brain.Remote.Model;
+            Saved.BrainProvider = Brain.Remote.Kind;
+            RememberProviderModel(Saved, ProviderKind(Saved, Brain.Remote.Kind), Brain.Remote.Model, tier);
         }
         private void RestoreBrainTier()
         {
@@ -388,6 +429,8 @@ namespace CapriDesktop
         internal void SetBrainTier(int tier)
         {
             tier = Math.Clamp(tier, 0, 2);
+            string savedCustom = Saved.BrainProvider;
+            if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
             if (MainframeTier == tier && Brain.Provider == null) return;
             StopNativeListening();
@@ -403,9 +446,30 @@ namespace CapriDesktop
             cloudModels = null;
             cloudListing = false;
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
-            string model = tier == 1 ? Saved.FreeModel : Saved.PaidModel;
-            Brain.Remote = key == null || Cloud.KindOf(key) == null ? null : new Cloud(key, model);
-            Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            string kind = Cloud.KindOf(key);
+            string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
+            ProviderEndpoint custom = null;
+            if (tier == 0)
+            {
+                if (savedCustom != null) custom = EndpointFor(Saved, EndpointIdOf(savedCustom));
+                if (custom != null && !string.Equals(Brain.ServerAddress(custom.Address), Brain.Server, StringComparison.Ordinal)) custom = null;
+                if (custom == null) custom = EndpointAt(Saved, Brain.Server);
+            }
+            string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
+            Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
+            if (customProvider != null)
+            {
+                string customAddress = Brain.ServerAddress(custom.Address);
+                string customKey = ReadEndpointKey(custom.Id);
+                Brain.SetServer(customAddress, EndpointKeySafe(customAddress, customKey) ? customKey : null);
+                Saved.BrainProvider = customProvider;
+                Brain.Model = ProviderModel(Saved, customProvider, 0);
+            }
+            else
+            {
+                Saved.BrainProvider = tier == 0 ? null : savedCustom ?? (Brain.Remote == null ? null : Brain.Remote.Kind);
+                Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            }
             Saved.CloudModel = Brain.Remote?.Model;
             WriteSecret(BrainKeyFile, key, "brain key");
             Save();
@@ -423,6 +487,176 @@ namespace CapriDesktop
             Saved.BrainTier = tier;
             Brain.Model = null;
             Save();
+        }
+
+        private sealed class PhoneKey
+        {
+            internal string Device, Id, Key;
+            internal int Tier, Request;
+            internal long Started;
+            internal Func<bool> Current;
+        }
+
+        private PhoneKey phoneKey;
+        private readonly Dictionary<string, Func<bool>> remoteBrains = new Dictionary<string, Func<bool>>(StringComparer.Ordinal);
+        private string remoteBrainSent;
+        private int remoteBrainVersion = -1;
+        private bool remoteBrainQueued;
+        private DispatcherTimer remoteBrainTimer;
+        private readonly System.Diagnostics.Stopwatch remoteBrainClock = System.Diagnostics.Stopwatch.StartNew();
+        private Action<string, RemoteJson.Map, Func<bool>> remoteBrainHeard;
+        internal Func<string, bool, List<string>> BrainKeyCheck;
+        internal Func<long> RemoteBrainNow;
+
+        private long BrainTime { get { return RemoteBrainNow == null ? remoteBrainClock.ElapsedMilliseconds : RemoteBrainNow(); } }
+
+        private Func<bool> RemoteBrainCurrent(RemoteLink link, int generation, Func<bool> session)
+        {
+            return delegate { return RemoteLinkCurrent(link, generation) && session(); };
+        }
+
+        private void RemoteBrainsOn(RemoteLink link, int generation)
+        {
+            remoteBrainHeard = delegate(string device, RemoteJson.Map message, Func<bool> session)
+            {
+                Func<bool> current = RemoteBrainCurrent(link, generation, session);
+                Dispatcher.UIThread.Post(delegate
+                {
+                    lock (remoteGate)
+                    {
+                        if (!current()) return;
+                        link.BrainDo(session, delegate { RemoteBrainAsk(device, message, current); });
+                    }
+                });
+            };
+            link.BrainRequested += remoteBrainHeard;
+        }
+
+        private void RemoteBrainsOff(RemoteLink link)
+        {
+            if (link != null) link.BrainRequested -= remoteBrainHeard;
+            remoteBrainHeard = null;
+            DropPhoneKey(null);
+            remoteBrains.Clear();
+            remoteBrainSent = null;
+            remoteBrainVersion = -1;
+            if (remoteBrainTimer != null) remoteBrainTimer.Stop();
+        }
+
+        private void BrainSend(string device, Func<bool> current, string json)
+        {
+            if (current()) remoteLink.SendBrain(device, json, current);
+        }
+
+        private void BrainKeyNote(string device, Func<bool> current, string id, string state, string text, string key)
+        {
+            BrainSend(device, current, RemoteBrainKeys.Note(id, state, RemoteTurn.Out(BrainKeyText(text, key), 200), key));
+        }
+
+        private static string BrainKeyText(string text, string key) { return RemoteBrainKeys.Hide(RemoteBrainKeys.Hide(text, key), Cloud.IsCode(key) ? key.ToUpperInvariant() : null); }
+
+        private void RemoteBrainAsk(string device, RemoteJson.Map message, Func<bool> current)
+        {
+            string re;
+            RemoteBrainKeys.Ask ask = RemoteBrainKeys.Read(device, message, out re);
+            if (ask == null) { BrainSend(device, current, RemoteMessages.Error("bad-message", re)); return; }
+            remoteBrains[device] = current;
+            RemoteBrainTick();
+            if (ask.Type == "brain.get") { BrainSend(device, current, RemoteBrainState()); return; }
+            if (ask.Type == "brain.use")
+            {
+                bool changed = ask.Tier != MainframeTier || Brain.Provider != null;
+                SetBrainTier(ask.Tier);
+                if (!changed) BrainSend(device, current, RemoteBrainState());
+                return;
+            }
+            if (phoneKey != null || pcPending > 0) { BrainKeyNote(device, current, ask.Id, "failed", RemoteBrainKeys.StillChecking, ask.Key); return; }
+            string key = ask.Key;
+            string kind = Cloud.KindOf(key);
+            string problem = Plans.Is(kind) ? RemoteBrainKeys.PlanHere : kind != null && ask.Tier == 1 && !Cloud.MediumKind(kind) ? RemoteBrainKeys.PaidNote : null;
+            if (problem != null) { BrainKeyNote(device, current, ask.Id, "failed", problem, key); return; }
+            PhoneKey asked = new PhoneKey { Device = device, Id = ask.Id, Key = key, Tier = ask.Tier, Current = current, Started = BrainTime };
+            phoneKey = asked;
+            SaveBrainKey(key, ask.Tier, asked);
+            if (phoneKey != asked) return;
+            BrainKeyNote(device, current, ask.Id, "checking", RemoteBrainKeys.Checking, key);
+            if (remoteBrainTimer == null)
+            {
+                remoteBrainTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+                remoteBrainTimer.Tick += delegate { RemoteBrainTick(); };
+            }
+            remoteBrainTimer.Start();
+        }
+
+        private void DropPhoneKey(string problem)
+        {
+            PhoneKey asked = phoneKey;
+            if (asked == null) return;
+            phoneKey = null;
+            if (asked.Request == brainRequests) brainRequests++;
+            if (remoteBrainTimer != null) remoteBrainTimer.Stop();
+            if (problem != null) BrainKeyNote(asked.Device, asked.Current, asked.Id, "failed", problem, asked.Key);
+        }
+
+        private void RemoteBrainTakenOver() { lock (remoteGate) DropPhoneKey(RemoteBrainKeys.TakenOver); }
+
+        private void RemoteBrainTick()
+        {
+            lock (remoteGate)
+            {
+                PhoneKey asked = phoneKey;
+                if (asked == null) return;
+                if (!asked.Current()) DropPhoneKey(null);
+                else if (asked.Request != brainRequests) DropPhoneKey(RemoteBrainKeys.TakenOver);
+                else if (BrainTime - asked.Started > 90000) DropPhoneKey(RemoteBrainKeys.TooSlow);
+            }
+        }
+
+        private string RemoteBrainState()
+        {
+            string medium = ReadSecret(TierKeyFile(1)), max = ReadSecret(TierKeyFile(2));
+            Func<string, string> clean = delegate(string text)
+            {
+                text = BrainKeyText(BrainKeyText(text, medium), max);
+                text = BrainKeyText(text, MainframeBrainKey);
+                if (phoneKey != null) text = BrainKeyText(text, phoneKey.Key);
+                return RemoteTurn.Out(text, 200);
+            };
+            return RemoteBrainKeys.State(MainframeTier, clean(MainframeBrainName), clean(BrainNote(true)), medium != null, max != null);
+        }
+
+        private void RemoteBrainsChanged()
+        {
+            lock (remoteGate)
+            {
+                RemoteBrainTick();
+                if (remoteBrainQueued || remoteBrains.Count == 0) return;
+                remoteBrainQueued = true;
+            }
+            Dispatcher.UIThread.Post(delegate
+            {
+                lock (remoteGate)
+                {
+                    remoteBrainQueued = false;
+                    foreach (string device in new List<string>(remoteBrains.Keys)) if (!remoteBrains[device]()) remoteBrains.Remove(device);
+                    if (remoteBrains.Count == 0) return;
+                    string state = RemoteBrainState();
+                    if (state == remoteBrainSent && remoteBrainVersion == brainRequests) return;
+                    remoteBrainSent = state;
+                    remoteBrainVersion = brainRequests;
+                    foreach (KeyValuePair<string, Func<bool>> watch in remoteBrains) BrainSend(watch.Key, watch.Value, state);
+                }
+            });
+        }
+
+        private void RemoteKeyNotice(PhoneKey asked)
+        {
+            string phone = "A phone";
+            foreach (RemoteDevice device in remoteLink.Devices()) if (device.Id == asked.Device) phone = device.Name;
+            string words = BrainKeyText(RemoteBrainKeys.Notice(phone, asked.Tier), asked.Key);
+            remoteNote = words;
+            NotifySettings();
+            Talk.Notice("(Capri Remote)", words);
         }
     }
 }

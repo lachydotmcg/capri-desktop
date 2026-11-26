@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	ปุ่มควบคุมที่ทาสีใหม่ไม่ได้ถูกวาดใหม่ในภาพ
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	คีย์ฟรีจาก Google AI Studio, NVIDIA หรือ OpenRouter ไม่ต้องดาวน์โหลดอะไร ต้องใช้อินเทอร์เน็ต
+A held trackpad scroll got a flick's long ease:	การเลื่อนแทร็คแพดค้างไว้ได้การหน่วงยาวแบบสะบัด:
+A layout change during a slide put the page at	การเปลี่ยนเลย์เอาต์ระหว่างสไลด์ทำให้หน้าไปอยู่ที่
+A layout change left the picture up.	การเปลี่ยนเลย์เอาต์ทำให้ภาพค้างอยู่
+A model in Ollama, on your local server or on your key.	โมเดลใน Ollama บนเซิร์ฟเวอร์ในเครื่องของคุณ หรือใช้คีย์ของคุณ
+A paid key goes under MAX INTELLIGENCE by itself.	คีย์แบบเสียเงินจะไปอยู่ใต้ MAX INTELLIGENCE โดยอัตโนมัติ
+A plan you already pay for, a key of your own, or Ollama.	แพ็กเกจที่คุณจ่ายอยู่แล้ว คีย์ของคุณเอง หรือ Ollama
+A voice panel menu doesn't hold its own copy of the panel's font.	เมนูแผงเสียงไม่มีสำเนาฟอนต์ของแผงของตัวเอง
+A wheel turn right after a slide ended froze the picture.	การหมุนล้อทันทีหลังสไลด์จบทำให้ภาพค้าง
+ALLOW THIS PHONE?	อนุญาตโทรศัพท์เครื่องนี้ไหม?
+ALMOST THERE >	เกือบเสร็จแล้ว >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI อีกตัวเข้ามาควบคุมแทน · ปิดแล้วเปิดใหม่
+API key	คีย์ API
+API key, Claude plan or ChatGPT plan	คีย์ API, แพ็กเกจ Claude หรือแพ็กเกจ ChatGPT
+Add	เพิ่ม
+Address	ที่อยู่
+Address and key saved. Use saved to reconnect.	บันทึกที่อยู่และคีย์แล้ว กดใช้ที่บันทึกไว้เพื่อเชื่อมต่อใหม่
+Advanced Settings	การตั้งค่าขั้นสูง
+All	ทั้งหมด
+All screens	ทุกหน้าจอ
+Allow	อนุญาต
+Almost there. I'll say hi the second my brain's in.	เกือบเสร็จแล้ว เดี๋ยวจะทักทายทันทีที่สมองฉันพร้อม
+Always	ตลอดเวลา
+Always on top	อยู่บนสุดเสมอ
+Any Google account works. I opened the page in your browser.	บัญชี Google ไหนก็ได้ ฉันเปิดหน้าในเบราว์เซอร์ของคุณแล้ว
+Applies to every voice	มีผลกับทุกเสียง
+Apps she may close	แอปที่เธอปิดได้
+Ask Capri for more	ขอเพิ่มจาก Capri
+Asking your server...	กำลังถามเซิร์ฟเวอร์ของคุณ...
+Asks before closing only the apps you choose.	จะถามก่อนปิดเฉพาะแอปที่คุณเลือกเท่านั้น
+Auto	อัตโนมัติ
+Auto (match what I say)	อัตโนมัติ (ตามที่ฉันพูด)
+Automatic: VB-CABLE, else Steam's	อัตโนมัติ: VB-CABLE ไม่งั้นใช้ของ Steam
+BAD RELAY HOST	โฮสต์รีเลย์ไม่ถูกต้อง
+BIG Z open notepad	BIG Z เปิด notepad
+BRAIN	สมอง
+BRAIN >	สมอง >
+BRAIN ONLINE >	สมองออนไลน์ >
+BRAIN PROVIDER >	ผู้ให้บริการสมอง >
+BRAIN VOICE CAPRI	เสียงสมองของ CAPRI
+Back	กลับ
+Back on your saved API key.	กลับไปใช้คีย์ API ที่บันทึกไว้
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	เหมาะที่สุดสำหรับพีซีเครื่องนี้:
+Black	ดำ
+Blank key means no key.	ถ้าช่องคีย์ว่างหมายถึงไม่มีคีย์
+Brain API key	คีย์ API ของสมอง
+Brain model	โมเดลสมอง
+Brain provider	ผู้ให้บริการสมอง
+Bring here	เรียกมาที่นี่
+Bring to this screen	เรียกมาที่หน้าจอนี้
+Browse	เรียกดู
+Browse mods	เรียกดูม็อด
+Browse to a voice model	เลือกโมเดลเสียง
+Browse...	เรียกดู...
+Bubble	ฟองอากาศ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree อยู่ไหม
+CAN'T REACH THE RELAY · RETRYING	เชื่อมต่อรีเลย์ไม่ได้ · กำลังลองใหม่
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	สมองเสียงของ CAPRI
+CHANGED, approve it again.	มีการเปลี่ยนแปลง กรุณายืนยันอีกครั้ง
+CLIPS >	คลิป >
+CLOUD VOICE	เสียงคลาวด์
+CODE	โค้ด
+COLORS >	สี >
+CONNECTED	เชื่อมต่อแล้ว
+CONNECTING	กำลังเชื่อมต่อ
+CUSTOM LOCAL	กำหนดเองในเครื่อง
+Call mode (beta)	โหมดโทรศัพท์ (เบต้า)
+Call mode does not fit.	โหมดโทรศัพท์ไม่พอดี
+Call mode is outside its space.	โหมดโทรศัพท์อยู่นอกพื้นที่ของมัน
+Cancel	ยกเลิก
+Cancel keys	ยกเลิกคีย์
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri รีโมต
+Capri code:	โค้ด Capri:
+Capri mods (*	ม็อด Capri (*
+Capri, hello	Capri สวัสดี
+CapriDesktop.	CapriDesktop.
+Chaos when upset	วุ่นวายเมื่อหงุดหงิด
+Chat with Capri from your phone	คุยกับ Capri จากโทรศัพท์ของคุณ
+ChatGPT plan	แพ็กเกจ ChatGPT
+Check for updates	ตรวจหาการอัปเดต
+Check in on me	ถามไถ่ฉัน
+Check in on me is hidden	ซ่อนการถามไถ่ฉันอยู่
+Check in on me still decides whether she visits.	การถามไถ่ฉันยังเป็นตัวกำหนดว่าเธอจะแวะมาหรือไม่
+Check in on me's tip missed	เคล็ดลับถามไถ่ฉันพลาดไป
+Chess	หมากรุก
+Choose apps	เลือกแอป
+Choose folder...	เลือกโฟลเดอร์...
+Choose where future Capri clips are saved	เลือกที่บันทึกคลิป Capri ในอนาคต
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	แพ็กเกจ Claude หรือ ChatGPT, คีย์แบบเสียเงิน (OpenAI, Claude, DeepSeek) หรือ Ollama
+Claude plan	แพ็กเกจ Claude
+Clear	ล้าง
+Cleared.	ล้างแล้ว
+Click Confirm to keep Down, or press Esc.	กดยืนยันเพื่อเก็บ Down หรือกด Esc
+Click to open it.	คลิกเพื่อเปิด
+Clip my games	บันทึกคลิปเกมของฉัน
+Clips	คลิป
+Close	ปิด
+Close other AIs for me	ปิด AI อื่นให้ฉัน
+Cloud voice	เสียงคลาวด์
+Cloud voice service	บริการเสียงคลาวด์
+Cloud voice setup	การตั้งค่าเสียงคลาวด์
+Code mods can reach your whole PC. Only trusted ones.	ม็อดโค้ดเข้าถึงทั้งพีซีของคุณได้ ใช้เฉพาะที่เชื่อถือได้
+Code/Husk Mode	โหมด Code/Husk
+Codex	Codex
+Commands	คำสั่ง
+Comment on my games	แสดงความเห็นเกมของฉัน
+Comments	ความคิดเห็น
+Confirm	ยืนยัน
+Confirm keys	ยืนยันคีย์
+Connect	เชื่อมต่อ
+Connect / Forget brain key	เชื่อมต่อ / ลืมคีย์สมอง
+Connect / Forget voice key	เชื่อมต่อ / ลืมคีย์เสียง
+Connect four	สี่เรียงกัน
+Controls	การควบคุม
+Copri, what time is it	Copri ตอนนี้กี่โมงแล้ว
+Copy error details	คัดลอกรายละเอียดข้อผิดพลาด
+Copy the key	คัดลอกคีย์
+Copy the key from the page, then press Paste.	คัดลอกคีย์จากหน้าเว็บ แล้วกดวาง
+Couldn't open that page:	เปิดหน้านั้นไม่ได้:
+Couldn't open that:	เปิดสิ่งนั้นไม่ได้:
+Couldn't open the mods folder:	เปิดโฟลเดอร์ม็อดไม่ได้:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M เป็นคีย์ Mainframe ของเธออยู่แล้ว
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N ปิดเสียงไมค์
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V เป็นคีย์พูดของเธออยู่แล้ว
+Ctrl + Alt + V to talk	Ctrl + Alt + V เพื่อพูด
+Custom local voice	เสียงในเครื่องที่กำหนดเอง
+Custom model name	ชื่อโมเดลที่กำหนดเอง
+Dance	เต้น
+Dance to music	เต้นตามเพลง
+Default	ค่าเริ่มต้น
+Default (follows Windows)	ค่าเริ่มต้น (ตาม Windows)
+Default duration for clip that and automatic clips	ความยาวเริ่มต้นสำหรับคลิปนั้นและคลิปอัตโนมัติ
+Default length	ความยาวเริ่มต้น
+Default model	โมเดลเริ่มต้น
+Delay	หน่วงเวลา
+Deny	ปฏิเสธ
+Discard	ทิ้ง
+Discard + reload	ทิ้งและโหลดใหม่
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	ไม่อยากรอเหรอ คีย์ฟรีทำให้ฉันพูดได้ในราวหนึ่งนาที
+Done	เสร็จแล้ว
+EXTRA REQUEST JSON >	JSON คำขอเพิ่มเติม >
+EXTRAS >	เพิ่มเติม >
+Edit	แก้ไข
+Edit check-in lines	แก้ไขบรรทัดถามไถ่
+Edit check-in lines has the wrong view or dimming	การแก้ไขบรรทัดถามไถ่มีมุมมองหรือความมืดผิด
+Edit check-in lines is out of place	การแก้ไขบรรทัดถามไถ่อยู่ผิดที่
+Edit controls	แก้ไขการควบคุม
+ElevenLabs API key	คีย์ API ของ ElevenLabs
+ElevenLabs voice ID	ID เสียงของ ElevenLabs
+English	อังกฤษ
+Enter the game's name first.	กรุณาใส่ชื่อเกมก่อน
+Every	ทุก
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	ม็อดทุกตัวจะถูกตรวจหามัลแวร์ก่อนอัปโหลด ม็อดโค้ดยังคงถามก่อนรัน
+Explore after	สำรวจหลังจาก
+Explore while I'm away	สำรวจตอนฉันไม่อยู่
+Extra request JSON	JSON คำขอเพิ่มเติม
+Extras	เพิ่มเติม
+FREE KEY	คีย์ฟรี
+FREE KEY >	คีย์ฟรี >
+Fast hands in games	มือไวในเกม
+File editor	ตัวแก้ไขไฟล์
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs และอื่น ๆ อยู่ใต้เสียงใน Mainframe
+Follow-up messages	ข้อความติดตาม
+Forget	ลืม
+Fork capri-mods	Fork capri-mods
+Frame rate	เฟรมเรต
+Free	ฟรี
+Free and private, works offline. Downloads	ฟรีและเป็นส่วนตัว ทำงานออฟไลน์ได้ ดาวน์โหลด
+Free and private, works offline. Downloads the best model for this PC.	ฟรีและเป็นส่วนตัว ทำงานออฟไลน์ได้ ดาวน์โหลดโมเดลที่ดีที่สุดสำหรับพีซีเครื่องนี้
+Free key	คีย์ฟรี
+Free key providers	ผู้ให้บริการคีย์ฟรี
+Free keys can be rate limited and slow.	คีย์ฟรีอาจถูกจำกัดอัตราและช้า
+Free voice in games	เสียงฟรีในเกม
+Free voice style	สไตล์เสียงฟรี
+Free voice:	เสียงฟรี:
+Free voice: Her own	เสียงฟรี: เสียงของเธอเอง
+Free · local model	ฟรี · โมเดลในเครื่อง
+GAMES >	เกม >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ความคิดเห็นในเกมทำงานแยกจากดูหน้าจอของฉัน ปิดจะหยุดด้วย แม้ในโหมดเกม; เฉพาะเหตุการณ์และพูดมากจะให้เธอดูเกมของคุณได้
+Game controls	การควบคุมเกม
+Game name	ชื่อเกม
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ความไวเสียงเกม ลดลงถ้าหูฟังเบาแต่ Windows อยู่ที่ {0}% และเธอตอบสนองทุกเสียง; ปิดจะไม่สนใจเสียงเกม
+Game sounds	เสียงเกม
+Games	เกม
+Gaming Mode	โหมดเกม
+Gaming Mode key	คีย์โหมดเกม
+Gaming Mode:	โหมดเกม:
+Gaming Mode: Ctrl + Alt + G	โหมดเกม: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	รับ VB-CABLE
+Get VB-CABLE (free)...	รับ VB-CABLE (ฟรี)...
+Get free voice	รับเสียงฟรี
+Getting your Fish Audio voices...	กำลังดึงเสียง Fish Audio ของคุณ...
+Giant	ยักษ์
+Glitch	กระตุก
+Glitch in at startup	กระตุกตอนเริ่มต้น
+Go to sleep	ไปนอน
+Go to the next screen	ไปหน้าจอถัดไป
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · แพ็กเกจฟรี · จำกัดอัตรา
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	มีแพ็กเกจ Claude หรือ ChatGPT หรือคีย์ของตัวเองไหม เลือกเลย แล้วฉันจะเชื่อมต่อให้
+Got it, just me. Right-click me any time for Capri Mainframe.	เข้าใจแล้ว แค่ฉันคนเดียว คลิกขวาที่ฉันได้ตลอดเวลาเพื่อเปิด Capri Mainframe
+Grey	เทา
+H.{0} video bitrate target; higher values make larger files	เป้าหมายบิตเรตวิดีโอ H.{0}; ค่ายิ่งสูงไฟล์ยิ่งใหญ่
+HABITS >	นิสัย >
+HER HANDS >	มือของเธอ >
+HER JOBS >	งานของเธอ >
+HER MEMORY >	ความทรงจำของเธอ >
+HER MODS >	ม็อดของเธอ >
+HH:mm	HH:mm
+HOW I SOUND >	ฉันฟังดูเป็นยังไง >
+Hang here	ค้างอยู่ตรงนี้
+Have Ollama? Open it, then press Refresh.	มี Ollama ไหม เปิดมัน แล้วกดรีเฟรช
+Head pats	ลูบหัว
+Hearing	การได้ยิน
+Hearing engine	เอนจินการได้ยิน
+Hearing fix	การแก้ไขการได้ยิน
+Hearing status	สถานะการได้ยิน
+Help	ความช่วยเหลือ
+Help page	หน้าช่วยเหลือ
+Her colors	สีของเธอ
+Her folder	โฟลเดอร์ของเธอ
+Her memories	ความทรงจำของเธอ
+Her own colors are back.	สีของเธอเองกลับมาแล้ว
+Her own notes (no vault)	บันทึกของเธอเอง (ไม่มีคลัง)
+Her perch frames per second	เฟรมต่อวินาทีของการเกาะของเธอ
+Her personality	บุคลิกของเธอ
+Her size	ขนาดของเธอ
+Her speaker	ลำโพงของเธอ
+Her speaker is hidden or outside VOICE	ลำโพงของเธอถูกซ่อนหรืออยู่นอกเสียง
+Her speaker overlaps the mic or hearing row	ลำโพงของเธอซ้อนทับแถวไมค์หรือการได้ยิน
+Her speaker:	ลำโพงของเธอ:
+Her speaker: Default	ลำโพงของเธอ: ค่าเริ่มต้น
+Her voice in your mic	เสียงของเธอในไมค์ของคุณ
+Her voice in your mic: loudness	เสียงของเธอในไมค์ของคุณ: ความดัง
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ตัวเสียงของเธอเอง ระดับเสียงคือ การตั้งค่า > เสียง > ระดับเสียง และทั้งสองจะเปลี่ยนไปพร้อมกัน
+Her voice joins your mic only in call mode.	เสียงของเธอจะเข้าไมค์ของคุณเฉพาะในโหมดโทรศัพท์
+Her voice volume	ระดับเสียงของเธอ
+Her voice's pitch	ระดับเสียงของเธอ
+Her voice's pitch, the same as Settings > VOICE > Pitch	ระดับเสียงของเธอ เหมือนกับ การตั้งค่า > เสียง > ระดับเสียง
+Her voice's speed	ความเร็วเสียงของเธอ
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	เสียงของเธอ และสำเนาสองชุดที่ผสมอยู่ข้างใต้ แต่ละชุดมีระดับเสียงและการหน่วงของตัวเอง
+Her voices · free	เสียงของเธอ · ฟรี
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	เฮ้ choom ฉันคือ Capri ฉันต้องมีสมองก่อนจะตอบได้ เลือกมาหนึ่งอย่าง
+Hide / Show Capri	ซ่อน / แสดง Capri
+Hide / Show key	คีย์ซ่อน / แสดง
+Hide Capri	ซ่อน Capri
+Hide for now	ซ่อนไว้ก่อน
+Hide her	ซ่อนเธอ
+Hide in full screen	ซ่อนในโหมดเต็มจอ
+Hide this	ซ่อนอันนี้
+Hide, keep player	ซ่อน เก็บเพลเยอร์ไว้
+Hide/show:	ซ่อน/แสดง:
+Hide/show: Ctrl + Alt + H	ซ่อน/แสดง: Ctrl + Alt + H
+Hologram	โฮโลแกรม
+Hop off	กระโดดลง
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	พีซีที่นิ่งต้องใช้เวลานานแค่ไหนจึงจะส่งเธอไปนอน; ห้านาทียังถือว่าคุณไม่อยู่
+How long a stroke over her a head pat needs	การลูบผ่านเธอต้องใช้เวลานานแค่ไหนจึงจะนับเป็นการลูบหัว
+How long her replies stay up	คำตอบของเธอจะแสดงอยู่นานแค่ไหน
+How long you are away before she scrolls a browser or reader	คุณต้องไม่อยู่นานแค่ไหนก่อนที่เธอจะเลื่อนเบราว์เซอร์หรือโปรแกรมอ่าน
+How much her voice glitches	เสียงของเธอกระตุกมากแค่ไหน
+How much of the chat she keeps	เธอเก็บแชทไว้มากแค่ไหน
+How much she wanders	เธอเดินเตร่มากแค่ไหน
+How often she pops in to say hi	เธอแวะมาทักทายบ่อยแค่ไหน
+How robotic her voice sounds	เสียงของเธอฟังดูเหมือนหุ่นยนต์มากแค่ไหน
+How to	วิธี
+Huge	ใหญ่มาก
+I can hear you.	ฉันได้ยินคุณ
+I glance at your screen and comment. Costs a little on a paid brain.	ฉันชำเลืองดูหน้าจอคุณแล้วแสดงความคิดเห็น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
+I keep listening. Say my name, then just talk.	ฉันจะฟังต่อ พูดชื่อฉันแล้วคุยได้เลย
+I speak	ภาษาที่ฉันพูด
+I talk about your game as you play. Costs a little on a paid brain.	ฉันพูดถึงเกมของคุณขณะที่คุณเล่น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
+I type my replies and stay quiet.	ฉันพิมพ์คำตอบและเงียบไว้
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ฉันจะไม่ตอบด้วยเสียง และไม่มีอะไรถูกส่งไปที่ไหนเลย ฉันยังคงอยู่ด้วย เต้นตามเพลงของคุณ และทำสิ่งเล็ก ๆ ที่คุณขอ เช่นระดับเสียง
+I'll talk in	ฉันจะพูดใน
+IN DISCORD >	ใน DISCORD >
+INSTALLED >	ติดตั้งแล้ว >
+Import a Capri mod	นำเข้าม็อด Capri
+Import mod	นำเข้าม็อด
+In full screen	ในโหมดเต็มจอ
+In games	ในเกม
+Input	อินพุต
+Input, Output or How to overlaps a row	อินพุต เอาต์พุต หรือ วิธีซ้อนทับแถว
+Input:	อินพุต:
+Input: default	อินพุต: ค่าเริ่มต้น
+Install	ติดตั้ง
+Install mod	ติดตั้งม็อด
+Installed.	ติดตั้งแล้ว
+It may ask for a phone number. I opened the page in your browser.	อาจขอหมายเลขโทรศัพท์ ฉันเปิดหน้าในเบราว์เซอร์ของคุณแล้ว
+It still does its own job in other apps too.	ยังทำหน้าที่ของตัวเองในแอปอื่นด้วย
+It won't type in other apps while she runs.	จะไม่พิมพ์ในแอปอื่นขณะที่เธอทำงาน
+JUST ME >	ฉันคนเดียว >
+Jealous of other AIs	หึงหวง AI อื่น
+Join the Discord	เข้าร่วม Discord
+KB.	KB.
+KEYS	คีย์
+KEYS >	คีย์ >
+Keep PC awake for jobs	ให้พีซีตื่นไว้สำหรับงาน
+Keep player	เก็บเพลเยอร์ไว้
+Keeps the last two minutes of your game in memory. Say clip that to save it.	เก็บสองนาทีสุดท้ายของเกมไว้ในหน่วยความจำ พูดว่าบันทึกคลิปนั้นเพื่อบันทึก
+Key	คีย์
+Key cleared: a model file needs none.	ล้างคีย์แล้ว: ไฟล์โมเดลไม่ต้องใช้คีย์
+Key cleared: paste the key for	ล้างคีย์แล้ว: วางคีย์สำหรับ
+Key forgotten.	ลืมคีย์แล้ว
+Key. It goes only to this server, as a Bearer key	คีย์ ส่งไปที่เซิร์ฟเวอร์นี้เท่านั้นในฐานะคีย์ Bearer
+Kokoro only, like es	เฉพาะ Kokoro เหมือน es
+LAST THING >	สิ่งสุดท้าย >
+LISTENING >	กำลังฟัง >
+Language	ภาษา
+Large	ใหญ่
+Last thing. These cost a little or use your mic, so they're your pick.	สิ่งสุดท้าย รายการเหล่านี้มีค่าใช้จ่ายเล็กน้อยหรือใช้ไมค์ของคุณ จึงขึ้นอยู่กับคุณที่จะเลือก
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	สิ่งสุดท้าย รายการเหล่านี้มีค่าใช้จ่ายเล็กน้อยหรือใช้ไมค์ของคุณ จึงขึ้นอยู่กับคุณที่จะเลือก แล้วฉันอยากรู้ว่าควรเรียกคุณว่าอะไร
+Layers	เลเยอร์
+Learn more	ดูเพิ่มเติม
+Leaving Settings threw its picture away straight away.	การออกจากการตั้งค่าทิ้งภาพของเธอไปทันที
+Legacy stand	ขาตั้งรุ่นเก่า
+Lie down	นอนลง
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	บรรทัดบทสนทนาของพีซีที่เก็บไว้ในหน่วยความจำขณะดูด้วยกัน ครึ่งที่เก่าที่สุดจะกลายเป็นบันทึกเมื่อเปิดจำสิ่งที่เธอเห็นอยู่
+Listen for Capri	ฟังคำว่า Capri
+Live reactions	ปฏิกิริยาสด
+Local server address	ที่อยู่เซิร์ฟเวอร์ในเครื่อง
+Long	ยาว
+Longest wait (minutes)	รอนานที่สุด (นาที)
+Looking at this PC...	กำลังดูพีซีเครื่องนี้...
+Looking for Ollama. Open it if it isn't running.	กำลังหา Ollama เปิดมันถ้ายังไม่ทำงาน
+Looking for a brain...	กำลังหาสมอง...
+Looking in the mods directory for updates...	กำลังหาการอัปเดตในไดเรกทอรีม็อด...
+Looking in the mods directory...	กำลังหาในไดเรกทอรีม็อด...
+Looking...	กำลังหา...
+MAIN >	หลัก >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIGENCE ระดับกลาง
+MEMORY VAULT >	คลังความจำ >
+MODS	ม็อด
+MODS >	ม็อด >
+MODS DIRECTORY >	ไดเรกทอรีม็อด >
+MODS INSTALLED COLORS	สีม็อดที่ติดตั้งแล้ว
+MOVES >	ท่าทาง >
+MY BRAIN	สมองของฉัน
+MY FREE VOICE	เสียงฟรีของฉัน
+MY PLAN OR KEY	แพ็กเกจหรือคีย์ของฉัน
+MY PLAN OR KEY >	แพ็กเกจหรือคีย์ของฉัน >
+Made your Fish Audio voice. Press Test to hear it.	สร้างเสียง Fish Audio ของคุณแล้ว กดทดสอบเพื่อฟัง
+Mainframe colours	สีของ Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	สีของ Mainframe Night City เป็นสีแดงกับฟ้าอมเขียว; ดำ ขาว และเทาจะเปลี่ยน Mainframe เมนูของเธอ กล่องพิมพ์ และบันทึกของเธอ
+Mainframe frames	กรอบ Mainframe
+Mainframe key	คีย์ Mainframe
+Mainframe size	ขนาด Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	ขนาด Mainframe อัตโนมัติจะทำให้ใหญ่ขึ้นเมื่อ Virtual Super Resolution หรือ DSR ย่อเดสก์ท็อปขนาดใหญ่ลงบนหน้าจอที่เล็กกว่า
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: ลง
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	กำลังสร้างเสียง Fish Audio ของคุณ...
+Max reply	คำตอบสูงสุด
+Maximum clip resolution, keeping the game's shape without upscaling	ความละเอียดคลิปสูงสุด โดยคงสัดส่วนของเกมไว้โดยไม่ขยายภาพ
+Medium	ปานกลาง
+Memory	หน่วยความจำ
+Memory size	ขนาดหน่วยความจำ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	ขนาดหน่วยความจำเป็นโทเคนสำหรับ Ollama และสมองในตัวของเธอ อัตโนมัติจะเพิ่มขึ้นเมื่อคำขอต้องการมากกว่า
+Mg	Mg
+Mic level:	ระดับไมค์:
+Mic test finished. Sound is reaching Capri.	ทดสอบไมค์เสร็จแล้ว เสียงกำลังไปถึง Capri
+Mic:	ไมค์:
+Mic: default	ไมค์: ค่าเริ่มต้น
+Microphone	ไมโครโฟน
+Mini player	มินิเพลเยอร์
+Mini player over full screen	มินิเพลเยอร์เหนือโหมดเต็มจอ
+Mini-games	มินิเกม
+Minimising the Mainframe left it sliding.	การย่อ Mainframe ทำให้มันยังเลื่อนอยู่
+Minimize	ย่อ
+Mod filter	ตัวกรองม็อด
+Mod options	ตัวเลือกม็อด
+Mod pages	หน้าม็อด
+Mod rules	กฎม็อด
+Mod sort	การเรียงม็อด
+Mod switch	สวิตช์ม็อด
+Model	โมเดล
+Model folder	โฟลเดอร์โมเดล
+Model name, optional	ชื่อโมเดล ไม่บังคับ
+Mods	ม็อด
+Mods directory	ไดเรกทอรีม็อด
+Mods folder	โฟลเดอร์ม็อด
+Most NVIDIA models can't see your screen.	โมเดล NVIDIA ส่วนใหญ่มองไม่เห็นหน้าจอของคุณ
+Mouse wheel notches got a flick's long ease:	ช่องล้อเมาส์ได้การหน่วงยาวแบบสะบัด:
+Move	ย้าย
+Move key to MAX INTELLIGENCE	ย้ายคีย์ไปที่ MAX INTELLIGENCE
+Move to MAX	ย้ายไป MAX
+Music	เพลง
+Music app	แอปเพลง
+Music app: where she plays music when you don't name an app	แอปเพลง: ที่ที่เธอเปิดเพลงเมื่อคุณไม่ระบุแอป
+Mute	ปิดเสียง
+Mute her	ปิดเสียงเธอ
+Mute mic key	คีย์ปิดเสียงไมค์
+Mute mic:	ปิดเสียงไมค์:
+Mute mic: Ctrl + Alt + N	ปิดเสียงไมค์: Ctrl + Alt + N
+My brain	สมองของฉัน
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	สมองของฉันกำลังโหลดลงมา เดี๋ยวจะทักทายทันทีที่โหลดเสร็จ และตอนนั้นคุณก็คุยกับฉันได้
+My brain's on its way. While it comes down, let's sort out how I sound.	สมองของฉันกำลังมา ระหว่างที่มันโหลดลงมา มาจัดการเรื่องเสียงของฉันกันเถอะ
+My provider	ผู้ให้บริการของฉัน
+NO AI	ไม่มี AI
+NO PHONES CONNECTED	ไม่มีโทรศัพท์เชื่อมต่อ
+NO PREVIEW	ไม่มีตัวอย่าง
+NORMAL	ปกติ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ฟรี · มักช้าในช่วงที่คนใช้เยอะ
+NVIDIA's free API is often slow, especially at busy times.	API ฟรีของ NVIDIA มักช้า โดยเฉพาะช่วงที่คนใช้เยอะ
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	คีย์ API ของ NVIDIA, Google AI Studio (Gemini) หรือ OpenRouter
+Names:	ชื่อ:
+Needs a key	ต้องใช้คีย์
+Never	ไม่เคย
+New code	โค้ดใหม่
+New voice from a clip...	เสียงใหม่จากคลิป...
+Next	ถัดไป
+Night City	Night City
+No AI	ไม่มี AI
+No AI · no brain at all	ไม่มี AI · ไม่มีสมองเลย
+No brain runs, and nothing is sent anywhere.	ไม่มีสมองทำงาน และไม่มีอะไรถูกส่งไปที่ไหนเลย
+No brain yet	ยังไม่มีสมอง
+No code open	ไม่มีโค้ดที่เปิดอยู่
+No limit	ไม่จำกัด
+No mic found	ไม่พบไมค์
+No mods in the directory yet.	ยังไม่มีม็อดในไดเรกทอรี
+No mods match that.	ไม่มีม็อดที่ตรงกับสิ่งนั้น
+No mods match.	ไม่มีม็อดที่ตรงกัน
+No phones yet	ยังไม่มีโทรศัพท์
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ยังไม่มีไมค์เสมือน เลือกเอาต์พุต แล้วรับ VB-CABLE (ฟรี)
+None yet: pick to get VB-CABLE (free)	ยังไม่มี: เลือกเพื่อรับ VB-CABLE (ฟรี)
+Normal	ปกติ
+Not a relay host	ไม่ใช่โฮสต์รีเลย์
+Not imported. Nothing ran.	ยังไม่ได้นำเข้า ไม่มีอะไรทำงาน
+Not updated. The old one is still in.	ยังไม่ได้อัปเดต ตัวเก่ายังอยู่
+Nothing needed updating.	ไม่มีอะไรต้องอัปเดต
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ไม่ต้องดาวน์โหลดอะไร ไม่มีอะไรถูกส่งไปที่ไหน ฉันจะไม่ตอบกลับด้วยเสียง เพิ่มสมองได้ทุกเมื่อใน Mainframe
+Nothing to show from the mods directory.	ไม่มีอะไรให้แสดงจากไดเรกทอรีม็อด
+Nothing? Windows Settings > Privacy & security > Microphone.	ไม่มีเหรอ การตั้งค่า Windows > ความเป็นส่วนตัวและความปลอดภัย > ไมโครโฟน
+Nous Portal keys aren't supported yet.	ยังไม่รองรับคีย์ของ Nous Portal
+OBS	OBS
+OFF	ปิด
+OLLAMA	OLLAMA
+ON	เปิด
+ON THIS PC	บนพีซีนี้
+OR A KEY	หรือคีย์
+Obsidian memory vault	คลังความจำ Obsidian
+Off	ปิด
+Off. Turn on Her voice in your mic above.	ปิด เปิดเสียงของเธอในไมค์ของคุณด้านบน
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	ปิด: เธอฟังดูเหมือนเดิม เปิด: ทุกเสียงที่เธอมี รวมถึง ElevenLabs ด้วย
+Often	บ่อย
+On	เปิด
+On / Off	เปิด / ปิด
+On: your mic and her voice are going in.	เปิด: ไมค์ของคุณและเสียงของเธอกำลังเข้า
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	JSON หนึ่งออบเจ็กต์ ถูกเพิ่มในทุกคำขอที่สมองนี้ส่งไป มันจะแทนที่ค่าของ Capri สำหรับชื่อที่ใช้ร่วมกัน และไม่ได้ตรวจกับโมเดล
+Online speech recognition	การรู้จำเสียงพูดออนไลน์
+Open Capri Mainframe	เปิด Capri Mainframe
+Open Ollama, I'll find it	เปิด Ollama เดี๋ยวฉันหาเอง
+Open clips folder	เปิดโฟลเดอร์คลิป
+Open her memories	เปิดความทรงจำของเธอ
+Open her notes	เปิดบันทึกของเธอ
+Open mods folder	เปิดโฟลเดอร์ม็อด
+Open the page again	เปิดหน้านั้นอีกครั้ง
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA หรือ OpenRouter
+OpenAI-compatible server or provider.	เซิร์ฟเวอร์หรือผู้ให้บริการที่รองรับ OpenAI
+OpenRouter · free models only	OpenRouter · เฉพาะโมเดลฟรี
+Optional	ไม่บังคับ
+Optional. Blank means no key.	ไม่บังคับ ว่างหมายถึงไม่มีคีย์
+Options	ตัวเลือก
+Out of the box a little higher, just behind her.	ค่าเริ่มต้นสูงขึ้นเล็กน้อย อยู่หลังเธอ
+Out of the box lower, just behind her.	ค่าเริ่มต้นต่ำลงเล็กน้อย อยู่หลังเธอ
+Output	เอาต์พุต
+Output:	เอาต์พุต:
+Output: none	เอาต์พุต: ไม่มี
+PHONE CONNECTED	เชื่อมต่อโทรศัพท์แล้ว
+PHONES >	โทรศัพท์ >
+PHONES CONNECTED	โทรศัพท์ที่เชื่อมต่อ
+PREBUILT LOCAL	ในเครื่องที่มีมาให้
+PUBLISH MOD >	เผยแพร่ม็อด >
+Pair a phone	จับคู่โทรศัพท์
+Paste	วาง
+Paste API key	วางคีย์ API
+Paste a brain API key	วางคีย์ API ของสมอง
+Paste reads your clipboard once, when you press it.	การวางจะอ่านคลิปบอร์ดของคุณหนึ่งครั้ง เมื่อคุณกดเท่านั้น
+Paste your key here	วางคีย์ของคุณที่นี่
+Pat stroke	การลูบ
+Perch	การเกาะ
+Perch over {0} fps uses more CPU	การเกาะที่เกิน {0} fps ใช้ CPU มากขึ้น
+Pick Output to get it.	เลือกเอาต์พุตเพื่อให้ได้มา
+Pick a brain so I can talk back. You can change it any time.	เลือกสมองเพื่อให้ฉันตอบกลับได้ เปลี่ยนได้ตลอดเวลา
+Pick a clip of a voice you have the rights and consent to use	เลือกคลิปของเสียงที่คุณมีสิทธิ์และได้รับความยินยอมให้ใช้
+Pick a free model. I opened the page in your browser.	เลือกโมเดลฟรี ฉันเปิดหน้าในเบราว์เซอร์ของคุณแล้ว
+Pick a new clip of you...	เลือกคลิปใหม่ของคุณ...
+Pick a voice model...	เลือกโมเดลเสียง...
+Pick one. Only one brain runs at a time.	เลือกหนึ่งอย่าง ทำงานได้ครั้งละหนึ่งสมองเท่านั้น
+Pick the note her memories go in	เลือกบันทึกที่ความทรงจำของเธอจะไปอยู่
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	เลือกเสียง {0} ถึง {1} วินาทีของเสียงที่คุณมีสิทธิ์และได้รับความยินยอมให้ใช้
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	เลือก {0} ถึง {1} วินาทีของคุณที่กำลังพูด หรือของเสียงที่คุณมีสิทธิ์และได้รับความยินยอมให้ใช้
+Pitch	ระดับเสียง
+Play	เล่น
+Play...	เล่น...
+Player only	เฉพาะเพลเยอร์
+Pocket TTS models copy this clip's voice. Press Test to hear it.	โมเดล Pocket TTS จะคัดลอกเสียงของคลิปนี้ กดทดสอบเพื่อฟัง
+Pop-in times	เวลาที่แวะมา
+Pop-ins	การแวะมา
+Power saver	ประหยัดพลังงาน
+Power saver: how lightly she runs in games, or always	ประหยัดพลังงาน: เธอทำงานเบาแค่ไหนในเกม หรือเสมอ
+Preset	พรีเซ็ต
+Press Create API key	กดสร้างคีย์ API
+Press Create Key	กดสร้างคีย์
+Press Generate API Key	กดสร้างคีย์ API
+Press Test and say something, so I know I can hear you.	กดทดสอบแล้วพูดอะไรสักอย่าง เพื่อให้ฉันรู้ว่าได้ยินคุณ
+Press a key, alone or with Ctrl, Alt, Shift or Win.	กดปุ่มหนึ่งปุ่ม จะกดเดี่ยวหรือร่วมกับ Ctrl, Alt, Shift หรือ Win ก็ได้
+Press new keys, then Confirm	กดปุ่มใหม่ แล้วยืนยัน
+Provider	ผู้ให้บริการ
+Provider API key, optional	คีย์ API ของผู้ให้บริการ ไม่บังคับ
+Provider base URL	URL หลักของผู้ให้บริการ
+Provider forgotten.	ลืมผู้ให้บริการแล้ว
+Provider overlaps the brain name or note	ผู้ให้บริการซ้อนทับชื่อสมองหรือบันทึก
+Publish	เผยแพร่
+Publish mod	เผยแพร่ม็อด
+Push to talk is off.	กดค้างเพื่อพูดปิดอยู่
+Push to talk key	คีย์กดค้างเพื่อพูด
+Push to talk:	กดค้างเพื่อพูด:
+Push to talk: not set	กดค้างเพื่อพูด: ยังไม่ได้ตั้ง
+QR CODE >	คิวอาร์โค้ด >
+QR hidden while streaming	ซ่อนคิวอาร์โค้ดขณะสตรีม
+Quick	เร็ว
+Quiet key	คีย์เงียบ
+Quiet:	เงียบ:
+Quiet: Ctrl + Alt + P	เงียบ: Ctrl + Alt + P
+Quit Capri	ออกจาก Capri
+RELAY >	รีเลย์ >
+REMOTE >	รีโมต >
+RUNS CODE.	รันโค้ด
+Rarely	นาน ๆ ครั้ง
+Rate mod	ให้คะแนนม็อด
+Reading its README...	กำลังอ่าน README...
+Refresh	รีเฟรช
+Reinstall	ติดตั้งใหม่
+Reload	โหลดใหม่
+Reloaded.	โหลดใหม่แล้ว
+Remember our chats	จำการสนทนาของเรา
+Remember what she sees	จำสิ่งที่เธอเห็น
+Remote	รีโมต
+Remote off	รีโมตปิด
+Remote on	รีโมตเปิด
+Remove	ลบ
+Remove all phones	ลบโทรศัพท์ทั้งหมด
+Replies	คำตอบ
+Reply length	ความยาวคำตอบ
+Report a problem	รายงานปัญหา
+Reset colors	รีเซ็ตสี
+Reset to her default	รีเซ็ตเป็นค่าเริ่มต้นของเธอ
+Resolution	ความละเอียด
+Restart to update	เริ่มใหม่เพื่ออัปเดต
+Restless	กระสับกระส่าย
+Revoke	เพิกถอน
+Revoke also removes the phones its links added	การเพิกถอนจะลบโทรศัพท์ที่ลิงก์ของมันเพิ่มไว้ด้วย
+Ride cursor	ขี่เคอร์เซอร์
+Ride cursor / Hop off	ขี่เคอร์เซอร์ / กระโดดลง
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	คลิกขวาที่ฉันได้ทุกเวลาเพื่อเปิด Capri Mainframe สมองจะเปิดขึ้นภายใต้สมอง
+Right-click me any time for the Mainframe, Help and the Discord.	คลิกขวาที่ฉันได้ทุกเวลาเพื่อเปิด Mainframe ความช่วยเหลือ และ Discord
+Roblox	Roblox
+Roblox or any other app: pick	Roblox หรือแอปอื่นใด: เลือก
+Robot	หุ่นยนต์
+Rock, paper, scissors	ค้อน กระดาษ กรรไกร
+Run this code mod?	รันม็อดโค้ดนี้ไหม?
+Running on this PC	ทำงานบนพีซีนี้
+Running on this PC · :	ทำงานบนพีซีนี้ · :
+Runs Claude Code or Codex on this PC, signed in.	รัน Claude Code หรือ Codex บนพีซีนี้ ลงชื่อเข้าใช้แล้ว
+Runs on your PC. No key, no credits.	ทำงานบนพีซีของคุณ ไม่ต้องใช้คีย์ ไม่ต้องใช้เครดิต
+SCAN WITH YOUR PHONE · EXPIRES	สแกนด้วยโทรศัพท์ · หมดอายุ
+SECURITY >	ความปลอดภัย >
+SKILL.	ทักษะ
+SKIN.	สกิน
+SORT BY	เรียงตาม
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	เสียง นิสัย สมอง ดู CAPRI DOOMSCROLL อากาศ คลิป เกม คีย์ ท่าทาง เสียง คุณ
+Same as I speak	เหมือนภาษาที่ฉันพูด
+Same as her ears (VOICE > Mic)	เหมือนหูของเธอ (เสียง > ไมค์)
+Same code on the phone?	โค้ดเดียวกันบนโทรศัพท์ไหม?
+Save	บันทึก
+Save big moments	บันทึกช่วงเวลาสำคัญ
+Save folder	โฟลเดอร์บันทึก
+Save your changes, or press Discard + reload.	บันทึกการเปลี่ยนแปลงของคุณ หรือกดทิ้งและโหลดใหม่
+Save your changes, or press Discard.	บันทึกการเปลี่ยนแปลงของคุณ หรือกดทิ้ง
+Saved.	บันทึกแล้ว
+Saved. Ctrl + Alt + O opens her Mainframe.	บันทึกแล้ว Ctrl + Alt + O เปิด Mainframe ของเธอ
+Saving your rating...	กำลังบันทึกคะแนนของคุณ...
+Say her name anywhere to chat	พูดชื่อเธอที่ไหนก็ได้เพื่อคุย
+Screens	หน้าจอ
+Screens is hidden or outside WATCH	หน้าจอถูกซ่อนหรืออยู่นอกดู
+Screens overlaps a WATCH row	หน้าจอซ้อนทับแถวดู
+Screens to watch	หน้าจอที่จะดู
+Sealed end to end	เข้ารหัสตลอดเส้นทาง
+Search by name or author	ค้นหาตามชื่อหรือผู้เขียน
+Search installed mods	ค้นหาม็อดที่ติดตั้งแล้ว
+Search mods	ค้นหาม็อด
+Search name, author or description	ค้นหาชื่อ ผู้เขียน หรือคำอธิบาย
+Security	ความปลอดภัย
+Security:	ความปลอดภัย:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	ตั้งค่า
+Set up her brain	ตั้งค่าสมองของเธอ
+Set up your voice model	ตั้งค่าโมเดลเสียงของคุณ
+Setting up her brain	กำลังตั้งค่าสมองของเธอ
+Settings	การตั้งค่า
+Settings / Back	การตั้งค่า / กลับ
+Settings folds the wrong rows above BRAIN	การตั้งค่าพับแถวผิดไว้เหนือสมอง
+Settings had nothing to watch.	การตั้งค่าไม่มีอะไรให้ดู
+Settings lost keyboard focus during the Tab walk	การตั้งค่าเสียโฟกัสคีย์บอร์ดระหว่างการกด Tab
+Setup guide	คู่มือการตั้งค่า
+Setup stopped	การตั้งค่าหยุดแล้ว
+She answers in	ภาษาที่เธอตอบ
+She can read it when it fits.	เธออ่านได้เมื่อพอดี
+She glances at your screen and comments. Costs a little on a paid brain.	เธอชำเลืองดูหน้าจอคุณแล้วแสดงความคิดเห็น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
+She keeps listening. Say her name, then just talk.	เธอจะฟังต่อ พูดชื่อเธอแล้วพูดได้เลย
+She reacts to your game until you close it.	เธอจะตอบสนองต่อเกมของคุณจนกว่าคุณจะปิด
+She reads these controls before each game job.	เธออ่านการควบคุมเหล่านี้ก่อนทุกงานในเกม
+She talks about your game as you play. Costs a little on a paid brain.	เธอพูดถึงเกมของคุณขณะที่คุณเล่น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
+She uses it when she plays	เธอใช้มันตอนเล่น
+Short	สั้น
+Shortest wait (minutes)	รอสั้นที่สุด (นาที)
+Show Capri	แสดง Capri
+Show QR	แสดงคิวอาร์
+Show my mod file	แสดงไฟล์ม็อดของฉัน
+Show on Discord	แสดงบน Discord
+Shum, what time is it	Shum ตอนนี้กี่โมงแล้ว
+Sign in	ลงชื่อเข้าใช้
+Sign in, make a key and copy it. Then press Paste and I'll connect.	ลงชื่อเข้าใช้ สร้างคีย์แล้วคัดลอก จากนั้นกดวาง แล้วฉันจะเชื่อมต่อให้
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	ลงชื่อเข้าใช้ กดสร้างคีย์ API แล้วคัดลอก จากนั้นกดวาง แล้วฉันจะเชื่อมต่อให้
+Silent · text only	เงียบ · เฉพาะข้อความ
+Simple / Advanced Settings	การตั้งค่าแบบง่าย / ขั้นสูง
+Simple Settings	การตั้งค่าแบบง่าย
+Simple Settings left a gap under Check in on me	การตั้งค่าแบบง่ายทิ้งช่องว่างไว้ใต้ถามไถ่ฉัน
+Sit here	นั่งตรงนี้
+Sit on windows	นั่งบนหน้าต่าง
+Size	ขนาด
+Skip	ข้าม
+Skip all	ข้ามทั้งหมด
+Skip for now	ข้ามไปก่อน
+Sleep	นอน
+Small	เล็ก
+Sometimes	บางครั้ง
+Sound effects volume	ระดับเสียงเอฟเฟกต์
+Sound sensitivity	ความไวเสียง
+Sounds	เสียง
+Speaker or clip	ลำโพงหรือคลิป
+Speech model	โมเดลการพูด
+Speed	ความเร็ว
+Start with Windows	เริ่มพร้อม Windows
+Start with this!	เริ่มด้วยอันนี้!
+Starting...	กำลังเริ่ม...
+Stay	อยู่ต่อ
+Stay on my model	คงอยู่กับโมเดลของฉัน
+Still checking your mics...	ยังตรวจไมค์ของคุณอยู่...
+Still checking your speakers...	ยังตรวจลำโพงของคุณอยู่...
+Still checking your virtual mics...	ยังตรวจไมค์เสมือนของคุณอยู่...
+Stop	หยุด
+Stopped using it. Couldn't remove the saved provider.	หยุดใช้งานแล้ว ไม่สามารถลบผู้ให้บริการที่บันทึกไว้ได้
+Support	การสนับสนุน
+Sure?	แน่ใจไหม?
+Sure? moved to a different phone	แน่ใจไหม? ย้ายไปโทรศัพท์เครื่องอื่นแล้ว
+TALK TO ME	คุยกับฉัน
+TEXT ONLY	เฉพาะข้อความ
+Tab landed past the first option of	Tab ไปตกเกินตัวเลือกแรกของ
+Tab never reached the quiet key	Tab ไปไม่ถึงคีย์เงียบเลย
+Tab reached nothing	Tab ไม่ได้ไปถึงอะไรเลย
+Tab selected a control without moving keyboard focus	Tab เลือกการควบคุมโดยไม่ได้เลื่อนโฟกัสคีย์บอร์ด
+Talk	พูด
+Talk key	คีย์พูด
+Talk:	พูด:
+Talk: Ctrl + Alt + V	พูด: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	เฟรมเรตการบันทึกเป้าหมาย; อาจลดลงเมื่อโหลดหนักหรือหน่วยความจำจำกัด
+Teases when another AI comes to the front.	แซวเมื่อ AI อีกตัวเข้ามาข้างหน้า
+Test	ทดสอบ
+That address doesn't work. Try https://... or http://localhost:{0}.	ที่อยู่นี้ใช้ไม่ได้ ลอง https://... หรือ http://localhost:{0}
+That code expired	รหัสนั้นหมดอายุแล้ว
+That mod is no longer installed. The list is updated.	ม็อดนั้นไม่ได้ติดตั้งแล้ว อัปเดตรายการแล้ว
+That's a paid key: it goes under MAX INTELLIGENCE.	นี่คือคีย์แบบเสียเงิน มันจะไปอยู่ใต้ MAX INTELLIGENCE
+The Mainframe stayed composited while sliding.	Mainframe ยังคงเป็นภาพรวมระหว่างเลื่อน
+The Mainframe stayed uncomposited after the slide.	Mainframe ไม่ได้รวมภาพหลังจากเลื่อน
+The controls moved while the picture was sliding.	การควบคุมขยับขณะที่ภาพกำลังเลื่อน
+The cover stayed visible after the slide ended.	ปกยังคงแสดงอยู่หลังสไลด์จบ
+The frame thread kept running after the page settled.	เธรดเฟรมยังคงทำงานต่อหลังหน้าเว็บนิ่งแล้ว
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	คำตอบที่ยาวที่สุดที่เธอให้ได้ เป็นโทเคน อัตโนมัติจะยึดตามคำตอบด้านบน; {0}K หรือ {1}K ให้เธอทำงานต่อได้ งานต่าง ๆ จะได้พื้นที่มากขึ้นเมื่อต้องการ
+The longest wait must be at least the shortest wait.	การรอนานที่สุดต้องไม่น้อยกว่าการรอสั้นที่สุด
+The picture doesn't match the scrolled page:	ภาพไม่ตรงกับหน้าที่เลื่อนแล้ว:
+The picture of Settings doesn't match the page:	ภาพของการตั้งค่าไม่ตรงกับหน้า:
+The picture stayed up after the slide ended.	ภาพยังคงแสดงอยู่หลังสไลด์จบ
+The picture wasn't showing while it slid.	ภาพไม่ได้แสดงขณะที่มันเลื่อน
+The provider sheet is crowded:	ตารางผู้ให้บริการแน่นไปหมด:
+The voice panel has no screen DPI.	แผงเสียงไม่มี DPI ของหน้าจอ
+The voice panel's menus share one font.	เมนูแผงเสียงใช้ฟอนต์เดียวกัน
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	ยังไม่มีคีย์ในคลิปบอร์ดของคุณ คัดลอกจากหน้าเว็บ แล้วกดวาง
+These start off. Each costs a little or uses your mic.	เริ่มต้นเป็นปิด แต่ละอันมีค่าใช้จ่ายเล็กน้อยหรือใช้ไมค์ของคุณ
+These start off. Turn on what you want. They're all in Settings too.	เริ่มต้นเป็นปิด เปิดสิ่งที่คุณต้องการ ทั้งหมดอยู่ในการตั้งค่าด้วย
+They can also call you Big Z, Capricorn or Nova	พวกเขายังเรียกคุณว่า Big Z, Capricorn หรือ Nova ได้
+They can also call you Nova, Big Z or Capricorn	พวกเขายังเรียกคุณว่า Nova, Big Z หรือ Capricorn ได้
+Thinking	กำลังคิด
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	นี่คือเสียงฟรีของฉัน กดทดสอบ พูดอะไรสักอย่าง แล้วฉันจะแสดงให้เห็นว่าได้ยินคุณ
+This mod has no description yet.	ม็อดนี้ยังไม่มีคำอธิบาย
+Tic-tac-toe	ไม้กางเขน
+Time between glances	เวลาระหว่างการชำเลือง
+Tiny	เล็กจิ๋ว
+Try again	ลองอีกครั้ง
+Turn Remote on first	เปิดรีโมตก่อน
+Turn off mini player	ปิดมินิเพลเยอร์
+Turn push to talk off	ปิดกดค้างเพื่อพูด
+Turning the wheel the other way kept the page heading the old way, to	การหมุนล้ออีกทางทำให้หน้าเว็บยังคงไปทางเดิม ไปยัง
+Type	พิมพ์
+Type key	คีย์พิมพ์
+Type to me	พิมพ์หาฉัน
+Type:	พิมพ์:
+Type: Ctrl + Alt + T	พิมพ์: Ctrl + Alt + T
+Typing sound	เสียงพิมพ์
+Unpacked. Press Test to hear it.	แตกไฟล์แล้ว กดทดสอบเพื่อฟัง
+Unsaved changes.	การเปลี่ยนแปลงที่ยังไม่ได้บันทึก
+Up to {0} fps	สูงสุด {0} fps
+Up to {0}p	สูงสุด {0}p
+Update	อัปเดต
+Update available.	มีการอัปเดต
+Update mods	อัปเดตม็อด
+Updating...	กำลังอัปเดต...
+Use	ใช้
+Use her cursor	ใช้เคอร์เซอร์ของเธอ
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	สำหรับผู้ให้บริการที่อื่น ให้ใช้ https:// คีย์ผ่าน http ธรรมดาไม่ปลอดภัย
+Use preset	ใช้พรีเซ็ต
+Use saved	ใช้ที่บันทึกไว้
+Use this server	ใช้เซิร์ฟเวอร์นี้
+Using your provider with a key	ใช้ผู้ให้บริการของคุณพร้อมคีย์
+Using your server with no key	ใช้เซิร์ฟเวอร์ของคุณโดยไม่มีคีย์
+VIEW MOD >	ดูม็อด >
+VOICE >	เสียง >
+VOICE IN YOUR MIC >	เสียงในไมค์ของคุณ >
+VOICE LAYERS >	เลเยอร์เสียง >
+Verbosity	ความละเอียดของคำตอบ
+Video bitrate	บิตเรตวิดีโอ
+View	ดู
+View mod	ดูม็อด
+Voice	เสียง
+Voice ID	ID เสียง
+Voice from	เสียงจาก
+Voice layers	เลเยอร์เสียง
+Voice model	โมเดลเสียง
+Voice model:	โมเดลเสียง:
+Voice name or ID, optional	ชื่อหรือ ID เสียง ไม่บังคับ
+Voice server address, or a voice model's folder	ที่อยู่เซิร์ฟเวอร์เสียง หรือโฟลเดอร์ของโมเดลเสียง
+Voice status	สถานะเสียง
+Voice, key and model...	เสียง คีย์ และโมเดล...
+Volume	ระดับเสียง
+WAKE ME UP >	ปลุกฉันขึ้น >
+WATCH >	ดู >
+Waiting for the relay	กำลังรอรีเลย์
+Wake her up	ปลุกเธอขึ้น
+Waking her up	กำลังปลุกเธอ
+Wander	เดินเตร่
+Wander around	เดินเตร่ไปรอบ ๆ
+Watch my screen	ดูหน้าจอของฉัน
+Watch-along memory	ความทรงจำการดูด้วยกัน
+Weather	อากาศ
+Weather city	เมืองสำหรับอากาศ
+Welcome back, choom. Let's finish setting me up.	ยินดีต้อนรับกลับมา choom มาตั้งค่าให้ฉันให้เสร็จกันเถอะ
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	สิ่งที่เธอทำบนพีซีของคุณโดยไม่ถาม เมื่อปุ่มสลับปิดอยู่ เธอจะถามก่อน และจะทำเมื่อคุณตอบว่าใช่
+What should she call you?	เธอควรเรียกคุณว่าอะไร?
+When she types	เมื่อเธอพิมพ์
+White	ขาว
+Windows default	ค่าเริ่มต้นของ Windows
+Windows did not give Settings keyboard focus	Windows ไม่ได้ให้โฟกัสคีย์บอร์ดกับการตั้งค่า
+Windows did not return keyboard focus to Back	Windows ไม่ได้คืนโฟกัสคีย์บอร์ดให้กับกลับ
+With no picture the wheel still tried to slide.	เมื่อไม่มีภาพ ล้อยังพยายามเลื่อนอยู่
+Works best on MAX INTELLIGENCE.	ทำงานได้ดีที่สุดกับ MAX INTELLIGENCE
+YOU	คุณ
+YOU >	คุณ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	คุณ เสียง ท่าทาง คีย์ เกม คลิป อากาศ DOOMSCROLL CAPRI ดู สมอง นิสัย เสียง
+YOUR KEY	คีย์ของคุณ
+YOUR MIC	ไมค์ของคุณ
+YOUR PLAN	แพ็กเกจของคุณ
+Yokapri what's up	Yokapri เป็นไงบ้าง
+You can hide this. It keeps going, and the Mainframe shows it too.	คุณซ่อนอันนี้ได้ มันจะทำงานต่อ และ Mainframe ก็แสดงให้เห็นด้วย
+Your mic and her voice go into one virtual mic, and	ไมค์ของคุณและเสียงของเธอจะรวมเข้าเป็นไมค์เสมือนเดียว และ
+Your mic is muted. Unmute it to test.	ไมค์ของคุณถูกปิดเสียง เปิดเสียงเพื่อทดสอบ
+Your mods are up to date.	ม็อดของคุณเป็นเวอร์ชันล่าสุดแล้ว
+Your name or a nickname	ชื่อของคุณหรือชื่อเล่น
+Your own model	โมเดลของคุณเอง
+Your personality	บุคลิกของคุณ
+Your voice	เสียงของคุณ
+Your voice (HD)	เสียงของคุณ (HD)
+Your voice (HD) · pick a clip of you...	เสียงของคุณ (HD) · เลือกคลิปของคุณ...
+Your voice model	โมเดลเสียงของคุณ
+as its mic.	เป็นไมค์ของมัน
+changed. Saved as My Colors, so you can share it.	เปลี่ยนแล้ว บันทึกเป็น สีของฉัน เพื่อให้คุณแชร์ได้
+choice	ตัวเลือก
+clips the input line	บันทึกคลิปบรรทัดอินพุต
+cue	สัญญาณ
+doesn't yet.	ยังไม่
+download	ดาวน์โหลด
+file.	ไฟล์
+flag	ธง
+fps	fps
+hear	ได้ยิน
+hears	ได้ยิน
+hears that.	ได้ยินสิ่งนั้น
+hides or shows her.	ซ่อนหรือแสดงเธอ
+hint	คำใบ้
+in the Mainframe.	ใน Mainframe
+in the mods directory with a pull request.	ในไดเรกทอรีม็อดด้วย pull request
+in the picture wasn't noticed.	ในภาพไม่ได้ถูกสังเกต
+is already her push-to-talk key.	เป็นคีย์กดค้างเพื่อพูดของเธออยู่แล้ว
+is off.	ปิดอยู่
+is on and running.	เปิดและทำงานอยู่
+is on, at the bottom, under	เปิดอยู่ ด้านล่าง ใต้
+is on.	เปิดอยู่
+is on. She now answers to	เปิดอยู่ ตอนนี้เธอตอบสนองต่อ
+is removed.	ถูกลบแล้ว
+is taken	ถูกใช้แล้ว
+is taken by another app. Try another.	ถูกใช้โดยแอปอื่นแล้ว ลองอันอื่น
+is updated	อัปเดตแล้ว
+isn't hearing it yet: do {0} and {1}, then join a call.	ยังไม่ได้ยินมัน: ทำ {0} และ {1} แล้วเข้าร่วมการโทร
+it now.	ตอนนี้
+keeps her quiet, and lets her talk again.	ทำให้เธอเงียบ และให้เธอพูดได้อีกครั้ง
+key	คีย์
+key.	คีย์
+min	นาที
+more.	เพิ่มเติม
+ms.	ms.
+mutes mic	ปิดเสียงไมค์
+mutes your mic.	ปิดเสียงไมค์ของคุณ
+name	ชื่อ
+off	ปิด
+on this PC	บนพีซีนี้
+opens her Mainframe.	เปิด Mainframe ของเธอ
+opens her typing box.	เปิดกล่องพิมพ์ของเธอ
+phone	โทรศัพท์
+phone pixels	พิกเซลโทรศัพท์
+phones	โทรศัพท์
+pixels	พิกเซล
+pixels)	พิกเซล)
+star.	ดาว
+stars.	ดาว
+starts voice chat.	เริ่มการแชทด้วยเสียง
+stays off. Nothing ran.	ยังปิดอยู่ ไม่มีอะไรทำงาน
+still does its own job in other apps too. Confirm to keep it.	ยังทำหน้าที่ของมันในแอปอื่นด้วย ยืนยันเพื่อเก็บไว้
+tall	สูง
+time	เวลา
+to talk	ให้พูด
+to talk to her, with a game in front too.	เพื่อพูดกับเธอ แม้เกมจะอยู่ข้างหน้าด้วย
+too.	ด้วย
+turns Gaming Mode on and off.	เปิดและปิดโหมดเกม
+with Ollama	กับ Ollama
+won't type in other apps while she runs. Confirm to keep it.	จะไม่พิมพ์ในแอปอื่นขณะที่เธอทำงาน ยืนยันเพื่อเก็บไว้
+{0}   Echo Cancellation: Off	{0}   การตัดเสียงสะท้อน: ปิด
+{0}   If her voice cuts off, turn off noise filtering	{0}   ถ้าเสียงของเธอขาดหาย ให้ปิดการกรองเสียงรบกวน
+{0}   Input Device:	{0}   อุปกรณ์อินพุต:
+{0}   Join the call and check they hear both of you	{0}   เข้าร่วมการโทรและตรวจสอบว่าทุกคนได้ยินคุณทั้งสองคน
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   ทดสอบไมค์ > มาตรวจกัน: คุณจะได้ยินตัวเอง และเธอขณะที่เธอพูด
+{0}   Microphone:	{0}   ไมโครโฟน:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   การลดเสียงรบกวน: ไม่มี ทั้งสองอย่างอาจตัดเสียงของเธอหลังบรรทัดแรก
+{0}   Open the call or meeting's audio settings	{0}   เปิดการตั้งค่าเสียงของการโทรหรือการประชุม
+{0}   Output Device: your headphones, like before	{0}   อุปกรณ์เอาต์พุต: หูฟังของคุณ เหมือนเดิม
+{0}   Speaker: your headphones, like before	{0}   ลำโพง: หูฟังของคุณ เหมือนเดิม
+{0}   Try a mic test in your call app	{0}   ลองทดสอบไมค์ในแอปการโทรของคุณ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   การตั้งค่าผู้ใช้ (ไอคอนเฟืองข้างชื่อของคุณ) > เสียงและวิดีโอ
+{0} Mbps	{0} Mbps
+{0} lines	{0} บรรทัด
+{0} min	{0} นาที
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· บนพีซีนี้
+· server	· เซิร์ฟเวอร์
+Edit as text	แก้ไขเป็นข้อความ
+What Capri remembers about you. It stays on this computer.	สิ่งที่ Capri จำเกี่ยวกับคุณ มันอยู่ในคอมพิวเตอร์เครื่องนี้
+Tell her something to remember	บอกสิ่งที่อยากให้เธอจำ
+Search her memory	ค้นหาในความจำของเธอ
+That day isn't there any more.	วันนั้นไม่มีแล้ว
+Undo	เลิกทำ
+Remember our chats is off, so she isn't keeping new chat memories.	การจำบทสนทนาของเราปิดอยู่ เธอจึงไม่เก็บความจำบทสนทนาใหม่
+ABOUT YOU	เกี่ยวกับคุณ
+FROM YOUR CHATS	จากบทสนทนาของคุณ
+GAMES	เกม
+CHAT LOGS	บันทึกบทสนทนา
+CHAT LOG	บันทึกบทสนทนา
+Nothing matches.	ไม่พบสิ่งที่ตรงกัน
+Nothing yet.	ยังไม่มีอะไร
+Reading her notes.	กำลังอ่านบันทึกของเธอ
+Click again to forget game notes	คลิกอีกครั้งเพื่อลืมบันทึกเกม
+Forget game notes	ลืมบันทึกเกม
+Click again to forget everything about me	คลิกอีกครั้งเพื่อลืมทุกอย่างเกี่ยวกับคุณ
+Forget everything about me	ลืมทุกอย่างเกี่ยวกับคุณ
+Click again to forget	คลิกอีกครั้งเพื่อลืม
+Forget this day	ลืมวันนี้
+Only the start of this day is shown.	แสดงเฉพาะช่วงเริ่มต้นของวันนี้
+Nothing in this day.	ไม่มีอะไรในวันนี้
+No chats kept yet.	ยังไม่มีบทสนทนาที่เก็บไว้
+You	คุณ
+{0} line	{0} บรรทัด
+SET UP EMAIL >	ตั้งค่าอีเมล >
+SET UP EMAIL	ตั้งค่าอีเมล
+Or type your address	หรือพิมพ์ที่อยู่ของคุณ
+Email address	ที่อยู่อีเมล
+Open the page	เปิดหน้า
+App password	รหัสผ่านแอป
+IMAP server	เซิร์ฟเวอร์ IMAP
+Incoming mail server	เซิร์ฟเวอร์อีเมลขาเข้า
+SMTP server	เซิร์ฟเวอร์ SMTP
+Outgoing mail server	เซิร์ฟเวอร์อีเมลขาออก
+An app password is a separate password just for Capri. Your normal password stays yours.	รหัสผ่านแอปเป็นรหัสผ่านแยกต่างหากสำหรับ Capri เท่านั้น รหัสผ่านปกติของคุณยังเป็นของคุณ
+She keeps it only until she closes.	เธอเก็บไว้เพียงจนกว่าจะปิด
+She checks, searches and reads your mail. She asks before she sends any.	เธอตรวจ ค้นหา และอ่านอีเมลของคุณ เธอถามก่อนส่งอะไร
+Watch for new mail	เฝ้าดูอีเมลใหม่
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	เธอจะพูดเมื่อมีอีเมลมา พร้อมคำเตือนถ้าดูเหมือนฟิชชิง ไม่มีอะไรถูกทำเครื่องหมายว่าอ่านแล้ว
+Deal with phishing on her own	จัดการฟิชชิงเอง
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	เฉพาะตอนที่เธอเฝ้าดู อีเมลที่เธอแน่ใจว่าเป็นฟิชชิงจะไปที่สแปม ที่เหลือรอคำตอบของคุณ
+Forget account	ลืมบัญชี
+Use another email	ใช้อีเมลอื่น
+Which email?	อีเมลไหน?
+Make an app password	สร้างรหัสผ่านแอป
+Paste it	วางมัน
+Connecting...	กำลังเชื่อมต่อ...
+She can use your email now.	ตอนนี้เธอใช้อีเมลของคุณได้แล้ว
+She's not watching your inbox.	เธอไม่ได้เฝ้าดูกล่องจดหมายของคุณ
+She's watching your inbox and deals with phishing she's sure of.	เธอกำลังเฝ้าดูกล่องจดหมายและจัดการฟิชชิงที่เธอแน่ใจ
+She's watching your inbox and tells you when mail lands.	เธอเฝ้าดูกล่องจดหมายและบอกคุณเมื่อมีอีเมลมา
+She forgot that account and its app password.	เธอลืมบัญชีนั้นและรหัสผ่านแอปของมัน
+She forgot that account. Its app password is gone from this PC.	เธอลืมบัญชีนั้น รหัสผ่านแอปของมันหายไปจากคอมพิวเตอร์เครื่องนี้

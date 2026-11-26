@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	ხელახლა დახატული კონტროლი სურათში არ გადატანილა.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	უფასო გასაღები Google AI Studio-დან, NVIDIA-დან ან OpenRouter-დან. ჩამოსატვირთი არაფერია. ინტერნეტი სჭირდება.
+A held trackpad scroll got a flick's long ease:	დაჭერილი თაჩპადის გადაადგილებამ მიიღო ნაკრის ხანგრძლივი შენელება:
+A layout change during a slide put the page at	განლაგების ცვლილებამ სლაიდის დროს გვერდი დააყენა
+A layout change left the picture up.	განლაგების ცვლილებამ სურათი დატოვა.
+A model in Ollama, on your local server or on your key.	მოდელი Ollama-ში, შენს ლოკალურ სერვერზე ან შენს გასაღებით.
+A paid key goes under MAX INTELLIGENCE by itself.	ფასიანი გასაღები თავად მოხვდება MAX INTELLIGENCE-ში.
+A plan you already pay for, a key of your own, or Ollama.	გეგმა, რომელსაც უკვე იხდი, შენი საკუთარი გასაღები ან Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	ხმის პანელის მენიუს არ აქვს საკუთარი ასლი პანელის შრიფტისა.
+A wheel turn right after a slide ended froze the picture.	თვლის მობრუნება სლაიდის დასრულებისთანავე გაყინა სურათი.
+ALLOW THIS PHONE?	ამ ტელეფონს დავუშვებ?
+ALMOST THERE >	თითქმის მზად >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	სხვა CAPRI აიღო კონტროლი · გამორთე და ჩართე
+API key	API გასაღები
+API key, Claude plan or ChatGPT plan	API გასაღები, Claude გეგმა ან ChatGPT გეგმა
+Add	დამატება
+Address	მისამართი
+Address and key saved. Use saved to reconnect.	მისამართი და გასაღები შენახულია. გამოიყენე შენახული დასაკავშირებლად.
+Advanced Settings	გაფართოებული პარამეტრები
+All	ყველა
+All screens	ყველა ეკრანი
+Allow	დაშვება
+Almost there. I'll say hi the second my brain's in.	თითქმის მზად. სიტყვას გეტყვი, როგორც კი ჩემი ტვინი მზად იქნება.
+Always	ყოველთვის
+Always on top	ყოველთვის ზემოთ
+Any Google account works. I opened the page in your browser.	ნებისმიერი Google ანგარიში მუშაობს. გვერდი შენს ბრაუზერში გავხსენი.
+Applies to every voice	ვრცელდება ყველა ხმაზე
+Apps she may close	აპები, რომლებიც შეიძლება დახურა
+Ask Capri for more	ჰკითხე Capri-ს მეტი
+Asking your server...	ვეკითხები შენს სერვერს...
+Asks before closing only the apps you choose.	დახურვამდე ჰკითხავს მხოლოდ შენს მიერ არჩეულ აპებს.
+Auto	ავტო
+Auto (match what I say)	ავტო (როგორც ვამბობ)
+Automatic: VB-CABLE, else Steam's	ავტომატური: VB-CABLE, სხვა შემთხვევაში Steam-ის
+BAD RELAY HOST	ცუდი RELAY ჰოსტი
+BIG Z open notepad	BIG Z გახსენი notepad
+BRAIN	ტვინი
+BRAIN >	ტვინი >
+BRAIN ONLINE >	ტვინი ონლაინ >
+BRAIN PROVIDER >	ტვინის პროვაიდერი >
+BRAIN VOICE CAPRI	CAPRI ხმის ტვინი
+Back	უკან
+Back on your saved API key.	უკან შენს შენახულ API გასაღებზე.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	საუკეთესო ამ კომპიუტერისთვის:
+Black	შავი
+Blank key means no key.	ცარიელი გასაღები ნიშნავს გასაღების გარეშეა.
+Brain API key	ტვინის API გასაღები
+Brain model	ტვინის მოდელი
+Brain provider	ტვინის პროვაიდერი
+Bring here	მოიყვანე აქ
+Bring to this screen	მოიყვანე ამ ეკრანზე
+Browse	დათვალიერება
+Browse mods	მოდების დათვალიერება
+Browse to a voice model	ხმის მოდელის დათვალიერება
+Browse...	დათვალიერება...
+Bubble	ბუშტი
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree აქ ხარ?
+CAN'T REACH THE RELAY · RETRYING	RELAY-ს ვერ ვაღწევ · ვცდი ხელახლა
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI ხმის ტვინი
+CHANGED, approve it again.	შეიცვალა, ხელახლა დაადასტურე.
+CLIPS >	კლიპები >
+CLOUD VOICE	ღრუბლის ხმა
+CODE	კოდი
+COLORS >	ფერები >
+CONNECTED	დაკავშირებულია
+CONNECTING	უკავშირდება
+CUSTOM LOCAL	მორგებული ლოკალური
+Call mode (beta)	ზარის რეჟიმი (beta)
+Call mode does not fit.	ზარის რეჟიმი არ ეტევა.
+Call mode is outside its space.	ზარის რეჟიმი თავის სივრცის გარეთაა.
+Cancel	გაუქმება
+Cancel keys	კლავიშების გაუქმება
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri კოდი:
+Capri mods (*	Capri მოდები (*
+Capri, hello	Capri, გამარჯობა
+CapriDesktop.	CapriDesktop.
+Chaos when upset	ქაოსი, როცა ბრაზდება
+Chat with Capri from your phone	ესაუბრე Capri-ს ტელეფონიდან
+ChatGPT plan	ChatGPT გეგმა
+Check for updates	განახლებების შემოწმება
+Check in on me	შემომიარე
+Check in on me is hidden	შემომიარე დამალულია
+Check in on me still decides whether she visits.	შემომიარე მაინც წყვეტს, მოვა თუ არა.
+Check in on me's tip missed	შემომიარეს რჩევა გამოტოვებულია
+Chess	ჭადრაკი
+Choose apps	აპების არჩევა
+Choose folder...	საქაღალდის არჩევა...
+Choose where future Capri clips are saved	აირჩიე, სად შეინახება Capri-ს მომავალი კლიპები
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude ან ChatGPT გეგმა, ფასიანი გასაღები (OpenAI, Claude, DeepSeek) ან Ollama.
+Claude plan	Claude გეგმა
+Clear	გასუფთავება
+Cleared.	გასუფთავდა.
+Click Confirm to keep Down, or press Esc.	დააჭირე დადასტურებას Down-ის შესანარჩუნებლად ან დააჭირე Esc.
+Click to open it.	დააწკაპუნე გასახსნელად.
+Clip my games	ჩაწერე ჩემი თამაშები
+Clips	კლიპები
+Close	დახურვა
+Close other AIs for me	დახურე სხვა AI-ები ჩემთვის
+Cloud voice	ღრუბლის ხმა
+Cloud voice service	ღრუბლის ხმის სერვისი
+Cloud voice setup	ღრუბლის ხმის დაყენება
+Code mods can reach your whole PC. Only trusted ones.	კოდის მოდებს შეუძლიათ მთელ კომპიუტერამდე მისვლა. მხოლოდ სანდო.
+Code/Husk Mode	Code/Husk რეჟიმი
+Codex	Codex
+Commands	ბრძანებები
+Comment on my games	კომენტარი ჩემს თამაშებს
+Comments	კომენტარები
+Confirm	დადასტურება
+Confirm keys	კლავიშების დადასტურება
+Connect	დაკავშირება
+Connect / Forget brain key	დაკავშირება / ტვინის გასაღების დავიწყება
+Connect / Forget voice key	დაკავშირება / ხმის გასაღების დავიწყება
+Connect four	ოთხი ერთ რიგში
+Controls	მართვა
+Copri, what time is it	Copri, რომელი საათია
+Copy error details	შეცდომის დეტალების კოპირება
+Copy the key	გასაღების კოპირება
+Copy the key from the page, then press Paste.	გასაღები კოპირე გვერდიდან, შემდეგ დააჭირე ჩასმას.
+Couldn't open that page:	ამ გვერდის გახსნა ვერ მოხერხდა:
+Couldn't open that:	ამის გახსნა ვერ მოხერხდა:
+Couldn't open the mods folder:	მოდების საქაღალდის გახსნა ვერ მოხერხდა:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M უკვე მისი Mainframe-ის კლავიშია.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N მიკროფონს რთავს
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V უკვე მისი სალაპარაკო კლავიშია.
+Ctrl + Alt + V to talk	Ctrl + Alt + V სალაპარაკოდ
+Custom local voice	მორგებული ლოკალური ხმა
+Custom model name	მორგებული მოდელის სახელი
+Dance	იცეკვე
+Dance to music	იცეკვე მუსიკაზე
+Default	ნაგულისხმევი
+Default (follows Windows)	ნაგულისხმევი (Windows-ის მიხედვით)
+Default duration for clip that and automatic clips	ნაგულისხმევი ხანგრძლივობა clip that-ისა და ავტომატური კლიპებისთვის
+Default length	ნაგულისხმევი სიგრძე
+Default model	ნაგულისხმევი მოდელი
+Delay	შეფერხება
+Deny	უარყოფა
+Discard	გაუქმება
+Discard + reload	გაუქმება + გადატვირთვა
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	არ გინდა ლოდინი? უფასო გასაღები ერთ წუთში დამალაპარაკებს.
+Done	დასრულდა
+EXTRA REQUEST JSON >	დამატებითი მოთხოვნა JSON >
+EXTRAS >	დამატებით >
+Edit	რედაქტირება
+Edit check-in lines	შემოსვლის ხაზების რედაქტირება
+Edit check-in lines has the wrong view or dimming	შემოსვლის ხაზებს არასწორი ხედი ან დაჩრდილვა აქვს
+Edit check-in lines is out of place	შემოსვლის ხაზები არასწორ ადგილზეა
+Edit controls	კონტროლის რედაქტირება
+ElevenLabs API key	ElevenLabs API გასაღები
+ElevenLabs voice ID	ElevenLabs ხმის ID
+English	ინგლისური
+Enter the game's name first.	ჯერ ჩაწერე თამაშის სახელი.
+Every	ყოველი
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	ყოველი მოდი მწერლისთვის შემოწმდება გამოქვეყნებამდე. კოდის მოდები გაშვებამდე მაინც იკითხავს.
+Explore after	შემდეგ შესწავლა
+Explore while I'm away	შესწავლა, სანამ არ ვარ
+Extra request JSON	დამატებითი მოთხოვნა JSON
+Extras	დამატებითი
+FREE KEY	უფასო გასაღები
+FREE KEY >	უფასო გასაღები >
+Fast hands in games	სწრაფი ხელები თამაშებში
+File editor	ფაილების რედაქტორი
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs და სხვები Mainframe-ში ხმის ქვეშაა.
+Follow-up messages	შემდგომი შეტყობინებები
+Forget	დავიწყება
+Fork capri-mods	capri-mods-ის fork
+Frame rate	კადრების სიჩქარე
+Free	უფასო
+Free and private, works offline. Downloads	უფასო და პირადი, მუშაობს ოფლაინში. ჩამოტვირთავს
+Free and private, works offline. Downloads the best model for this PC.	უფასო და პირადი, მუშაობს ოფლაინში. ჩამოტვირთავს ამ კომპიუტერისთვის საუკეთესო მოდელს.
+Free key	უფასო გასაღები
+Free key providers	უფასო გასაღების მომწოდებლები
+Free keys can be rate limited and slow.	უფასო გასაღებებს შეიძლება ჰქონდეს სიხშირის შეზღუდვა და იყოს ნელი.
+Free voice in games	უფასო ხმა თამაშებში
+Free voice style	უფასო ხმის სტილი
+Free voice:	უფასო ხმა:
+Free voice: Her own	უფასო ხმა: მისი საკუთარი
+Free · local model	უფასო · ლოკალური მოდელი
+GAMES >	თამაშები >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	თამაშის კომენტარები მუშაობს ცალკე ჩემს ყურებაზე. გამორთვა აჩერებს მათ, თამაშის რეჟიმშიც; მხოლოდ მოვლენები და ჭორიკანა საშუალებას აძლევს მას, უყუროს შენს თამაშს
+Game controls	თამაშის კონტროლი
+Game name	თამაშის სახელი
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	თამაშის ხმის მგრძნობელობა. დაამცირე, თუ ყურსასმენი ჩაწეული გაქვს, მაგრამ Windows {0}%-ზეა და ის ყველა ხმაზე რეაგირებს; გამორთვა თამაშის ხმებს უგულებელყოფს
+Game sounds	თამაშის ხმები
+Games	თამაშები
+Gaming Mode	გეიმინგ რეჟიმი
+Gaming Mode key	გეიმინგ რეჟიმის კლავიში
+Gaming Mode:	გეიმინგ რეჟიმი:
+Gaming Mode: Ctrl + Alt + G	გეიმინგ რეჟიმი: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE-ის მიღება
+Get VB-CABLE (free)...	VB-CABLE-ის მიღება (უფასო)...
+Get free voice	უფასო ხმის მიღება
+Getting your Fish Audio voices...	შენი Fish Audio ხმების მიღება...
+Giant	გიგანტური
+Glitch	Glitch
+Glitch in at startup	Glitch გაშვებისას
+Go to sleep	დაძინება
+Go to the next screen	შემდეგ ეკრანზე გადასვლა
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · უფასო გეგმა · სიხშირის შეზღუდვით
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	გაქვს Claude ან ChatGPT გეგმა, ან შენი გასაღები? აირჩიე და ჩავრთავ.
+Got it, just me. Right-click me any time for Capri Mainframe.	კარგი, მხოლოდ მე. ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის.
+Grey	ნაცრისფერი
+H.{0} video bitrate target; higher values make larger files	H.{0} ვიდეოს ბიტრეიტის სამიზნე; მაღალი მნიშვნელობები დიდ ფაილებს ქმნის
+HABITS >	ჩვევები >
+HER HANDS >	მისი ხელები >
+HER JOBS >	მისი სამუშაოები >
+HER MEMORY >	მისი მეხსიერება >
+HER MODS >	მისი მოდები >
+HH:mm	HH:mm
+HOW I SOUND >	როგორ ვჟღერ >
+Hang here	აქ დარჩი
+Have Ollama? Open it, then press Refresh.	Ollama გაქვს? გახსენი, შემდეგ დააჭირე განახლებას.
+Head pats	თავზე ხელის გადასმები
+Hearing	სმენა
+Hearing engine	სმენის ძრავა
+Hearing fix	სმენის გასწორება
+Hearing status	სმენის სტატუსი
+Help	დახმარება
+Help page	დახმარების გვერდი
+Her colors	მისი ფერები
+Her folder	მისი საქაღალდე
+Her memories	მისი მოგონებები
+Her own colors are back.	მისი საკუთარი ფერები დაბრუნდა.
+Her own notes (no vault)	მისი საკუთარი ჩანაწერები (ვაულტის გარეშე)
+Her perch frames per second	მისი სახსრის კადრები წამში
+Her personality	მისი პერსონალობა
+Her size	მისი ზომა
+Her speaker	მისი დინამიკი
+Her speaker is hidden or outside VOICE	მისი დინამიკი დამალულია ან ხმის მიღმაა
+Her speaker overlaps the mic or hearing row	მისი დინამიკი ეფარება მიკროფონის ან სმენის რიგს
+Her speaker:	მისი დინამიკი:
+Her speaker: Default	მისი დინამიკი: ნაგულისხმევი
+Her voice in your mic	მისი ხმა შენს მიკროფონში
+Her voice in your mic: loudness	მისი ხმა შენს მიკროფონში: ხმაური
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	თავად მისი ხმა. მისი სიმაღლე არის პარამეტრები > ხმა > სიმაღლე, და ისინი ერთად მოძრაობენ.
+Her voice joins your mic only in call mode.	მისი ხმა შენს მიკროფონში მხოლოდ ზარის რეჟიმში ერთვება.
+Her voice volume	მისი ხმის ხმაური
+Her voice's pitch	მისი ხმის სიმაღლე
+Her voice's pitch, the same as Settings > VOICE > Pitch	მისი ხმის სიმაღლე, იგივე რაც პარამეტრები > ხმა > სიმაღლე
+Her voice's speed	მისი ხმის სიჩქარე
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	მისი ხმა და მის ქვეშ შერეული ორი ასლი, თითოეული საკუთარი სიმაღლითა და დაგვიანებით.
+Her voices · free	მისი ხმები · უფასო
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ჰეი, choom. მე ვარ Capri. სანამ უპასუხებ, ტვინი მჭირდება. აირჩიე ერთი.
+Hide / Show Capri	Capri-ს დამალვა / ჩვენება
+Hide / Show key	დამალვა / ჩვენების კლავიში
+Hide Capri	Capri-ს დამალვა
+Hide for now	ახლა დამალე
+Hide her	დამალე ის
+Hide in full screen	დამალე მთელ ეკრანზე
+Hide this	ეს დამალე
+Hide, keep player	დამალე, პლეერი დატოვე
+Hide/show:	დამალვა/ჩვენება:
+Hide/show: Ctrl + Alt + H	დამალვა/ჩვენება: Ctrl + Alt + H
+Hologram	ჰოლოგრამა
+Hop off	ჩამოხტი
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	რამდენ ხანს უნდა იდგეს უმოძრაო კომპიუტერი მის დასაძინებლად; ხუთი წუთი მაინც ითვლება შენს არყოფნად
+How long a stroke over her a head pat needs	რამდენი ხანი უნდა გადაუსვა მას თავზე ხელი თავზე ხელის გადასმისთვის
+How long her replies stay up	რამდენ ხანს რჩება მისი პასუხები ზედაპირზე
+How long you are away before she scrolls a browser or reader	რამდენ ხანს უნდა იყო არ ყოფნა, სანამ ბრაუზერს ან მკითხველს გადაახვევს
+How much her voice glitches	რამდენად ირღვევა მისი ხმა
+How much of the chat she keeps	ჩატის რამდენი ნაწილი ინახება
+How much she wanders	რამდენს დააბიჯებს
+How often she pops in to say hi	რამდენად ხშირად შემოდის მისალმებად
+How robotic her voice sounds	რამდენად რობოტულად ჟღერს მისი ხმა
+How to	როგორ
+Huge	უზარმაზარი
+I can hear you.	მესმის შენი.
+I glance at your screen and comment. Costs a little on a paid brain.	ვუყურებ შენს ეკრანს და ვაკომენტარებ. ფასიან ტვინზე ცოტას უჯდება.
+I keep listening. Say my name, then just talk.	მუდამ ვუსმენ. თქვი ჩემი სახელი და უბრალოდ ისაუბრე.
+I speak	ვლაპარაკობ
+I talk about your game as you play. Costs a little on a paid brain.	შენი თამაშის მიმდინარეობისას მასზე ვსაუბრობ. ფასიან ტვინზე ცოტას უჯდება.
+I type my replies and stay quiet.	პასუხებს ვწერ და ვდუმვარ.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	პასუხს არ გავცემ ხმით და არაფერი არსად იგზავნება. მაინც დავრჩები, შენს მუსიკაზე ვიცეკვებ და ისეთ სწრაფ საქმეებს შევასრულებ, რასაც სთხოვ, მაგალითად ხმას.
+I'll talk in	ვილაპარაკებ
+IN DISCORD >	DISCORD-ში >
+INSTALLED >	დაყენებული >
+Import a Capri mod	Capri-ს მოდის შემოტანა
+Import mod	მოდის შემოტანა
+In full screen	მთელ ეკრანზე
+In games	თამაშებში
+Input	შემავალი
+Input, Output or How to overlaps a row	შემავალი, გამომავალი ან როგორ ეფარება რიგს
+Input:	შემავალი:
+Input: default	შემავალი: ნაგულისხმევი
+Install	დაყენება
+Install mod	მოდის დაყენება
+Installed.	დაყენდა.
+It may ask for a phone number. I opened the page in your browser.	შეიძლება მობილურის ნომერი მოითხოვოს. გვერდი შენს ბრაუზერში გავხსენი.
+It still does its own job in other apps too.	მაინც ასრულებს თავის სამუშაოს სხვა აპებშიც.
+It won't type in other apps while she runs.	სხვა აპებში არ აკრიფებს, სანამ ის მუშაობს.
+JUST ME >	მხოლოდ მე >
+Jealous of other AIs	შურს სხვა AI-ების
+Join the Discord	შემოუერთდი Discord-ს
+KB.	KB.
+KEYS	კლავიშები
+KEYS >	კლავიშები >
+Keep PC awake for jobs	კომპიუტერი გამოფხიზლებული დატოვე სამუშაოებისთვის
+Keep player	პლეერი დატოვე
+Keeps the last two minutes of your game in memory. Say clip that to save it.	ინახავს შენი თამაშის ბოლო ორ წუთს მეხსიერებაში. თქვი clip that მის შესანახად.
+Key	გასაღები
+Key cleared: a model file needs none.	გასაღები გასუფთავდა: მოდელის ფაილს არ სჭირდება.
+Key cleared: paste the key for	გასაღები გასუფთავდა: ჩასვი გასაღები ამისთვის
+Key forgotten.	გასაღები დავიწყებულია.
+Key. It goes only to this server, as a Bearer key	გასაღები. ის მხოლოდ ამ სერვერს მიდის, როგორც Bearer გასაღები
+Kokoro only, like es	მხოლოდ Kokoro, როგორც es
+LAST THING >	ბოლო რამ >
+LISTENING >	ვისმენ >
+Language	ენა
+Large	დიდი
+Last thing. These cost a little or use your mic, so they're your pick.	ბოლო რამ. ეს ცოტას უჯდება ან შენს მიკროფონს იყენებს, ამიტომ არჩევანი შენია.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	ბოლო რამ. ეს ცოტას უჯდება ან შენს მიკროფონს იყენებს, ამიტომ არჩევანი შენია. შემდეგ მინდა ვიცოდე, როგორ დაგიძახო.
+Layers	ფენები
+Learn more	მეტის გაგება
+Leaving Settings threw its picture away straight away.	პარამეტრებიდან გასვლამ სურათი მაშინვე გადააგდო.
+Legacy stand	ძველი სადგამი
+Lie down	დაწექი
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC-ის დიალოგის ხაზები, რომლებიც მეხსიერებაში ინახება ერთად ყურების დროს. უძველესი ნახევარი ხდება ჩანაწერად, როცა ჩართულია დაიმახსოვრე, რას ხედავს
+Listen for Capri	მოუსმინე Capri-ს
+Live reactions	ცოცხალი რეაქციები
+Local server address	ადგილობრივი სერვერის მისამართი
+Long	გრძელი
+Longest wait (minutes)	ყველაზე გრძელი ლოდინი (წუთები)
+Looking at this PC...	ამ კომპიუტერს ვუყურებ...
+Looking for Ollama. Open it if it isn't running.	Ollama-ს ვეძებ. გახსენი, თუ არ მუშაობს.
+Looking for a brain...	ტვინს ვეძებ...
+Looking in the mods directory for updates...	მოდების საქაღალდეში განახლებებს ვეძებ...
+Looking in the mods directory...	მოდების საქაღალდეში ვეძებ...
+Looking...	ვეძებ...
+MAIN >	მთავარი >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	საშუალო ინტელექტი
+MEMORY VAULT >	მეხსიერების ვაულტი >
+MODS	მოდები
+MODS >	მოდები >
+MODS DIRECTORY >	მოდების დირექტორია >
+MODS INSTALLED COLORS	დაყენებული მოდების ფერები
+MOVES >	მოძრაობები >
+MY BRAIN	ჩემი ტვინი
+MY FREE VOICE	ჩემი უფასო ხმა
+MY PLAN OR KEY	ჩემი გეგმა ან გასაღები
+MY PLAN OR KEY >	ჩემი გეგმა ან გასაღები >
+Made your Fish Audio voice. Press Test to hear it.	შექმენი შენი Fish Audio ხმა. დააჭირე ტესტს მოსასმენად.
+Mainframe colours	Mainframe-ის ფერები
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe-ის ფერები. Night City წითელი და ციანია; შავი, თეთრი და ნაცრისფერი ცვლის Mainframe-ს, მის მენიუებს, ტექსტის ველსა და მის ჩანაწერებს
+Mainframe frames	Mainframe-ის ჩარჩოები
+Mainframe key	Mainframe-ის გასაღები
+Mainframe size	Mainframe-ის ზომა
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe-ის ზომა. ავტო მას ზრდის, როცა Virtual Super Resolution ან DSR დიდ დესკტოპს პატარა ეკრანზე ჩაატევს
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: ქვემოთ
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	ვქმნი შენს Fish Audio ხმას...
+Max reply	მაქსიმალური პასუხი
+Maximum clip resolution, keeping the game's shape without upscaling	კლიპის მაქსიმალური გარჩევადობა, თამაშის ფორმის შენარჩუნებით გაუმჯობესების გარეშე
+Medium	საშუალო
+Memory	მეხსიერება
+Memory size	მეხსიერების ზომა
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	მეხსიერების ზომა ტოკენებში Ollama-სა და მის ჩაშენებულ ტვინისთვის. ავტო იზრდება, როცა მოთხოვნას მეტი სჭირდება
+Mg	Mg
+Mic level:	მიკროფონის დონე:
+Mic test finished. Sound is reaching Capri.	მიკროფონის ტესტი დასრულდა. ხმა Capri-ს აღწევს.
+Mic:	მიკროფონი:
+Mic: default	მიკროფონი: ნაგულისხმევი
+Microphone	მიკროფონი
+Mini player	მინი პლეერი
+Mini player over full screen	მინი პლეერი მთელ ეკრანზე
+Mini-games	მინი-თამაშები
+Minimising the Mainframe left it sliding.	Mainframe-ის მინიმიზაციამ ის სლაიდში დატოვა.
+Minimize	მინიმიზაცია
+Mod filter	მოდების ფილტრი
+Mod options	მოდების ვარიანტები
+Mod pages	მოდების გვერდები
+Mod rules	მოდების წესები
+Mod sort	მოდების დალაგება
+Mod switch	მოდის გადართვა
+Model	მოდელი
+Model folder	მოდელის საქაღალდე
+Model name, optional	მოდელის სახელი, არასავალდებულო
+Mods	მოდები
+Mods directory	მოდების დირექტორია
+Mods folder	მოდების საქაღალდე
+Most NVIDIA models can't see your screen.	NVIDIA-ს მოდელების უმეტესობა შენს ეკრანს ვერ ხედავს.
+Mouse wheel notches got a flick's long ease:	მაუსის ბორბლის ნაბიჯებმა სლაიდის ხანგრძლივი შენელება მიიღო:
+Move	გადატანა
+Move key to MAX INTELLIGENCE	გასაღების გადატანა MAX INTELLIGENCE-ზე
+Move to MAX	გადატანა MAX-ზე
+Music	მუსიკა
+Music app	მუსიკის აპი
+Music app: where she plays music when you don't name an app	მუსიკის აპი: სად უკრავს მუსიკას, როცა აპს არ ასახელებ
+Mute	გაჩუმება
+Mute her	მისი გაჩუმება
+Mute mic key	მიკროფონის გაჩუმების კლავიში
+Mute mic:	მიკროფონის გაჩუმება:
+Mute mic: Ctrl + Alt + N	მიკროფონის გაჩუმება: Ctrl + Alt + N
+My brain	ჩემი ტვინი
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	ჩემი ტვინი მოდის. როგორც კი შევა, მივესალმები, და მაშინ შემიძლია მესაუბრო.
+My brain's on its way. While it comes down, let's sort out how I sound.	ჩემი ტვინი გზაშია. სანამ ჩამოდის, მოვაგვაროთ, როგორ ვჟღერ.
+My provider	ჩემი პროვაიდერი
+NO AI	AI არ არის
+NO PHONES CONNECTED	ტელეფონები არ არის დაკავშირებული
+NO PREVIEW	გადახედვა არ არის
+NORMAL	ჩვეულებრივი
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · უფასო · ხშირად ნელი დატვირთვის დროს
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-ს უფასო API ხშირად ნელია, განსაკუთრებით დატვირთვის დროს.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) ან OpenRouter API გასაღები
+Names:	სახელები:
+Needs a key	გასაღები სჭირდება
+Never	არასდროს
+New code	ახალი კოდი
+New voice from a clip...	ახალი ხმა კლიპიდან...
+Next	შემდეგი
+Night City	Night City
+No AI	AI არ არის
+No AI · no brain at all	AI არ არის · საერთოდ არ არის ტვინი
+No brain runs, and nothing is sent anywhere.	ტვინი არ მუშაობს და არაფერი არსად იგზავნება.
+No brain yet	ტვინი ჯერ არ არის
+No code open	კოდი არ არის გახსნილი
+No limit	შეუზღუდავი
+No mic found	მიკროფონი ვერ მოიძებნა
+No mods in the directory yet.	მოდები საქაღალდეში ჯერ არ არის.
+No mods match that.	ამას არცერთი მოდი არ ემთხვევა.
+No mods match.	არცერთი მოდი არ ემთხვევა.
+No phones yet	ტელეფონები ჯერ არ არის
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ვირტუალური მიკროფონი ჯერ არ არის. აირჩიე Output, შემდეგ VB-CABLE-ის მიღება (უფასო).
+None yet: pick to get VB-CABLE (free)	ჯერ არცერთი: აირჩიე VB-CABLE-ის მისაღებად (უფასო)
+Normal	ჩვეულებრივი
+Not a relay host	არ არის relay ჰოსტი
+Not imported. Nothing ran.	არ შემოვიდა. არაფერი გაშვებულა.
+Not updated. The old one is still in.	არ განახლდა. ძველი ვერსია ჯერ კიდევ არის.
+Nothing needed updating.	განახლება არ სჭირდებოდა.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ჩამოსატვირთი არაფერია, არაფერი არსად იგზავნება. პასუხს არ გავცემ ხმით. ტვინი ნებისმიერ დროს დაამატე Mainframe-ში.
+Nothing to show from the mods directory.	მოდების საქაღალდიდან საჩვენებელი არაფერია.
+Nothing? Windows Settings > Privacy & security > Microphone.	არაფერი? Windows-ის პარამეტრები > კონფიდენციალურობა და უსაფრთხოება > მიკროფონი.
+Nous Portal keys aren't supported yet.	Nous Portal-ის გასაღებები ჯერ არ არის მხარდაჭერილი.
+OBS	OBS
+OFF	გამორთული
+OLLAMA	OLLAMA
+ON	ჩართული
+ON THIS PC	ამ კომპიუტერზე
+OR A KEY	ან გასაღები
+Obsidian memory vault	Obsidian-ის მეხსიერების ვაულტი
+Off	გამორთვა
+Off. Turn on Her voice in your mic above.	გამორთულია. ჩართე ზემოთ მისი ხმა შენს მიკროფონში.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	გამორთულია: ჟღერს ისე, როგორც ყოველთვის. ჩართულია: ყველა მისი ხმა, ElevenLabs-იც.
+Often	ხშირად
+On	ჩართვა
+On / Off	ჩართვა / გამორთვა
+On: your mic and her voice are going in.	ჩართულია: შენი მიკროფონი და მისი ხმა შედის.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	ერთი JSON ობიექტი, რომელიც ემატება ყველა მოთხოვნას, რომელსაც ეს ტვინი აგზავნის. ის ცვლის Capri-ს მნიშვნელობას ნებისმიერი საერთო სახელისთვის და მოდელით არ მოწმდება.
+Online speech recognition	ონლაინ მეტყველების ამოცნობა
+Open Capri Mainframe	Capri Mainframe-ის გახსნა
+Open Ollama, I'll find it	Ollama-ს გახსნა, მე ვიპოვი
+Open clips folder	კლიპების საქაღალდის გახსნა
+Open her memories	მისი მოგონებების გახსნა
+Open her notes	მისი ჩანაწერების გახსნა
+Open mods folder	მოდების საქაღალდის გახსნა
+Open the page again	გვერდის ხელახლა გახსნა
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ან OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-თან თავსებადი სერვერი ან პროვაიდერი.
+OpenRouter · free models only	OpenRouter · მხოლოდ უფასო მოდელები
+Optional	არასავალდებულო
+Optional. Blank means no key.	არასავალდებულო. ცარიელი ნიშნავს გასაღების გარეშეა.
+Options	ვარიანტები
+Out of the box a little higher, just behind her.	ნაგულისხმევად ცოტათი მაღლა, მის უკან.
+Out of the box lower, just behind her.	ნაგულისხმევად დაბლა, მის უკან.
+Output	გამოსავალი
+Output:	გამოსავალი:
+Output: none	გამოსავალი: არაფერი
+PHONE CONNECTED	ტელეფონი დაკავშირებულია
+PHONES >	ტელეფონები >
+PHONES CONNECTED	ტელეფონები დაკავშირებულია
+PREBUILT LOCAL	წინასწარ აგებული ლოკალური
+PUBLISH MOD >	მოდის გამოქვეყნება >
+Pair a phone	ტელეფონის დაწყვილება
+Paste	ჩასმა
+Paste API key	API გასაღების ჩასმა
+Paste a brain API key	ტვინის API გასაღების ჩასმა
+Paste reads your clipboard once, when you press it.	ჩასმა ერთხელ წაიკითხავს შენს ბუფერს, როცა დააჭერ.
+Paste your key here	ჩასვი შენი გასაღები აქ
+Pat stroke	ხელის გადასმა
+Perch	სადგამი
+Perch over {0} fps uses more CPU	სადგამი {0} fps-ზე მეტი CPU-ს იყენებს
+Pick Output to get it.	აირჩიე Output, რომ მიიღო.
+Pick a brain so I can talk back. You can change it any time.	აირჩიე ტვინი, რომ მესაუბრო. ნებისმიერ დროს შეგიძლია შეცვლა.
+Pick a clip of a voice you have the rights and consent to use	აირჩიე ხმის კლიპი, რომლის გამოყენების უფლებაც და თანხმობაც გაქვს
+Pick a free model. I opened the page in your browser.	აირჩიე უფასო მოდელი. გვერდი შენს ბრაუზერში გავხსენი.
+Pick a new clip of you...	აირჩიე შენი ახალი კლიპი...
+Pick a voice model...	აირჩიე ხმის მოდელი...
+Pick one. Only one brain runs at a time.	აირჩიე ერთი. ერთდროულად მხოლოდ ერთი ტვინი მუშაობს.
+Pick the note her memories go in	აირჩიე ჩანაწერი, სადაც მისი მოგონებები წავა
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	აირჩიე {0}-დან {1} წამამდე ხმა, რომლის გამოყენების უფლებაც და თანხმობაც გაქვს
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	აირჩიე {0}-დან {1} წამამდე შენი საუბარი ან ხმა, რომლის გამოყენების უფლებაც და თანხმობაც გაქვს
+Pitch	სიმაღლე
+Play	დაკვრა
+Play...	დაკვრა...
+Player only	მხოლოდ პლეერი
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS მოდელები ამ კლიპის ხმას აკოპირებენ. დააჭირე ტესტს მოსასმენად.
+Pop-in times	გამოჩენის დროები
+Pop-ins	გამოჩენები
+Power saver	ენერგიის დაზოგვა
+Power saver: how lightly she runs in games, or always	ენერგიის დაზოგვა: რამდენად მსუბუქად მუშაობს თამაშებში, ან ყოველთვის
+Preset	წინასწარი პარამეტრი
+Press Create API key	დააჭირე API გასაღების შექმნას
+Press Create Key	დააჭირე გასაღების შექმნას
+Press Generate API Key	დააჭირე API გასაღების გენერირებას
+Press Test and say something, so I know I can hear you.	დააჭირე ტესტს და თქვი რამე, რომ ვიცოდე, რომ მესმის შენი.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	დააჭირე კლავიშს, მარტო ან Ctrl, Alt, Shift ან Win-თან ერთად.
+Press new keys, then Confirm	დააჭირე ახალ კლავიშებს, შემდეგ დადასტურებას
+Provider	პროვაიდერი
+Provider API key, optional	პროვაიდერის API გასაღები, არასავალდებულო
+Provider base URL	პროვაიდერის საბაზისო URL
+Provider forgotten.	პროვაიდერი დავიწყებულია.
+Provider overlaps the brain name or note	პროვაიდერი ეფარება ტვინის სახელს ან ჩანაწერს
+Publish	გამოქვეყნება
+Publish mod	მოდის გამოქვეყნება
+Push to talk is off.	push to talk გამორთულია.
+Push to talk key	push to talk-ის კლავიში
+Push to talk:	push to talk:
+Push to talk: not set	push to talk: არ არის დაყენებული
+QR CODE >	QR კოდი >
+QR hidden while streaming	QR დამალულია სტრიმინგის დროს
+Quick	სწრაფი
+Quiet key	ჩუმი კლავიში
+Quiet:	ჩუმი:
+Quiet: Ctrl + Alt + P	ჩუმი: Ctrl + Alt + P
+Quit Capri	Capri-ს გასვლა
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	კოდს უშვებს.
+Rarely	იშვიათად
+Rate mod	მოდის შეფასება
+Reading its README...	მისი README-ს კითხვა...
+Refresh	განახლება
+Reinstall	ხელახლა დაყენება
+Reload	გადატვირთვა
+Reloaded.	გადაიტვირთა.
+Remember our chats	დაიმახსოვრე ჩვენი ჩათები
+Remember what she sees	დაიმახსოვრე, რას ხედავს
+Remote	Remote
+Remote off	Remote გამორთულია
+Remote on	Remote ჩართულია
+Remove	წაშლა
+Remove all phones	ყველა ტელეფონის წაშლა
+Replies	პასუხები
+Reply length	პასუხის სიგრძე
+Report a problem	პრობლემის შეტყობინება
+Reset colors	ფერების გადატვირთვა
+Reset to her default	ნაგულისხმევზე დაბრუნება
+Resolution	გარჩევადობა
+Restart to update	განახლებისთვის გადატვირთე
+Restless	არამშვიდი
+Revoke	გაუქმება
+Revoke also removes the phones its links added	გაუქმება ასევე შლის ტელეფონებს, რომლებიც მისმა ბმულებმა დაამატა
+Ride cursor	კურსორზე ჯდომა
+Ride cursor / Hop off	კურსორზე ჯდომა / ჩამოხტომა
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის. ტვინი ჩაირთვება BRAIN-ის ქვეშ.
+Right-click me any time for the Mainframe, Help and the Discord.	ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Mainframe-ისთვის, დახმარებისა და Discord-ისთვის.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ან ნებისმიერი სხვა აპი: აირჩიე
+Robot	რობოტი
+Rock, paper, scissors	ქვა, ქაღალდი, მაკრატელი
+Run this code mod?	გავუშვა ეს კოდის მოდი?
+Running on this PC	მუშაობს ამ კომპიუტერზე
+Running on this PC · :	მუშაობს ამ კომპიუტერზე · :
+Runs Claude Code or Codex on this PC, signed in.	უშვებს Claude Code-ს ან Codex-ს ამ კომპიუტერზე, შესულ მდგომარეობაში.
+Runs on your PC. No key, no credits.	მუშაობს შენს კომპიუტერზე. გასაღები არ სჭირდება, კრედიტი არ სჭირდება.
+SCAN WITH YOUR PHONE · EXPIRES	დაასკანერე შენი ტელეფონით · ვადა იწურება
+SECURITY >	უსაფრთხოება >
+SKILL.	უნარი.
+SKIN.	გარეგნობა.
+SORT BY	დახარისხება
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ხმები ჩვევები ტვინი ყურება CAPRI DOOMSCROLL ამინდი კლიპები თამაშები გასაღებები მოძრაობები ხმა შენ
+Same as I speak	ჩემი ენის მსგავსად
+Same as her ears (VOICE > Mic)	იგივე, რაც მისი ყურები (ხმა > მიკროფონი)
+Same code on the phone?	იგივე კოდი ტელეფონზე?
+Save	შენახვა
+Save big moments	მნიშვნელოვანი მომენტების შენახვა
+Save folder	შენახვის საქაღალდე
+Save your changes, or press Discard + reload.	შეინახე ცვლილებები, ან დააჭირე გაუქმება + გადატვირთვა.
+Save your changes, or press Discard.	შეინახე ცვლილებები, ან დააჭირე გაუქმებას.
+Saved.	შენახულია.
+Saved. Ctrl + Alt + O opens her Mainframe.	შენახულია. Ctrl + Alt + O ხსნის მის Mainframe-ს.
+Saving your rating...	შენი შეფასება ინახება...
+Say her name anywhere to chat	ნებისმიერ ადგილას თქვი მისი სახელი ჩატისთვის
+Screens	ეკრანები
+Screens is hidden or outside WATCH	ეკრანები დამალულია ან WATCH-ის მიღმაა
+Screens overlaps a WATCH row	ეკრანები ეფარება WATCH-ის ხაზს
+Screens to watch	საყურებელი ეკრანები
+Sealed end to end	ბოლომდე დაშიფრული
+Search by name or author	ძებნა სახელის ან ავტორის მიხედვით
+Search installed mods	დაყენებული მოდების ძებნა
+Search mods	მოდების ძებნა
+Search name, author or description	ძებნა სახელით, ავტორით ან აღწერით
+Security	უსაფრთხოება
+Security:	უსაფრთხოება:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	დაყენება
+Set up her brain	მისი ტვინის დაყენება
+Set up your voice model	შენი ხმის მოდელის დაყენება
+Setting up her brain	მისი ტვინის დაყენება
+Settings	პარამეტრები
+Settings / Back	პარამეტრები / უკან
+Settings folds the wrong rows above BRAIN	პარამეტრებმა არასწორი მწკრივები გადააადგილა BRAIN-ის ზემოთ
+Settings had nothing to watch.	პარამეტრებს არაფერი ჰქონდა საყურებელი.
+Settings lost keyboard focus during the Tab walk	პარამეტრებმა კლავიატურის ფოკუსი დაკარგა Tab-ით სვლისას
+Setup guide	დაყენების სახელმძღვანელო
+Setup stopped	დაყენება შეჩერდა
+She answers in	პასუხობს
+She can read it when it fits.	შეუძლია წაიკითხოს, როცა ეტევა.
+She glances at your screen and comments. Costs a little on a paid brain.	ის შენს ეკრანს დახედავს და კომენტარს გააკეთებს. ფასიან ტვინზე ცოტას უჯდება.
+She keeps listening. Say her name, then just talk.	ის მუდამ უსმენს. თქვი მისი სახელი და უბრალოდ ისაუბრე.
+She reacts to your game until you close it.	ის შენს თამაშზე რეაგირებს, სანამ არ დახურავ.
+She reads these controls before each game job.	ის ამ კონტროლს კითხულობს ყოველი თამაშის სამუშაოს წინ.
+She talks about your game as you play. Costs a little on a paid brain.	ის შენს თამაშზე საუბრობს, როცა თამაშობ. ფასიან ტვინზე ცოტას უჯდება.
+She uses it when she plays	იყენებს მას, როცა თამაშობს
+Short	მოკლე
+Shortest wait (minutes)	ყველაზე მოკლე ლოდინი (წუთები)
+Show Capri	Capri-ს ჩვენება
+Show QR	QR-ის ჩვენება
+Show my mod file	ჩემი მოდის ფაილის ჩვენება
+Show on Discord	Discord-ზე ჩვენება
+Shum, what time is it	Shum, რომელი საათია
+Sign in	შესვლა
+Sign in, make a key and copy it. Then press Paste and I'll connect.	შედი, შექმენი გასაღები და დააკოპირე. შემდეგ დააჭირე ჩასმას და დავუკავშირდები.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	შედი, დააჭირე API გასაღების შექმნას და დააკოპირე. შემდეგ დააჭირე ჩასმას და დავუკავშირდები.
+Silent · text only	უხმო · მხოლოდ ტექსტი
+Simple / Advanced Settings	მარტივი / გაფართოებული პარამეტრები
+Simple Settings	მარტივი პარამეტრები
+Simple Settings left a gap under Check in on me	მარტივმა პარამეტრებმა დატოვა ხარვეზი დაიმახსოვრე, რომ შემოგიარე-ს ქვეშ
+Sit here	აქ დაჯექი
+Sit on windows	დაჯექი ფანჯრებზე
+Size	ზომა
+Skip	გამოტოვება
+Skip all	ყველას გამოტოვება
+Skip for now	ახლა გამოტოვება
+Sleep	ძილი
+Small	პატარა
+Sometimes	ზოგჯერ
+Sound effects volume	ხმის ეფექტების ხმაური
+Sound sensitivity	ხმის მგრძნობელობა
+Sounds	ხმები
+Speaker or clip	დინამიკი ან კლიპი
+Speech model	მეტყველების მოდელი
+Speed	სიჩქარე
+Start with Windows	Windows-თან ერთად გაშვება
+Start with this!	დაიწყე ამით!
+Starting...	იწყება...
+Stay	დარჩი
+Stay on my model	დარჩი ჩემს მოდელზე
+Still checking your mics...	შენს მიკროფონებს ჯერ კიდევ ვამოწმებ...
+Still checking your speakers...	შენს დინამიკებს ჯერ კიდევ ვამოწმებ...
+Still checking your virtual mics...	შენს ვირტუალურ მიკროფონებს ჯერ კიდევ ვამოწმებ...
+Stop	გაჩერება
+Stopped using it. Couldn't remove the saved provider.	გამოყენება შეწყდა. შენახული პროვაიდერის წაშლა ვერ მოხერხდა.
+Support	მხარდაჭერა
+Sure?	დარწმუნებული ხარ?
+Sure? moved to a different phone	დარწმუნებული ხარ? სხვა ტელეფონზე გადავიდა
+TALK TO ME	ისაუბრე ჩემთან
+TEXT ONLY	მხოლოდ ტექსტი
+Tab landed past the first option of	Tab გადავიდა პირველ ვარიანტს მიღმა
+Tab never reached the quiet key	Tab ვერ მიაღწია ჩუმ კლავიშს
+Tab reached nothing	Tab-მა ვერაფერს მიაღწია
+Tab selected a control without moving keyboard focus	Tab-მა აირჩია კონტროლი, კლავიატურის ფოკუსის გადაადგილების გარეშე
+Talk	საუბარი
+Talk key	საუბრის კლავიში
+Talk:	საუბარი:
+Talk: Ctrl + Alt + V	საუბარი: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	სამიზნე ჩაწერის კადრების სიჩქარე; დატვირთვის ან მეხსიერების ბიუჯეტის ქვეშ შეიძლება დაეცეს
+Teases when another AI comes to the front.	ეკიდება, როცა სხვა AI წინა პლანზე გადმოდის.
+Test	ტესტი
+That address doesn't work. Try https://... or http://localhost:{0}.	ეს მისამართი არ მუშაობს. სცადე https://... ან http://localhost:{0}.
+That code expired	ეს კოდი ვადაგასულია
+That mod is no longer installed. The list is updated.	ეს მოდი აღარ არის დაყენებული. სია განახლდა.
+That's a paid key: it goes under MAX INTELLIGENCE.	ეს ფასიანი გასაღებია: MAX INTELLIGENCE-ის ქვეშ მოხვდება.
+The Mainframe stayed composited while sliding.	Mainframe სლაიდის დროს კომპოზიტურ რეჟიმში დარჩა.
+The Mainframe stayed uncomposited after the slide.	Mainframe სლაიდის შემდეგ არაკომპოზიტურ რეჟიმში დარჩა.
+The controls moved while the picture was sliding.	კონტროლები გადაადგილდა, სანამ სურათი სლაიდობდა.
+The cover stayed visible after the slide ended.	საფარი სლაიდის დასრულების შემდეგაც ჩანდა.
+The frame thread kept running after the page settled.	კადრების ნაკადი სანამ გვერდი დალაგდებოდა, მუშაობდა.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	მისი უდიდესი პასუხი ტოკენებში. ავტო ზემოთ მოცემულ პასუხებს იცავს; {0}K ან {1}K მას გააგრძელებინებს. სამუშაოები მეტ სივრცეს იღებენ, როცა ეს სჭირდებათ
+The longest wait must be at least the shortest wait.	უდიდესი ლოდინი მინიმუმ უმოკლეს ლოდინს უნდა უდრიდეს.
+The picture doesn't match the scrolled page:	სურათი არ ემთხვევა გადახვეულ გვერდს:
+The picture of Settings doesn't match the page:	პარამეტრების სურათი არ ემთხვევა გვერდს:
+The picture stayed up after the slide ended.	სურათი სლაიდის დასრულების შემდეგაც ჩანდა.
+The picture wasn't showing while it slid.	სურათი სლაიდობისას არ ჩანდა.
+The provider sheet is crowded:	პროვაიდერის ფანჯარა გადატვირთულია:
+The voice panel has no screen DPI.	ხმის პანელს ეკრანის DPI არ აქვს.
+The voice panel's menus share one font.	ხმის პანელის მენიუები ერთ შრიფტს იყენებს.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	ბუფერში ჯერ გასაღები არ არის. დააკოპირე გვერდიდან, შემდეგ დააჭირე ჩასმას.
+These start off. Each costs a little or uses your mic.	ეს გამორთულად იწყება. თითოეული ცოტას უჯდება ან იყენებს შენს მიკროფონს.
+These start off. Turn on what you want. They're all in Settings too.	ეს გამორთულად იწყება. ჩართე რაც გინდა. ისინი ყველა პარამეტრებშიცაა.
+They can also call you Big Z, Capricorn or Nova	შეიძლება დაგიძახონ Big Z-ად, Capricorn-ად ან Nova-დ
+They can also call you Nova, Big Z or Capricorn	შეიძლება დაგიძახონ Nova-დ, Big Z-ად ან Capricorn-ად
+Thinking	ვფიქრობ
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ეს ჩემი უფასო ხმაა. დააჭირე ტესტს, თქვი რამე, და გაჩვენებ, რომ მესმის შენი.
+This mod has no description yet.	ამ მოდს ჯერ აღწერა არ აქვს.
+Tic-tac-toe	ჯვრები-ნოლები
+Time between glances	დროის ინტერვალი შეხედვებს შორის
+Tiny	პატარა-პატარა
+Try again	კვლავ სცადე
+Turn Remote on first	ჯერ ჩართე Remote
+Turn off mini player	მინი პლეერის გამორთვა
+Turn push to talk off	push to talk-ის გამორთვა
+Turning the wheel the other way kept the page heading the old way, to	ბორბლის საწინააღმდეგოდ ტრიალმა გვერდი ძველ მიმართულებაში დატოვა, რომ
+Type	ჩაწერა
+Type key	ჩაწერის კლავიში
+Type to me	მომწერე
+Type:	ჩაწერა:
+Type: Ctrl + Alt + T	ჩაწერა: Ctrl + Alt + T
+Typing sound	აკრეფის ხმა
+Unpacked. Press Test to hear it.	ამოიხსნა. დააჭირე ტესტს მოსასმენად.
+Unsaved changes.	შეუნახავი ცვლილებები.
+Up to {0} fps	{0} fps-მდე
+Up to {0}p	{0}p-მდე
+Update	განახლება
+Update available.	განახლება ხელმისაწვდომია.
+Update mods	მოდების განახლება
+Updating...	მიმდინარეობს განახლება...
+Use	გამოყენება
+Use her cursor	მისი კურსორის გამოყენება
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	სხვაგან პროვაიდერისთვის გამოიყენე https://. გასაღები უბრალო http-ზე უსაფრთხო არ არის.
+Use preset	წინასწარი პარამეტრის გამოყენება
+Use saved	შენახულის გამოყენება
+Use this server	ამ სერვერის გამოყენება
+Using your provider with a key	შენი პროვაიდერის გამოყენება გასაღებით
+Using your server with no key	შენი სერვერის გამოყენება გასაღების გარეშე
+VIEW MOD >	მოდის ნახვა >
+VOICE >	ხმა >
+VOICE IN YOUR MIC >	ხმა შენს მიკროფონში >
+VOICE LAYERS >	ხმის ფენები >
+Verbosity	მეტყველების სიმრავლე
+Video bitrate	ვიდეოს ბიტრეიტი
+View	ხედი
+View mod	მოდის ნახვა
+Voice	ხმა
+Voice ID	ხმის ID
+Voice from	ხმა წყაროდან
+Voice layers	ხმის ფენები
+Voice model	ხმის მოდელი
+Voice model:	ხმის მოდელი:
+Voice name or ID, optional	ხმის სახელი ან ID, არასავალდებულო
+Voice server address, or a voice model's folder	ხმის სერვერის მისამართი ან ხმის მოდელის საქაღალდე
+Voice status	ხმის სტატუსი
+Voice, key and model...	ხმა, გასაღები და მოდელი...
+Volume	ხმაური
+WAKE ME UP >	გამომაღვიძე >
+WATCH >	ყურება >
+Waiting for the relay	რელეს ველოდები
+Wake her up	გააღვიძე
+Waking her up	აღვიძებ მას
+Wander	დაძრწის
+Wander around	დაძრწის ირგვლივ
+Watch my screen	ჩემს ეკრანს უყურე
+Watch-along memory	ერთად ყურების მეხსიერება
+Weather	ამინდი
+Weather city	ამინდის ქალაქი
+Welcome back, choom. Let's finish setting me up.	მოგესალმები, choom. მოდი დავასრულოთ ჩემი დაყენება.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	რას აკეთებს შენს კომპიუტერზე კითხვის გარეშე. გამორთული გადამრთველით ჯერ იკითხავს და გააკეთებს, როცა დათანხმდები.
+What should she call you?	როგორ დამიძახებს?
+When she types	როცა წერს
+White	თეთრი
+Windows default	Windows-ის ნაგულისხმევი
+Windows did not give Settings keyboard focus	Windows-მა პარამეტრებს კლავიატურის ფოკუსი არ მიანიჭა
+Windows did not return keyboard focus to Back	Windows-მა კლავიატურის ფოკუსი უკან არ დააბრუნა
+With no picture the wheel still tried to slide.	სურათის გარეშე ბორბალი მაინც ცდილობდა სლაიდს.
+Works best on MAX INTELLIGENCE.	საუკეთესოდ მუშაობს MAX INTELLIGENCE-ზე.
+YOU	შენ
+YOU >	შენ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	შენ ხმა მოძრაობები გასაღებები თამაშები კლიპები ამინდი DOOMSCROLL CAPRI ყურება ტვინი ჩვევები ხმები
+YOUR KEY	შენი გასაღები
+YOUR MIC	შენი მიკროფონი
+YOUR PLAN	შენი გეგმა
+Yokapri what's up	Yokapri, რა ხდება
+You can hide this. It keeps going, and the Mainframe shows it too.	ამის დამალვა შეგიძლია. ის მუშაობს და Mainframe-იც აჩვენებს.
+Your mic and her voice go into one virtual mic, and	შენი მიკროფონი და მისი ხმა ერთ ვირტუალურ მიკროფონში შედის, და
+Your mic is muted. Unmute it to test.	შენი მიკროფონი გაჩუმებულია. ტესტისთვის გააუქმე გაჩუმება.
+Your mods are up to date.	შენი მოდები განახლებულია.
+Your name or a nickname	შენი სახელი ან მეტსახელი
+Your own model	შენი საკუთარი მოდელი
+Your personality	შენი პერსონალობა
+Your voice	შენი ხმა
+Your voice (HD)	შენი ხმა (HD)
+Your voice (HD) · pick a clip of you...	შენი ხმა (HD) · აირჩიე შენი კლიპი...
+Your voice model	შენი ხმის მოდელი
+as its mic.	როგორც მისი მიკროფონი.
+changed. Saved as My Colors, so you can share it.	შეიცვალა. შენახულია როგორც My Colors, რომ გააზიარო.
+choice	არჩევანი
+clips the input line	ჭრის შემავალ ხაზს
+cue	ნიშანი
+doesn't yet.	ჯერ არა.
+download	ჩამოტვირთვა
+file.	ფაილი.
+flag	დროშა
+fps	fps
+hear	ისმენს
+hears	ისმენს
+hears that.	ამას ისმენს.
+hides or shows her.	მალავს ან აჩვენებს მას.
+hint	მინიშნება
+in the Mainframe.	Mainframe-ში.
+in the mods directory with a pull request.	მოდების საქაღალდეში pull request-ით.
+in the picture wasn't noticed.	სურათში ვერ შეამჩნიეს.
+is already her push-to-talk key.	უკვე მისი push-to-talk კლავიშია.
+is off.	გამორთულია.
+is on and running.	ჩართულია და მუშაობს.
+is on, at the bottom, under	ჩართულია, ქვემოთ, ქვეშ
+is on.	ჩართულია.
+is on. She now answers to	ჩართულია. ახლა პასუხობს
+is removed.	წაშლილია.
+is taken	დაკავებულია
+is taken by another app. Try another.	დაკავებულია სხვა აპის მიერ. სცადე სხვა.
+is updated	განახლებულია
+isn't hearing it yet: do {0} and {1}, then join a call.	ჯერ არ ისმენს: გააკეთე {0} და {1}, შემდეგ შეუერთდი ზარს.
+it now.	ახლა.
+keeps her quiet, and lets her talk again.	ჩუმად ამყოფებს და ისევ საშუალებას აძლევს ისაუბროს.
+key	კლავიში
+key.	კლავიში.
+min	წთ
+more.	მეტი.
+ms.	ms.
+mutes mic	მიკროფონს რთავს
+mutes your mic.	შენს მიკროფონს რთავს.
+name	სახელი
+off	გამორთული
+on this PC	ამ კომპიუტერზე
+opens her Mainframe.	ხსნის მის Mainframe-ს.
+opens her typing box.	ხსნის მის საწერ ველს.
+phone	ტელეფონი
+phone pixels	ტელეფონის პიქსელები
+phones	ტელეფონები
+pixels	პიქსელები
+pixels)	პიქსელები)
+star.	ვარსკვლავი.
+stars.	ვარსკვლავები.
+starts voice chat.	იწყებს ხმოვან ჩათს.
+stays off. Nothing ran.	გამორთული რჩება. არაფერი გაშვებულა.
+still does its own job in other apps too. Confirm to keep it.	მაინც ასრულებს თავის სამუშაოს სხვა აპებშიც. დაადასტურე მისი შესანარჩუნებლად.
+tall	მაღალი
+time	ჯერ
+to talk	საუბრისთვის
+to talk to her, with a game in front too.	რომ მასთან ისაუბრო, თამაშიც წინა პლანზე თუ გაქვს.
+too.	ასევე.
+turns Gaming Mode on and off.	რთავს და თიშავს Gaming Mode-ს.
+with Ollama	Ollama-თან ერთად
+won't type in other apps while she runs. Confirm to keep it.	სხვა აპებში არ აკრიფებს, სანამ ის მუშაობს. დაადასტურე მის შესანარჩუნებლად.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: გამორთული
+{0}   If her voice cuts off, turn off noise filtering	{0}   თუ მისი ხმა წყდება, გამორთე ხმაურის ფილტრი
+{0}   Input Device:	{0}   შემავალი მოწყობილობა:
+{0}   Join the call and check they hear both of you	{0}   შეუერთდი ზარს და შეამოწმე, გესმით თუ არა ორივეს
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   მიკროფონის ტესტი > მოვამოწმოთ: შენ გაიგონებ საკუთარ თავს და მასაც, როცა ლაპარაკობს
+{0}   Microphone:	{0}   მიკროფონი:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   ხმაურის ჩახშობა: არა. ორივე მის ხმას პირველი ხაზის შემდეგ შეიძლება გაჭრას.
+{0}   Open the call or meeting's audio settings	{0}   გახსენი ზარის ან შეხვედრის აუდიო პარამეტრები
+{0}   Output Device: your headphones, like before	{0}   გამოსასვლელი მოწყობილობა: შენი ყურსასმენები, როგორც მანამდე
+{0}   Speaker: your headphones, like before	{0}   დინამიკი: შენი ყურსასმენები, როგორც მანამდე
+{0}   Try a mic test in your call app	{0}   სცადე მიკროფონის ტესტი შენს ზარის აპში
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   მომხმარებლის პარამეტრები (შენი სახელის გვერდით ხატულა) > ხმა და ვიდეო
+{0} Mbps	{0} Mbps
+{0} lines	{0} ხაზი
+{0} min	{0} წთ
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ამ კომპიუტერზე
+· server	· სერვერი
+Edit as text	ტექსტად რედაქტირება
+What Capri remembers about you. It stays on this computer.	რასაც Capri შენზე იმახსოვრებს. ამ კომპიუტერზე რჩება.
+Tell her something to remember	უთხარი რამე დასამახსოვრებლად
+Search her memory	ძებნა მის მეხსიერებაში
+That day isn't there any more.	ის დღე აღარ არის.
+Undo	გაუქმება
+Remember our chats is off, so she isn't keeping new chat memories.	ჩვენი საუბრების დამახსოვრება გამორთულია, ამიტომ ახალ საუბრის მოგონებებს არ ინახავს.
+ABOUT YOU	შენზე
+FROM YOUR CHATS	შენი საუბრებიდან
+GAMES	თამაშები
+CHAT LOGS	საუბრის ჟურნალები
+CHAT LOG	საუბრის ჟურნალი
+Nothing matches.	ვერაფერი დაემთხვა.
+Nothing yet.	ჯერ არაფერი.
+Reading her notes.	კითხულობს მის ჩანაწერებს.
+Click again to forget game notes	კიდევ დააწკაპუნე თამაშის ჩანაწერების დასავიწყებლად
+Forget game notes	თამაშის ჩანაწერების დავიწყება
+Click again to forget everything about me	კიდევ დააწკაპუნე შენზე ყველაფრის დასავიწყებლად
+Forget everything about me	შენზე ყველაფრის დავიწყება
+Click again to forget	დასავიწყებლად კიდევ დააწკაპუნე
+Forget this day	ამ დღის დავიწყება
+Only the start of this day is shown.	ნაჩვენებია მხოლოდ ამ დღის დასაწყისი.
+Nothing in this day.	ამ დღეს არაფერია.
+No chats kept yet.	ჯერ არც ერთი საუბარი არ არის შენახული.
+You	შენ
+{0} line	{0} ხაზი
+SET UP EMAIL >	ელფოსტის დაყენება >
+SET UP EMAIL	ელფოსტის დაყენება
+Or type your address	ან ჩაწერე შენი მისამართი
+Email address	ელფოსტის მისამართი
+Open the page	გვერდის გახსნა
+App password	აპის პაროლი
+IMAP server	IMAP სერვერი
+Incoming mail server	შემავალი ფოსტის სერვერი
+SMTP server	SMTP სერვერი
+Outgoing mail server	გამავალი ფოსტის სერვერი
+An app password is a separate password just for Capri. Your normal password stays yours.	აპის პაროლი ცალკე პაროლია მხოლოდ Capri-სთვის. შენი ჩვეულებრივი პაროლი შენი რჩება.
+She keeps it only until she closes.	ის ინახავს მას მხოლოდ დახურვამდე.
+She checks, searches and reads your mail. She asks before she sends any.	ის ამოწმებს, ეძებს და კითხულობს შენს ფოსტას. კითხულობს სანამ რამეს გაგზავნის.
+Watch for new mail	თვალი ადევნე ახალ ფოსტას
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ის ლაპარაკობს, როცა ფოსტა მოდის, გაფრთხილებით თუ ფიშინგს ჰგავს. არაფერი აღინიშნება წაკითხულად.
+Deal with phishing on her own	თავად გაუმკლავდი ფიშინგს
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	მხოლოდ სანამ თვალს ადევნებს. ფოსტა, რომელშიც ის დარწმუნებულია, რომ ფიშინგია, სპამში მიდის. დანარჩენი შენს კარგს ელოდება.
+Forget account	ანგარიშის დავიწყება
+Use another email	სხვა ელფოსტის გამოყენება
+Which email?	რომელი ელფოსტა?
+Make an app password	აპის პაროლის შექმნა
+Paste it	ჩასვი ის
+Connecting...	მიმდინარეობს დაკავშირება...
+She can use your email now.	ის ახლა შეძლებს შენი ელფოსტის გამოყენებას.
+She's not watching your inbox.	ის არ ადევნებს თვალს შენს შემოსულებს.
+She's watching your inbox and deals with phishing she's sure of.	ის ადევნებს თვალს შენს შემოსულებს და უმკლავდება ფიშინგს, რომელშიც დარწმუნებულია.
+She's watching your inbox and tells you when mail lands.	ის ადევნებს თვალს შენს შემოსულებს და გეუბნება, როცა ფოსტა მოდის.
+She forgot that account and its app password.	მან დაივიწყა ის ანგარიში და მისი აპის პაროლი.
+She forgot that account. Its app password is gone from this PC.	მან დაივიწყა ის ანგარიში. მისი აპის პაროლი გაქრა ამ კომპიუტერიდან.

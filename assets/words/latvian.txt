@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Vadības elements, kas tika pārzīmēts, attēlā netika atjaunots.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Bezmaksas atslēga no Google AI Studio, NVIDIA vai OpenRouter. Nav ko lejupielādēt. Nepieciešams internets.
+A held trackpad scroll got a flick's long ease:	Turēta skārienpaneļa ritināšana ieguva sitiena garo izlīdzināšanu:
+A layout change during a slide put the page at	Izkārtojuma maiņa slaidējuma laikā novietoja lapu uz
+A layout change left the picture up.	Izkārtojuma maiņa atstāja attēlu redzamu.
+A model in Ollama, on your local server or on your key.	Modelis Ollama, tavā lokālajā serverī vai ar tavu atslēgu.
+A paid key goes under MAX INTELLIGENCE by itself.	Maksas atslēga pati ievietojas zem MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Plāns, par ko jau maksā, sava atslēga vai Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Balss paneļa izvēlnei nav savas paneļa fontu kopijas.
+A wheel turn right after a slide ended froze the picture.	Riteņa pagrieziens tieši pēc slaidējuma beigām iesaldēja attēlu.
+ALLOW THIS PHONE?	ATĻAUT ŠO TĀLRUNI?
+ALMOST THERE >	GANDRĪZ KLĀT >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CITA CAPRI PĀRŅĒMA VADĪBU · IZSLĒDZIET UN IESLĒDZIET
+API key	API atslēga
+API key, Claude plan or ChatGPT plan	API atslēga, Claude plāns vai ChatGPT plāns
+Add	Pievienot
+Address	Adrese
+Address and key saved. Use saved to reconnect.	Adrese un atslēga saglabātas. Izmanto Saglabāts, lai atkal savienotos.
+Advanced Settings	Papildu iestatījumi
+All	Visi
+All screens	Visi ekrāni
+Allow	Atļaut
+Almost there. I'll say hi the second my brain's in.	Gandrīz klāt. Pateikšu čau, tiklīdz mans prāts būs iekšā.
+Always	Vienmēr
+Always on top	Vienmēr virspusē
+Any Google account works. I opened the page in your browser.	Darbojas jebkurš Google konts. Lapu atvēru tavā pārlūkā.
+Applies to every voice	Attiecas uz visām balsīm
+Apps she may close	Lietotnes, ko viņa drīkst aizvērt
+Ask Capri for more	Pajautā Capri vēl
+Asking your server...	Jautāju tavam serverim...
+Asks before closing only the apps you choose.	Pirms aizvēršanas jautā tikai par tavu izvēlēto lietotņu aizvēršanu.
+Auto	Auto
+Auto (match what I say)	Auto (pēc tā, ko saku)
+Automatic: VB-CABLE, else Steam's	Automātiski: VB-CABLE, citādi Steam's
+BAD RELAY HOST	NEPAREIZS RELAY SERVERIS
+BIG Z open notepad	BIG Z atver piezīmju bloku
+BRAIN	SMADZENES
+BRAIN >	SMADZENES >
+BRAIN ONLINE >	SMADZENES TIEŠSAISTĒ >
+BRAIN PROVIDER >	SMADZENU PAKALPOJUMS >
+BRAIN VOICE CAPRI	SMADZENU BALSS CAPRI
+Back	Atpakaļ
+Back on your saved API key.	Atkal ar tavu saglabāto API atslēgu.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Labākais variants šim PC:
+Black	Melns
+Blank key means no key.	Tukšs lauks nozīmē, ka atslēgas nav.
+Brain API key	Smadzeņu API atslēga
+Brain model	Smadzeņu modelis
+Brain provider	Smadzeņu pakalpojumu sniedzējs
+Bring here	Atnest šeit
+Bring to this screen	Atnest uz šo ekrānu
+Browse	Pārlūkot
+Browse mods	Pārlūkot modifikācijas
+Browse to a voice model	Pārlūkot balss modeli
+Browse...	Pārlūkot...
+Bubble	Burbulis
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, vai tu esi tur
+CAN'T REACH THE RELAY · RETRYING	NEVAR SASNIEGT RELAY · MĒĢINA VĒLREIZ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI BALSS SMADZENES
+CHANGED, approve it again.	MAINĪTS, apstipriniet vēlreiz.
+CLIPS >	KLIPI >
+CLOUD VOICE	MĀKOŅA BALSS
+CODE	KODS
+COLORS >	KRĀSAS >
+CONNECTED	SAVIENOTS
+CONNECTING	SAVIENOJAS
+CUSTOM LOCAL	PIELĀGOTS LOKĀLS
+Call mode (beta)	Zvana režīms (beta)
+Call mode does not fit.	Zvana režīms neiederas.
+Call mode is outside its space.	Zvana režīms atrodas ārpus savas vietas.
+Cancel	Atcelt
+Cancel keys	Atcelt taustiņus
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Tālvadība
+Capri code:	Capri kods:
+Capri mods (*	Capri modifikācijas (*
+Capri, hello	Capri, sveiks
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Haoss, kad satraukta
+Chat with Capri from your phone	Tērzē ar Capri no sava tālruņa
+ChatGPT plan	ChatGPT plāns
+Check for updates	Pārbaudīt atjauninājumus
+Check in on me	Pārbaudi mani
+Check in on me is hidden	Pārbaudi mani ir paslēpts
+Check in on me still decides whether she visits.	Pārbaudi mani joprojām izlemj, vai viņa apmeklē.
+Check in on me's tip missed	Pārbaudi mani padoms palaists garām
+Chess	Šahs
+Choose apps	Izvēlēties lietotnes
+Choose folder...	Izvēlēties mapi...
+Choose where future Capri clips are saved	Izvēlies, kur saglabāt turpmākos Capri klipus
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude vai ChatGPT plāns, maksas atslēga (OpenAI, Claude, DeepSeek) vai Ollama.
+Claude plan	Claude plāns
+Clear	Notīrīt
+Cleared.	Notīrīts.
+Click Confirm to keep Down, or press Esc.	Noklikšķini Apstiprināt, lai paturētu Down, vai nospied Esc.
+Click to open it.	Noklikšķini, lai atvērtu.
+Clip my games	Ieraksti manas spēles
+Clips	Klipi
+Close	Aizvērt
+Close other AIs for me	Aizver citus AI manā vietā
+Cloud voice	Mākoņa balss
+Cloud voice service	Mākoņa balss pakalpojums
+Cloud voice setup	Mākoņa balss iestatīšana
+Code mods can reach your whole PC. Only trusted ones.	Koda modifikācijas var piekļūt visam tavam PC. Tikai uzticamas.
+Code/Husk Mode	Koda/Husk režīms
+Codex	Codex
+Commands	Komandas
+Comment on my games	Komentē manas spēles
+Comments	Komentāri
+Confirm	Apstiprināt
+Confirm keys	Apstiprināt taustiņus
+Connect	Savienot
+Connect / Forget brain key	Savienot / Aizmirst smadzeņu atslēgu
+Connect / Forget voice key	Savienot / Aizmirst balss atslēgu
+Connect four	Četri savienojumā
+Controls	Vadība
+Copri, what time is it	Copri, cik ir pulkstens
+Copy error details	Kopēt kļūdas detaļas
+Copy the key	Kopēt atslēgu
+Copy the key from the page, then press Paste.	Nokopē atslēgu no lapas un pēc tam nospied Ielīmēt.
+Couldn't open that page:	Nevarēja atvērt šo lapu:
+Couldn't open that:	Nevarēja atvērt to:
+Couldn't open the mods folder:	Nevarēja atvērt modifikāciju mapi:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M jau ir viņas Mainframe taustiņš.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N izslēdz mikrofonu
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V jau ir viņas runāšanas taustiņš.
+Ctrl + Alt + V to talk	Ctrl + Alt + V runāšanai
+Custom local voice	Pielāgota lokāla balss
+Custom model name	Pielāgots modeļa nosaukums
+Dance	Dejot
+Dance to music	Dejot pie mūzikas
+Default	Noklusējums
+Default (follows Windows)	Noklusējums (seko Windows)
+Default duration for clip that and automatic clips	Noklusējuma ilgums klipam pēc tam un automātiskajiem klipiem
+Default length	Noklusējuma garums
+Default model	Noklusējuma modelis
+Delay	Kavēšanās
+Deny	Noraidīt
+Discard	Atmest
+Discard + reload	Atmest + pārlādēt
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Negribi gaidīt? Bezmaksas atslēga liek man runāt apmēram pēc minūtes.
+Done	Gatavs
+EXTRA REQUEST JSON >	PAPILDU PIEPRASĪJUMA JSON >
+EXTRAS >	PAPILDU >
+Edit	Rediģēt
+Edit check-in lines	Rediģēt pārbaudes frāzes
+Edit check-in lines has the wrong view or dimming	Rediģēt pārbaudes frāzes ir nepareizs skats vai nototājums
+Edit check-in lines is out of place	Rediģēt pārbaudes frāzes ir nevietā
+Edit controls	Rediģēt vadību
+ElevenLabs API key	ElevenLabs API atslēga
+ElevenLabs voice ID	ElevenLabs balss ID
+English	Angļu
+Enter the game's name first.	Vispirms ievadi spēles nosaukumu.
+Every	Katrs
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Katra modifikācija pirms augšupielādes tiek pārbaudīta uz ļaunprātīgu kodu. Koda modifikācijas joprojām jautā, pirms palaist.
+Explore after	Izpētīt pēc
+Explore while I'm away	Izpētīt, kamēr esmu prom
+Extra request JSON	Papildu pieprasījuma JSON
+Extras	Papildu
+FREE KEY	BEZMAKSAS ATSLĒGA
+FREE KEY >	BEZMAKSAS ATSLĒGA >
+Fast hands in games	Ātras rokas spēlēs
+File editor	Failu redaktors
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs un citi ir zem BALSS Mainframe.
+Follow-up messages	Turpmākie ziņojumi
+Forget	Aizmirst
+Fork capri-mods	Atdalīt capri-mods
+Frame rate	Kadru ātrums
+Free	Bez maksas
+Free and private, works offline. Downloads	Bezmaksas un privāts, darbojas bezsaistē. Lejupielādē
+Free and private, works offline. Downloads the best model for this PC.	Bezmaksas un privāts, darbojas bezsaistē. Lejupielādē labāko modeli šim PC.
+Free key	Bezmaksas atslēga
+Free key providers	Bezmaksas atslēgu nodrošinātāji
+Free keys can be rate limited and slow.	Bezmaksas atslēgām var būt pieprasījumu ierobežojumi un tās var būt lēnas.
+Free voice in games	Bezmaksas balss spēlēs
+Free voice style	Bezmaksas balss stils
+Free voice:	Bezmaksas balss:
+Free voice: Her own	Bezmaksas balss: Viņas pašas
+Free · local model	Bezmaksas · lokālais modelis
+GAMES >	SPĒLES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Spēles komentāri darbojas atsevišķi no Skatīties manu ekrānu. Izslēgts tos aptur, arī Spēles režīmā; Tikai notikumi un Pļāpīgs ļauj viņai skatīties tavu spēli
+Game controls	Spēles vadība
+Game name	Spēles nosaukums
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Spēles skaņas jutīgums. Samazini, ja austiņas ir kluss, bet Windows ir {0}% un viņa reaģē uz katru skaņu; Izslēgts ignorē spēles skaņas
+Game sounds	Spēles skaņas
+Games	Spēles
+Gaming Mode	Spēles režīms
+Gaming Mode key	Spēles režīma taustiņš
+Gaming Mode:	Spēles režīms:
+Gaming Mode: Ctrl + Alt + G	Spēles režīms: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Iegūt VB-CABLE
+Get VB-CABLE (free)...	Iegūt VB-CABLE (bez maksas)...
+Get free voice	Iegūt bezmaksas balsi
+Getting your Fish Audio voices...	Iegūstam tavas Fish Audio balsis...
+Giant	Milzīgs
+Glitch	Kļūme
+Glitch in at startup	Kļūme startējot
+Go to sleep	Iet gulēt
+Go to the next screen	Iet uz nākamo ekrānu
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · bezmaksas līmenis · ar ierobežojumu
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Vai tev ir Claude vai ChatGPT plāns, vai sava atslēga? Izvēlies to, un es pieslēgšos.
+Got it, just me. Right-click me any time for Capri Mainframe.	Sapratu, tikai es. Jebkurā brīdī ar peles labo pogu noklikšķini uz manis, lai atvērtu Capri Mainframe.
+Grey	Pelēks
+H.{0} video bitrate target; higher values make larger files	H.{0} video bitrātes mērķis; augstākas vērtības rada lielākus failus
+HABITS >	PARADUMI >
+HER HANDS >	VIŅAS ROKAS >
+HER JOBS >	VIŅAS DARBI >
+HER MEMORY >	VIŅAS ATMIŅA >
+HER MODS >	VIŅAS MODIFIKĀCIJAS >
+HH:mm	HH:mm
+HOW I SOUND >	KĀ ES SKANU >
+Hang here	Palikt šeit
+Have Ollama? Open it, then press Refresh.	Vai tev ir Ollama? Atver to un pēc tam nospied Atsvaidzināt.
+Head pats	Pieskārieni galvai
+Hearing	Dzirde
+Hearing engine	Dzirdes dzinējs
+Hearing fix	Dzirdes labojums
+Hearing status	Dzirdes statuss
+Help	Palīdzība
+Help page	Palīdzības lapa
+Her colors	Viņas krāsas
+Her folder	Viņas mape
+Her memories	Viņas atmiņas
+Her own colors are back.	Viņas pašas krāsas ir atgriezušās.
+Her own notes (no vault)	Viņas pašas piezīmes (bez glabātuves)
+Her perch frames per second	Viņas poleiņa kadri sekundē
+Her personality	Viņas personība
+Her size	Viņas izmērs
+Her speaker	Viņas skaļrunis
+Her speaker is hidden or outside VOICE	Viņas skaļrunis ir paslēpts vai ārpus BALSS
+Her speaker overlaps the mic or hearing row	Viņas skaļrunis pārklājas ar mikrofona vai dzirdes rindu
+Her speaker:	Viņas skaļrunis:
+Her speaker: Default	Viņas skaļrunis: Noklusējums
+Her voice in your mic	Viņas balss tavā mikrofonā
+Her voice in your mic: loudness	Viņas balss tavā mikrofonā: skaļums
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Viņas pati balss. Tās augstums ir Iestatījumi > BALSS > Augstums, un tie kustas kopā.
+Her voice joins your mic only in call mode.	Viņas balss pievienojas tavam mikrofonam tikai zvana režīmā.
+Her voice volume	Viņas balss skaļums
+Her voice's pitch	Viņas balss augstums
+Her voice's pitch, the same as Settings > VOICE > Pitch	Viņas balss augstums, tāds pats kā Iestatījumi > BALSS > Augstums
+Her voice's speed	Viņas balss ātrums
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Viņas balss un divas tās kopijas, sajauktas zem viņas, katrai savs augstums un kavēšanās.
+Her voices · free	Viņas balsis · bezmaksas
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Esmu Capri. Man vajag smadzenes, pirms varu atbildēt. Izvēlies vienu.
+Hide / Show Capri	Paslēpt / rādīt Capri
+Hide / Show key	Paslēpt / rādīt taustiņu
+Hide Capri	Paslēpt Capri
+Hide for now	Pagaidām paslēpt
+Hide her	Paslēpt viņu
+Hide in full screen	Paslēpt pilnekrāna režīmā
+Hide this	Paslēpt to
+Hide, keep player	Paslēpt, atstāt atskaņotāju
+Hide/show:	Paslēpt/rādīt:
+Hide/show: Ctrl + Alt + H	Paslēpt/rādīt: Ctrl + Alt + H
+Hologram	Hologramma
+Hop off	Nolaisties
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Cik ilgi dīkstāvošs PC gaida, līdz viņa ieiet gulēt; pieci minūtes joprojām liek domāt, ka esi prom
+How long a stroke over her a head pat needs	Cik ilgi jāpaglauda viņas galva, lai tas skaitītos par pieskārienu
+How long her replies stay up	Cik ilgi viņas atbildes paliek redzamas
+How long you are away before she scrolls a browser or reader	Cik ilgi tu esi prom, pirms viņa ritina pārlūku vai lasītāju
+How much her voice glitches	Cik stipri viņas balss sabojājas
+How much of the chat she keeps	Cik daudz tērzēšanas viņa paturēs
+How much she wanders	Cik daudz viņa klaiņo
+How often she pops in to say hi	Cik bieži viņa uznāk pasveicināties
+How robotic her voice sounds	Cik robotiski skan viņas balss
+How to	Kā
+Huge	Milzīgs
+I can hear you.	Es tevi dzirdu.
+I glance at your screen and comment. Costs a little on a paid brain.	Es paskatos uz tavu ekrānu un komentēju. Maksā nedaudz ar maksas smadzenēm.
+I keep listening. Say my name, then just talk.	Es turpinu klausīties. Pasaki manu vārdu un tad vienkārši runā.
+I speak	Es runāju
+I talk about your game as you play. Costs a little on a paid brain.	Es runāju par tavu spēli, kamēr spēlē. Maksā nedaudz ar maksas smadzenēm.
+I type my replies and stay quiet.	Es rakstu savas atbildes un klusēju.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Es neatbildēšu, un nekas nekur netiek sūtīts. Es joprojām pabūšu blakus, dejošu pie tavas mūzikas un darīšu ātros uzdevumus, ko lūdz, piemēram, skaļumu.
+I'll talk in	Es runāšu
+IN DISCORD >	IN DISCORD >
+INSTALLED >	INSTALĒTS >
+Import a Capri mod	Importēt Capri modifikāciju
+Import mod	Importēt modifikāciju
+In full screen	Pilnekrāna režīmā
+In games	Spēlēs
+Input	Ievade
+Input, Output or How to overlaps a row	Ievade, Izvade vai Kā pārklājas ar rindu
+Input:	Ievade:
+Input: default	Ievade: noklusējums
+Install	Instalēt
+Install mod	Instalēt modifikāciju
+Installed.	Instalēts.
+It may ask for a phone number. I opened the page in your browser.	Var prasīt tālruņa numuru. Lapu atvēru tavā pārlūkā.
+It still does its own job in other apps too.	Tā joprojām dara savu darbu arī citās lietotnēs.
+It won't type in other apps while she runs.	Tā netaipīs citās lietotnēs, kamēr viņa darbojas.
+JUST ME >	TIKAI ES >
+Jealous of other AIs	Greizsirdīga uz citiem AI
+Join the Discord	Pievienoties Discord
+KB.	KB.
+KEYS	TASTIŅI
+KEYS >	TASTIŅI >
+Keep PC awake for jobs	Turēt PC modinātu darbiem
+Keep player	Atstāt atskaņotāju
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Saglabā pēdējās divas minūtes tavas spēles atmiņā. Pasaki klipot to, lai to saglabātu.
+Key	Atslēga
+Key cleared: a model file needs none.	Atslēga notīrīta: modeļa failam nav vajadzīga.
+Key cleared: paste the key for	Atslēga notīrīta: ielīmē atslēgu priekš
+Key forgotten.	Atslēga aizmirsta.
+Key. It goes only to this server, as a Bearer key	Atslēga. Tā tiek sūtīta tikai uz šo serveri kā Bearer atslēga
+Kokoro only, like es	Tikai Kokoro, kā es
+LAST THING >	PĒDĒJĀ LIETA >
+LISTENING >	KLAUSĀS >
+Language	Valoda
+Large	Liels
+Last thing. These cost a little or use your mic, so they're your pick.	Pēdējā lieta. Tās maksā nedaudz vai izmanto tavu mikrofonu, tāpēc izvēlies pats.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Pēdējā lieta. Tās maksā nedaudz vai izmanto tavu mikrofonu, tāpēc izvēlies pats. Tad gribu zināt, kā tevi saukt.
+Layers	Slāņi
+Learn more	Uzzināt vairāk
+Leaving Settings threw its picture away straight away.	Iziešana no Iestatījumiem uzreiz izmeta tās attēlu.
+Legacy stand	Vecais statīvs
+Lie down	Nogulties
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC dialoga rindas, kas tiek turētas atmiņā, skatoties kopā. Vecākā puse kļūst par piezīmi, kad Atcerēties, ko viņa redz, ir ieslēgts
+Listen for Capri	Klausīties Capri
+Live reactions	Reakcijas tiešraidē
+Local server address	Lokālā servera adrese
+Long	Garš
+Longest wait (minutes)	Garākais gaidīšanas laiks (minūtes)
+Looking at this PC...	Skatās uz šo PC...
+Looking for Ollama. Open it if it isn't running.	Meklē Ollama. Atver to, ja tas nedarbojas.
+Looking for a brain...	Meklē smadzenes...
+Looking in the mods directory for updates...	Meklē atjauninājumus modifikāciju direktorijā...
+Looking in the mods directory...	Meklē modifikāciju direktorijā...
+Looking...	Meklē...
+MAIN >	GALVENĀ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	VIDĒJĀ INTELIĢENCE
+MEMORY VAULT >	ATMIŅAS GLABĀTUVE >
+MODS	MODIFIKĀCIJAS
+MODS >	MODIFIKĀCIJAS >
+MODS DIRECTORY >	MODIFIKĀCIJU DIREKTORIJA >
+MODS INSTALLED COLORS	UZSTĀDĪTO MODIFIKĀCIJU KRĀSAS
+MOVES >	KUSTĪBAS >
+MY BRAIN	MANAS SMADZENES
+MY FREE VOICE	MANA BEZMAKSAS BALSS
+MY PLAN OR KEY	MANS PLĀNS VAI ATSLĒGA
+MY PLAN OR KEY >	MANS PLĀNS VAI ATSLĒGA >
+Made your Fish Audio voice. Press Test to hear it.	Izveidoju tavu Fish Audio balsi. Nospied Pārbaudīt, lai to noklausītos.
+Mainframe colours	Mainframe krāsas
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe krāsas. Night City ir sarkana un ciāna; Melnā, Baltā un Pelēkā maina Mainframe, viņas izvēlnes, rakstīšanas lodziņu un viņas piezīmes
+Mainframe frames	Mainframe rāmji
+Mainframe key	Mainframe taustiņš
+Mainframe size	Mainframe izmērs
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe izmērs. Auto to padara lielāku, kad Virtual Super Resolution vai DSR samazina lielu darbvirsmu mazākā ekrānā
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Veidoju tavu Fish Audio balsi...
+Max reply	Maksimālā atbilde
+Maximum clip resolution, keeping the game's shape without upscaling	Maksimālā klipa izšķirtspēja, saglabājot spēles formu bez palielināšanas
+Medium	Vidējs
+Memory	Atmiņa
+Memory size	Atmiņas izmērs
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Atmiņas izmērs žetonos Ollama un viņas iebūvētajām smadzenēm. Auto palielinās, kad jautājums prasa vairāk
+Mg	Mg
+Mic level:	Mikrofona līmenis:
+Mic test finished. Sound is reaching Capri.	Mikrofona tests pabeigts. Skaņa sasniedz Capri.
+Mic:	Mikrofons:
+Mic: default	Mikrofons: noklusējums
+Microphone	Mikrofons
+Mini player	Mini atskaņotājs
+Mini player over full screen	Mini atskaņotājs pār pilnekrāna režīmu
+Mini-games	Mini spēles
+Minimising the Mainframe left it sliding.	Mainframe samazināšana atstāja to slīdam.
+Minimize	Minimizēt
+Mod filter	Modifikāciju filtrs
+Mod options	Modifikāciju opcijas
+Mod pages	Modifikāciju lapas
+Mod rules	Modifikāciju noteikumi
+Mod sort	Modifikāciju kārtošana
+Mod switch	Modifikāciju pārslēgs
+Model	Modelis
+Model folder	Modeļa mape
+Model name, optional	Modeļa nosaukums, neobligāts
+Mods	Modifikācijas
+Mods directory	Modifikāciju direktorija
+Mods folder	Modifikāciju mape
+Most NVIDIA models can't see your screen.	Vairums NVIDIA modeļu neredz tavu ekrānu.
+Mouse wheel notches got a flick's long ease:	Peles ritenīša soļi ieguva sitiena garo izlīdzināšanu:
+Move	Pārvietot
+Move key to MAX INTELLIGENCE	Pārvietot taustiņu uz MAX INTELLIGENCE
+Move to MAX	Pārvietot uz MAX
+Music	Mūzika
+Music app	Mūzikas lietotne
+Music app: where she plays music when you don't name an app	Mūzikas lietotne: kur viņa atskaņo mūziku, kad nenosauc lietotni
+Mute	Izslēgt skaņu
+Mute her	Izslēgt viņu
+Mute mic key	Mikrofona izslēgšanas taustiņš
+Mute mic:	Izslēgt mikrofonu:
+Mute mic: Ctrl + Alt + N	Izslēgt mikrofonu: Ctrl + Alt + N
+My brain	Mans smadzenes
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Mans smadzenes nāk lejā. Pateikšu čau, tiklīdz tās būs iekšā, un tad vari ar mani runāt.
+My brain's on its way. While it comes down, let's sort out how I sound.	Mana smadzenes ir ceļā. Kamēr tās nolaižas, sakārtosim, kā es skanu.
+My provider	Mans pakalpojumu sniedzējs
+NO AI	NAV AI
+NO PHONES CONNECTED	NAV PIESLĒGTU TĀLRUŅU
+NO PREVIEW	NAV PRIEKŠSKATĪJUMA
+NORMAL	NORMĀLS
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · bezmaksas · bieži lēna noslogotos laikos
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA bezmaksas API bieži ir lēns, īpaši noslogotos laikos.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) vai OpenRouter API atslēga
+Names:	Vārdi:
+Needs a key	Nepieciešama atslēga
+Never	Nekad
+New code	Jauns kods
+New voice from a clip...	Jauna balss no klipa...
+Next	Nākamais
+Night City	Night City
+No AI	Nav AI
+No AI · no brain at all	Nav AI · nav nekādu smadzeņu
+No brain runs, and nothing is sent anywhere.	Nekādas smadzenes nedarbojas, un nekas nekur netiek sūtīts.
+No brain yet	Vēl nav smadzeņu
+No code open	Nav atvērta koda
+No limit	Bez ierobežojuma
+No mic found	Mikrofons nav atrasts
+No mods in the directory yet.	Direktorijā vēl nav modifikāciju.
+No mods match that.	Nav modifikāciju, kas atbilstu.
+No mods match.	Nav atbilstošu modifikāciju.
+No phones yet	Vēl nav tālruņu
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Vēl nav virtuālā mikrofona. Izvēlies Izvade, tad Iegūt VB-CABLE (bez maksas).
+None yet: pick to get VB-CABLE (free)	Vēl nav: izvēlies, lai iegūtu VB-CABLE (bez maksas)
+Normal	Parasts
+Not a relay host	Nav releja serveris
+Not imported. Nothing ran.	Nav importēts. Nekas netika palaists.
+Not updated. The old one is still in.	Nav atjaunināts. Vecā versija joprojām ir iekšā.
+Nothing needed updating.	Nekas nebija jāatjaunina.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Nav ko lejupielādēt, nekas nekur netiek sūtīts. Neatbildēšu. Pievieno smadzenes jebkurā laikā Mainframe.
+Nothing to show from the mods directory.	Nav ko rādīt no modifikāciju direktorijas.
+Nothing? Windows Settings > Privacy & security > Microphone.	Nekas? Windows iestatījumi > Privātums un drošība > Mikrofons.
+Nous Portal keys aren't supported yet.	Nous Portal atslēgas vēl netiek atbalstītas.
+OBS	OBS
+OFF	IZSLĒGTS
+OLLAMA	OLLAMA
+ON	IESLĒGTS
+ON THIS PC	ŠAJĀ PC
+OR A KEY	VAI ATSLĒGA
+Obsidian memory vault	Obsidian atmiņas glabātuve
+Off	Izslēgts
+Off. Turn on Her voice in your mic above.	Izslēgts. Ieslēdz Viņas balsi tavā mikrofonā augstāk.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Izslēgts: viņa skan kā vienmēr. Ieslēgts: visas balsis, ko viņai ir, arī ElevenLabs.
+Often	Bieži
+On	Ieslēgts
+On / Off	Ieslēgts / Izslēgts
+On: your mic and her voice are going in.	Ieslēgts: tavs mikrofons un viņas balss tiek ielaisti.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Viens JSON objekts, pievienots katram pieprasījumam, ko šīs smadzenes sūta. Tas aizstāj Capri vērtību jebkuram nosaukumam, ko tas kopīgo, un netiek pārbaudīts pret modeli.
+Online speech recognition	Tiešsaistes runas atpazīšana
+Open Capri Mainframe	Atvērt Capri Mainframe
+Open Ollama, I'll find it	Atver Ollama, es to atradīšu
+Open clips folder	Atvērt klipu mapi
+Open her memories	Atvērt viņas atmiņas
+Open her notes	Atvērt viņas piezīmes
+Open mods folder	Atvērt modifikāciju mapi
+Open the page again	Atvērt lapu vēlreiz
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA vai OpenRouter.
+OpenAI-compatible server or provider.	OpenAI saderīgs serveris vai pakalpojumu sniedzējs.
+OpenRouter · free models only	OpenRouter · tikai bezmaksas modeļi
+Optional	Neobligāti
+Optional. Blank means no key.	Neobligāti. Tukšs nozīmē bez atslēgas.
+Options	Opcijas
+Out of the box a little higher, just behind her.	Pēc noklusējuma nedaudz augstāk, tieši aiz viņas.
+Out of the box lower, just behind her.	Pēc noklusējuma zemāk, tieši aiz viņas.
+Output	Izvade
+Output:	Izvade:
+Output: none	Izvade: nav
+PHONE CONNECTED	TĀLRUNIS PIESLĒGTS
+PHONES >	TĀLRUŅI >
+PHONES CONNECTED	TĀLRUŅI PIESLĒGTI
+PREBUILT LOCAL	IEPRIEKŠ IZVEIDOTS LOKĀLS
+PUBLISH MOD >	PUBLICĒT MODIFIKĀCIJU >
+Pair a phone	Savienot tālruni
+Paste	Ielīmēt
+Paste API key	Ielīmēt API atslēgu
+Paste a brain API key	Ielīmēt smadzeņu API atslēgu
+Paste reads your clipboard once, when you press it.	Ielīmēt nolasa tavu starpliktuvi vienu reizi, kad to nospied.
+Paste your key here	Ielīmē šeit savu atslēgu
+Pat stroke	Paglaudīšanas kustība
+Perch	Poleiņš
+Perch over {0} fps uses more CPU	Poleiņš virs {0} fps izmanto vairāk CPU
+Pick Output to get it.	Izvēlies Izvade, lai to iegūtu.
+Pick a brain so I can talk back. You can change it any time.	Izvēlies smadzenes, lai varētu atbildēt. To var mainīt jebkurā laikā.
+Pick a clip of a voice you have the rights and consent to use	Izvēlies klipu no balss, uz kuru tev ir tiesības un piekrišana
+Pick a free model. I opened the page in your browser.	Izvēlies bezmaksas modeli. Lapu atvēru tavā pārlūkā.
+Pick a new clip of you...	Izvēlies jaunu klipu ar tevi...
+Pick a voice model...	Izvēlies balss modeli...
+Pick one. Only one brain runs at a time.	Izvēlies vienu. Vienlaikus darbojas tikai viena smadzenes.
+Pick the note her memories go in	Izvēlies piezīmi, kurā būs viņas atmiņas
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Izvēlies {0} līdz {1} sekundes no balss, uz kuru tev ir tiesības un piekrišana
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Izvēlies {0} līdz {1} sekundes, kur tu runā, vai balss, uz kuru tev ir tiesības un piekrišana
+Pitch	Augstums
+Play	Atskaņot
+Play...	Atskaņot...
+Player only	Tikai atskaņotājs
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeļi kopē šī klipa balsi. Nospied Pārbaudīt, lai to noklausītos.
+Pop-in times	Parādīšanās laiki
+Pop-ins	Parādīšanās
+Power saver	Enerģijas taupīšana
+Power saver: how lightly she runs in games, or always	Enerģijas taupīšana: cik viegli viņa darbojas spēlēs, vai vienmēr
+Preset	Iepriekš iestatīts
+Press Create API key	Nospied Izveidot API atslēgu
+Press Create Key	Nospied Izveidot atslēgu
+Press Generate API Key	Nospied Ģenerēt API atslēgu
+Press Test and say something, so I know I can hear you.	Nospied Pārbaudīt un pasaki kaut ko, lai zinu, ka es tevi dzirdu.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Nospied taustiņu, atsevišķi vai ar Ctrl, Alt, Shift vai Win.
+Press new keys, then Confirm	Nospied jaunus taustiņus, tad Apstiprināt
+Provider	Pakalpojumu sniedzējs
+Provider API key, optional	Pakalpojumu sniedzēja API atslēga, neobligāta
+Provider base URL	Pakalpojumu sniedzēja bāzes URL
+Provider forgotten.	Pakalpojumu sniedzējs aizmirsts.
+Provider overlaps the brain name or note	Pakalpojumu sniedzējs pārklājas ar smadzeņu nosaukumu vai piezīmi
+Publish	Publicēt
+Publish mod	Publicēt modifikāciju
+Push to talk is off.	Runāšana ar taustiņu ir izslēgta.
+Push to talk key	Runāšanas ar taustiņu taustiņš
+Push to talk:	Runāt ar taustiņu:
+Push to talk: not set	Runāt ar taustiņu: nav iestatīts
+QR CODE >	QR KODS >
+QR hidden while streaming	QR paslēpts straumēšanas laikā
+Quick	Ātrs
+Quiet key	Klusais taustiņš
+Quiet:	Kluss:
+Quiet: Ctrl + Alt + P	Kluss: Ctrl + Alt + P
+Quit Capri	Iziet no Capri
+RELAY >	RELAY >
+REMOTE >	TĀLVADĪBA >
+RUNS CODE.	PALAIŽ KODU.
+Rarely	Reti
+Rate mod	Novērtēt modifikāciju
+Reading its README...	Lasa tās README...
+Refresh	Atsvaidzināt
+Reinstall	Pārinstalēt
+Reload	Pārlādēt
+Reloaded.	Pārlādēts.
+Remember our chats	Atceries mūsu tērzēšanas
+Remember what she sees	Atceries, ko viņa redz
+Remote	Tālvadība
+Remote off	Tālvadība izslēgta
+Remote on	Tālvadība ieslēgta
+Remove	Noņemt
+Remove all phones	Noņemt visus tālruņus
+Replies	Atbildes
+Reply length	Atbildes garums
+Report a problem	Ziņot par problēmu
+Reset colors	Atiestatīt krāsas
+Reset to her default	Atiestatīt uz noklusējumu
+Resolution	Izšķirtspēja
+Restart to update	Restartēt, lai atjauninātu
+Restless	Nemierīga
+Revoke	Atsaukt
+Revoke also removes the phones its links added	Atsaukšana noņem arī tālruņus, ko pievienojuši tās saites
+Ride cursor	Jāt kursoru
+Ride cursor / Hop off	Jāt kursoru / Nolaisties
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Ar peles labo pogu noklikšķini uz manis jebkurā laikā, lai atvērtu Capri Mainframe. Smadzenes ieslēdzas zem SMADZENES.
+Right-click me any time for the Mainframe, Help and the Discord.	Ar peles labo pogu noklikšķini uz manis jebkurā laikā Mainframe, Palīdzībai un Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox vai jebkura cita lietotne: izvēlies
+Robot	Robots
+Rock, paper, scissors	Akmens, papīrs, šķēres
+Run this code mod?	Palaist šo koda modifikāciju?
+Running on this PC	Darbojas šajā PC
+Running on this PC · :	Darbojas šajā PC · :
+Runs Claude Code or Codex on this PC, signed in.	Palaiž Claude Code vai Codex šajā PC, pierakstīts.
+Runs on your PC. No key, no credits.	Darbojas tavā PC. Nav atslēgas, nav kredītu.
+SCAN WITH YOUR PHONE · EXPIRES	SKENĒ AR SAVU TĀLRUNI · BEIDZAS
+SECURITY >	DROŠĪBA >
+SKILL.	PRASME.
+SKIN.	APVALKS.
+SORT BY	KĀRTOT PĒC
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SKAŅAS PARADUMI SMADZENES SKATĪTIES CAPRI DOOMSCROLL LAIKAPSTĀKĻI KLIPI SPĒLES TASTIŅI KUSTĪBAS BALSS TU
+Same as I speak	Tāpat kā mana valoda
+Same as her ears (VOICE > Mic)	Tāpat kā viņas auss (BALSS > Mikrofons)
+Same code on the phone?	Tāds pats kods tālrunī?
+Save	Saglabāt
+Save big moments	Saglabāt lielus brīžus
+Save folder	Saglabāšanas mape
+Save your changes, or press Discard + reload.	Saglabā savas izmaiņas vai nospied Atmest + pārlādēt.
+Save your changes, or press Discard.	Saglabā savas izmaiņas vai nospied Atmest.
+Saved.	Saglabāts.
+Saved. Ctrl + Alt + O opens her Mainframe.	Saglabāts. Ctrl + Alt + O atver viņas Mainframe.
+Saving your rating...	Saglabā tavu vērtējumu...
+Say her name anywhere to chat	Saki viņas vārdu jebkur, lai tērzētu
+Screens	Ekrāni
+Screens is hidden or outside WATCH	Ekrāni ir paslēpti vai ārpus SKATĪTIES
+Screens overlaps a WATCH row	Ekrāni pārklājas ar SKATĪTIES rindu
+Screens to watch	Ekrāni, ko skatīties
+Sealed end to end	Šifrēts no gala līdz galam
+Search by name or author	Meklēt pēc nosaukuma vai autora
+Search installed mods	Meklēt uzstādītās modifikācijas
+Search mods	Meklēt modifikācijas
+Search name, author or description	Meklēt nosaukumu, autoru vai aprakstu
+Security	Drošība
+Security:	Drošība:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Iestatīt
+Set up her brain	Iestatīt viņas smadzenes
+Set up your voice model	Iestatīt balss modeli
+Setting up her brain	Iestata viņas smadzenes
+Settings	Iestatījumi
+Settings / Back	Iestatījumi / Atpakaļ
+Settings folds the wrong rows above BRAIN	Iestatījumi salocīja nepareizās rindas virs SMADZENĒM
+Settings had nothing to watch.	Iestatījumiem nebija, ko skatīties.
+Settings lost keyboard focus during the Tab walk	Iestatījumi zaudēja tastatūras fokusu Tab gājiena laikā
+Setup guide	Iestatīšanas ceļvedis
+Setup stopped	Iestatīšana apturēta
+She answers in	Viņa atbild
+She can read it when it fits.	Viņa to var izlasīt, kad tas der.
+She glances at your screen and comments. Costs a little on a paid brain.	Viņa paskatās uz tavu ekrānu un komentē. Maksā nedaudz ar maksas smadzenēm.
+She keeps listening. Say her name, then just talk.	Viņa turpina klausīties. Pasaki viņas vārdu, tad vienkārši runā.
+She reacts to your game until you close it.	Viņa reaģē uz tavu spēli, līdz tu to aizver.
+She reads these controls before each game job.	Viņa pirms katra spēles uzdevuma izlasa šo vadību.
+She talks about your game as you play. Costs a little on a paid brain.	Viņa runā par tavu spēli, kamēr spēlē. Maksā nedaudz ar maksas smadzenēm.
+She uses it when she plays	Viņa to izmanto, kad spēlē
+Short	Īss
+Shortest wait (minutes)	Īsākais gaidīšanas laiks (minūtes)
+Show Capri	Rādīt Capri
+Show QR	Rādīt QR
+Show my mod file	Rādīt manu modifikācijas failu
+Show on Discord	Rādīt Discord
+Shum, what time is it	Šum, cik ir pulkstens
+Sign in	Pieteikties
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Pieteikties, izveidot atslēgu un nokopēt to. Tad nospied Ielīmēt, un es pieslēgšos.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Pieteikties, nospied Izveidot API atslēgu un nokopē to. Tad nospied Ielīmēt, un es pieslēgšos.
+Silent · text only	Kluss · tikai teksts
+Simple / Advanced Settings	Vienkāršie / papildu iestatījumi
+Simple Settings	Vienkāršie iestatījumi
+Simple Settings left a gap under Check in on me	Vienkāršie iestatījumi atstāja tukšumu zem Pārbaudi mani
+Sit here	Sēdēt šeit
+Sit on windows	Sēdēt uz logiem
+Size	Izmērs
+Skip	Izlaist
+Skip all	Izlaist visu
+Skip for now	Izlaist pagaidām
+Sleep	Gulēt
+Small	Mazs
+Sometimes	Dažreiz
+Sound effects volume	Skaņas efektu skaļums
+Sound sensitivity	Skaņas jutīgums
+Sounds	Skaņas
+Speaker or clip	Skaļrunis vai klips
+Speech model	Runas modelis
+Speed	Ātrums
+Start with Windows	Startēt kopā ar Windows
+Start with this!	Sāc ar šo!
+Starting...	Startē...
+Stay	Palikt
+Stay on my model	Palikt pie mana modeļa
+Still checking your mics...	Vēl pārbaudu tavus mikrofonus...
+Still checking your speakers...	Vēl pārbaudu tavus skaļruņus...
+Still checking your virtual mics...	Vēl pārbaudu tavus virtuālos mikrofonus...
+Stop	Apturēt
+Stopped using it. Couldn't remove the saved provider.	Pārtraukts lietot. Nevarēja noņemt saglabāto pakalpojumu sniedzēju.
+Support	Atbalsts
+Sure?	Pārliecināts?
+Sure? moved to a different phone	Pārliecināts? pārvietots uz citu tālruni
+TALK TO ME	RUNĀ AR MANI
+TEXT ONLY	TIKAI TEKSTS
+Tab landed past the first option of	Tab nolaidās aiz pirmās opcijas
+Tab never reached the quiet key	Tab nekad nesasniedza kluso taustiņu
+Tab reached nothing	Tab nesasniedza neko
+Tab selected a control without moving keyboard focus	Tab atlasīja vadību, nepārvietojot tastatūras fokusu
+Talk	Runāt
+Talk key	Runāšanas taustiņš
+Talk:	Runāt:
+Talk: Ctrl + Alt + V	Runāt: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Mērķa uztveres kadru ātrums; var kristies zem slodzes vai atmiņas budžeta
+Teases when another AI comes to the front.	Ķircina, kad priekšplānā nonāk cits AI.
+Test	Pārbaudīt
+That address doesn't work. Try https://... or http://localhost:{0}.	Šī adrese nedarbojas. Pamēģini https://... vai http://localhost:{0}.
+That code expired	Šis kods ir beidzies
+That mod is no longer installed. The list is updated.	Šī modifikācija vairs nav uzstādīta. Saraksts ir atjaunināts.
+That's a paid key: it goes under MAX INTELLIGENCE.	Tā ir maksas atslēga: tā iet zem MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe palika kompozīts slīdēšanas laikā.
+The Mainframe stayed uncomposited after the slide.	Mainframe palika nekompozīts pēc slīdēšanas.
+The controls moved while the picture was sliding.	Vadības elementi pārvietojās, kamēr attēls slīdēja.
+The cover stayed visible after the slide ended.	Vāks palika redzams pēc slīdēšanas beigām.
+The frame thread kept running after the page settled.	Kadru pavediens turpināja darboties pēc tam, kad lapa nostājās.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Garākā atbilde, ko viņa var sniegt, žetonos. Auto ievēro Atbildes augstāk; {0}K vai {1}K ļauj viņai turpināt. Darbi saglabā vairāk vietas, kad tā vajag
+The longest wait must be at least the shortest wait.	Garākajam gaidīšanas laikam jābūt vismaz tikpat garam kā īsākajam.
+The picture doesn't match the scrolled page:	Attēls neatbilst ritinātajai lapai:
+The picture of Settings doesn't match the page:	Iestatījumu attēls neatbilst lapai:
+The picture stayed up after the slide ended.	Attēls palika redzams pēc slīdēšanas beigām.
+The picture wasn't showing while it slid.	Attēls netika rādīts, kamēr slīdēja.
+The provider sheet is crowded:	Pakalpojumu sniedzēja lapa ir pārblīvēta:
+The voice panel has no screen DPI.	Balss panelim nav ekrāna DPI.
+The voice panel's menus share one font.	Balss paneļa izvēlnes izmanto vienu fontu.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Starpliktuvē vēl nav atslēgas. Nokopē to no lapas, tad nospied Ielīmēt.
+These start off. Each costs a little or uses your mic.	Šīs sākumā ir izslēgtas. Katra maksā nedaudz vai izmanto tavu mikrofonu.
+These start off. Turn on what you want. They're all in Settings too.	Šīs sākumā ir izslēgtas. Ieslēdz, ko vēlies. Visas ir arī Iestatījumos.
+They can also call you Big Z, Capricorn or Nova	Viņi var tevi saukt arī par Big Z, Capricorn vai Nova
+They can also call you Nova, Big Z or Capricorn	Viņi var tevi saukt arī par Nova, Big Z vai Capricorn
+Thinking	Domā
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Šī ir mana bezmaksas balss. Nospied Pārbaudīt, pasaki kaut ko, un es parādīšu, ka tevi dzirdu.
+This mod has no description yet.	Šai modifikācijai vēl nav apraksta.
+Tic-tac-toe	Krustiņi un nullītes
+Time between glances	Laiks starp skatieniem
+Tiny	Sīks
+Try again	Mēģini vēlreiz
+Turn Remote on first	Vispirms ieslēdz Tālvadību
+Turn off mini player	Izslēgt mini atskaņotāju
+Turn push to talk off	Izslēgt runāšanu ar taustiņu
+Turning the wheel the other way kept the page heading the old way, to	Riteņa griešana pretējā virzienā lapu turēja vecajā virzienā, līdz
+Type	Rakstīt
+Type key	Rakstīšanas taustiņš
+Type to me	Raksti man
+Type:	Rakstīt:
+Type: Ctrl + Alt + T	Rakstīt: Ctrl + Alt + T
+Typing sound	Rakstīšanas skaņa
+Unpacked. Press Test to hear it.	Izpakots. Nospied Pārbaudīt, lai to noklausītos.
+Unsaved changes.	Nesaglabātas izmaiņas.
+Up to {0} fps	Līdz {0} fps
+Up to {0}p	Līdz {0}p
+Update	Atjaunināt
+Update available.	Pieejams atjauninājums.
+Update mods	Atjaunināt modifikācijas
+Updating...	Atjaunina...
+Use	Izmantot
+Use her cursor	Izmantot viņas kursoru
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Izmanto https:// pakalpojumu sniedzējam citur. Atslēga pār parastu http nav droša.
+Use preset	Izmantot iepriekš iestatītu
+Use saved	Izmantot saglabāto
+Use this server	Izmantot šo serveri
+Using your provider with a key	Izmanto tavu pakalpojumu sniedzēju ar atslēgu
+Using your server with no key	Izmanto tavu serveri bez atslēgas
+VIEW MOD >	SKATĪT MODIFIKĀCIJU >
+VOICE >	BALSS >
+VOICE IN YOUR MIC >	BALSS TAVĀ MIKROFONĀ >
+VOICE LAYERS >	BALSS SLĀŅI >
+Verbosity	Vārdainība
+Video bitrate	Video bitrāte
+View	Skats
+View mod	Skatīt modifikāciju
+Voice	Balss
+Voice ID	Balss ID
+Voice from	Balss no
+Voice layers	Balss slāņi
+Voice model	Balss modelis
+Voice model:	Balss modelis:
+Voice name or ID, optional	Balss nosaukums vai ID, neobligāts
+Voice server address, or a voice model's folder	Balss servera adrese vai balss modeļa mape
+Voice status	Balss statuss
+Voice, key and model...	Balss, atslēga un modelis...
+Volume	Skaļums
+WAKE ME UP >	MODINI MANI >
+WATCH >	SKATĪTIES >
+Waiting for the relay	Gaida releju
+Wake her up	Pamodināt viņu
+Waking her up	Viņu pamodina
+Wander	Klaiņot
+Wander around	Klaiņot apkārt
+Watch my screen	Skatīties manu ekrānu
+Watch-along memory	Skatīšanās kopā atmiņa
+Weather	Laika apstākļi
+Weather city	Laika apstākļu pilsēta
+Welcome back, choom. Let's finish setting me up.	Laipni atpakaļ, choom. Pabeigsim mani iestatīt.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ko viņa dara tavā PC bez jautāšanas. Ar izslēgtu slēdzi viņa vispirms jautā un dara, kad saki jā.
+What should she call you?	Kā viņai tevi saukt?
+When she types	Kad viņa raksta
+White	Balts
+Windows default	Windows noklusējums
+Windows did not give Settings keyboard focus	Windows neatdeva Iestatījumiem tastatūras fokusu
+Windows did not return keyboard focus to Back	Windows neatdeva tastatūras fokusu atpakaļ uz Atpakaļ
+With no picture the wheel still tried to slide.	Bez attēla riteņis joprojām mēģināja slīdēt.
+Works best on MAX INTELLIGENCE.	Vislabāk darbojas ar MAX INTELLIGENCE.
+YOU	TU
+YOU >	TU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TU BALSS KUSTĪBAS TASTIŅI SPĒLES KLIPI LAIKAPSTĀKĻI DOOMSCROLL CAPRI SKATĪTIES SMADZENES PARADUMI SKAŅAS
+YOUR KEY	TAVA ATSLĒGA
+YOUR MIC	TAVS MIKROFONS
+YOUR PLAN	TAVS PLĀNS
+Yokapri what's up	Yokapri, kas notiek
+You can hide this. It keeps going, and the Mainframe shows it too.	To vari paslēpt. Tas turpina darboties, un Mainframe to arī rāda.
+Your mic and her voice go into one virtual mic, and	Tavs mikrofons un viņas balss ieiet vienā virtuālā mikrofonā, un
+Your mic is muted. Unmute it to test.	Tavs mikrofons ir izslēgts. Ieslēdz to, lai pārbaudītu.
+Your mods are up to date.	Tavas modifikācijas ir atjauninātas.
+Your name or a nickname	Tavs vārds vai iesauka
+Your own model	Tavs pats modelis
+Your personality	Tava personība
+Your voice	Tava balss
+Your voice (HD)	Tava balss (HD)
+Your voice (HD) · pick a clip of you...	Tava balss (HD) · izvēlies savu klipu...
+Your voice model	Tavs balss modelis
+as its mic.	kā savs mikrofons.
+changed. Saved as My Colors, so you can share it.	mainīts. Saglabāts kā Manas krāsas, lai vari to kopīgot.
+choice	izvēle
+clips the input line	klipo ievades rindu
+cue	norāde
+doesn't yet.	vēl nē.
+download	lejupielāde
+file.	fails.
+flag	karogs
+fps	fps
+hear	dzirdēt
+hears	dzird
+hears that.	dzird to.
+hides or shows her.	paslēpj vai parāda viņu.
+hint	padoms
+in the Mainframe.	Mainframe.
+in the mods directory with a pull request.	modifikāciju direktorijā ar pull request.
+in the picture wasn't noticed.	attēlā nepamanīja.
+is already her push-to-talk key.	jau ir viņas runāšanas taustiņš.
+is off.	ir izslēgts.
+is on and running.	ir ieslēgts un darbojas.
+is on, at the bottom, under	ir ieslēgts, apakšā, zem
+is on.	ir ieslēgts.
+is on. She now answers to	ir ieslēgts. Tagad viņa atbild uz
+is removed.	ir noņemts.
+is taken	ir aizņemts
+is taken by another app. Try another.	ir aizņemts ar citu lietotni. Pamēģini citu.
+is updated	ir atjaunināts
+isn't hearing it yet: do {0} and {1}, then join a call.	vēl to nedzird: dari {0} un {1}, tad pievienojies zvanam.
+it now.	tagad.
+keeps her quiet, and lets her talk again.	tur viņu klusu un ļauj atkal runāt.
+key	atslēga
+key.	atslēga.
+min	min
+more.	vairāk.
+ms.	ms.
+mutes mic	izslēdz mikrofonu
+mutes your mic.	izslēdz tavu mikrofonu.
+name	vārds
+off	izslēgts
+on this PC	šajā PC
+opens her Mainframe.	atver viņas Mainframe.
+opens her typing box.	atver viņas rakstīšanas lodziņu.
+phone	tālrunis
+phone pixels	tālruņa pikseļi
+phones	tālruņi
+pixels	pikseļi
+pixels)	pikseļi)
+star.	zvaigzne.
+stars.	zvaigznes.
+starts voice chat.	sāk balss tērzēšanu.
+stays off. Nothing ran.	paliek izslēgts. Nekas netika palaists.
+still does its own job in other apps too. Confirm to keep it.	joprojām dara savu darbu arī citās lietotnēs. Apstiprini, lai paturētu.
+tall	augsts
+time	laiks
+to talk	lai runātu
+to talk to her, with a game in front too.	lai runātu ar viņu, arī ar spēli priekšā.
+too.	arī.
+turns Gaming Mode on and off.	ieslēdz un izslēdz Spēles režīmu.
+with Ollama	ar Ollama
+won't type in other apps while she runs. Confirm to keep it.	netaipīs citās lietotnēs, kamēr viņa darbojas. Apstiprini, lai paturētu.
+{0}   Echo Cancellation: Off	{0}   Eha atcelšana: Izslēgta
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ja viņas balss pārtrūkst, izslēdz trokšņu filtrēšanu
+{0}   Input Device:	{0}   Ievades ierīce:
+{0}   Join the call and check they hear both of you	{0}   Pievienojies zvanam un pārbaudi, vai abi dzirdat
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofona tests > Pārbaudīsim: dzirdēsi sevi un viņu, kamēr viņa runā
+{0}   Microphone:	{0}   Mikrofons:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Trokšņu nomākšana: Nav. Abi var pārtraukt viņas balsi pēc pirmās rindas.
+{0}   Open the call or meeting's audio settings	{0}   Atver zvana vai sanāksmes audio iestatījumus
+{0}   Output Device: your headphones, like before	{0}   Izvades ierīce: tavas austiņas, kā iepriekš
+{0}   Speaker: your headphones, like before	{0}   Skaļrunis: tavas austiņas, kā iepriekš
+{0}   Try a mic test in your call app	{0}   Izmēģini mikrofona testu savā zvanu lietotnē
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Lietotāja iestatījumi (zobrata ikona blakus tavam vārdam) > Balss un video
+{0} Mbps	{0} Mbps
+{0} lines	{0} rindas
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· šajā PC
+· server	· serveris
+Edit as text	Rediģēt kā tekstu
+What Capri remembers about you. It stays on this computer.	Ko Capri atceras par tevi. Paliek šajā datorā.
+Tell her something to remember	Pasaki viņai kaut ko, ko atcerēties
+Search her memory	Meklēt viņas atmiņā
+That day isn't there any more.	Tā diena vairs nav.
+Undo	Atsaukt
+Remember our chats is off, so she isn't keeping new chat memories.	Atcerēties mūsu sarunas ir izslēgts, tāpēc viņa neglabā jaunas sarunu atmiņas.
+ABOUT YOU	PAR TEVI
+FROM YOUR CHATS	NO TAVĀM SARUNĀM
+GAMES	SPĒLES
+CHAT LOGS	SARUNU ŽURNĀLI
+CHAT LOG	SARUNAS ŽURNĀLS
+Nothing matches.	Nekas neatbilst.
+Nothing yet.	Vēl nekā.
+Reading her notes.	Lasa viņas piezīmes.
+Click again to forget game notes	Noklikšķini vēlreiz, lai aizmirstu spēļu piezīmes
+Forget game notes	Aizmirst spēļu piezīmes
+Click again to forget everything about me	Noklikšķini vēlreiz, lai aizmirstu visu par tevi
+Forget everything about me	Aizmirst visu par tevi
+Click again to forget	Noklikšķini vēlreiz, lai aizmirstu
+Forget this day	Aizmirst šo dienu
+Only the start of this day is shown.	Tiek rādīts tikai šīs dienas sākums.
+Nothing in this day.	Nekā šajā dienā.
+No chats kept yet.	Sarunas vēl nav saglabātas.
+You	Tu
+{0} line	{0} rinda
+SET UP EMAIL >	IESTATĪT E-PASTU >
+SET UP EMAIL	IESTATĪT E-PASTU
+Or type your address	Vai ieraksti savu adresi
+Email address	E-pasta adrese
+Open the page	Atvērt lapu
+App password	Lietotnes parole
+IMAP server	IMAP serveris
+Incoming mail server	Ienākošā pasta serveris
+SMTP server	SMTP serveris
+Outgoing mail server	Izejošā pasta serveris
+An app password is a separate password just for Capri. Your normal password stays yours.	Lietotnes parole ir atsevišķa parole tikai Capri. Tava parastā parole paliek tava.
+She keeps it only until she closes.	Viņa to glabā tikai līdz aizvēršanai.
+She checks, searches and reads your mail. She asks before she sends any.	Viņa pārbauda, meklē un lasa tavu pastu. Viņa jautā pirms kaut ko sūta.
+Watch for new mail	Sekot jaunam pastam
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Viņa pasaka, kad pienāk pasts, ar brīdinājumu, ja tas izskatās pēc pikšķerēšanas. Nekas netiek atzīmēts kā lasīts.
+Deal with phishing on her own	Tikt galā ar pikšķerēšanu pašai
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Tikai kamēr viņa seko. Pasts, par ko viņa ir pārliecināta, ka tas ir pikšķerēšana, aiziet uz surogātpastu. Pārējais gaida tavu jā.
+Forget account	Aizmirst kontu
+Use another email	Izmantot citu e-pastu
+Which email?	Kuru e-pastu?
+Make an app password	Izveidot lietotnes paroli
+Paste it	Ielīmē to
+Connecting...	Savieno...
+She can use your email now.	Viņa tagad var izmantot tavu e-pastu.
+She's not watching your inbox.	Viņa neseko tavai iesūtnei.
+She's watching your inbox and deals with phishing she's sure of.	Viņa seko tavai iesūtnei un tiek galā ar pikšķerēšanu, par ko ir pārliecināta.
+She's watching your inbox and tells you when mail lands.	Viņa seko tavai iesūtnei un pasaka, kad pienāk pasts.
+She forgot that account and its app password.	Viņa aizmirsa to kontu un tā lietotnes paroli.
+She forgot that account. Its app password is gone from this PC.	Viņa aizmirsa to kontu. Tā lietotnes parole ir pazudusi no šī datora.

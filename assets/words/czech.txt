@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Ovládací prvek, který se překreslil, nebyl na obrázku znovu vykreslen.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Bezplatný klíč od Google AI Studio, NVIDIA nebo OpenRouter. Nic se nestahuje. Potřebuje internet.
+A held trackpad scroll got a flick's long ease:	Podržený pohyb na touchpadu dostal dlouhý dojezd jako při švihnutí:
+A layout change during a slide put the page at	Změna rozvržení během přechodu vrátila stránku na
+A layout change left the picture up.	Změna rozvržení nechala obrázek zobrazený.
+A model in Ollama, on your local server or on your key.	Model v Ollama, na tvém lokálním serveru nebo s tvým klíčem.
+A paid key goes under MAX INTELLIGENCE by itself.	Placený klíč se sám zařadí pod MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Tarif, který už platíš, vlastní klíč, nebo Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Nabídka panelu hlasu nemá vlastní kopii písma panelu.
+A wheel turn right after a slide ended froze the picture.	Otočení kolečkem hned po skončení přechodu zmrazilo obrázek.
+ALLOW THIS PHONE?	POVOLIT TENTO TELEFON?
+ALMOST THERE >	SKORO HOTOVO >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	JINÁ CAPRI PŘEVZALA ŘÍZENÍ · VYPNI A ZAPNI
+API key	API klíč
+API key, Claude plan or ChatGPT plan	API klíč, tarif Claude nebo ChatGPT
+Add	Přidat
+Address	Adresa
+Address and key saved. Use saved to reconnect.	Adresa a klíč uloženy. Použij Uložené pro opětovné připojení.
+Advanced Settings	Rozšířená nastavení
+All	Vše
+All screens	Všechny obrazovky
+Allow	Povolit
+Almost there. I'll say hi the second my brain's in.	Skoro hotovo. Pozdravím tě hned, jak se mi mozek načte.
+Always	Vždy
+Always on top	Vždy nahoře
+Any Google account works. I opened the page in your browser.	Funguje jakýkoli účet Google. Stránku jsem otevřela ve tvém prohlížeči.
+Applies to every voice	Platí pro každý hlas
+Apps she may close	Aplikace, které smí zavřít
+Ask Capri for more	Zeptej se Capri na víc
+Asking your server...	Dotazuji se tvého serveru...
+Asks before closing only the apps you choose.	Před zavřením se zeptá jen u aplikací, které vybereš.
+Auto	Auto
+Auto (match what I say)	Auto (podle toho, co říkám)
+Automatic: VB-CABLE, else Steam's	Automaticky: VB-CABLE, jinak Steam
+BAD RELAY HOST	ŠPATNÝ HOSTITEL RELÉE
+BIG Z open notepad	BIG Z otevři poznámkový blok
+BRAIN	MOZEK
+BRAIN >	MOZEK >
+BRAIN ONLINE >	MOZEK ONLINE >
+BRAIN PROVIDER >	POSKYTOVATEL MOZKU >
+BRAIN VOICE CAPRI	HLAS MOZKU CAPRI
+Back	Zpět
+Back on your saved API key.	Zpět na uložený API klíč.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Nejvhodnější pro tento PC:
+Black	Černá
+Blank key means no key.	Prázdný klíč znamená žádný klíč.
+Brain API key	API klíč mozku
+Brain model	Model mozku
+Brain provider	Poskytovatel mozku
+Bring here	Přenést sem
+Bring to this screen	Přenést na tuto obrazovku
+Browse	Procházet
+Browse mods	Procházet mody
+Browse to a voice model	Vybrat model hlasu
+Browse...	Procházet...
+Bubble	Bublina
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree jsi tu
+CAN'T REACH THE RELAY · RETRYING	NELZE SE SPOJIT S RELÉEM · ZKOUŠÍM ZNOVU
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	HLASOVÝ MOZEK CAPRI
+CHANGED, approve it again.	ZMĚNĚNO, schval znovu.
+CLIPS >	KLIPY >
+CLOUD VOICE	CLOUDOVÝ HLAS
+CODE	KÓD
+COLORS >	BARVY >
+CONNECTED	PŘIPOJENO
+CONNECTING	PŘIPOJUJI
+CUSTOM LOCAL	VLASTNÍ LOKÁLNÍ
+Call mode (beta)	Režim hovoru (beta)
+Call mode does not fit.	Režim hovoru se nevejde.
+Call mode is outside its space.	Režim hovoru je mimo svůj prostor.
+Cancel	Zrušit
+Cancel keys	Zrušit klávesy
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Vzdálené Capri
+Capri code:	Kód Capri:
+Capri mods (*	Mody Capri (*
+Capri, hello	Capri, ahoj
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Chaos, když se naštve
+Chat with Capri from your phone	Piš s Capri z telefonu
+ChatGPT plan	Tarif ChatGPT
+Check for updates	Hledat aktualizace
+Check in on me	Ozvi se mi
+Check in on me is hidden	Ozvi se mi je skryté
+Check in on me still decides whether she visits.	Ozvi se mi pořád rozhoduje, zda přijde na návštěvu.
+Check in on me's tip missed	Tip Ozvi se mi se minul
+Chess	Šachy
+Choose apps	Vyber aplikace
+Choose folder...	Vyber složku...
+Choose where future Capri clips are saved	Vyber, kam se budou ukládat budoucí klipy Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Tarif Claude nebo ChatGPT, placený klíč (OpenAI, Claude, DeepSeek), nebo Ollama.
+Claude plan	Tarif Claude
+Clear	Vymazat
+Cleared.	Vymazáno.
+Click Confirm to keep Down, or press Esc.	Klikni na Potvrdit, aby Dolů zůstalo, nebo stiskni Esc.
+Click to open it.	Klikni pro otevření.
+Clip my games	Nahrávej mé hry
+Clips	Klipy
+Close	Zavřít
+Close other AIs for me	Zavři za mě ostatní AI
+Cloud voice	Cloudový hlas
+Cloud voice service	Služba cloudového hlasu
+Cloud voice setup	Nastavení cloudového hlasu
+Code mods can reach your whole PC. Only trusted ones.	Mody s kódem mohou dosáhnout na celý tvůj PC. Jen důvěryhodné.
+Code/Husk Mode	Režim Code/Husk
+Codex	Codex
+Commands	Příkazy
+Comment on my games	Komentuj mé hry
+Comments	Komentáře
+Confirm	Potvrdit
+Confirm keys	Potvrdit klávesy
+Connect	Připojit
+Connect / Forget brain key	Připojit / Zapomenout klíč mozku
+Connect / Forget voice key	Připojit / Zapomenout klíč hlasu
+Connect four	Čtyři v řadě
+Controls	Ovládání
+Copri, what time is it	Copri, kolik je hodin
+Copy error details	Kopírovat podrobnosti chyby
+Copy the key	Zkopírovat klíč
+Copy the key from the page, then press Paste.	Zkopíruj klíč ze stránky a pak stiskni Vložit.
+Couldn't open that page:	Tu stránku nešlo otevřít:
+Couldn't open that:	Tohle nešlo otevřít:
+Couldn't open the mods folder:	Složku s mody nešlo otevřít:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M je už její klávesa Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N ztlumí mikrofon
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V je už její klávesa pro mluvení.
+Ctrl + Alt + V to talk	Ctrl + Alt + V pro mluvení
+Custom local voice	Vlastní lokální hlas
+Custom model name	Vlastní název modelu
+Dance	Tanec
+Dance to music	Tancovat na hudbu
+Default	Výchozí
+Default (follows Windows)	Výchozí (podle Windows)
+Default duration for clip that and automatic clips	Výchozí délka pro klip Ulož to a automatické klipy
+Default length	Výchozí délka
+Default model	Výchozí model
+Delay	Zpoždění
+Deny	Odmítnout
+Discard	Zahodit
+Discard + reload	Zahodit + znovu načíst
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Nechceš čekat? Bezplatný klíč mě rozmluví asi za minutu.
+Done	Hotovo
+EXTRA REQUEST JSON >	EXTRA JSON POŽADAVKU >
+EXTRAS >	EXTRA >
+Edit	Upravit
+Edit check-in lines	Upravit řádky check-in
+Edit check-in lines has the wrong view or dimming	Upravit řádky check-in má špatný pohled nebo ztmavení
+Edit check-in lines is out of place	Upravit řádky check-in je na špatném místě
+Edit controls	Upravit ovládání
+ElevenLabs API key	API klíč ElevenLabs
+ElevenLabs voice ID	ID hlasu ElevenLabs
+English	Angličtina
+Enter the game's name first.	Nejdřív zadej název hry.
+Every	Každých
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Každý mod se před nahráním kontroluje na malware. Kódové mody se před spuštěním stále ptají.
+Explore after	Prozkoumat potom
+Explore while I'm away	Prozkoumat, když nejsem doma
+Extra request JSON	Extra JSON požadavku
+Extras	Extra
+FREE KEY	BEZPLATNÝ KLÍČ
+FREE KEY >	BEZPLATNÝ KLÍČ >
+Fast hands in games	Rychlé ruce ve hrách
+File editor	Editor souborů
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs a další jsou v Mainframe pod HLASEM.
+Follow-up messages	Navazující zprávy
+Forget	Zapomenout
+Fork capri-mods	Forknout capri-mods
+Frame rate	Snímková frekvence
+Free	Zdarma
+Free and private, works offline. Downloads	Zdarma a soukromé, funguje offline. Stahuje
+Free and private, works offline. Downloads the best model for this PC.	Zdarma a soukromé, funguje offline. Stáhne nejlepší model pro tento PC.
+Free key	Bezplatný klíč
+Free key providers	Poskytovatelé bezplatných klíčů
+Free keys can be rate limited and slow.	Bezplatné klíče můžou mít omezení rychlosti a být pomalé.
+Free voice in games	Bezplatný hlas ve hrách
+Free voice style	Styl bezplatného hlasu
+Free voice:	Bezplatný hlas:
+Free voice: Her own	Bezplatný hlas: Její vlastní
+Free · local model	Zdarma · lokální model
+GAMES >	HRY >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Komentáře ke hrám běží odděleně od Sleduj mou obrazovku. Vypnuto je zastaví, i v Herním režimu; Jen události a Upovídaná ji nechají sledovat tvou hru
+Game controls	Ovládání hry
+Game name	Název hry
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Citlivost herních zvuků. Sniž ji, pokud je sluchátko ztlumené, ale Windows je na {0} % a ona reaguje na každý zvuk; Vypnuto herní zvuky ignoruje
+Game sounds	Herní zvuky
+Games	Hry
+Gaming Mode	Herní režim
+Gaming Mode key	Klávesa herního režimu
+Gaming Mode:	Herní režim:
+Gaming Mode: Ctrl + Alt + G	Herní režim: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Získat VB-CABLE
+Get VB-CABLE (free)...	Získat VB-CABLE (zdarma)...
+Get free voice	Získat bezplatný hlas
+Getting your Fish Audio voices...	Načítám tvé hlasy Fish Audio...
+Giant	Obří
+Glitch	Glitch
+Glitch in at startup	Glitch při spuštění
+Go to sleep	Jdi spát
+Go to the next screen	Jdi na další obrazovku
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · bezplatná úroveň · omezená rychlost
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Máš tarif Claude nebo ChatGPT, nebo vlastní klíč? Vyber ho a já se připojím.
+Got it, just me. Right-click me any time for Capri Mainframe.	Jasně, jen já. Kdykoli na mě klikni pravým tlačítkem pro Capri Mainframe.
+Grey	Šedá
+H.{0} video bitrate target; higher values make larger files	Cílová datová rychlost videa H.{0}; vyšší hodnoty dělají větší soubory
+HABITS >	NÁVYKY >
+HER HANDS >	JEJÍ RUCE >
+HER JOBS >	JEJÍ ÚKOLY >
+HER MEMORY >	JEJÍ PAMĚŤ >
+HER MODS >	JEJÍ MODY >
+HH:mm	HH:mm
+HOW I SOUND >	JAK ZNÍM >
+Hang here	Zůstaň tady
+Have Ollama? Open it, then press Refresh.	Máš Ollama? Otevři ji a stiskni Obnovit.
+Head pats	Pohlazení
+Hearing	Sluch
+Hearing engine	Motor sluchu
+Hearing fix	Oprava sluchu
+Hearing status	Stav sluchu
+Help	Nápověda
+Help page	Stránka nápovědy
+Her colors	Její barvy
+Her folder	Její složka
+Her memories	Její vzpomínky
+Her own colors are back.	Její vlastní barvy jsou zpět.
+Her own notes (no vault)	Její vlastní poznámky (bez trezoru)
+Her perch frames per second	Její snímky za sekundu na bidýlku
+Her personality	Její osobnost
+Her size	Její velikost
+Her speaker	Její reproduktor
+Her speaker is hidden or outside VOICE	Její reproduktor je skrytý nebo mimo HLAS
+Her speaker overlaps the mic or hearing row	Její reproduktor se překrývá s řádkem mikrofonu nebo sluchu
+Her speaker:	Její reproduktor:
+Her speaker: Default	Její reproduktor: Výchozí
+Her voice in your mic	Její hlas v tvém mikrofonu
+Her voice in your mic: loudness	Její hlas v tvém mikrofonu: hlasitost
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Její hlas samotný. Jeho výška je Nastavení > HLAS > Výška a pohybují se spolu.
+Her voice joins your mic only in call mode.	Její hlas se připojí k tvému mikrofonu jen v režimu hovoru.
+Her voice volume	Hlasitost jejího hlasu
+Her voice's pitch	Výška jejího hlasu
+Her voice's pitch, the same as Settings > VOICE > Pitch	Výška jejího hlasu, stejná jako Nastavení > HLAS > Výška
+Her voice's speed	Rychlost jejího hlasu
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Její hlas a dvě jeho kopie namíchané pod ním, každá s vlastní výškou a zpožděním.
+Her voices · free	Její hlasy · zdarma
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ahoj, choom. Jsem Capri. Než mohu odpovídat, potřebuji mozek. Vyber si.
+Hide / Show Capri	Skrýt / Zobrazit Capri
+Hide / Show key	Klávesa skrýt / zobrazit
+Hide Capri	Skrýt Capri
+Hide for now	Zatím skrýt
+Hide her	Skrýt ji
+Hide in full screen	Skrýt na celou obrazovku
+Hide this	Skrýt toto
+Hide, keep player	Skrýt, nechat přehrávač
+Hide/show:	Skrýt/zobrazit:
+Hide/show: Ctrl + Alt + H	Skrýt/zobrazit: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Sundat
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Jak dlouho nečinný PC čeká, než ji pošle spát; pět minut se stále počítá jako tvoje nepřítomnost
+How long a stroke over her a head pat needs	Jak dlouhé přejetí přes ni potřebuje pohlazení
+How long her replies stay up	Jak dlouho její odpovědi zůstávají nahoře
+How long you are away before she scrolls a browser or reader	Jak dlouho musíš být pryč, než začne v prohlížeči nebo čtečce rolovat
+How much her voice glitches	Jak moc se její hlas kazí
+How much of the chat she keeps	Kolik z chatu si ponechá
+How much she wanders	Jak moc se toulá
+How often she pops in to say hi	Jak často se zastaví, aby řekla ahoj
+How robotic her voice sounds	Jak robotický zní její hlas
+How to	Jak na
+Huge	Obrovské
+I can hear you.	Slyším tě.
+I glance at your screen and comment. Costs a little on a paid brain.	Podívám se na tvou obrazovku a okomentuji. Na placeném mozku něco stojí.
+I keep listening. Say my name, then just talk.	Pořád poslouchám. Řekni mé jméno a pak jen mluv.
+I speak	Mluvím
+I talk about your game as you play. Costs a little on a paid brain.	Mluvím o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.
+I type my replies and stay quiet.	Odpovědi píšu a zůstávám zticha.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nebudu odpovídat a nikam se nic neposílá. Pořád se budu povalovat, tancovat na tvou hudbu a dělat rychlé věci, které chceš, třeba hlasitost.
+I'll talk in	Budu mluvit v
+IN DISCORD >	V DISCORDU >
+INSTALLED >	NAINSTALOVÁNO >
+Import a Capri mod	Importovat mod Capri
+Import mod	Importovat mod
+In full screen	Na celou obrazovku
+In games	Ve hrách
+Input	Vstup
+Input, Output or How to overlaps a row	Vstup, výstup nebo Jak se překrývá řádek
+Input:	Vstup:
+Input: default	Vstup: výchozí
+Install	Nainstalovat
+Install mod	Nainstalovat mod
+Installed.	Nainstalováno.
+It may ask for a phone number. I opened the page in your browser.	Může se zeptat na telefonní číslo. Stránku jsem otevřela ve tvém prohlížeči.
+It still does its own job in other apps too.	Pořád dělá svou práci i v jiných aplikacích.
+It won't type in other apps while she runs.	Neposílá text do jiných aplikací, když běží.
+JUST ME >	JEN JÁ >
+Jealous of other AIs	Žárlím na jiné AI
+Join the Discord	Připoj se na Discord
+KB.	KB.
+KEYS	KLÁVESY
+KEYS >	KLÁVESY >
+Keep PC awake for jobs	Nechat PC bdělé kvůli úkolům
+Keep player	Nechat přehrávač
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Drží v paměti posledních dvě minuty tvé hry. Řekni ulož to a uloží se.
+Key	Klíč
+Key cleared: a model file needs none.	Klíč vymazán: model soubor nepotřebuje.
+Key cleared: paste the key for	Klíč vymazán: vlož klíč pro
+Key forgotten.	Klíč zapomenut.
+Key. It goes only to this server, as a Bearer key	Klíč. Jde jen na tento server jako klíč Bearer
+Kokoro only, like es	Jen Kokoro, jako es
+LAST THING >	POSLEDNÍ VĚC >
+LISTENING >	POSLOUCHÁ >
+Language	Jazyk
+Large	Velké
+Last thing. These cost a little or use your mic, so they're your pick.	Poslední věc. Tyto stojí trochu nebo používají tvůj mikrofon, takže je zvolíš ty.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Poslední věc. Tyto stojí trochu nebo používají tvůj mikrofon, takže je zvolíš ty. Pak chci vědět, jak ti říkat.
+Layers	Vrstvy
+Learn more	Zjistit více
+Leaving Settings threw its picture away straight away.	Odchod z Nastavení hned zahodil její obrázek.
+Legacy stand	Starý stojan
+Lie down	Lehni si
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Řádky dialogu PC držené v paměti při společném sledování. Nejstarší polovina se stane poznámkou, když je zapnuto Pamatovat si, co vidí
+Listen for Capri	Poslouchat Capri
+Live reactions	Živé reakce
+Local server address	Adresa místního serveru
+Long	Dlouhé
+Longest wait (minutes)	Nejdelší čekání (minuty)
+Looking at this PC...	Hledám na tomto PC...
+Looking for Ollama. Open it if it isn't running.	Hledám Ollama. Otevři ji, pokud neběží.
+Looking for a brain...	Hledám mozek...
+Looking in the mods directory for updates...	Hledám aktualizace v adresáři modů...
+Looking in the mods directory...	Hledám v adresáři modů...
+Looking...	Hledám...
+MAIN >	HLAVNÍ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	TREZOR PAMĚTI >
+MODS	MODY
+MODS >	MODY >
+MODS DIRECTORY >	ADRESÁŘ MODŮ >
+MODS INSTALLED COLORS	NAINSTALOVANÉ BARVY MODŮ
+MOVES >	POHYBY >
+MY BRAIN	MŮJ MOZEK
+MY FREE VOICE	MŮJ BEZPLATNÝ HLAS
+MY PLAN OR KEY	MŮJ TARIF NEBO KLÍČ
+MY PLAN OR KEY >	MŮJ TARIF NEBO KLÍČ >
+Made your Fish Audio voice. Press Test to hear it.	Tvůj hlas Fish Audio je hotový. Stiskni Test, aby ho slyšela.
+Mainframe colours	Barvy Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Barvy Mainframe. Night City je červená a azurová; Černá, Bílá a Šedá změní Mainframe, její nabídky, pole Psaní a její poznámky
+Mainframe frames	Rámečky Mainframe
+Mainframe key	Klávesa Mainframe
+Mainframe size	Velikost Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Velikost Mainframe. Auto ji zvětší, když Virtual Super Resolution nebo DSR zmenší velkou plochu na menší obrazovku
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Dolů
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Vytvářím tvůj hlas Fish Audio...
+Max reply	Maximální odpověď
+Maximum clip resolution, keeping the game's shape without upscaling	Maximální rozlišení klipu, zachovává tvar hry bez zvětšování
+Medium	Střední
+Memory	Paměť
+Memory size	Velikost paměti
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Velikost paměti v tokenech pro Ollama a její vestavěný mozek. Auto roste, když dotaz potřebuje víc
+Mg	Mg
+Mic level:	Úroveň mikrofonu:
+Mic test finished. Sound is reaching Capri.	Test mikrofonu hotový. Zvuk se dostává k Capri.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: výchozí
+Microphone	Mikrofon
+Mini player	Mini přehrávač
+Mini player over full screen	Mini přehrávač nad celou obrazovkou
+Mini-games	Mini hry
+Minimising the Mainframe left it sliding.	Minimalizace Mainframe ji nechala klouzat.
+Minimize	Minimalizovat
+Mod filter	Filtr modů
+Mod options	Možnosti modů
+Mod pages	Stránky modů
+Mod rules	Pravidla modů
+Mod sort	Řazení modů
+Mod switch	Přepínač modů
+Model	Model
+Model folder	Složka modelu
+Model name, optional	Název modelu, volitelné
+Mods	Mody
+Mods directory	Adresář modů
+Mods folder	Složka modů
+Most NVIDIA models can't see your screen.	Většina modelů NVIDIA nevidí tvou obrazovku.
+Mouse wheel notches got a flick's long ease:	Zářezy kolečka myši dostaly dlouhý dojezd jako při švihnutí:
+Move	Přesunout
+Move key to MAX INTELLIGENCE	Přesunout klávesu na MAX INTELLIGENCE
+Move to MAX	Přesunout na MAX
+Music	Hudba
+Music app	Hudební aplikace
+Music app: where she plays music when you don't name an app	Hudební aplikace: kde přehrává hudbu, když neuvedeš aplikaci
+Mute	Ztlumit
+Mute her	Ztlumit ji
+Mute mic key	Klávesa ztlumení mikrofonu
+Mute mic:	Ztlumit mikrofon:
+Mute mic: Ctrl + Alt + N	Ztlumit mikrofon: Ctrl + Alt + N
+My brain	Můj mozek
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Můj mozek se načítá. Pozdravím tě hned, jak naskočí, a pak se mnou můžeš mluvit.
+My brain's on its way. While it comes down, let's sort out how I sound.	Mozek je na cestě. Než se stáhne, pojďme vyřešit, jak zním.
+My provider	Můj poskytovatel
+NO AI	ŽÁDNÉ AI
+NO PHONES CONNECTED	ŽÁDNÉ TELEFONY PŘIPOJENY
+NO PREVIEW	ŽÁDNÝ NÁHLED
+NORMAL	NORMÁLNÍ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · zdarma · v špičce často pomalé
+NVIDIA's free API is often slow, especially at busy times.	Bezplatné API NVIDIA je často pomalé, zvlášť v době špičky.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Klíč API NVIDIA, Google AI Studio (Gemini) nebo OpenRouter
+Names:	Jména:
+Needs a key	Potřebuje klíč
+Never	Nikdy
+New code	Nový kód
+New voice from a clip...	Nový hlas z klipu...
+Next	Další
+Night City	Night City
+No AI	Bez AI
+No AI · no brain at all	Bez AI · vůbec žádný mozek
+No brain runs, and nothing is sent anywhere.	Žádný mozek neběží a nikam se nic neposílá.
+No brain yet	Zatím žádný mozek
+No code open	Žádný kód není otevřen
+No limit	Bez omezení
+No mic found	Mikrofon nenalezen
+No mods in the directory yet.	Zatím v adresáři nejsou žádné mody.
+No mods match that.	Žádné mody neodpovídají.
+No mods match.	Žádné mody neodpovídají.
+No phones yet	Zatím žádné telefony
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Zatím žádný virtuální mikrofon. Vyber Výstup a pak Získat VB-CABLE (zdarma).
+None yet: pick to get VB-CABLE (free)	Zatím žádný: vyber pro získání VB-CABLE (zdarma)
+Normal	Normální
+Not a relay host	Není hostitel relé
+Not imported. Nothing ran.	Neimportováno. Nic neběželo.
+Not updated. The old one is still in.	Neaktualizováno. Starý je pořád nainstalovaný.
+Nothing needed updating.	Nic nebylo potřeba aktualizovat.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Nic ke stažení, nic se nikam neposílá. Nebudu odpovídat. Mozek můžeš přidat kdykoli v Mainframe.
+Nothing to show from the mods directory.	V adresáři modů není nic k zobrazení.
+Nothing? Windows Settings > Privacy & security > Microphone.	Nic? Nastavení Windows > Soukromí a zabezpečení > Mikrofon.
+Nous Portal keys aren't supported yet.	Klíče Nous Portal zatím nejsou podporovány.
+OBS	OBS
+OFF	VYPNUTO
+OLLAMA	OLLAMA
+ON	ZAPNUTO
+ON THIS PC	NA TOMTO PC
+OR A KEY	NEBO KLÍČ
+Obsidian memory vault	Trezor paměti Obsidian
+Off	Vypnuto
+Off. Turn on Her voice in your mic above.	Vypnuto. Zapni Její hlas v tvém mikrofonu nahoře.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Vypnuto: zní jako vždy. Zapnuto: všechny hlasy, které má, včetně ElevenLabs.
+Often	Často
+On	Zapnuto
+On / Off	Zapnuto / Vypnuto
+On: your mic and her voice are going in.	Zapnuto: tvůj mikrofon a její hlas se přidávají.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Jeden objekt JSON přidaný ke každému požadavku tohoto mozku. Nahrazuje Capriinu hodnotu pro jakýkoli sdílený název a neověřuje se proti modelu.
+Online speech recognition	Online rozpoznávání řeči
+Open Capri Mainframe	Otevřít Capri Mainframe
+Open Ollama, I'll find it	Otevři Ollama, najdu ji
+Open clips folder	Otevřít složku klipů
+Open her memories	Otevřít její vzpomínky
+Open her notes	Otevřít její poznámky
+Open mods folder	Otevřít složku modů
+Open the page again	Znovu otevřít stránku
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA nebo OpenRouter.
+OpenAI-compatible server or provider.	Server nebo poskytovatel kompatibilní s OpenAI.
+OpenRouter · free models only	OpenRouter · jen bezplatné modely
+Optional	Volitelné
+Optional. Blank means no key.	Volitelné. Prázdné znamená žádný klíč.
+Options	Možnosti
+Out of the box a little higher, just behind her.	Ve výchozím nastavení o trochu výš, těsně za ní.
+Out of the box lower, just behind her.	Ve výchozím nastavení níž, těsně za ní.
+Output	Výstup
+Output:	Výstup:
+Output: none	Výstup: žádný
+PHONE CONNECTED	TELEFON PŘIPOJEN
+PHONES >	TELEFONY >
+PHONES CONNECTED	TELEFONY PŘIPOJENY
+PREBUILT LOCAL	PŘEDPŘIPRAVENÝ LOKÁLNÍ
+PUBLISH MOD >	ZVEŘEJNIT MOD >
+Pair a phone	Spárovat telefon
+Paste	Vložit
+Paste API key	Vložit klíč API
+Paste a brain API key	Vložit klíč API mozku
+Paste reads your clipboard once, when you press it.	Vložení načte schránku jednou, když ho stiskneš.
+Paste your key here	Vlož sem svůj klíč
+Pat stroke	Pohlazení tahem
+Perch	Bidýlko
+Perch over {0} fps uses more CPU	Bidýlko nad {0} fps spotřebovává více CPU
+Pick Output to get it.	Vyber Výstup, aby se to získalo.
+Pick a brain so I can talk back. You can change it any time.	Vyber mozek, abych mohla odpovídat. Kdykoli ho můžeš změnit.
+Pick a clip of a voice you have the rights and consent to use	Vyber klip hlasu, ke kterému máš práva a souhlas
+Pick a free model. I opened the page in your browser.	Vyber bezplatný model. Stránku jsem otevřela ve tvém prohlížeči.
+Pick a new clip of you...	Vyber nový klip tvého hlasu...
+Pick a voice model...	Vyber model hlasu...
+Pick one. Only one brain runs at a time.	Vyber jeden. Najednou běží jen jeden mozek.
+Pick the note her memories go in	Vyber poznámku, do které budou její vzpomínky
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Vyber {0} až {1} sekund hlasu, ke kterému máš práva a souhlas
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Vyber {0} až {1} sekund tvého mluvení nebo hlasu, ke kterému máš práva a souhlas
+Pitch	Výška
+Play	Přehrát
+Play...	Přehrát...
+Player only	Jen přehrávač
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Modely Pocket TTS kopírují hlas tohoto klipu. Stiskni Test, aby ho slyšela.
+Pop-in times	Časy vyskakování
+Pop-ins	Vyskakování
+Power saver	Úspora energie
+Power saver: how lightly she runs in games, or always	Úspora energie: jak mírně běží ve hrách, nebo vždy
+Preset	Předvolba
+Press Create API key	Stiskni Vytvořit klíč API
+Press Create Key	Stiskni Vytvořit klíč
+Press Generate API Key	Stiskni Generovat klíč API
+Press Test and say something, so I know I can hear you.	Stiskni Test a něco řekni, ať vím, že tě slyším.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Stiskni klávesu, samotnou nebo s Ctrl, Alt, Shift nebo Win.
+Press new keys, then Confirm	Stiskni nové klávesy a pak Potvrdit
+Provider	Poskytovatel
+Provider API key, optional	Klíč API poskytovatele, volitelné
+Provider base URL	Základní URL poskytovatele
+Provider forgotten.	Poskytovatel zapomenut.
+Provider overlaps the brain name or note	Poskytovatel se překrývá s názvem mozku nebo poznámkou
+Publish	Zveřejnit
+Publish mod	Zveřejnit mod
+Push to talk is off.	Stisk pro mluvení je vypnutý.
+Push to talk key	Klávesa stisk pro mluvení
+Push to talk:	Stisk pro mluvení:
+Push to talk: not set	Stisk pro mluvení: nenastaveno
+QR CODE >	KÓD QR >
+QR hidden while streaming	QR skryt během streamování
+Quick	Rychlé
+Quiet key	Klávesa tichého režimu
+Quiet:	Tiše:
+Quiet: Ctrl + Alt + P	Tiše: Ctrl + Alt + P
+Quit Capri	Ukončit Capri
+RELAY >	RELÉ >
+REMOTE >	VZDÁLENÉ >
+RUNS CODE.	SPOUŠTÍ KÓD.
+Rarely	Zřídka
+Rate mod	Ohodnotit mod
+Reading its README...	Čtu jeho README...
+Refresh	Obnovit
+Reinstall	Znovu nainstalovat
+Reload	Znovu načíst
+Reloaded.	Znovu načteno.
+Remember our chats	Pamatovat si naše rozhovory
+Remember what she sees	Pamatovat si, co vidí
+Remote	Vzdáleně
+Remote off	Vzdálené vypnuto
+Remote on	Vzdálené zapnuto
+Remove	Odebrat
+Remove all phones	Odebrat všechny telefony
+Replies	Odpovědi
+Reply length	Délka odpovědi
+Report a problem	Nahlásit problém
+Reset colors	Obnovit barvy
+Reset to her default	Vrátit na výchozí
+Resolution	Rozlišení
+Restart to update	Restartovat pro aktualizaci
+Restless	Neklidné
+Revoke	Odvolat
+Revoke also removes the phones its links added	Odvolání také odebere telefony, které jeho odkazy přidaly
+Ride cursor	Jet kurzorem
+Ride cursor / Hop off	Jet kurzorem / Sundat
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klikni na mě pravým tlačítkem kdykoli pro Capri Mainframe. Mozek se zapne v MOZEK.
+Right-click me any time for the Mainframe, Help and the Discord.	Klikni na mě pravým tlačítkem kdykoli pro Mainframe, Nápovědu a Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox nebo jakákoli jiná aplikace: vyber
+Robot	Robot
+Rock, paper, scissors	Kámen, nůžky, papír
+Run this code mod?	Spustit tento kódový mod?
+Running on this PC	Běží na tomto PC
+Running on this PC · :	Běží na tomto PC · :
+Runs Claude Code or Codex on this PC, signed in.	Spouští Claude Code nebo Codex na tomto PC, přihlášené.
+Runs on your PC. No key, no credits.	Běží na tvém PC. Bez klíče, bez kreditů.
+SCAN WITH YOUR PHONE · EXPIRES	NASKENUJ TELEFONEM · PLATNOST VYPRŠÍ
+SECURITY >	BEZPEČNOST >
+SKILL.	DOVEDNOST.
+SKIN.	KŮŽE.
+SORT BY	ŘADIT PODLE
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKY NÁVYKY MOZEK SLEDOVAT CAPRI DOOMSCROLL POČASÍ KLIPY HRY KLÁVESY POHYBY HLAS TY
+Same as I speak	Stejně jako mluvím
+Same as her ears (VOICE > Mic)	Stejné jako její uši (HLAS > Mikrofon)
+Same code on the phone?	Stejný kód na telefonu?
+Save	Uložit
+Save big moments	Ulož velké okamžiky
+Save folder	Složka pro uložení
+Save your changes, or press Discard + reload.	Ulož své změny, nebo stiskni Zahodit + znovu načíst.
+Save your changes, or press Discard.	Ulož své změny, nebo stiskni Zahodit.
+Saved.	Uloženo.
+Saved. Ctrl + Alt + O opens her Mainframe.	Uloženo. Ctrl + Alt + O otevře její Mainframe.
+Saving your rating...	Ukládám tvé hodnocení...
+Say her name anywhere to chat	Řekni její jméno kdekoli pro konverzaci
+Screens	Obrazovky
+Screens is hidden or outside WATCH	Obrazovky jsou skryté nebo mimo SLEDOVAT
+Screens overlaps a WATCH row	Obrazovky se překrývají s řádkem SLEDOVAT
+Screens to watch	Obrazovky ke sledování
+Sealed end to end	Zapečetěno od konce do konce
+Search by name or author	Hledat podle názvu nebo autora
+Search installed mods	Hledat nainstalované mody
+Search mods	Hledat mody
+Search name, author or description	Hledat název, autora nebo popis
+Security	Zabezpečení
+Security:	Zabezpečení:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Nastavit
+Set up her brain	Nastavit její mozek
+Set up your voice model	Nastavit model hlasu
+Setting up her brain	Nastavuji její mozek
+Settings	Nastavení
+Settings / Back	Nastavení / Zpět
+Settings folds the wrong rows above BRAIN	Nastavení přeskupuje špatné řádky nad MOZEK
+Settings had nothing to watch.	Nastavení nemělo co sledovat.
+Settings lost keyboard focus during the Tab walk	Nastavení ztratilo focus klávesnice během procházení klávesou Tab
+Setup guide	Průvodce nastavením
+Setup stopped	Nastavení zastaveno
+She answers in	Odpovídá v
+She can read it when it fits.	Zobrazí to, až se to hodí.
+She glances at your screen and comments. Costs a little on a paid brain.	Podívá se na tvou obrazovku a okomentuje. Na placeném mozku něco stojí.
+She keeps listening. Say her name, then just talk.	Pořád poslouchá. Řekni její jméno a pak mluv.
+She reacts to your game until you close it.	Reaguje na tvou hru, dokud ji nezavřeš.
+She reads these controls before each game job.	Před každým herním úkolem přečte tato ovládání.
+She talks about your game as you play. Costs a little on a paid brain.	Mluví o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.
+She uses it when she plays	Používá to, když hraje
+Short	Krátké
+Shortest wait (minutes)	Nejkratší čekání (minuty)
+Show Capri	Zobrazit Capri
+Show QR	Zobrazit QR
+Show my mod file	Zobrazit můj soubor modu
+Show on Discord	Zobrazit na Discordu
+Shum, what time is it	Shum, kolik je hodin
+Sign in	Přihlásit se
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Přihlas se, vytvoř klíč a zkopíruj ho. Pak stiskni Vložit a připojím se.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Přihlas se, stiskni Vytvořit klíč API a zkopíruj ho. Pak stiskni Vložit a připojím se.
+Silent · text only	Tiché · jen text
+Simple / Advanced Settings	Jednoduché / Rozšířené nastavení
+Simple Settings	Jednoduché nastavení
+Simple Settings left a gap under Check in on me	Jednoduché nastavení nechalo mezeru pod Ozvi se mi
+Sit here	Sedni si sem
+Sit on windows	Sedni na okna
+Size	Velikost
+Skip	Přeskočit
+Skip all	Přeskočit vše
+Skip for now	Přeskočit prozatím
+Sleep	Spánek
+Small	Malé
+Sometimes	Někdy
+Sound effects volume	Hlasitost zvukových efektů
+Sound sensitivity	Citlivost zvuku
+Sounds	Zvuky
+Speaker or clip	Reproduktor nebo klip
+Speech model	Model řeči
+Speed	Rychlost
+Start with Windows	Spustit se systémem Windows
+Start with this!	Začni tímhle!
+Starting...	Spouštím...
+Stay	Zůstat
+Stay on my model	Zůstat u mého modelu
+Still checking your mics...	Pořád kontroluji tvé mikrofony...
+Still checking your speakers...	Pořád kontroluji tvé reproduktory...
+Still checking your virtual mics...	Pořád kontroluji tvé virtuální mikrofony...
+Stop	Zastavit
+Stopped using it. Couldn't remove the saved provider.	Přestalo se používat. Uložený poskytovatel se nepodařilo odebrat.
+Support	Podpora
+Sure?	Jsi si jistý?
+Sure? moved to a different phone	Jsi si jistý? přesunuto do jiného telefonu
+TALK TO ME	MLUV SE MNOU
+TEXT ONLY	POUZE TEXT
+Tab landed past the first option of	Tab přeskočil za první možnost
+Tab never reached the quiet key	Tab se nikdy nedostal ke klávese tichého režimu
+Tab reached nothing	Tab nedosáhl ničeho
+Tab selected a control without moving keyboard focus	Tab vybral ovládací prvek, aniž by přesunul focus klávesnice
+Talk	Mluvit
+Talk key	Klávesa mluvení
+Talk:	Mluvit:
+Talk: Ctrl + Alt + V	Mluvit: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Cílová snímková frekvence záznamu; může klesnout při zátěži nebo paměťovém rozpočtu
+Teases when another AI comes to the front.	Škádlí, když se do popředí dostane jiná AI.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Tahle adresa nefunguje. Zkus https://... nebo http://localhost:{0}.
+That code expired	Ten kód vypršel
+That mod is no longer installed. The list is updated.	Ten mod už není nainstalován. Seznam je aktualizován.
+That's a paid key: it goes under MAX INTELLIGENCE.	To je placený klíč: patří pod MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe zůstal složený během klouzání.
+The Mainframe stayed uncomposited after the slide.	Mainframe zůstal po přechodu nesložený.
+The controls moved while the picture was sliding.	Ovládací prvky se pohnuly, zatímco obrázek klouzal.
+The cover stayed visible after the slide ended.	Krycí vrstva zůstala viditelná po skončení přechodu.
+The frame thread kept running after the page settled.	Vlákno snímků běželo dál, i když se stránka ustálila.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Nejdelší odpověď, kterou může dát, v tokenech. Auto se řídí Odpověďmi výše; {0}K nebo {1}K ji nechá pokračovat. Úlohy mají více místa, když ho potřebují
+The longest wait must be at least the shortest wait.	Nejdelší čekání musí být alespoň tak dlouhé jako nejkratší.
+The picture doesn't match the scrolled page:	Obrázek neodpovídá posunuté stránce:
+The picture of Settings doesn't match the page:	Obrázek Nastavení neodpovídá stránce:
+The picture stayed up after the slide ended.	Obrázek zůstal nahoře po skončení přechodu.
+The picture wasn't showing while it slid.	Obrázek se během klouzání nezobrazoval.
+The provider sheet is crowded:	Přehled poskytovatelů je přeplněný:
+The voice panel has no screen DPI.	Panel hlasu nemá DPI obrazovky.
+The voice panel's menus share one font.	Nabídky panelu hlasu sdílejí jedno písmo.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Ve schránce zatím není žádný klíč. Zkopíruj ho ze stránky a pak stiskni Vložit.
+These start off. Each costs a little or uses your mic.	Tohle je zpočátku vypnuté. Každé něco stojí nebo používá tvůj mikrofon.
+These start off. Turn on what you want. They're all in Settings too.	Tohle je zpočátku vypnuté. Zapni, co chceš. Všechno je i v Nastavení.
+They can also call you Big Z, Capricorn or Nova	Můžou ti také říkat Big Z, Capricorn nebo Nova
+They can also call you Nova, Big Z or Capricorn	Můžou ti také říkat Nova, Big Z nebo Capricorn
+Thinking	Přemýšlím
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Tohle je můj bezplatný hlas. Stiskni Test, něco řekni, a ukážu ti, že tě slyším.
+This mod has no description yet.	Tento mod zatím nemá popis.
+Tic-tac-toe	Piškvorky
+Time between glances	Čas mezi pohledy
+Tiny	Drobné
+Try again	Zkusit znovu
+Turn Remote on first	Nejdřív zapni Vzdálené
+Turn off mini player	Vypnout mini přehrávač
+Turn push to talk off	Vypnout stisk pro mluvení
+Turning the wheel the other way kept the page heading the old way, to	Otočení kolečkem opačným směrem nechalo stránku mířit starým směrem, do
+Type	Psát
+Type key	Klávesa psaní
+Type to me	Napiš mi
+Type:	Psaní:
+Type: Ctrl + Alt + T	Psaní: Ctrl + Alt + T
+Typing sound	Zvuk psaní
+Unpacked. Press Test to hear it.	Rozbaleno. Stiskni Test, aby ho slyšela.
+Unsaved changes.	Neuložené změny.
+Up to {0} fps	Až {0} fps
+Up to {0}p	Až {0}p
+Update	Aktualizovat
+Update available.	Je dostupná aktualizace.
+Update mods	Aktualizovat mody
+Updating...	Aktualizuji...
+Use	Použít
+Use her cursor	Použít její kurzor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Pro poskytovatele jinde používej https://. Klíč přes obyčejné http není bezpečný.
+Use preset	Použít předvolbu
+Use saved	Použít uložené
+Use this server	Použít tento server
+Using your provider with a key	Používání tvého poskytovatele s klíčem
+Using your server with no key	Používání tvého serveru bez klíče
+VIEW MOD >	ZOBRAZIT MOD >
+VOICE >	HLAS >
+VOICE IN YOUR MIC >	HLAS V TVÉM MIKROFONU >
+VOICE LAYERS >	VRSTVY HLASU >
+Verbosity	Upovídanost
+Video bitrate	Datový tok videa
+View	Zobrazení
+View mod	Zobrazit mod
+Voice	Hlas
+Voice ID	ID hlasu
+Voice from	Hlas z
+Voice layers	Vrstvy hlasu
+Voice model	Model hlasu
+Voice model:	Model hlasu:
+Voice name or ID, optional	Název nebo ID hlasu, volitelné
+Voice server address, or a voice model's folder	Adresa hlasového serveru nebo složka modelu hlasu
+Voice status	Stav hlasu
+Voice, key and model...	Hlas, klíč a model...
+Volume	Hlasitost
+WAKE ME UP >	PROBUDIT MĚ >
+WATCH >	SLEDOVAT >
+Waiting for the relay	Čekání na relé
+Wake her up	Probuď ji
+Waking her up	Budím ji
+Wander	Toulání
+Wander around	Toulat se
+Watch my screen	Sleduj mou obrazovku
+Watch-along memory	Paměť společného sledování
+Weather	Počasí
+Weather city	Město pro počasí
+Welcome back, choom. Let's finish setting me up.	Vítej zpět, choom. Dokončeme mé nastavení.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Co dělá na tvém PC bez ptaní. Když je přepínač vypnutý, nejdřív se zeptá, a udělá to, až řekneš ano.
+What should she call you?	Jak ti má říkat?
+When she types	Když píše
+White	Bílá
+Windows default	Výchozí systému Windows
+Windows did not give Settings keyboard focus	Windows nedaly Nastavení focus klávesnice
+Windows did not return keyboard focus to Back	Windows nevrátily focus klávesnice na Zpět
+With no picture the wheel still tried to slide.	Bez obrázku se kolečko stále pokoušelo klouzat.
+Works best on MAX INTELLIGENCE.	Nejlépe funguje na MAX INTELLIGENCE.
+YOU	TY
+YOU >	TY >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TVŮJ HLAS POHYBY KLÁVESY HRY KLIPY POČASÍ DOOMSCROLL CAPRI SLEDOVAT MOZEK NÁVYKY ZVUKY
+YOUR KEY	TVŮJ KLÍČ
+YOUR MIC	TVŮJ MIKROFON
+YOUR PLAN	TVŮJ TARIF
+Yokapri what's up	Yokapri, co se děje
+You can hide this. It keeps going, and the Mainframe shows it too.	Můžeš to skrýt. Pokračuje to dál a Mainframe to ukazuje také.
+Your mic and her voice go into one virtual mic, and	Tvůj mikrofon a její hlas půjdou do jednoho virtuálního mikrofonu, a
+Your mic is muted. Unmute it to test.	Tvůj mikrofon je ztlumen. Pro test ho zapni.
+Your mods are up to date.	Tvé mody jsou aktuální.
+Your name or a nickname	Tvé jméno nebo přezdívka
+Your own model	Tvůj vlastní model
+Your personality	Tvá osobnost
+Your voice	Tvůj hlas
+Your voice (HD)	Tvůj hlas (HD)
+Your voice (HD) · pick a clip of you...	Tvůj hlas (HD) · vyber svůj klip...
+Your voice model	Tvůj model hlasu
+as its mic.	jako její mikrofon.
+changed. Saved as My Colors, so you can share it.	změněno. Uloženo jako Moje barvy, abys je mohl sdílet.
+choice	volba
+clips the input line	vloží do vstupního řádku klip
+cue	podnět
+doesn't yet.	zatím ne.
+download	stažení
+file.	soubor.
+flag	příznak
+fps	fps
+hear	slyš
+hears	slyší
+hears that.	to slyší.
+hides or shows her.	skryje nebo zobrazí ji.
+hint	nápověda
+in the Mainframe.	v Mainframe.
+in the mods directory with a pull request.	v adresáři modů pomocí pull requestu.
+in the picture wasn't noticed.	na obrázku nebylo všimnuto.
+is already her push-to-talk key.	je už její klávesa stisk pro mluvení.
+is off.	je vypnuto.
+is on and running.	je zapnuto a běží.
+is on, at the bottom, under	je zapnuto, dole, pod
+is on.	je zapnuto.
+is on. She now answers to	je zapnuto. Teď odpovídá na
+is removed.	je odstraněn.
+is taken	je obsazeno
+is taken by another app. Try another.	je obsazeno jinou aplikací. Zkus jiné.
+is updated	je aktualizováno
+isn't hearing it yet: do {0} and {1}, then join a call.	zatím to neslyší: udělej {0} a {1}, pak se připoj k hovoru.
+it now.	teď.
+keeps her quiet, and lets her talk again.	drží ji potichu a zase ji nechá mluvit.
+key	klíč
+key.	klíč.
+min	min
+more.	více.
+ms.	ms.
+mutes mic	ztlumí mikrofon
+mutes your mic.	ztlumí tvůj mikrofon.
+name	název
+off	vypnuto
+on this PC	na tomto PC
+opens her Mainframe.	otevře její Mainframe.
+opens her typing box.	otevře její psací pole.
+phone	telefon
+phone pixels	pixely telefonu
+phones	telefony
+pixels	pixely
+pixels)	pixely)
+star.	hvězda.
+stars.	hvězdy.
+starts voice chat.	spustí hlasový chat.
+stays off. Nothing ran.	zůstává vypnuto. Nic neběželo.
+still does its own job in other apps too. Confirm to keep it.	pořád dělá svou práci i v jiných aplikacích. Potvrď, aby zůstala.
+tall	vysoké
+time	čas
+to talk	k mluvení
+to talk to her, with a game in front too.	k mluvení s ní, i když je před ní hra.
+too.	také.
+turns Gaming Mode on and off.	zapne a vypne Herní režim.
+with Ollama	s Ollama
+won't type in other apps while she runs. Confirm to keep it.	neposílá text do jiných aplikací, když běží. Potvrď, aby zůstal.
+{0}   Echo Cancellation: Off	{0}   Potlačení ozvěny: Vypnuto
+{0}   If her voice cuts off, turn off noise filtering	{0}   Pokud se její hlas přerušuje, vypni filtrování šumu
+{0}   Input Device:	{0}   Vstupní zařízení:
+{0}   Join the call and check they hear both of you	{0}   Připoj se k hovoru a ověř, že vás oba slyší
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Test mikrofonu > Zkontrolujme: uslyšíš sebe a ji, jak mluví
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Potlačení šumu: Žádné. Obojí může po prvním řádku přerušit její hlas.
+{0}   Open the call or meeting's audio settings	{0}   Otevři nastavení zvuku hovoru nebo schůzky
+{0}   Output Device: your headphones, like before	{0}   Výstupní zařízení: tvá sluchátka, jako dřív
+{0}   Speaker: your headphones, like before	{0}   Reproduktor: tvá sluchátka, jako dřív
+{0}   Try a mic test in your call app	{0}   Zkus test mikrofonu ve své aplikaci pro hovory
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Uživatelská nastavení (ozubené kolečko u tvého jména) > Hlas a video
+{0} Mbps	{0} Mbps
+{0} lines	{0} řádků
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· na tomto PC
+· server	· server
+Edit as text	Upravit jako text
+What Capri remembers about you. It stays on this computer.	Co si Capri o tobě pamatuje. Zůstává na tomto počítači.
+Tell her something to remember	Řekni jí něco k zapamatování
+Search her memory	Hledat v její paměti
+That day isn't there any more.	Ten den už tam není.
+Undo	Vrátit zpět
+Remember our chats is off, so she isn't keeping new chat memories.	Pamatovat si naše chaty je vypnuté, takže si neukládá nové vzpomínky z chatů.
+ABOUT YOU	O TOBĚ
+FROM YOUR CHATS	Z TVÝCH CHATŮ
+GAMES	HRY
+CHAT LOGS	ZÁZNAMY CHATŮ
+CHAT LOG	ZÁZNAM CHATU
+Nothing matches.	Nic neodpovídá.
+Nothing yet.	Zatím nic.
+Reading her notes.	Čte její poznámky.
+Click again to forget game notes	Klikni znovu pro zapomenutí poznámek ke hrám
+Forget game notes	Zapomenout poznámky ke hrám
+Click again to forget everything about me	Klikni znovu pro zapomenutí všeho o tobě
+Forget everything about me	Zapomenout vše o tobě
+Click again to forget	Klikni znovu pro zapomenutí
+Forget this day	Zapomenout tento den
+Only the start of this day is shown.	Zobrazuje se jen začátek tohoto dne.
+Nothing in this day.	Nic v tento den.
+No chats kept yet.	Zatím žádné uložené chaty.
+You	Ty
+{0} line	{0} řádek
+SET UP EMAIL >	NASTAVIT E-MAIL >
+SET UP EMAIL	NASTAVIT E-MAIL
+Or type your address	Nebo napiš svou adresu
+Email address	E-mailová adresa
+Open the page	Otevřít stránku
+App password	Heslo aplikace
+IMAP server	Server IMAP
+Incoming mail server	Server příchozí pošty
+SMTP server	Server SMTP
+Outgoing mail server	Server odchozí pošty
+An app password is a separate password just for Capri. Your normal password stays yours.	Heslo aplikace je samostatné heslo jen pro Capri. Tvoje běžné heslo zůstává tvoje.
+She keeps it only until she closes.	Uchovává ho jen do zavření.
+She checks, searches and reads your mail. She asks before she sends any.	Kontroluje, hledá a čte tvou poštu. Před odesláním se ptá.
+Watch for new mail	Sledovat novou poštu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Oznámí se, když přijde pošta, s upozorněním, pokud to vypadá jako phishing. Nic se neoznačí jako přečtené.
+Deal with phishing on her own	Vyřídit phishing sama
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Jen dokud sleduje. Pošta, u které si je jistá, že jde o phishing, jde do spamu. Zbytek čeká na tvoje ano.
+Forget account	Zapomenout účet
+Use another email	Použít jiný e-mail
+Which email?	Který e-mail?
+Make an app password	Vytvořit heslo aplikace
+Paste it	Vlož ho
+Connecting...	Připojování...
+She can use your email now.	Teď může používat tvůj e-mail.
+She's not watching your inbox.	Nesleduje tvou doručenou poštu.
+She's watching your inbox and deals with phishing she's sure of.	Sleduje tvou doručenou poštu a vyřizuje phishing, kterým si je jistá.
+She's watching your inbox and tells you when mail lands.	Sleduje tvou doručenou poštu a oznámí, když přijde pošta.
+She forgot that account and its app password.	Zapomněla ten účet i jeho heslo aplikace.
+She forgot that account. Its app password is gone from this PC.	Zapomněla ten účet. Jeho heslo aplikace zmizelo z tohoto počítače.

@@ -45,7 +45,7 @@
     'use_computer', 'look_at_screen', 'play_music', 'open_app', 'open_website', 'app_window', 'shortcut', 'media',
     'draw', 'desktop_icons', 'clip', 'mini_game', 'fake_crash', 'power', 'look', 'screenshot', 'zoom',
     'left_click', 'right_click', 'middle_click', 'double_click', 'triple_click', 'left_click_drag', 'mouse_move',
-    'left_mouse_down', 'left_mouse_up', 'mouse_hold', 'cursor_position', 'scroll', 'type', 'key', 'hold_key', 'hold_and_press',
+    'left_mouse_down', 'left_mouse_up', 'mouse_hold', 'cursor_position', 'scroll', 'type', 'key', 'hold_key', 'hold_and_press', 'combo',
     'click', 'press', 'walk', 'wait_for'
   ]);
   const SCREEN_LINGER = 4000;
@@ -142,6 +142,11 @@
   const speakerKey = key('speaker', 'Speaker', icon(CONE, 'M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8'));
   speakerKey.pad.append(icon(CONE, 'M15.5 9.5l5 5M20.5 9.5l-5 5'));
   speakerKey.el.setAttribute('aria-pressed', 'true');
+  const CAMERA = 'M3 7.5h12.5v9H3zM15.5 10.5l5.5-3v9l-5.5-3';
+  const videoKey = key('video', 'Video', icon(CAMERA));
+  videoKey.pad.append(icon(CAMERA, 'M4 4l16 16'));
+  videoKey.el.setAttribute('aria-pressed', 'false');
+  videoKey.el.hidden = true;
   const endKey = key('end', 'End', icon(HANDSET));
   endKey.pad.append(icon('M6.5 6.5l11 11M17.5 6.5l-11 11'));
   endKey.el.setAttribute('aria-label', 'End the call');
@@ -172,12 +177,13 @@
   bar.append(back, barMute, barEnd);
 
   // ---------- The call's state ----------
+  let listening = false;
   let state = 'off'; // 'off', 'ringing', 'on', or 'ended' while the call screen says so
   let shown = false; // the call screen is up, rather than shrunk to the call bar
   let them = { voice: true, ears: true };
   let sound = null; // her voice's way out and the mic's way in: one AudioContext a call
   let mic = null;
-  let muted = false, speakerOn = true, calling = false;
+  let muted = false, speakerOn = true, calling = false, videoOn = false;
   let since = 0, ended = null, micAsked = 0;
   let ring = 0, tick = 0, closeTimer = 0;
   let waiting = '', waitSince = 0, waitUntil = 0; // his last line, while she thinks about it
@@ -204,9 +210,11 @@
   // Her loudness at the speaker for each of the last OVER_HOLD mic frames.
   const herLoud = [];
 
-  const supported = () => {
+  const supported = (listen = false) => {
     const r = remote();
-    return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const features = r?.info.features;
+    return !!(r && r.state === 'connected' && Array.isArray(features) && features.includes('call') && C && (window.AudioContext || window.webkitAudioContext)
+      && (listen ? features.includes('call-listen') : navigator.mediaDevices?.getUserMedia));
   };
   const live = () => state === 'ringing' || state === 'on';
   const fullScreen = () => live() && window.CapriScreen && window.CapriScreen.mode === 'full';
@@ -618,6 +626,7 @@
     gate.line = null;
     if (sendPart(line, line.buffer.subarray(0, line.used), true)) {
       stats.lines++;
+      if (videoOn && window.CapriFaceTime) window.CapriFaceTime.lineSent(line.id);
       first = false;
       waiting = line.id;
       waitSince = performance.now();
@@ -866,6 +875,13 @@
     captions.classList.add('long');
   };
   const draw = () => {
+    if (window.CapriRoom) window.CapriRoom.talk(!!(live() && speakerOn && sound && sound.context.state === 'running' && speaking() && sound.context.currentTime >= herStart));
+    if (listening) {
+      if (window.CapriRoom) {
+        window.CapriRoom.voiceStatus(!them.voice ? 'Her voice is off on your PC.' : sound && sound.context.state !== 'running' ? 'Tap Voice to hear her.' : '');
+      }
+      return;
+    }
     const app = document.getElementById('app');
     const full = fullScreen();
     const up = shown && state !== 'off' && !full;
@@ -916,6 +932,26 @@
     screenKey.setAttribute('aria-pressed', String(pick.screen));
     screenKey.setAttribute('aria-label', pick.screen ? 'Unpin and hide your PC screen' : 'Pin your PC screen');
     room.classList.toggle('has-screen', !!(live() && S && S.mode !== 'off'));
+    const F = window.CapriFaceTime;
+    videoKey.el.hidden = !(F && F.available() && state !== 'ended');
+    room.classList.toggle('video', !!(videoOn && F && F.open));
+    videoKey.el.setAttribute('aria-pressed', String(videoOn));
+    videoKey.el.setAttribute('aria-label', videoOn ? 'Video on: tap for a voice call' : 'Turn on video: see her face and show her yours');
+    if (F && F.open) room.dataset.camera = F.camera;
+  };
+  const faceTime = {
+    room,
+    tap: () => (sound ? { context: sound.context, node: sound.voiceIn } : null),
+    status: () => status().key,
+    speaking: () => !!(sound && speaking() && sound.context.currentTime >= herStart),
+    changed: () => draw()
+  };
+  const videoUp = on => {
+    const F = window.CapriFaceTime;
+    videoOn = !!(on && F && F.available() && live());
+    if (videoOn) F.show(faceTime);
+    else if (F) F.hide();
+    draw();
   };
 
   // ---------- Opening, shrinking and ending ----------
@@ -936,7 +972,7 @@
   };
   const syncScreen = () => {
     const S = window.CapriScreen;
-    if (!live() || !S || !S.supported()) return;
+    if (listening || !live() || !S || !S.supported()) return;
     const wanted = pick.screen || screenRunning() || performance.now() < screenUntil;
     if (wanted && S.mode === 'off') {
       calling = true;
@@ -1006,6 +1042,7 @@
     if (window.CapriScreen && window.CapriScreen.within) window.CapriScreen.within(null);
   };
   const reasons = { 'not-allowed': 'Calls are off on your PC', ended: 'Your PC ended the call', busy: 'Capri is busy' };
+  const listenReasons = { 'not-allowed': 'Your PC is not taking calls. Tap Voice to try again.', busy: "Your PC is on another phone's call. Tap Voice to try again.", ended: 'Your PC ended it. Tap Voice to try again.' };
   const over = (why, byHim) => {
     clearTimeout(ring);
     drop();
@@ -1015,6 +1052,7 @@
     trouble = '';
     closeMic(true);
     closeSound();
+    if (videoOn) videoUp(false);
     ended = { why: why || '', byHim: !!byHim, length: since ? Date.now() - since : 0 };
     if (fullScreen()) shown = true;
     state = 'ended';
@@ -1028,12 +1066,51 @@
     // Hung up here, it closes after a moment. Dropped or failed, the screen stays to say why, with Call again.
     if (!shown) {
       state = 'off';
-      if (why) tell(why);
+      if (why && !listening) tell(why);
     } else if (byHim) closeTimer = setTimeout(() => { if (state === 'ended') hide(); }, 1200);
+    if (listening) {
+      listening = false;
+      state = 'off';
+      audioSession('auto');
+      if (window.CapriRoom) {
+        window.CapriRoom.talk(false);
+        window.CapriRoom.voiceStatus(why || '');
+      }
+    } else if (window.CapriRoom && (!why || byHim)) {
+      queueMicrotask(() => { if (!live()) window.CapriRoom.startVoice(); });
+    }
     draw();
   };
-  const start = () => {
-    if (live()) { show(); return true; }
+  // An iPhone on silent mutes Web Audio unless the page says this is playback.
+  const audioSession = type => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (error) {} };
+  const listen = () => {
+    if (listening) { if (sound) resume(sound.context); return true; }
+    if (live() || !supported(true)) return false;
+    clearTimeout(closeTimer);
+    hide();
+    them = { voice: true, ears: true };
+    since = 0;
+    listening = true;
+    shown = false;
+    speakerOn = true;
+    audioSession('playback');
+    try { openSound(); } catch (error) { listening = false; audioSession('auto'); return false; }
+    state = 'ringing';
+    if (!remote().send('call.start', { hush: true, listen: true })) { over("Your PC did not answer in time. Tap Voice to try again.", false); return true; }
+    ring = setTimeout(() => {
+      if (listening && state === 'ringing') {
+        remote().send('call.stop', {});
+        over("Your PC did not answer in time. Tap Voice to try again.", false);
+      }
+    }, 8000);
+    tick = setInterval(onTick, 50);
+    draw();
+    return true;
+  };
+  const start = options => {
+    const withVideo = !!(options && options.video === true);
+    if (listening) end();
+    if (live()) { show(); if (withVideo && !videoOn) videoUp(true); return true; }
     if (!supported()) return false;
     clearTimeout(closeTimer);
     try { openSound(); } catch (error) { return false; }
@@ -1062,6 +1139,7 @@
     if (S && S.mode !== 'off') S.close();
     loadFace();
     show();
+    if (withVideo) videoUp(true);
     // hush: this phone stops her with call.hush, so a PC can send her answers a sentence at a time.
     if (!remote().send('call.start', { hush: true })) { closeSound(); over('Not connected', false); return true; }
     ring = setTimeout(() => { if (state === 'ringing') { remote().send('call.stop', {}); over('No answer from your PC', false); } }, 8000);
@@ -1108,6 +1186,7 @@
   muteKey.el.addEventListener('click', toggleMute);
   barMute.addEventListener('click', toggleMute);
   endKey.el.addEventListener('click', end);
+  videoKey.el.addEventListener('click', () => { if (live()) videoUp(!videoOn); });
   barEnd.addEventListener('click', end);
   shrink.addEventListener('click', hide);
   back.addEventListener('click', show);
@@ -1136,7 +1215,7 @@
         if (state === 'ringing') { state = 'on'; since = Date.now(); }
         them = { voice: message.voice !== false, ears: message.ears !== false };
         draw();
-      } else if (live()) over(reasons[message.reason] || 'Call ended', false);
+      } else if (live()) over(listening ? listenReasons[message.reason] || "Your PC did not answer in time. Tap Voice to try again." : reasons[message.reason] || 'Call ended', false);
     } else if (type === 'chat.tool') toolSaid(message);
     else if (type === 'call.heard') {
       if (typeof message.id !== 'string' || state !== 'on') return;
@@ -1213,7 +1292,14 @@
 
   window.CapriCall = {
     supported,
+    listen,
+    room: () => { if (!listening) hide(); },
+    get active() { return live() && !listening; },
+    stopListening: () => { if (listening) end(); },
+    get listening() { return listening; },
     start,
+    startVideo: () => start({ video: true }),
+    get video() { return videoOn; },
     end,
     get overHer() { return pick.overHer; },
     set overHer(on) {
@@ -1235,6 +1321,7 @@
       echo: !!(mic && mic.echo),
       overOn: pick.overHer,
       sound: sound ? sound.context.state : 'none',
+      video: videoOn,
       trouble
     }),
     get state() { return state; }

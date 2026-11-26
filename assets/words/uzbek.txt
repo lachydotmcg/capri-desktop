@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Qayta chizilgan boshqaruv tasvirda qayta chizilmadi.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA yoki OpenRouter'dan bepul kalit. Yuklab olish shart emas. Internet kerak.
+A held trackpad scroll got a flick's long ease:	Ushlab turilgan sensor paneli aylantirilishi uzoq sekinlashuv oldi:
+A layout change during a slide put the page at	Slayd paytida joylashuv o'zgarishi sahifani shu joyga qo'ydi:
+A layout change left the picture up.	Joylashuv o'zgarishi tasvirni ko'rsatib qoldirdi.
+A model in Ollama, on your local server or on your key.	Ollama'dagi model, mahalliy serveringizda yoki kalitingiz bilan.
+A paid key goes under MAX INTELLIGENCE by itself.	Pullik kalit o'zi MAX INTELLIGENCE ostiga tushadi.
+A plan you already pay for, a key of your own, or Ollama.	Allaqachon to'laydigan tarif, o'zingizning kalitingiz yoki Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Ovoz paneli menyusida panel shrifti nusxasi yo'q.
+A wheel turn right after a slide ended froze the picture.	Slayd tugagandan keyin g'ildirakni aylantirish tasvirni muzlatib qo'ydi.
+ALLOW THIS PHONE?	BU TELEFONGA RUXSAT BERILSINMI?
+ALMOST THERE >	DEYARLI TAYYOR >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	BOSHQA CAPRI EGALLADI · O'CHIRIB QAYTA YOQING
+API key	API kalit
+API key, Claude plan or ChatGPT plan	API kalit, Claude tarifi yoki ChatGPT tarifi
+Add	Qo'shish
+Address	Manzil
+Address and key saved. Use saved to reconnect.	Manzil va kalit saqlandi. Qayta ulash uchun "Saqlangan"ni bosing.
+Advanced Settings	Kengaytirilgan sozlamalar
+All	Hammasi
+All screens	Barcha ekranlar
+Allow	Ruxsat berish
+Almost there. I'll say hi the second my brain's in.	Deyarli tayyor. Miyam ulanishi bilanoq salom aytaman.
+Always	Doim
+Always on top	Doim tepada
+Any Google account works. I opened the page in your browser.	Istalgan Google hisobi ishlaydi. Sahifani brauzeringizda ochdim.
+Applies to every voice	Barcha ovozlarga tegishli
+Apps she may close	Yopishi mumkin bo'lgan ilovalar
+Ask Capri for more	Capri'dan ko'proq so'rang
+Asking your server...	Serveringizdan so'ralmoqda...
+Asks before closing only the apps you choose.	Faqat tanlagan ilovalaringizni yopishdan oldin so'raydi.
+Auto	Avto
+Auto (match what I say)	Avto (aytganimga qarab)
+Automatic: VB-CABLE, else Steam's	Avtomatik: VB-CABLE, aks holda Steam'niki
+BAD RELAY HOST	NOTO'G'RI RELAY HOST
+BIG Z open notepad	BIG Z notepad'ni ochsin
+BRAIN	MIYA
+BRAIN >	MIYA >
+BRAIN ONLINE >	MIYA ONLAYN >
+BRAIN PROVIDER >	MIYA PROVAYDERI >
+BRAIN VOICE CAPRI	MIYA OVOZI CAPRI
+Back	Orqaga
+Back on your saved API key.	Saqlangan API kalitga qaytildi.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Bu kompyuter uchun eng mos:
+Black	Qora
+Blank key means no key.	Bo'sh kalit kalit yo'qligini bildiradi.
+Brain API key	Miya API kaliti
+Brain model	Miya modeli
+Brain provider	Miya provayderi
+Bring here	Bu yerga olib kel
+Bring to this screen	Bu ekranga olib kel
+Browse	Ko'rish
+Browse mods	Modlarni ko'rish
+Browse to a voice model	Ovoz modeliga o'tish
+Browse...	Ko'rish...
+Bubble	Pufak
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, sen bormisan
+CAN'T REACH THE RELAY · RETRYING	RELAYGA ULANA OLMAYAPTI · QAYTA URINILMOQDA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI OVOZ MIYASI
+CHANGED, approve it again.	O'ZGARDI, uni qayta tasdiqlang.
+CLIPS >	KLIPLAR >
+CLOUD VOICE	BULUT OVOZI
+CODE	KOD
+COLORS >	RANGLAR >
+CONNECTED	ULANDI
+CONNECTING	ULANMOQDA
+CUSTOM LOCAL	MAXSUS MAHALLIY
+Call mode (beta)	Qo'ng'iroq rejimi (beta)
+Call mode does not fit.	Qo'ng'iroq rejimi sig'madi.
+Call mode is outside its space.	Qo'ng'iroq rejimi o'z joyidan tashqarida.
+Cancel	Bekor qilish
+Cancel keys	Tugmalarni bekor qilish
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri kodi:
+Capri mods (*	Capri modlari (*
+Capri, hello	Capri, salom
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Xafa bo'lganda tartibsizlik
+Chat with Capri from your phone	Telefoningizdan Capri bilan suhbatlashing
+ChatGPT plan	ChatGPT tarifi
+Check for updates	Yangilanishlarni tekshirish
+Check in on me	Holimni so'rang
+Check in on me is hidden	Holimni so'rang yashirilgan
+Check in on me still decides whether she visits.	Holimni so'rang hali ham uning tashrifini hal qiladi.
+Check in on me's tip missed	Holimni so'rang maslahati o'tkazib yuborildi
+Chess	Shaxmat
+Choose apps	Ilovalarni tanlang
+Choose folder...	Papkani tanlang...
+Choose where future Capri clips are saved	Kelajakdagi Capri klipleri saqlanadigan joyni tanlang
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude yoki ChatGPT tarifi, pullik kalit (OpenAI, Claude, DeepSeek) yoki Ollama.
+Claude plan	Claude tarifi
+Clear	Tozalash
+Cleared.	Tozalandi.
+Click Confirm to keep Down, or press Esc.	Pastga tushirish uchun Tasdiqlash'ni bosing yoki Esc tugmasini bosing.
+Click to open it.	Ochish uchun bosing.
+Clip my games	Mening o'yinlarimni yozib oling
+Clips	Klip
+Close	Yopish
+Close other AIs for me	Men uchun boshqa AI'larni yoping
+Cloud voice	Bulut ovozi
+Cloud voice service	Bulut ovoz xizmati
+Cloud voice setup	Bulut ovozini sozlash
+Code mods can reach your whole PC. Only trusted ones.	Kod modlari butun kompyuteringizga yetishi mumkin. Faqat ishonchlilari.
+Code/Husk Mode	Kod/Husk rejimi
+Codex	Codex
+Commands	Buyruqlar
+Comment on my games	Mening o'yinlarimga izoh bering
+Comments	Izohlar
+Confirm	Tasdiqlash
+Confirm keys	Tugmalarni tasdiqlash
+Connect	Ulash
+Connect / Forget brain key	Ulash / Miya kalitini unutish
+Connect / Forget voice key	Ulash / Ovoz kalitini unutish
+Connect four	To'rtta ketma-ket
+Controls	Boshqaruv
+Copri, what time is it	Copri, soat nechchi
+Copy error details	Xato tafsilotlarini nusxalash
+Copy the key	Kalitni nusxalash
+Copy the key from the page, then press Paste.	Kalitni sahifadan nusxalang, so'ng Joylashtirish'ni bosing.
+Couldn't open that page:	Bu sahifani ochib bo'lmadi:
+Couldn't open that:	Buni ochib bo'lmadi:
+Couldn't open the mods folder:	Modlar papkasini ochib bo'lmadi:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M allaqachon uning Mainframe tugmasi.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N mikrofonni o'chiradi
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V allaqachon uning gapirish tugmasi.
+Ctrl + Alt + V to talk	Gapirish uchun Ctrl + Alt + V
+Custom local voice	Maxsus mahalliy ovoz
+Custom model name	Maxsus model nomi
+Dance	Raqsga tushish
+Dance to music	Musiqaga raqs tushish
+Default	Standart
+Default (follows Windows)	Standart (Windows'ga mos)
+Default duration for clip that and automatic clips	Klip "shuni saqla" va avtomatik kliplar uchun standart davomiylik
+Default length	Standart uzunlik
+Default model	Standart model
+Delay	Kechikish
+Deny	Rad etish
+Discard	Bekor qilish
+Discard + reload	Bekor qilish + qayta yuklash
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Kutishni xohlamaysizmi? Bepul kalit meni bir daqiqada gapirtiradi.
+Done	Tayyor
+EXTRA REQUEST JSON >	QO'SHIMCHA SO'ROV JSON >
+EXTRAS >	QO'SHIMCHALAR >
+Edit	Tahrirlash
+Edit check-in lines	Tekshiruv iboralarini tahrirlash
+Edit check-in lines has the wrong view or dimming	Tekshiruv iboralarini tahrirlashda ko'rinish yoki xiralashuv noto'g'ri
+Edit check-in lines is out of place	Tekshiruv iboralarini tahrirlash joyida emas
+Edit controls	Boshqaruvni tahrirlash
+ElevenLabs API key	ElevenLabs API kaliti
+ElevenLabs voice ID	ElevenLabs ovoz ID'si
+English	Ingliz tili
+Enter the game's name first.	Avval o'yin nomini kiriting.
+Every	Har
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Har bir mod yuklanishidan oldin zararli dasturga tekshiriladi. Kod modlari ishga tushishdan oldin hali ham so'raydi.
+Explore after	Keyin o'rganish
+Explore while I'm away	Men yo'q paytimda o'rganish
+Extra request JSON	Qo'shimcha so'rov JSON
+Extras	Qo'shimchalar
+FREE KEY	BEPUL KALIT
+FREE KEY >	BEPUL KALIT >
+Fast hands in games	O'yinlarda tez qo'llar
+File editor	Fayl tahrirlovchi
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs va boshqalar Mainframe'da OVOZ ostida.
+Follow-up messages	Davom ettiruvchi xabarlar
+Forget	Unutish
+Fork capri-mods	capri-mods'ni fork qilish
+Frame rate	Kadr tezligi
+Free	Bepul
+Free and private, works offline. Downloads	Bepul va shaxsiy, oflaynda ishlaydi. Yuklab oladi
+Free and private, works offline. Downloads the best model for this PC.	Bepul va shaxsiy, oflaynda ishlaydi. Shu kompyuter uchun eng yaxshi modelni yuklab oladi.
+Free key	Bepul kalit
+Free key providers	Bepul kalit provayderlari
+Free keys can be rate limited and slow.	Bepul kalitlarda so'rovlar cheklangan va sekin bo'lishi mumkin.
+Free voice in games	O'yinlarda bepul ovoz
+Free voice style	Bepul ovoz uslubi
+Free voice:	Bepul ovoz:
+Free voice: Her own	Bepul ovoz: Uning o'zi
+Free · local model	Bepul · mahalliy model
+GAMES >	O'YINLAR >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	O'yin izohlari Ekranimni tomosha qilish'dan alohida ishlaydi. O'chirilgan bo'lsa ularni to'xtatadi, O'yin rejimida ham; Faqat voqealar va Gapiruvchan o'yiningizni kuzatishiga ruxsat beradi
+Game controls	O'yin boshqaruvi
+Game name	O'yin nomi
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	O'yin ovoz sezgirligi. Quloqchin past bo'lsa-yu Windows {0}% da bo'lsa va u har bir tovushga javob bersa, uni pasaytiring; O'chirilgan o'yin tovushlarini e'tiborsiz qoldiradi
+Game sounds	O'yin tovushlari
+Games	O'yinlar
+Gaming Mode	O'yin rejimi
+Gaming Mode key	O'yin rejimi tugmasi
+Gaming Mode:	O'yin rejimi:
+Gaming Mode: Ctrl + Alt + G	O'yin rejimi: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE olish
+Get VB-CABLE (free)...	VB-CABLE olish (bepul)...
+Get free voice	Bepul ovoz olish
+Getting your Fish Audio voices...	Fish Audio ovozlaringiz olinmoqda...
+Giant	Ulkan
+Glitch	Nosozlik
+Glitch in at startup	Ishga tushganda nosozlik
+Go to sleep	Uxlashga ket
+Go to the next screen	Keyingi ekranga o'ting
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · bepul daraja · so'rovlar cheklangan
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude yoki ChatGPT tarifingiz yoki o'z kalitingiz bormi? Tanlang, men ulanaman.
+Got it, just me. Right-click me any time for Capri Mainframe.	Tushunarli, faqat men. Istalgan vaqtda Capri Mainframe uchun meni o'ng tugmani bosib turing.
+Grey	Kulrang
+H.{0} video bitrate target; higher values make larger files	H.{0} video bitreyt maqsadi; yuqori qiymatlar kattaroq fayllar yaratadi
+HABITS >	ODATLAR >
+HER HANDS >	UNING QO'LLARI >
+HER JOBS >	UNING ISHLARI >
+HER MEMORY >	UNING XOTIRASI >
+HER MODS >	UNING MODLARI >
+HH:mm	HH:mm
+HOW I SOUND >	MEN QANDAY OVOZLAYMAN >
+Hang here	Shu yerda qol
+Have Ollama? Open it, then press Refresh.	Ollama bormi? Uni oching, so'ng Yangilash'ni bosing.
+Head pats	Boshni silash
+Hearing	Eshitish
+Hearing engine	Eshitish dvigateli
+Hearing fix	Eshitishni tuzatish
+Hearing status	Eshitish holati
+Help	Yordam
+Help page	Yordam sahifasi
+Her colors	Uning ranglari
+Her folder	Uning papkasi
+Her memories	Uning xotiralari
+Her own colors are back.	Uning o'z ranglari qaytdi.
+Her own notes (no vault)	Uning o'z eslatmalari (vault yo'q)
+Her perch frames per second	Uning o'tirish joyi kadrlari soniyada
+Her personality	Uning shaxsiyati
+Her size	Uning o'lchami
+Her speaker	Uning karnayi
+Her speaker is hidden or outside VOICE	Uning karnayi yashirilgan yoki OVOZdan tashqarida
+Her speaker overlaps the mic or hearing row	Uning karnayi mikrofon yoki eshitish qatori bilan ustma-ust tushadi
+Her speaker:	Uning karnayi:
+Her speaker: Default	Uning karnayi: Standart
+Her voice in your mic	Uning ovozi mikrofoningizda
+Her voice in your mic: loudness	Uning ovozi mikrofoningizda: balandlik
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Uning ovozining o'zi. Uning pitch'i Sozlamalar > OVOZ > Pitch, va ular birga harakatlanadi.
+Her voice joins your mic only in call mode.	Uning ovozi mikrofoningizga faqat qo'ng'iroq rejimida qo'shiladi.
+Her voice volume	Uning ovoz balandligi
+Her voice's pitch	Uning ovozining pitch'i
+Her voice's pitch, the same as Settings > VOICE > Pitch	Uning ovozining pitch'i, Sozlamalar > OVOZ > Pitch bilan bir xil
+Her voice's speed	Uning ovozining tezligi
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Uning ovozi va uning ostida aralashtirilgan ikki nusxa, har birining o'z pitch'i va kechikishi bilan.
+Her voices · free	Uning ovozlari · bepul
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Salom, choom. Men Capri. Gapira olishim uchun miya kerak. Bittasini tanlang.
+Hide / Show Capri	Capri'ni yashirish / ko'rsatish
+Hide / Show key	Yashirish / ko'rsatish tugmasi
+Hide Capri	Capri'ni yashirish
+Hide for now	Hozircha yashirish
+Hide her	Uni yashirish
+Hide in full screen	To'liq ekranda yashirish
+Hide this	Buni yashirish
+Hide, keep player	Yashirish, pleyer qolsin
+Hide/show:	Yashirish/ko'rsatish:
+Hide/show: Ctrl + Alt + H	Yashirish/ko'rsatish: Ctrl + Alt + H
+Hologram	Gologramma
+Hop off	Tushib ket
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Qimirlamay turgan kompyuter uni uxlatish uchun qancha vaqt kerak; besh daqiqa hali ham sizning uzoqda ekaningiz sifatida hisoblanadi
+How long a stroke over her a head pat needs	Bosh silash uchun ustidan o'tish qancha davom etishi kerak
+How long her replies stay up	Uning javoblari qancha vaqt ko'rinib turadi
+How long you are away before she scrolls a browser or reader	Brauzer yoki o'quvchini aylantirish uchun qancha vaqt uzoqda bo'lishingiz kerak
+How much her voice glitches	Uning ovozi qanchalik nosozlanadi
+How much of the chat she keeps	Suhbatning qancha qismini saqlaydi
+How much she wanders	U qancha sayr qiladi
+How often she pops in to say hi	U salom berish uchun qancha tez-tez kiradi
+How robotic her voice sounds	Uning ovozi qanchalik robotga o'xshaydi
+How to	Qanday
+Huge	Juda katta
+I can hear you.	Sizni eshityapman.
+I glance at your screen and comment. Costs a little on a paid brain.	Ekraningizga qarab izoh beraman. Pullik miyada biroz sarflanadi.
+I keep listening. Say my name, then just talk.	Tinglashda davom etaman. Ismimni ayting, so'ng shunchaki gapiring.
+I speak	Men gapiraman
+I talk about your game as you play. Costs a little on a paid brain.	O'ynayotganingizda o'yiningiz haqida gapiraman. Pullik miyada biroz sarflanadi.
+I type my replies and stay quiet.	Javoblarimni yozaman va jim turaman.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Javob bermayman va hech narsa hech qayerga yuborilmaydi. Baribir yonimda bo'laman, musiqangizga raqs tushaman va so'ragan tez ishlarni bajaraman, masalan ovoz balandligi.
+I'll talk in	Men shunda gapiraman
+IN DISCORD >	DISCORDDA >
+INSTALLED >	O'RNATILGAN >
+Import a Capri mod	Capri modini import qilish
+Import mod	Modni import qilish
+In full screen	To'liq ekranda
+In games	O'yinlarda
+Input	Kiritish
+Input, Output or How to overlaps a row	Kiritish, Chiqarish yoki Qanday qator bilan ustma-ust tushadi
+Input:	Kiritish:
+Input: default	Kiritish: standart
+Install	O'rnatish
+Install mod	Modni o'rnatish
+Installed.	O'rnatildi.
+It may ask for a phone number. I opened the page in your browser.	Telefon raqamini so'rashi mumkin. Sahifani brauzeringizda ochdim.
+It still does its own job in other apps too.	U boshqa ilovalarda ham o'z ishini bajaradi.
+It won't type in other apps while she runs.	U ishlayotganda boshqa ilovalarda yozmaydi.
+JUST ME >	FAQAT MEN >
+Jealous of other AIs	Boshqa AI'larga hasad
+Join the Discord	Discord'ga qo'shiling
+KB.	KB.
+KEYS	TUGMALAR
+KEYS >	TUGMALAR >
+Keep PC awake for jobs	Ishlar uchun PC'ni uyg'oq saqlash
+Keep player	Pleyer qolsin
+Keeps the last two minutes of your game in memory. Say clip that to save it.	O'yiningizning oxirgi ikki daqiqasini xotirada saqlaydi. Saqlash uchun "shuni klip qil" deng.
+Key	Kalit
+Key cleared: a model file needs none.	Kalit tozalandi: model fayliga kalit kerak emas.
+Key cleared: paste the key for	Kalit tozalandi: kalitni shu yerga joylashtiring:
+Key forgotten.	Kalit unutildi.
+Key. It goes only to this server, as a Bearer key	Kalit. U faqat shu serverga Bearer kalit sifatida yuboriladi
+Kokoro only, like es	Faqat Kokoro, es kabi
+LAST THING >	OXIRGI NARSA >
+LISTENING >	TINGLAYAPTI >
+Language	Til
+Large	Katta
+Last thing. These cost a little or use your mic, so they're your pick.	Oxirgi narsa. Bular biroz pul sarflaydi yoki mikrofoningizdan foydalanadi, shuning uchun tanlov sizniki.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Oxirgi narsa. Bular biroz pul sarflaydi yoki mikrofoningizdan foydalanadi, shuning uchun tanlov sizniki. Keyin sizni qanday chaqirishni bilmoqchiman.
+Layers	Qatlamlar
+Learn more	Batafsil
+Leaving Settings threw its picture away straight away.	Sozlamalardan chiqish uning tasvirini darhol olib tashladi.
+Legacy stand	Eski stend
+Lie down	Yot
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Birga tomosha qilayotganda xotirada saqlanadigan PC dialog qatorlari. "Uning ko'rganini eslash" yoqilganda eng eski yarmi eslatmaga aylanadi
+Listen for Capri	Capri'ni tinglang
+Live reactions	Jonli reaksiyalar
+Local server address	Mahalliy server manzili
+Long	Uzun
+Longest wait (minutes)	Eng uzun kutish (daqiqa)
+Looking at this PC...	Bu PC'ga qarayapman...
+Looking for Ollama. Open it if it isn't running.	Ollama qidirilmoqda. Ishlamayotgan bo'lsa, uni oching.
+Looking for a brain...	Miya qidirilmoqda...
+Looking in the mods directory for updates...	Modlar katalogidan yangilanishlar qidirilmoqda...
+Looking in the mods directory...	Modlar katalogida qidirilmoqda...
+Looking...	Qidirilmoqda...
+MAIN >	ASOSIY >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	O'RTACHA INTELLIGENCE
+MEMORY VAULT >	XOTIRA OMBORI >
+MODS	MODLAR
+MODS >	MODLAR >
+MODS DIRECTORY >	MODLAR KATALOGI >
+MODS INSTALLED COLORS	O'RNATILGAN MODLAR RANGLARI
+MOVES >	HARAKATLAR >
+MY BRAIN	MENING MIYAM
+MY FREE VOICE	MENING BEPUL OVOZIM
+MY PLAN OR KEY	MENING TARIFIM YOKI KALITIM
+MY PLAN OR KEY >	MENING TARIFIM YOKI KALITIM >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio ovozingiz yaratildi. Eshitish uchun Sinov'ni bosing.
+Mainframe colours	Mainframe ranglari
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe ranglari. Night City qizil va ko'k-yashil; Qora, Oq va Kulrang Mainframe'ni, uning menyularini, Yozish qutisini va eslatmalarini o'zgartiradi
+Mainframe frames	Mainframe ramkalari
+Mainframe key	Mainframe tugmasi
+Mainframe size	Mainframe o'lchami
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe o'lchami. Avto Virtual Super Resolution yoki DSR katta ish stolini kichikroq ekranga siqqanda uni kattaroq qiladi
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Pastga
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Fish Audio ovozingiz yaratilmoqda...
+Max reply	Maksimal javob
+Maximum clip resolution, keeping the game's shape without upscaling	Maksimal klip ruxsati, o'yin shaklini masshtablashtirmasdan saqlaydi
+Medium	O'rtacha
+Memory	Xotira
+Memory size	Xotira hajmi
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama va uning o'rnatilgan miyasi uchun tokenlarda xotira hajmi. So'rov ko'proq kerak bo'lsa, Avto kattalashadi
+Mg	Mg
+Mic level:	Mikrofon darajasi:
+Mic test finished. Sound is reaching Capri.	Mikrofon sinovi tugadi. Tovush Capri'ga yetib bormoqda.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: standart
+Microphone	Mikrofon
+Mini player	Mini pleyer
+Mini player over full screen	To'liq ekran ustida mini pleyer
+Mini-games	Mini-o'yinlar
+Minimising the Mainframe left it sliding.	Mainframe'ni minimallashtirish uni sirpanib qoldirdi.
+Minimize	Kichraytirish
+Mod filter	Modlar filtri
+Mod options	Mod sozlamalari
+Mod pages	Mod sahifalari
+Mod rules	Mod qoidalari
+Mod sort	Modlarni saralash
+Mod switch	Mod almashtirish
+Model	Model
+Model folder	Model papkasi
+Model name, optional	Model nomi, ixtiyoriy
+Mods	Modlar
+Mods directory	Modlar katalogi
+Mods folder	Modlar papkasi
+Most NVIDIA models can't see your screen.	NVIDIA modellarining aksariyati ekraningizni ko'ra olmaydi.
+Mouse wheel notches got a flick's long ease:	Sichqoncha g'ildiragi qadamlari sirpanishning uzun yumshashini oldi:
+Move	Ko'chirish
+Move key to MAX INTELLIGENCE	Tugmani MAX INTELLIGENCE'ga ko'chirish
+Move to MAX	MAX'ga ko'chirish
+Music	Musiqa
+Music app	Musiqa ilovasi
+Music app: where she plays music when you don't name an app	Musiqa ilovasi: ilova nomini aytmasangiz, u musiqani qayerda ijro etadi
+Mute	Ovozsiz
+Mute her	Uni ovozsiz qilish
+Mute mic key	Mikrofonni ovozsiz qilish tugmasi
+Mute mic:	Mikrofonni ovozsiz qilish:
+Mute mic: Ctrl + Alt + N	Mikrofonni ovozsiz qilish: Ctrl + Alt + N
+My brain	Mening miyam
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Miyam tushmoqda. Ulanishi bilanoq salom aytaman, shundan keyin men bilan gaplashishingiz mumkin.
+My brain's on its way. While it comes down, let's sort out how I sound.	Miyam yo'lda. U tushayotganda, keling, qanday ovozlashimni sozlaymiz.
+My provider	Mening provayderim
+NO AI	AI YO'Q
+NO PHONES CONNECTED	ULANGAN TELEFON YO'Q
+NO PREVIEW	OLDINGI KO'RINISH YO'Q
+NORMAL	ODDIY
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · bepul · gavjum vaqtlarda ko'pincha sekin
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA'ning bepul API'si gavjum vaqtlarda ko'pincha sekin bo'ladi.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) yoki OpenRouter API kaliti
+Names:	Nomlar:
+Needs a key	Kalit kerak
+Never	Hech qachon
+New code	Yangi kod
+New voice from a clip...	Klipdan yangi ovoz...
+Next	Keyingi
+Night City	Night City
+No AI	AI yo'q
+No AI · no brain at all	AI yo'q · umuman miya yo'q
+No brain runs, and nothing is sent anywhere.	Hech qanday miya ishlamaydi va hech narsa hech qayerga yuborilmaydi.
+No brain yet	Hali miya yo'q
+No code open	Hech qanday kod ochilmagan
+No limit	Cheklovsiz
+No mic found	Mikrofon topilmadi
+No mods in the directory yet.	Hali modlar yo'q.
+No mods match that.	Bu bo'yicha hech qanday mod mos kelmaydi.
+No mods match.	Hech qanday mod mos kelmaydi.
+No phones yet	Hali telefonlar yo'q
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Hali virtual mikrofon yo'q. Chiqarishni tanlang, so'ng VB-CABLE olish (bepul).
+None yet: pick to get VB-CABLE (free)	Hali yo'q: VB-CABLE olish uchun tanlang (bepul)
+Normal	Oddiy
+Not a relay host	Relay host emas
+Not imported. Nothing ran.	Import qilinmadi. Hech narsa ishga tushmadi.
+Not updated. The old one is still in.	Yangilanmadi. Eski hali ham o'rnatilgan.
+Nothing needed updating.	Yangilash kerak emas edi.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Hech narsa yuklab olinmaydi, hech narsa hech qayerga yuborilmaydi. Men javob bermayman. Mainframe'da istalgan vaqtda miya qo'shing.
+Nothing to show from the mods directory.	Modlar katalogidan ko'rsatadigan hech narsa yo'q.
+Nothing? Windows Settings > Privacy & security > Microphone.	Hech narsa eshitilmayaptimi? Windows sozlamalari > Maxfiylik va xavfsizlik > Mikrofon.
+Nous Portal keys aren't supported yet.	Nous Portal kalitlari hali qo'llab-quvvatlanmaydi.
+OBS	OBS
+OFF	O'CHIQ
+OLLAMA	OLLAMA
+ON	YOQIQ
+ON THIS PC	BU PC'DA
+OR A KEY	YOKI KALIT
+Obsidian memory vault	Obsidian xotira ombori
+Off	O'chiq
+Off. Turn on Her voice in your mic above.	O'chiq. Yuqorida Uning ovozi mikrofoningizda ni yoqing.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	O'chiq: u har doimgidek ovozlaydi. Yoqiq: uning barcha ovozlari, ElevenLabs ham.
+Often	Ko'pincha
+On	Yoqiq
+On / Off	Yoqiq / O'chiq
+On: your mic and her voice are going in.	Yoqiq: mikrofoningiz va uning ovozi kirmoqda.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Bitta JSON obyekti, bu miya yuboradigan har bir so'rovga qo'shiladi. U har qanday umumiy nom uchun Capri qiymatini almashtiradi va modelga qarshi tekshirilmaydi.
+Online speech recognition	Onlayn nutqni aniqlash
+Open Capri Mainframe	Capri Mainframe'ni oching
+Open Ollama, I'll find it	Ollama'ni oching, topaman
+Open clips folder	Klip papkasini oching
+Open her memories	Uning xotiralarini oching
+Open her notes	Uning eslatmalarini oching
+Open mods folder	Modlar papkasini oching
+Open the page again	Sahifani qayta oching
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA yoki OpenRouter.
+OpenAI-compatible server or provider.	OpenAI bilan mos server yoki provayder.
+OpenRouter · free models only	OpenRouter · faqat bepul modellar
+Optional	Ixtiyoriy
+Optional. Blank means no key.	Ixtiyoriy. Bo'sh bo'lsa kalit yo'q degani.
+Options	Variantlar
+Out of the box a little higher, just behind her.	Standartdan biroz balandroq, uning orqasida.
+Out of the box lower, just behind her.	Standartdan pastroq, uning orqasida.
+Output	Chiqarish
+Output:	Chiqarish:
+Output: none	Chiqarish: yo'q
+PHONE CONNECTED	TELEFON ULANDI
+PHONES >	TELEFONLAR >
+PHONES CONNECTED	TELEFONLAR ULANDI
+PREBUILT LOCAL	OLDINDAN O'RNATILGAN MAHALLIY
+PUBLISH MOD >	MODNI E'LON QILISH >
+Pair a phone	Telefonni juftlash
+Paste	Joylashtirish
+Paste API key	API kalitni joylashtirish
+Paste a brain API key	Miya API kalitini joylashtiring
+Paste reads your clipboard once, when you press it.	Joylashtirish bosganingizda buferni bir marta o'qiydi.
+Paste your key here	Kalitingizni shu yerga joylashtiring
+Pat stroke	Bosh silash
+Perch	Joy
+Perch over {0} fps uses more CPU	{0} fps dan yuqori joy ko'proq CPU ishlatadi
+Pick Output to get it.	Olish uchun Chiqarishni tanlang.
+Pick a brain so I can talk back. You can change it any time.	Javob bera olishim uchun miyani tanlang. Istalgan vaqtda o'zgartirishingiz mumkin.
+Pick a clip of a voice you have the rights and consent to use	Huquqlaringiz va roziligingiz bor ovoz klipini tanlang
+Pick a free model. I opened the page in your browser.	Bepul modelni tanlang. Sahifani brauzeringizda ochdim.
+Pick a new clip of you...	Yangi klip tanlang...
+Pick a voice model...	Ovoz modelini tanlang...
+Pick one. Only one brain runs at a time.	Bittasini tanlang. Bir vaqtda faqat bitta miya ishlaydi.
+Pick the note her memories go in	Uning xotiralari joylashadigan eslatmani tanlang
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Huquqlaringiz va roziligingiz bor ovozdan {0} dan {1} gacha soniya tanlang
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Siz gapirayotgan {0} dan {1} gacha soniyani yoki huquqlaringiz va roziligingiz bor ovozni tanlang
+Pitch	Pitch
+Play	Ijro
+Play...	Ijro...
+Player only	Faqat pleyer
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modellari bu klipning ovozini nusxalaydi. Eshitish uchun Sinov'ni bosing.
+Pop-in times	Ko'rinish vaqtlari
+Pop-ins	Ko'rinishlar
+Power saver	Quvvat tejash
+Power saver: how lightly she runs in games, or always	Quvvat tejash: u o'yinlarda qanchalik yengil ishlaydi, yoki doim
+Preset	Preset
+Press Create API key	Create API key'ni bosing
+Press Create Key	Create Key'ni bosing
+Press Generate API Key	Generate API Key'ni bosing
+Press Test and say something, so I know I can hear you.	Test'ni bosing va biror narsa ayting, shunda sizni eshitayotganimni bilasiz.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Bitta tugma yoki Ctrl, Alt, Shift yoki Win bilan birga bosing.
+Press new keys, then Confirm	Yangi tugmalarni bosing, so'ng Tasdiqlash
+Provider	Provayder
+Provider API key, optional	Provayder API kaliti, ixtiyoriy
+Provider base URL	Provayder asosiy URL'i
+Provider forgotten.	Provayder unutildi.
+Provider overlaps the brain name or note	Provayder miya nomi yoki eslatma bilan ustma-ust tushadi
+Publish	Nashr qilish
+Publish mod	Modni nashr qilish
+Push to talk is off.	Gapirish tugmasi o'chiq.
+Push to talk key	Gapirish tugmasi
+Push to talk:	Gapirish tugmasi:
+Push to talk: not set	Gapirish tugmasi: o'rnatilmagan
+QR CODE >	QR KOD >
+QR hidden while streaming	Striming vaqtida QR yashirilgan
+Quick	Tez
+Quiet key	Jim tugmasi
+Quiet:	Jim:
+Quiet: Ctrl + Alt + P	Jim: Ctrl + Alt + P
+Quit Capri	Capri'dan chiqish
+RELAY >	RELAY >
+REMOTE >	MASOFADAN BOSHQARUV >
+RUNS CODE.	KOD ISHLATADI.
+Rarely	Kamdan-kam
+Rate mod	Modni baholash
+Reading its README...	Uning README'sini o'qimoqda...
+Refresh	Yangilash
+Reinstall	Qayta o'rnatish
+Reload	Qayta yuklash
+Reloaded.	Qayta yuklandi.
+Remember our chats	Suhbatlarimizni eslab qol
+Remember what she sees	Uning ko'rganini eslab qol
+Remote	Masofadan boshqarish
+Remote off	Masofadan boshqarish o'chiq
+Remote on	Masofadan boshqarish yoqiq
+Remove	Olib tashlash
+Remove all phones	Barcha telefonlarni olib tashlash
+Replies	Javoblar
+Reply length	Javob uzunligi
+Report a problem	Muammo haqida xabar berish
+Reset colors	Ranglarni tiklash
+Reset to her default	Standart qiymatiga qaytarish
+Resolution	Ruxsat
+Restart to update	Yangilash uchun qayta ishga tushirish
+Restless	Bezovta
+Revoke	Bekor qilish
+Revoke also removes the phones its links added	Bekor qilish, uning havolalari qo'shgan telefonlarni ham olib tashlaydi
+Ride cursor	Kursorda uchish
+Ride cursor / Hop off	Kursorda uchish / Tushish
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Men bilan istalgan vaqtda o'ng tugmani bosing va Capri Mainframe'ni oching. MIYA ostida miya yoqiladi.
+Right-click me any time for the Mainframe, Help and the Discord.	Men bilan istalgan vaqtda o'ng tugmani bosing va Mainframe, Yordam va Discord'ni oching.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox yoki boshqa ilova: tanlang
+Robot	Robot
+Rock, paper, scissors	Tosh, qog'oz, qaychi
+Run this code mod?	Bu kod modini ishga tushirilsinmi?
+Running on this PC	Bu PC'da ishlamoqda
+Running on this PC · :	Bu PC'da ishlamoqda · :
+Runs Claude Code or Codex on this PC, signed in.	Bu PC'da Claude Code yoki Codex'ni kirgan holda ishga tushiradi.
+Runs on your PC. No key, no credits.	Kompyuteringizda ishlaydi. Kalit yo'q, kredit yo'q.
+SCAN WITH YOUR PHONE · EXPIRES	TELEFON BILAN SKANERLANG · MUDDATI
+SECURITY >	XAVFSIZLIK >
+SKILL.	KO'NIKMA.
+SKIN.	TERI.
+SORT BY	SARALASH
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	TOVUSHLAR ODATLAR MIYA KUZATISH CAPRI DOOMSCROLL OB-HAVO KLIPLAR O'YINLAR TUGMALAR HARAKATLAR OVOZ SIZ
+Same as I speak	Mening tilim kabi
+Same as her ears (VOICE > Mic)	Uning quloqlari bilan bir xil (OVOZ > Mikrofon)
+Same code on the phone?	Telefondagi kod bir xilmi?
+Save	Saqlash
+Save big moments	Katta lahzalarni saqlash
+Save folder	Saqlash papkasi
+Save your changes, or press Discard + reload.	O'zgarishlarni saqlang yoki Bekor qilish + qayta yuklash ni bosing.
+Save your changes, or press Discard.	O'zgarishlarni saqlang yoki Bekor qilish ni bosing.
+Saved.	Saqlandi.
+Saved. Ctrl + Alt + O opens her Mainframe.	Saqlandi. Ctrl + Alt + O uning Mainframe'ini ochadi.
+Saving your rating...	Bahoyingiz saqlanmoqda...
+Say her name anywhere to chat	Suhbatlashish uchun istalgan joyda uning ismini ayting
+Screens	Ekranlar
+Screens is hidden or outside WATCH	Ekranlar yashirilgan yoki KUZATISH'dan tashqarida
+Screens overlaps a WATCH row	Ekranlar KUZATISH qatori bilan ustma-ust tushadi
+Screens to watch	Kuzatiladigan ekranlar
+Sealed end to end	Boshidan oxirigacha shifrlangan
+Search by name or author	Nom yoki muallif bo'yicha qidirish
+Search installed mods	O'rnatilgan modlarni qidirish
+Search mods	Modlarni qidirish
+Search name, author or description	Nom, muallif yoki tavsif bo'yicha qidirish
+Security	Xavfsizlik
+Security:	Xavfsizlik:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Sozlash
+Set up her brain	Uning miyasini sozlash
+Set up your voice model	Ovoz modelingizni sozlang
+Setting up her brain	Uning miyasi sozlanmoqda
+Settings	Sozlamalar
+Settings / Back	Sozlamalar / Orqaga
+Settings folds the wrong rows above BRAIN	Sozlamalar MIYA ustidagi noto'g'ri qatorlarni yig'moqda
+Settings had nothing to watch.	Sozlamalarda ko'radigan hech narsa yo'q edi.
+Settings lost keyboard focus during the Tab walk	Tab yurishi paytida Sozlamalar klaviatura fokusini yo'qotdi
+Setup guide	Sozlash qo'llanmasi
+Setup stopped	Sozlash to'xtatildi
+She answers in	U javob beradi
+She can read it when it fits.	Mos kelganda o'qiy oladi.
+She glances at your screen and comments. Costs a little on a paid brain.	Ekraningizga qarab izoh beradi. Pullik miyada biroz sarflanadi.
+She keeps listening. Say her name, then just talk.	U tinglashda davom etadi. Ismini ayting, so'ng gapiring.
+She reacts to your game until you close it.	U o'yiningizni yopguningizcha unga reaksiya bildiradi.
+She reads these controls before each game job.	U har bir o'yin ishidan oldin bu boshqaruvlarni o'qiydi.
+She talks about your game as you play. Costs a little on a paid brain.	O'ynayotganingizda o'yiningiz haqida gapiradi. Pullik miyada biroz sarflanadi.
+She uses it when she plays	O'ynaganda undan foydalanadi
+Short	Qisqa
+Shortest wait (minutes)	Eng qisqa kutish (daqiqa)
+Show Capri	Capri'ni ko'rsatish
+Show QR	QR ni ko'rsatish
+Show my mod file	Mod faylimni ko'rsatish
+Show on Discord	Discord'da ko'rsatish
+Shum, what time is it	Shum, soat nechchi
+Sign in	Kirish
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Kiring, kalit yarating va nusxalang. So'ng Joylashtirish'ni bosing, men ulanaman.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Kiring, Create API key'ni bosing va nusxalang. So'ng Joylashtirish'ni bosing, men ulanaman.
+Silent · text only	Jim · faqat matn
+Simple / Advanced Settings	Oddiy / Kengaytirilgan sozlamalar
+Simple Settings	Oddiy sozlamalar
+Simple Settings left a gap under Check in on me	Oddiy sozlamalar Meni tekshirish'dan pastda bo'shliq qoldirdi
+Sit here	Shu yerda o'tir
+Sit on windows	Oynalarda o'tir
+Size	Hajm
+Skip	O'tkazib yuborish
+Skip all	Hammasini o'tkazib yuborish
+Skip for now	Hozircha o'tkazib yuborish
+Sleep	Uyqu
+Small	Kichik
+Sometimes	Ba'zan
+Sound effects volume	Tovush effektlari balandligi
+Sound sensitivity	Tovush sezgirligi
+Sounds	Tovushlar
+Speaker or clip	Karnay yoki klip
+Speech model	Nutq modeli
+Speed	Tezlik
+Start with Windows	Windows bilan ishga tushirish
+Start with this!	Buni boshlang!
+Starting...	Boshlanmoqda...
+Stay	Qolish
+Stay on my model	Mening modelimda qoling
+Still checking your mics...	Mikrofonlaringiz hali ham tekshirilmoqda...
+Still checking your speakers...	Karnaylaringiz hali ham tekshirilmoqda...
+Still checking your virtual mics...	Virtual mikrofonlaringiz hali ham tekshirilmoqda...
+Stop	To'xtatish
+Stopped using it. Couldn't remove the saved provider.	Ishlatish to'xtatildi. Saqlangan provayderni olib tashlab bo'lmadi.
+Support	Qo'llab-quvvatlash
+Sure?	Aniqmi?
+Sure? moved to a different phone	Aniqmi? boshqa telefonga ko'chirildi
+TALK TO ME	MEN BILAN GAPLASHING
+TEXT ONLY	FAQAT MATN
+Tab landed past the first option of	Tab birinchi variantdan o'tib ketdi
+Tab never reached the quiet key	Tab hech qachon jim tugmasiga yetmadi
+Tab reached nothing	Tab hech narsaga yetmadi
+Tab selected a control without moving keyboard focus	Tab klaviatura fokusini ko'chirmasdan boshqaruvni tanladi
+Talk	Gapirish
+Talk key	Gapirish tugmasi
+Talk:	Gapirish:
+Talk: Ctrl + Alt + V	Gapirish: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Maqsadli tasvir olish kadr tezligi; yuklama yoki xotira byudjeti ostida pasayishi mumkin
+Teases when another AI comes to the front.	Boshqa AI oldinga chiqqanda masxara qiladi.
+Test	Sinov
+That address doesn't work. Try https://... or http://localhost:{0}.	Bu manzil ishlamaydi. https://... yoki http://localhost:{0} ni sinab ko'ring.
+That code expired	Bu kodning muddati tugadi
+That mod is no longer installed. The list is updated.	Bu mod endi o'rnatilmagan. Ro'yxat yangilandi.
+That's a paid key: it goes under MAX INTELLIGENCE.	Bu pullik kalit: u MAX INTELLIGENCE ostiga tushadi.
+The Mainframe stayed composited while sliding.	Mainframe sirpanayotganda kompozit holatda qoldi.
+The Mainframe stayed uncomposited after the slide.	Mainframe sirpanishdan keyin kompozitsiyasiz qoldi.
+The controls moved while the picture was sliding.	Tasvir sirpanayotganda boshqaruvlar siljidi.
+The cover stayed visible after the slide ended.	Sirpanish tugagandan keyin muqova ko'rinib turdi.
+The frame thread kept running after the page settled.	Sahifa joylashgandan keyin kadr oqimi ishlashda davom etdi.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	U bera oladigan eng uzun javob, tokenlarda. Avto yuqoridagi Javoblar bilan chegaralanadi; {0}K yoki {1}K unga davom etish imkonini beradi. Ishlar kerak bo'lganda ko'proq joy oladi
+The longest wait must be at least the shortest wait.	Eng uzun kutish kamida eng qisqa kutishga teng bo'lishi kerak.
+The picture doesn't match the scrolled page:	Tasvir aylantirilgan sahifaga mos kelmaydi:
+The picture of Settings doesn't match the page:	Sozlamalar tasviri sahifaga mos kelmaydi:
+The picture stayed up after the slide ended.	Sirpanish tugagandan keyin tasvir ko'rinib qoldi.
+The picture wasn't showing while it slid.	Sirpanayotganda tasvir ko'rinmayotgan edi.
+The provider sheet is crowded:	Provayderlar varaqasi to'lib ketgan:
+The voice panel has no screen DPI.	Ovoz panelida ekran DPI yo'q.
+The voice panel's menus share one font.	Ovoz panelining menyulari bitta shriftni ishlatadi.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Buferda hali kalit yo'q. Uni sahifadan nusxalang, so'ng Joylashtirish'ni bosing.
+These start off. Each costs a little or uses your mic.	Bular o'chiq boshlanadi. Har biri biroz sarflaydi yoki mikrofoningizdan foydalanadi.
+These start off. Turn on what you want. They're all in Settings too.	Bular o'chiq boshlanadi. Xohlaganlaringizni yoqing. Ular Sozlamalarda ham bor.
+They can also call you Big Z, Capricorn or Nova	Ular meni Big Z, Capricorn yoki Nova deb ham chaqirishi mumkin
+They can also call you Nova, Big Z or Capricorn	Ular meni Nova, Big Z yoki Capricorn deb ham chaqirishi mumkin
+Thinking	O'ylayapman
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Bu mening bepul ovozim. Test'ni bosing, biror narsa ayting, va sizni eshitayotganimni ko'rsataman.
+This mod has no description yet.	Bu modda hali tavsif yo'q.
+Tic-tac-toe	Tik-tak-to
+Time between glances	Qarashlar orasidagi vaqt
+Tiny	Juda kichik
+Try again	Qayta urinib ko'ring
+Turn Remote on first	Avval Masofadan boshqarish'ni yoqing
+Turn off mini player	Mini pleyerni o'chirish
+Turn push to talk off	Gapirish tugmasini o'chirish
+Turning the wheel the other way kept the page heading the old way, to	G'ildirakni teskari aylantirish sahifani eski yo'nalishda ushlab turdi, to
+Type	Yozish
+Type key	Yozish tugmasi
+Type to me	Menga yozing
+Type:	Yozish:
+Type: Ctrl + Alt + T	Yozish: Ctrl + Alt + T
+Typing sound	Yozish tovushi
+Unpacked. Press Test to hear it.	Ochildi. Eshitish uchun Test'ni bosing.
+Unsaved changes.	Saqlanmagan o'zgarishlar.
+Up to {0} fps	{0} fps gacha
+Up to {0}p	{0}p gacha
+Update	Yangilash
+Update available.	Yangilanish mavjud.
+Update mods	Modlarni yangilash
+Updating...	Yangilanmoqda...
+Use	Ishlatish
+Use her cursor	Uning kursoridan foydalanish
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Boshqa provayder uchun https:// ishlating. Oddiy http ustidagi kalit xavfsiz emas.
+Use preset	Preset'dan foydalanish
+Use saved	Saqlangandan foydalanish
+Use this server	Bu serverdan foydalanish
+Using your provider with a key	Kalit bilan provayderingizdan foydalanish
+Using your server with no key	Kalitsiz serveringizdan foydalanish
+VIEW MOD >	MODNI KO'RISH >
+VOICE >	OVOZ >
+VOICE IN YOUR MIC >	MIKROFONINGIZDAGI OVOZ >
+VOICE LAYERS >	OVOZ QATLAMLARI >
+Verbosity	So'z ko'pligi
+Video bitrate	Video bitreyt
+View	Ko'rinish
+View mod	Modni ko'rish
+Voice	Ovoz
+Voice ID	Ovoz ID
+Voice from	Ovoz manbasi
+Voice layers	Ovoz qatlamlari
+Voice model	Ovoz modeli
+Voice model:	Ovoz modeli:
+Voice name or ID, optional	Ovoz nomi yoki ID, ixtiyoriy
+Voice server address, or a voice model's folder	Ovoz serveri manzili yoki ovoz modeli papkasi
+Voice status	Ovoz holati
+Voice, key and model...	Ovoz, kalit va model...
+Volume	Balandlik
+WAKE ME UP >	MENI UYG'OTING >
+WATCH >	KUZATISH >
+Waiting for the relay	Relay kutilmoqda
+Wake her up	Uni uyg'oting
+Waking her up	Uyg'otilmoqda
+Wander	Sayr
+Wander around	Atrofda sayr qilish
+Watch my screen	Ekranimni kuzatish
+Watch-along memory	Birga tomosha qilish xotirasi
+Weather	Ob-havo
+Weather city	Ob-havo shahri
+Welcome back, choom. Let's finish setting me up.	Xush kelibsiz, choom. Meni sozlashni tugatamiz.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	U sizning PC'ingizda so'ramasdan nima qiladi. O'chiq kalitda u avval so'raydi va siz ha desangiz bajaradi.
+What should she call you?	U sizni nima deb chaqirishi kerak?
+When she types	U yozayotganda
+White	Oq
+Windows default	Windows standarti
+Windows did not give Settings keyboard focus	Windows Sozlamalarga klaviatura fokusini bermadi
+Windows did not return keyboard focus to Back	Windows klaviatura fokusini Orqaga ga qaytarmadi
+With no picture the wheel still tried to slide.	Tasvirsiz g'ildirak hali ham sirpanishga urinardi.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE'da eng yaxshi ishlaydi.
+YOU	SIZ
+YOU >	SIZ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	SIZ OVOZ HARAKATLAR TUGMALAR O'YINLAR KLIPLAR OB-HAVO DOOMSCROLL CAPRI KUZATISH MIYA ODATLAR TOVUSHLAR
+YOUR KEY	SIZNING KALITINGIZ
+YOUR MIC	SIZNING MIKROFONINGIZ
+YOUR PLAN	SIZNING TARIFINGIZ
+Yokapri what's up	Yokapri, nima gap
+You can hide this. It keeps going, and the Mainframe shows it too.	Buni yashirishingiz mumkin. U ishlashda davom etadi, Mainframe ham buni ko'rsatadi.
+Your mic and her voice go into one virtual mic, and	Sizning mikrofoningiz va uning ovozi bitta virtual mikrofonga kiradi, va
+Your mic is muted. Unmute it to test.	Mikrofoningiz ovozsiz. Sinash uchun ovozini yoqing.
+Your mods are up to date.	Modlaringiz yangilangan.
+Your name or a nickname	Ismingiz yoki laqabingiz
+Your own model	O'zingizning modelingiz
+Your personality	Sizning shaxsiyatingiz
+Your voice	Sizning ovozingiz
+Your voice (HD)	Sizning ovozingiz (HD)
+Your voice (HD) · pick a clip of you...	Sizning ovozingiz (HD) · o'zingizning klipingizni tanlang...
+Your voice model	Sizning ovoz modelingiz
+as its mic.	uning mikrofoni sifatida.
+changed. Saved as My Colors, so you can share it.	o'zgardi. Mening ranglarim sifatida saqlandi, ulashishingiz mumkin.
+choice	tanlov
+clips the input line	kiritish qatorini klip qiladi
+cue	ishora
+doesn't yet.	hali emas.
+download	yuklab olish
+file.	fayl.
+flag	bayroq
+fps	fps
+hear	eshitadi
+hears	eshitadi
+hears that.	buni eshitadi.
+hides or shows her.	uni yashiradi yoki ko'rsatadi.
+hint	maslahat
+in the Mainframe.	Mainframe'da.
+in the mods directory with a pull request.	modlar katalogiga pull request bilan.
+in the picture wasn't noticed.	tasvirda sezilmadi.
+is already her push-to-talk key.	allaqachon uning gapirish tugmasi.
+is off.	o'chiq.
+is on and running.	yoqiq va ishlamoqda.
+is on, at the bottom, under	yoqiq, pastda, quyida
+is on.	yoqiq.
+is on. She now answers to	yoqiq. Endi u javob beradi
+is removed.	olib tashlandi.
+is taken	band
+is taken by another app. Try another.	boshqa ilova tomonidan band. Boshqasini sinab ko'ring.
+is updated	yangilandi
+isn't hearing it yet: do {0} and {1}, then join a call.	hali eshitmayapti: {0} va {1} ni bajaring, so'ng qo'ng'iroqqa qo'shiling.
+it now.	hozir.
+keeps her quiet, and lets her talk again.	uni jim tutadi va yana gapirishiga ruxsat beradi.
+key	tugma
+key.	tugma.
+min	daq
+more.	ko'proq.
+ms.	ms.
+mutes mic	mikrofonni ovozsiz qiladi
+mutes your mic.	mikrofoningizni ovozsiz qiladi.
+name	nom
+off	o'chiq
+on this PC	bu PC'da
+opens her Mainframe.	uning Mainframe'ini ochadi.
+opens her typing box.	uning yozish qutisini ochadi.
+phone	telefon
+phone pixels	telefon pikselari
+phones	telefonlar
+pixels	piksel
+pixels)	piksel)
+star.	yulduz.
+stars.	yulduz.
+starts voice chat.	ovozli suhbatni boshlaydi.
+stays off. Nothing ran.	o'chiq qoladi. Hech narsa ishga tushmadi.
+still does its own job in other apps too. Confirm to keep it.	boshqa ilovalarda ham o'z ishini bajaradi. Saqlash uchun Tasdiqlash'ni bosing.
+tall	baland
+time	vaqt
+to talk	gapirish uchun
+to talk to her, with a game in front too.	u bilan gaplashish uchun, o'yin oldinda ham.
+too.	ham.
+turns Gaming Mode on and off.	O'yin rejimini yoqadi va o'chiradi.
+with Ollama	Ollama bilan
+won't type in other apps while she runs. Confirm to keep it.	u ishlayotganda boshqa ilovalarda yozmaydi. Saqlash uchun Tasdiqlash'ni bosing.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: O'chiq
+{0}   If her voice cuts off, turn off noise filtering	{0}   Uning ovozi uzilsa, shovqin filtrini o'chiring
+{0}   Input Device:	{0}   Kirish qurilmasi:
+{0}   Join the call and check they hear both of you	{0}   Qo'ng'iroqqa qo'shiling va ikkovingiz eshitilayotganingizni tekshiring
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofon sinovi > Tekshiraylik: o'zingizni eshitasiz, u gapirganda ham
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Shovqinni bostirish: yo'q. Ikkalasi ham birinchi qatordan keyin uning ovozini uzishi mumkin.
+{0}   Open the call or meeting's audio settings	{0}   Qo'ng'iroq yoki yig'ilishning audio sozlamalarini oching
+{0}   Output Device: your headphones, like before	{0}   Chiqish qurilmasi: quloqchinlaringiz, oldingidek
+{0}   Speaker: your headphones, like before	{0}   Karnay: quloqchinlaringiz, oldingidek
+{0}   Try a mic test in your call app	{0}   Qo'ng'iroq ilovangizda mikrofon sinovini sinab ko'ring
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Foydalanuvchi sozlamalari (ismingiz yonidagi tishli) > Ovoz va video
+{0} Mbps	{0} Mbps
+{0} lines	{0} qator
+{0} min	{0} daq
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· bu PC'da
+· server	· server
+Edit as text	Matn sifatida tahrirlash
+What Capri remembers about you. It stays on this computer.	Capri sen haqingda nimalarni eslaydi. Bu kompyuterda qoladi.
+Tell her something to remember	Unga eslab qolish uchun bir narsa ayt
+Search her memory	Uning xotirasidan qidir
+That day isn't there any more.	O'sha kun endi yo'q.
+Undo	Bekor qilish
+Remember our chats is off, so she isn't keeping new chat memories.	Suhbatlarimizni eslash o'chirilgan, shuning uchun yangi suhbat xotiralarini saqlamaydi.
+ABOUT YOU	SEN HAQINGDA
+FROM YOUR CHATS	SUHBATLARINGDAN
+GAMES	O'YINLAR
+CHAT LOGS	SUHBAT JURNALLARI
+CHAT LOG	SUHBAT JURNALI
+Nothing matches.	Hech narsa mos kelmadi.
+Nothing yet.	Hozircha hech narsa yo'q.
+Reading her notes.	Uning yozuvlari o'qilmoqda.
+Click again to forget game notes	O'yin yozuvlarini unutish uchun yana bos
+Forget game notes	O'yin yozuvlarini unut
+Click again to forget everything about me	Sen haqingda hammasini unutish uchun yana bos
+Forget everything about me	Sen haqingda hammasini unut
+Click again to forget	Unutish uchun yana bos
+Forget this day	Bu kunni unut
+Only the start of this day is shown.	Bu kunning faqat boshlanishi ko'rsatiladi.
+Nothing in this day.	Bu kunda hech narsa yo'q.
+No chats kept yet.	Hozircha suhbatlar saqlanmagan.
+You	Sen
+{0} line	{0} qator
+SET UP EMAIL >	ELEKTRON POCHTANI SOZLASH >
+SET UP EMAIL	ELEKTRON POCHTANI SOZLASH
+Or type your address	Yoki manzilingni yoz
+Email address	Elektron pochta manzili
+Open the page	Sahifani och
+App password	Ilova paroli
+IMAP server	IMAP serveri
+Incoming mail server	Kiruvchi pochta serveri
+SMTP server	SMTP serveri
+Outgoing mail server	Chiquvchi pochta serveri
+An app password is a separate password just for Capri. Your normal password stays yours.	Ilova paroli faqat Capri uchun alohida parol. Oddiy paroling o'zingda qoladi.
+She keeps it only until she closes.	U uni yopilguncha saqlaydi.
+She checks, searches and reads your mail. She asks before she sends any.	U pochtangni tekshiradi, qidiradi va o'qiydi. Biror narsa yuborishdan oldin so'raydi.
+Watch for new mail	Yangi pochtani kuzat
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Pochta kelganda u aytadi, fishingga o'xshasa ogohlantiradi. Hech narsa o'qilgan deb belgilanmaydi.
+Deal with phishing on her own	Fishing bilan o'zing shug'ullan
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Faqat u kuzatayotganda. Fishing ekaniga ishonchi komil pochta spamga ketadi. Qolgani sening ha dedishingni kutadi.
+Forget account	Hisobni unut
+Use another email	Boshqa elektron pochtadan foydalan
+Which email?	Qaysi pochta?
+Make an app password	Ilova parolini yarat
+Paste it	Uni qo'y
+Connecting...	Ulanmoqda...
+She can use your email now.	U endi pochtangdan foydalana oladi.
+She's not watching your inbox.	U kiruvchi qutingni kuzatmayapti.
+She's watching your inbox and deals with phishing she's sure of.	U kiruvchi qutingni kuzatadi va ishonchi komil fishing bilan shug'ullanadi.
+She's watching your inbox and tells you when mail lands.	U kiruvchi qutingni kuzatadi va pochta kelganda aytadi.
+She forgot that account and its app password.	U o'sha hisobni va uning ilova parolini unutdi.
+She forgot that account. Its app password is gone from this PC.	U o'sha hisobni unutdi. Uning ilova paroli bu kompyuterdan yo'qoldi.

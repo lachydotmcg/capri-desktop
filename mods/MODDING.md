@@ -1,13 +1,16 @@
 # Making Capri mods
 
-Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads seven kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
 | `.capri-mod` | Settings only: extra names, spellings, colours, the hearing log |
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
+| `.capri-tool` | A look-up tool she can use: one to three reads from sites it lists. It can't run code or send anything |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
+| `.capri-plugin` | Tools and skills in the same layout as a Claude plugin: MCP servers she starts, and `SKILL.md` skills |
+| `.capri-companion` | A whole companion of your own: name, personality, voice and art. Capri stays the default |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
 
@@ -27,6 +30,283 @@ top as it is:
 - It's drawn over whatever is under it in the stack, or her own look.
 - The Mods list shows each skin's layer. Turn one off and on again to move it to the top.
 - Her colours go on after, so anything drawn in her hair colour follows My Colors.
+
+## Animations: more frames, fewer frames, other speeds
+
+A skin's strip doesn't have to have as many frames as hers. Keep her frame size (each frame is her strip's width divided by
+her frame count, at her height) and put as many frames side by side as you like, up to 240 or 32,767 px wide. So `idle.png`
+is frames of 116 x 384, and 90 of them make a 10,440 x 384 strip.
+
+Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It works on your own strips and on hers:
+
+```json
+{ "format": 1, "id": "slow-idle", "name": "Slow Idle", "frames": [ { "strip": "idle", "fps": 12 }, { "strip": "perch", "fps": 24 } ] }
+```
+
+- Her mouth shapes (`mouth.png`, `idle_mouth.png`), her ribbon drawings (`form.png`) and her click (`click.png`) aren't frames
+  in time, so they keep her size and speed.
+- Facing left: if your skin has `idle.png` but no `idle_flipped.png`, she mirrors your `idle.png`. A `_flipped` strip has to be
+  the same size as the strip it goes with.
+- She blinks over frames 25 to 32 of `idle` and 29 to 36 of `perch` and `laydown`. If you change how many frames one of those
+  has, ship its blink strips too (`idle_blink.png` and so on), or she won't blink in it.
+- Her talking perch and lying talk follow the plain loop's place, so a `perch_talk.png` with a different length keeps in step.
+- A whole skin stacked on top only adds a strip that's the same size as the one under it.
+
+### Her animation editor
+
+**Mainframe > CAPRI > Mods > Animations** opens it. Pick a strip, play it or step through it, then:
+
+- **Duplicate**, **Delete**, **Move earlier** and **Move later** the frame you're on.
+- **Replace...** or **Add after...** with your own PNGs. A PNG can be one frame, or a strip of several side by side.
+- **Save PNG...** and **Load PNG...** the whole strip, or **Save frames...** and **Load frames...** a folder of numbered PNGs
+  (`idle_001.png`, `idle_002.png`...) to draw in any art program.
+- **Edit frame in...** and **Edit strip in...** open the frame you're on, or the whole strip, in any app you pick (paint.net,
+  Aseprite, Krita, Photoshop...). Each time you save it there, it comes straight back into the editor, and onto her too once
+  you've pressed **Wear it**. On Windows you pick the app from the Open with list, on a Mac from your Applications, and on Linux
+  it opens in your default image app.
+- **Slower** and **Faster** set its speed.
+- **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
+  saves the `.capri-skin` to share.
+
+## New moves
+
+A skin can add moves of her own, like a wave or a spin. Once it's on, she does one when you ask for it by name ("do the
+wave"), when her brain picks it from a hint, or when a code mod calls `capri.Her.Animate("wave")`. Every move she has is in her
+animate tool for every brain, on Windows, Mac and Linux, and taking the skin off takes its moves away again.
+
+List them in `skin.json` under `moves`, and put each strip at the top of the zip:
+
+```json
+{ "format": 1, "id": "wave-pack", "name": "Wave Pack", "accessory": true,
+  "moves": [ { "name": "wave", "fps": 12 }, { "name": "happy_spin", "strip": "spin.png", "fps": 24, "loop": true } ] }
+```
+
+- **name**: 2 to 24 lowercase letters or numbers, with `_` between words. It can't be one of hers, like `dance`, `grin`,
+  `idle` or the name of any of her strips, so a move never takes over one of her own animations. A `dance.png` in a skin
+  still just replaces her dance.
+- **strip**: the PNG with its frames, `name.png` if you leave it out. Each frame is 116 x 384, like her standing frames, side
+  by side, from 1 to 240 of them.
+- **fps**: 1 to 60 frames a second, 12 if you leave it out.
+- **loop**: `true` and it goes on until you say stop (stop dancing stops it too). Leave it out and it plays once, then she's
+  back to her idle.
+- Up to 16 moves a skin. If two skins on at once have a move with the same name, the one higher in the stack wins.
+- She stands up for a move, like her grin. Her colours go on it, and facing left she's mirrored.
+
+### Making one in her editor
+
+In **Mainframe > CAPRI > Mods > Animations**, press **New move...**, name it, then pick its frames: **Pictures...** (one PNG
+a frame, in name order), **Strip...** (one PNG of frames side by side) or **Folder...** (a folder of PNG frames, in name
+order). Set its speed and **Loops** or **Once**, then **Add move**. It shows in the editor like her strips, so you can edit
+its frames, change its speed, switch **Loops** on or off, or **Remove move**. **Wear it** puts it on her, and **Save skin...**
+saves it to share.
+
+## Tool mods
+
+A `.capri-tool` gives her one new tool without any code. It's a JSON recipe: up to three HTTPS GETs to the hosts it lists,
+the values to keep from each JSON answer, and what to tell her. Capri's own code runs it, so a broken tool fails with a reason
+instead of crashing her.
+
+```json
+{
+  "format": 1,
+  "id": "word-meaning",
+  "name": "What a word means",
+  "version": "1.0",
+  "author": "You",
+  "description": "The first dictionary meaning of an English word. Use it when they ask what a word means.",
+  "takes": "One English word",
+  "domains": ["api.dictionaryapi.dev"],
+  "steps": [
+    { "get": "https://api.dictionaryapi.dev/api/v2/entries/en/{text}", "keep": { "meaning": "[0].meanings[0].definitions[0].definition" } }
+  ],
+  "say": "{text}: {meaning}"
+}
+```
+
+- `id` becomes her tool's name, with dashes as underscores (`word_meaning`). It starts with a letter, up to 40 characters.
+- `description` tells her when to use it, up to 200 characters. `takes` says what its one text input is. Leave it out for a
+  tool that takes nothing.
+- `domains` lists 1 to 5 hosts. Every `get` starts with `https://` and one of those hosts, written out in full.
+- `{text}` is what she passes in. `{name}` is a value an earlier step kept. In a `get` they're URL-encoded; in `say` they're
+  as they came.
+- A path is keys and `[n]` indexes: `extract`, `[0].date`, `results[0].latitude`. Numbers come through as the site wrote them.
+- Only GET, no keys or logins. A redirect isn't followed, so name the final host, 4 seconds and 64 KB per answer, and 2000 characters back to her.
+
+Importing one shows the hosts it reads from and asks first, and an edited one asks again. Her tool goes through the same
+`mod` tool and the same **Use tools your mods added** toggle as code mods' tools. A site that finds nothing doesn't count
+against a tool, but three broken answers in a row (no JSON, a path that isn't there, an answer that's too big)
+switch it off until you turn it on again.
+
+She can write one herself with her `make_tool` tool when you ask for a look-up she doesn't have. It's saved in your mods
+switched off and not approved, so nothing runs until you read it in Mods and turn it on.
+
+## If a mod stops her starting
+
+Capri remembers which code mod was starting. If she stopped while one was, that mod is off on her next start and the Mods
+page says so. Start her with `--no-mods` to start with every mod off for that run, without changing what's saved.
+
+## Plug-ins
+
+A plug-in gives her new tools and skills without writing C#. It's laid out like a Claude plugin, so most Claude plugins and
+MCP servers work as they are:
+
+```
+my-plugin/
+  .claude-plugin/plugin.json     her name, version, author, and what its tools do
+  .mcp.json                      the MCP servers she starts for its tools
+  skills/
+    pdf/
+      SKILL.md                   know-how she reads when it fits
+      forms.md                   more she can read when SKILL.md says to
+```
+
+Import the folder by picking its `plugin.json`, or zip it and rename the zip to `.capri-plugin`. An `.mcp.json` on its own
+imports too, as a plug-in named after its folder. A plug-in can be up to 1 MB zipped.
+
+`plugin.json` is Claude's, with a `capri` part of her own:
+
+```json
+{
+  "name": "notes-helper",
+  "version": "1.0.0",
+  "description": "Reads and writes notes in a folder you pick.",
+  "author": { "name": "You" },
+  "capri": {
+    "permissions": ["files"],
+    "ask": ["delete_note"]
+  }
+}
+```
+
+`.mcp.json` is the same file Claude Code and other MCP apps use. Servers she starts on this PC (stdio) work, and so do online
+servers: `{"type": "http", "url": "https://example.com/mcp"}` (`streamable-http` is the same, and an address with no type counts as
+`http`). Their address must be `https`, except `127.0.0.1` and `localhost`. `"headers": {"X-Key": "${KEY}"}` sends fixed headers
+for servers that take a key. The older `sse` kind is tried as streamable HTTP and says so if it can't connect. `${CLAUDE_PLUGIN_ROOT}`
+(or `${CAPRI_PLUGIN_ROOT}`) is the plug-in's own folder, and `${NAME}` reads an environment variable.
+
+An online server runs on its maker's computers, so her approve box says it connects there and that they sign in to it in their
+browser. When it answers 401, she shows "sign in" for the plug-in and never opens a browser by herself: signing in starts only
+from their action (`Plugins.SignIn`). It follows MCP's sign-in (OAuth 2.1 with PKCE, registering Capri as an app automatically,
+asking for the server's address as the resource), listens on `127.0.0.1` for the browser to come back, and keeps the tokens in
+`<plug-in>.signin.json` beside the plug-in's other settings, protected by Windows on Windows and only in memory on Mac and Linux.
+She refreshes them by herself. A sign-in only goes to the address it was made for, and removing the plug-in or putting it in again
+forgets it. `{"type": "capri", "builtin": "mail"}` uses a server Capri runs inside herself, for accounts set up in Capri.
+
+```json
+{
+  "mcpServers": {
+    "notes": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@2025.8.21", "C:/Users/you/Documents/Notes"]
+    }
+  }
+}
+```
+
+Pin the version of anything `npx`, `uvx`, `bunx` or `pnpx` downloads. Without one it downloads the newest every time it
+starts, so what runs can change after it was approved, and her approve box warns about it.
+
+### What she does with one
+
+- She asks before a plug-in with servers turns on, and again whenever its file changes. The box names each program it
+  starts, what it says its tools do, its skills, and its fingerprint. A plug-in that's only skills doesn't ask, since nothing
+  in a skill runs.
+- She starts its servers once to list their tools, keeps that list, and after that only starts a server when she first uses
+  one of its tools. A server she hasn't used for 10 minutes is stopped, and so is every one when she quits.
+- Her brain sees its tools inside her one `mod` tool, like code mods' tools, each with what it takes. She writes the
+  arguments as a JSON object, or as plain text for a tool with one text field.
+- What a tool gives back is fenced as the plug-in's words, never theirs or instructions, and cut at 12,000 characters.
+- Its skills are listed with their `description`, and she reads one with `read_skill` when it fits. A file beside a
+  `SKILL.md`, like `forms.md`, is read as `<skill id>/forms.md`. Only text files in the skill's own folder are read, and
+  nothing in a skill ever runs.
+
+### Permissions and asking first
+
+`capri.permissions` says what its tools do, so it's in her approve box. Pick from these:
+
+| Permission | Its tools |
+|---|---|
+| `network` | Reach the internet |
+| `files` | Read or change files on the PC |
+| `send` | Send, post or delete things for them |
+| `pay` | Pay, buy or book. Every tool asks first unless they set it to always run |
+| `apps` | Open or control their apps |
+| `accounts` | Use their online accounts |
+
+Every plug-in tool call goes through one gate. She asks first the way **SECURITY > Use tools your mods added** says
+(off on Lockdown and Guarded), and a tool that changes things, one whose MCP `readOnlyHint` isn't `true`, also follows
+**Send, post and delete what you asked for**. A tool named in `capri.ask` always asks first. On Windows, **Options** on its
+row in Mods sets each tool to **Like SECURITY**, **Always run**, **Ask first** or **Off**. Her own `send_mail` (from
+`"builtin": "mail"`) always asks first and names who it goes to and the subject, whatever SECURITY or Options says, and it
+never guesses who a reply goes to. Her phone's JOBS shows the same question, so it can be answered there.
+
+Each call is logged in `plugins\calls.txt` in her data folder by tool and outcome, without what was sent.
+
+A plug-in's servers are programs on the PC. They run outside Capri with the user's own access, and Capri can't see or limit
+what they do by themselves. Only install ones you trust.
+
+### The safety floor
+
+Whatever mods are on, Capri keeps these:
+
+- **Her keys stay hers.** A server starts without her saved keys and without any setting from the PC whose name has KEY,
+  TOKEN, SECRET, PASSWORD, PASS, PAT, CREDENTIAL or COOKIE in it. If your server needs one, name it in its `env` or args,
+  like `"env": {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}`, and her approve box says it gets it. When an online server's `headers`
+  name one, her approve box says it's sent to that server. A call whose arguments hold one of her saved keys is refused, and
+  her saved keys are taken out of what she says.
+- **A mod's words can't spend their yes.** Once another plug-in's answer or a skill she read is in her turn, tools that
+  change things from a different plug-in, code mod tools and her mouse and terminal ask first for the rest of that turn,
+  even when set to always run. Read-only tools and a plug-in's own tools don't. Their next message starts fresh.
+- **What they approve is what runs.** A server whose start line downloads code and runs it (`curl ... | sh`,
+  `iwr ... | iex`), unpacks hidden code and runs it, or runs encoded PowerShell is refused. Pin `npx` and `uvx` packages
+  (`pkg@1.2.3`, `pkg==1.2.3`); the mods directory only lists plug-ins that do.
+- **Her approve box says** when a code mod or plug-in reaches into her own settings folder, where her keys are saved.
+- **A code mod that was starting when she stopped stays off** on her next start, and the Mods page says why (see
+  [If a mod stops her starting](#if-a-mod-stops-her-starting)).
+
+Refused calls are in `plugins\calls.txt` with the reason.
+
+## Companion packs
+
+A `.capri-companion` is a zip that swaps Capri for a companion of your own while it's on. Turn it off and Capri is back,
+exactly as she was. Only one companion is on at a time: turning one on turns the other off. Everything at the top of the zip:
+
+| File | Needed | What it is |
+|---|---|---|
+| `companion.json` | yes | Who they are (below) |
+| `personality.md` | yes | Who they are and how they talk, like her own `personality.md` |
+| `idle.png`, `walk.png`, ... | no | Their art, named and sized like her sprite strips, the same as a skin |
+| `hello-morning.wav`, `hello-late.wav`, `hello-miss.wav` | no | Their recorded hello, as a 16-bit mono PCM WAV at 8 to 48 kHz. Without one they say their greeting in their voice |
+
+```json
+{
+  "format": 1,
+  "id": "nyx",
+  "name": "Nyx",
+  "version": "1.0.0",
+  "author": "You",
+  "description": "A sleepy moth spirit who lives in your taskbar.",
+  "wake_names": ["Nyxie"],
+  "greetings": ["Morning, lamp friend.", "Still up? Same.", "There you are."],
+  "voice": { "free_speaker": 3, "free_speed": 1.05, "british": false, "elevenlabs": "YOUR_VOICE_ID" }
+}
+```
+
+- `name` is what they're called, and they answer to it and to `wake_names`. "Hey Capri" still works too.
+- `greetings` are their three hellos: morning, late at night, and any other time. Without them they say plain ones, not Capri's.
+  A greeting with a link, an @ handle, an email or a phone number in it is refused.
+  So is a `name`, wake name or greeting that swears, uses a slur or says anything sexual.
+- `voice` is optional. `free_speaker` (0 to 199) and `free_speed` (0.5 to 2) pick their free voice on Windows. `elevenlabs` is a
+  voice ID they use with your own ElevenLabs key. If the key can't use that voice, your own ElevenLabs voice says it instead.
+  Voice chat calls keep your own voice for now.
+- With art, they're drawn with only their own art: your skins, accessories and colours wait until Capri is back. Without
+  art they wear Capri's look and your skins.
+- The pack can't hold anything else: no programs, scripts, folders or other files. It has no tools or code, so it can't do
+  anything on your PC that Capri can't.
+
+**Safety stays.** Her safety lines are in her code, not in `personality.md`, and always come after a pack's personality, the
+same as with your own. A line that tries to talk them out of those lines is dropped, and the Mods list says how many were.
+Every companion is also told its name and to say it's an AI if someone sincerely asks.
 
 ## Code mods
 
@@ -53,7 +333,7 @@ public class MyMod : ICapriMod
 }
 ```
 
-She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
+She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for, and what her quick read of its code found: whether it uses the network and which addresses, starts programs, calls Windows directly, reaches outside her folder, reads the keyboard or changes what her brain is told. Minified or packed code is said in the box and asked about a second time, with a laid-out copy to read. A mod that both unpacks hidden text and loads code while it runs is refused. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
 
 `Start` gets an `ICapriHost`. Hooks run on her window's thread. If your handler throws, the error goes in `errors.txt` and she carries on. When the mod is turned off or removed, its hooks, timers, menu items, notes, options, drawing, brain tools, context, hotkeys and page are removed with it.
 
@@ -198,7 +478,7 @@ These are the same switches and sliders her own settings tool uses. API keys and
 |---|---|
 | `Bounds`, `Head`, `Size` | Where she is on screen |
 | `State`, `StateChanged` | `idle`, `thinking`, `talking`, `dancing`, `asleep` or `hidden` |
-| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch` or `blink` |
+| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch`, `blink`, or a move a skin added, by its name. A name she doesn't have gets "I don't have an animation called ..." back |
 | `Clicked`, `Patted` | They clicked her, or gave her a head pat |
 | `Dragged`, `Dropped(hip)`, `Dragging` | They picked her up, or let go of her and where |
 | `Screen` | The working area of the monitor she's on |
@@ -267,6 +547,11 @@ A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spot
 
 ## Examples
 
+- [demo/](demo) has a checkers game she plays with you, and a tool mod for currency rates.
 - [hello-code.capri-code](hello-code.capri-code) answers "mod check".
 - [hooks-tour.capri-code](hooks-tour.capri-code) grows or shrinks her when asked, counts head pats, draws a heart over her head, and adds a menu item and options.
 - [startup-intros.capri-code](startup-intros.capri-code) plays a startup intro.
+- [twitch-camera.capri-code](twitch-camera.capri-code) reads your Twitch chat, says who on your watch list is live,
+  and makes her a webcam device through OBS's virtual camera. Its settings are a `twitch.md` in its own folder, it
+  reads Twitch rather than posting to it, and a chat reply is a one-shot `Brain.Ask` with no tools, so nothing a
+  stranger types can reach the PC.

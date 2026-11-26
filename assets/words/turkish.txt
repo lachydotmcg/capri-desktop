@@ -1,0 +1,950 @@
+A control that repainted wasn't redrawn in the picture.	Yeniden boyanan bir kontrol resimde yeniden çizilmedi.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA veya OpenRouter'dan ücretsiz bir anahtar. İndirmeye gerek yok. İnternet gerekir.
+A held trackpad scroll got a flick's long ease:	Basılı tutulan bir dokunmatik yüzey kaydırması, bir kaydırmanın uzun yavaşlamasını aldı:
+A layout change during a slide put the page at	Bir kaydırma sırasında yapılan düzen değişikliği sayfayı şuraya koydu:
+A layout change left the picture up.	Bir düzen değişikliği resmi açık bıraktı.
+A model in Ollama, on your local server or on your key.	Ollama'da bir model, yerel sunucunda ya da kendi anahtarınla.
+A paid key goes under MAX INTELLIGENCE by itself.	Ücretli bir anahtar kendiliğinden MAX INTELLIGENCE altına gider.
+A plan you already pay for, a key of your own, or Ollama.	Zaten ödediğin bir plan, kendi anahtarın ya da Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Bir ses paneli menüsü, panelin yazı tipinin kendi kopyasını tutmuyor.
+A wheel turn right after a slide ended froze the picture.	Bir kaydırmanın bitiminden hemen sonra tekerleği çevirmek resmi dondurdu.
+ALLOW THIS PHONE?	BU TELEFONA İZİN VERİLSİN Mİ?
+ALMOST THERE >	NEREDEYSE TAMAM >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	BAŞKA BİR CAPRI DEVRALDI · KAPATIP AÇ
+API key	API anahtarı
+API key, Claude plan or ChatGPT plan	API anahtarı, Claude planı veya ChatGPT planı
+Add	Ekle
+Address	Adres
+Address and key saved. Use saved to reconnect.	Adres ve anahtar kaydedildi. Yeniden bağlanmak için kaydedileni kullan.
+Advanced Settings	Gelişmiş Ayarlar
+All	Tümü
+All screens	Tüm ekranlar
+Allow	İzin ver
+Almost there. I'll say hi the second my brain's in.	Neredeyse hazır. Beynim çalışır çalışmaz merhaba diyeceğim.
+Always	Her zaman
+Always on top	Her zaman üstte
+Any Google account works. I opened the page in your browser.	Herhangi bir Google hesabı olur. Sayfayı tarayıcında açtım.
+Applies to every voice	Tüm seslerde geçerli
+Apps she may close	Kapatabileceği uygulamalar
+Ask Capri for more	Capri'den daha fazlasını iste
+Asking your server...	Sunucuna soruluyor...
+Asks before closing only the apps you choose.	Yalnızca seçtiğin uygulamaları kapatmadan önce sorar.
+Auto	Otomatik
+Auto (match what I say)	Otomatik (söylediğime göre)
+Automatic: VB-CABLE, else Steam's	Otomatik: VB-CABLE, yoksa Steam'in
+BAD RELAY HOST	KÖTÜ RELE ANA BİLGİSAYARI
+BIG Z open notepad	BIG Z not defterini aç
+BRAIN	BEYİN
+BRAIN >	BEYİN >
+BRAIN ONLINE >	BEYİN ÇEVRİMİÇİ >
+BRAIN PROVIDER >	BEYİN SAĞLAYICISI >
+BRAIN VOICE CAPRI	CAPRI BEYİN SESİ
+Back	Geri
+Back on your saved API key.	Kayıtlı API anahtarına geri döndün.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Bu PC için en iyisi:
+Black	Siyah
+Blank key means no key.	Boş anahtar, anahtar yok demektir.
+Brain API key	Beyin API anahtarı
+Brain model	Beyin modeli
+Brain provider	Beyin sağlayıcısı
+Bring here	Buraya getir
+Bring to this screen	Bu ekrana getir
+Browse	Gözat
+Browse mods	Modlara göz at
+Browse to a voice model	Bir ses modeline gözat
+Browse...	Gözat...
+Bubble	Balon
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree orada mısın
+CAN'T REACH THE RELAY · RETRYING	RELE'YE ULAŞILAMIYOR · YENİDEN DENENİYOR
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI BEYİN SESİ
+CHANGED, approve it again.	DEĞİŞTİ, yeniden onayla.
+CLIPS >	KLİPLER >
+CLOUD VOICE	BULUT SES
+CODE	KOD
+COLORS >	RENKLER >
+CONNECTED	BAĞLANDI
+CONNECTING	BAĞLANIYOR
+CUSTOM LOCAL	ÖZEL YEREL
+Call mode (beta)	Arama modu (beta)
+Call mode does not fit.	Arama modu sığmıyor.
+Call mode is outside its space.	Arama modu alanının dışında.
+Cancel	İptal
+Cancel keys	Tuşları iptal et
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Uzaktan
+Capri code:	Capri kodu:
+Capri mods (*	Capri modları (*
+Capri, hello	Capri, merhaba
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kızınca kaos
+Chat with Capri from your phone	Telefonundan Capri ile sohbet et
+ChatGPT plan	ChatGPT planı
+Check for updates	Güncellemeleri denetle
+Check in on me	Bana bir bak
+Check in on me is hidden	Bana bir bak gizli
+Check in on me still decides whether she visits.	Bana bir bak yine de onun uğrayıp uğramayacağına karar verir.
+Check in on me's tip missed	Bana bir bak ipucu kaçırıldı
+Chess	Satranç
+Choose apps	Uygulama seç
+Choose folder...	Klasör seç...
+Choose where future Capri clips are saved	Gelecekteki Capri kliplerinin kaydedileceği yeri seç
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude veya ChatGPT planı, ücretli bir anahtar (OpenAI, Claude, DeepSeek) ya da Ollama.
+Claude plan	Claude planı
+Clear	Temizle
+Cleared.	Temizlendi.
+Click Confirm to keep Down, or press Esc.	Aşağı'yı tutmak için Onayla'ya tıkla veya Esc'ye bas.
+Click to open it.	Açmak için tıkla.
+Clip my games	Oyunlarımı kliple
+Clips	Klipler
+Close	Kapat
+Close other AIs for me	Benim yerime diğer yapay zekaları kapat
+Cloud voice	Bulut ses
+Cloud voice service	Bulut ses hizmeti
+Cloud voice setup	Bulut ses kurulumu
+Code mods can reach your whole PC. Only trusted ones.	Kod modları tüm PC'ne erişebilir. Yalnızca güvendiklerini kullan.
+Code/Husk Mode	Kod/Husk Modu
+Codex	Codex
+Commands	Komutlar
+Comment on my games	Oyunlarım hakkında yorum yap
+Comments	Yorumlar
+Confirm	Onayla
+Confirm keys	Tuşları onayla
+Connect	Bağlan
+Connect / Forget brain key	Bağlan / beyin anahtarını unut
+Connect / Forget voice key	Bağlan / ses anahtarını unut
+Connect four	Dört sırada
+Controls	Denetimler
+Copri, what time is it	Copri, saat kaç
+Copy error details	Hata ayrıntılarını kopyala
+Copy the key	Anahtarı kopyala
+Copy the key from the page, then press Paste.	Anahtarı sayfadan kopyala, sonra Yapıştır'a bas.
+Couldn't open that page:	Şu sayfa açılamadı:
+Couldn't open that:	Şu açılamadı:
+Couldn't open the mods folder:	Modlar klasörü açılamadı:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M zaten onun Mainframe tuşu.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N mikrofonu sessize alır
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V zaten onunla konuşma tuşu.
+Ctrl + Alt + V to talk	Konuşmak için Ctrl + Alt + V
+Custom local voice	Özel yerel ses
+Custom model name	Özel model adı
+Dance	Dans
+Dance to music	Müziğe dans et
+Default	Varsayılan
+Default (follows Windows)	Varsayılan (Windows'u izler)
+Default duration for clip that and automatic clips	Clip that ve otomatik klipler için varsayılan süre
+Default length	Varsayılan uzunluk
+Default model	Varsayılan model
+Delay	Gecikme
+Deny	Reddet
+Discard	At
+Discard + reload	At + yeniden yükle
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Beklemek istemiyor musun? Ücretsiz bir anahtarla yaklaşık bir dakikada konuşmaya başlarım.
+Done	Bitti
+EXTRA REQUEST JSON >	EK İSTEK JSON >
+EXTRAS >	EKLER >
+Edit	Düzenle
+Edit check-in lines	Bana bakma satırlarını düzenle
+Edit check-in lines has the wrong view or dimming	Bana bakma satırlarını düzenle yanlış görünüm veya karartma kullanıyor
+Edit check-in lines is out of place	Bana bakma satırlarını düzenle yerinde değil
+Edit controls	Denetimleri düzenle
+ElevenLabs API key	ElevenLabs API anahtarı
+ElevenLabs voice ID	ElevenLabs ses kimliği
+English	İngilizce
+Enter the game's name first.	Önce oyunun adını gir.
+Every	Her
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Her mod yüklenmeden önce kötü amaçlı yazılım için taranır. Kod modları yine de çalışmadan önce sorar.
+Explore after	Sonra keşfet
+Explore while I'm away	Uzaktayken keşfet
+Extra request JSON	Ek istek JSON
+Extras	Ekstralar
+FREE KEY	ÜCRETSİZ ANAHTAR
+FREE KEY >	ÜCRETSİZ ANAHTAR >
+Fast hands in games	Oyunlarda hızlı eller
+File editor	Dosya düzenleyici
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ve daha fazlası Mainframe'de SES altında.
+Follow-up messages	Takip mesajları
+Forget	Unut
+Fork capri-mods	capri-mods'u çatalla
+Frame rate	Kare hızı
+Free	Ücretsiz
+Free and private, works offline. Downloads	Ücretsiz ve özel, çevrimdışı çalışır. İndirir
+Free and private, works offline. Downloads the best model for this PC.	Ücretsiz ve özel, çevrimdışı çalışır. Bu PC için en iyi modeli indirir.
+Free key	Ücretsiz anahtar
+Free key providers	Ücretsiz anahtar sağlayıcıları
+Free keys can be rate limited and slow.	Ücretsiz anahtarlarda hız sınırı olabilir ve yavaş olabilir.
+Free voice in games	Oyunlarda ücretsiz ses
+Free voice style	Ücretsiz ses stili
+Free voice:	Ücretsiz ses:
+Free voice: Her own	Ücretsiz ses: Kendi sesi
+Free · local model	Ücretsiz · yerel model
+GAMES >	OYUNLAR >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Oyun yorumları Ekranımı İzle'den ayrı çalışır. Kapalı olduğunda Oyun Modu'nda da durdurur; Yalnızca olaylar ve Konuşkan, oyununu izlemesine izin verir
+Game controls	Oyun denetimleri
+Game name	Oyun adı
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Oyun sesi hassasiyeti. Kulaklığın kısıkken Windows {0}% ise ve her sese tepki veriyorsa düşür; Kapalı oyun seslerini yok sayar
+Game sounds	Oyun sesleri
+Games	Oyunlar
+Gaming Mode	Oyun Modu
+Gaming Mode key	Oyun Modu tuşu
+Gaming Mode:	Oyun Modu:
+Gaming Mode: Ctrl + Alt + G	Oyun Modu: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE al
+Get VB-CABLE (free)...	VB-CABLE al (ücretsiz)...
+Get free voice	Ücretsiz ses al
+Getting your Fish Audio voices...	Fish Audio seslerin alınıyor...
+Giant	Dev
+Glitch	Glitch
+Glitch in at startup	Başlangıçta glitch
+Go to sleep	Uyumaya git
+Go to the next screen	Sonraki ekrana geç
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ücretsiz katman · hız sınırlı
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude veya ChatGPT planın ya da kendi anahtarın var mı? Birini seç, ben bağlanayım.
+Got it, just me. Right-click me any time for Capri Mainframe.	Anlaşıldı, sadece ben. Capri Mainframe için herhangi bir zaman bana sağ tıkla.
+Grey	Gri
+H.{0} video bitrate target; higher values make larger files	H.{0} video bit hızı hedefi; yüksek değerler daha büyük dosyalar oluşturur
+HABITS >	ALIŞKANLIKLAR >
+HER HANDS >	ELLERİ >
+HER JOBS >	İŞLERİ >
+HER MEMORY >	ANILARI >
+HER MODS >	MODLARI >
+HH:mm	HH:mm
+HOW I SOUND >	NASIL SESLENİYORUM >
+Hang here	Burada takıl
+Have Ollama? Open it, then press Refresh.	Ollama'n var mı? Aç, sonra Yenile'ye bas.
+Head pats	Kafa okşamaları
+Hearing	Duyma
+Hearing engine	İşitme motoru
+Hearing fix	İşitme düzeltmesi
+Hearing status	İşitme durumu
+Help	Yardım
+Help page	Yardım sayfası
+Her colors	Onun renkleri
+Her folder	Onun klasörü
+Her memories	Onun anıları
+Her own colors are back.	Kendi renkleri geri geldi.
+Her own notes (no vault)	Kendi notları (kasa yok)
+Her perch frames per second	Onun perch kare hızı (saniyede)
+Her personality	Kişiliği
+Her size	Boyutu
+Her speaker	Hoparlörü
+Her speaker is hidden or outside VOICE	Hoparlörü gizli veya SES dışında
+Her speaker overlaps the mic or hearing row	Hoparlörü mikrofon veya duyma satırının üstüne biniyor
+Her speaker:	Hoparlör:
+Her speaker: Default	Hoparlör: Varsayılan
+Her voice in your mic	Sesi mikrofonunda
+Her voice in your mic: loudness	Mikrofonundaki ses: ses seviyesi
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Sesin kendisi. Perdesi Ayarlar > SES > Perde, ikisi birlikte hareket eder.
+Her voice joins your mic only in call mode.	Sesi yalnızca arama modunda mikrofonuna girer.
+Her voice volume	Ses seviyesi
+Her voice's pitch	Sesinin perdesi
+Her voice's pitch, the same as Settings > VOICE > Pitch	Sesinin perdesi, Ayarlar > SES > Perde ile aynı
+Her voice's speed	Sesinin hızı
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Sesi ve altında karıştırılmış iki kopyası, her birinin kendi perdesi ve gecikmesi ile.
+Her voices · free	Sesleri · ücretsiz
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Selam choom. Ben Capri. Konuşabilmem için bir beyne ihtiyacım var. Birini seç.
+Hide / Show Capri	Capri'yi gizle / göster
+Hide / Show key	Gizle / göster tuşu
+Hide Capri	Capri'yi gizle
+Hide for now	Şimdilik gizle
+Hide her	Onu gizle
+Hide in full screen	Tam ekranda gizle
+Hide this	Bunu gizle
+Hide, keep player	Gizle, oynatıcı kalsın
+Hide/show:	Gizle/göster:
+Hide/show: Ctrl + Alt + H	Gizle/göster: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	İn
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Hareketsiz bir PC'nin onu uykuya göndermeden önce ne kadar bekleyeceği; beş dakika hâlâ senin uzakta olduğun anlamına gelir
+How long a stroke over her a head pat needs	Kafa okşaması için onun başının üstünde bir okşamanın ne kadar sürmesi gerektiği
+How long her replies stay up	Yanıtlarının ne kadar ekranda kalacağı
+How long you are away before she scrolls a browser or reader	Bir tarayıcıyı ya da okuyucuyu kaydırmadan önce ne kadar uzakta olman gerektiği
+How much her voice glitches	Sesinin ne kadar bozulduğu
+How much of the chat she keeps	Sohbetin ne kadarını tuttuğu
+How much she wanders	Ne kadar dolaştığı
+How often she pops in to say hi	Merhaba demek için ne sıklıkla uğradığı
+How robotic her voice sounds	Sesinin ne kadar robotik çıktığı
+How to	Nasıl yapılır
+Huge	Devasa
+I can hear you.	Seni duyabiliyorum.
+I glance at your screen and comment. Costs a little on a paid brain.	Ekranına bakıp yorum yapıyorum. Ücretli bir beyinde biraz maliyeti var.
+I keep listening. Say my name, then just talk.	Dinlemeye devam ediyorum. Adımı söyle, sonra sadece konuş.
+I speak	Konuştuğum dil
+I talk about your game as you play. Costs a little on a paid brain.	Sen oynarken oyunun hakkında konuşuyorum. Ücretli bir beyinde biraz maliyeti var.
+I type my replies and stay quiet.	Yanıtlarımı yazıyorum ve sessiz kalıyorum.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Geri konuşmam ve hiçbir şey bir yere gönderilmez. Yine de takılırım, müziğine dans ederim ve sesi değiştirmek gibi istediğin hızlı şeyleri yaparım.
+I'll talk in	Şurada konuşacağım:
+IN DISCORD >	DISCORD'DA >
+INSTALLED >	YÜKLÜ >
+Import a Capri mod	Bir Capri modu içe aktar
+Import mod	Mod içe aktar
+In full screen	Tam ekranda
+In games	Oyunlarda
+Input	Giriş
+Input, Output or How to overlaps a row	Giriş, Çıkış veya Nasıl bir satırın üstüne biniyor
+Input:	Giriş:
+Input: default	Giriş: varsayılan
+Install	Yükle
+Install mod	Modu yükle
+Installed.	Yüklendi.
+It may ask for a phone number. I opened the page in your browser.	Bir telefon numarası isteyebilir. Sayfayı tarayıcında açtım.
+It still does its own job in other apps too.	Diğer uygulamalarda da kendi işini yapmaya devam eder.
+It won't type in other apps while she runs.	Çalışırken diğer uygulamalara yazmaz.
+JUST ME >	SADECE BEN >
+Jealous of other AIs	Diğer yapay zekalara kıskanç
+Join the Discord	Discord'a katıl
+KB.	KB.
+KEYS	TUŞLAR
+KEYS >	TUŞLAR >
+Keep PC awake for jobs	İşler için PC'yi uyanık tut
+Keep player	Oynatıcı kalsın
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Oyununun son iki dakikasını bellekte tutar. Kaydetmek için clip that de.
+Key	Tuş
+Key cleared: a model file needs none.	Anahtar temizlendi: bir model dosyasının buna ihtiyacı yok.
+Key cleared: paste the key for	Anahtar temizlendi: şunun için anahtarı yapıştır:
+Key forgotten.	Anahtar unutuldu.
+Key. It goes only to this server, as a Bearer key	Anahtar. Yalnızca bu sunucuya Bearer anahtarı olarak gider
+Kokoro only, like es	Yalnızca Kokoro, es gibi
+LAST THING >	SON BİR ŞEY >
+LISTENING >	DİNLİYOR >
+Language	Dil
+Large	Büyük
+Last thing. These cost a little or use your mic, so they're your pick.	Son bir şey. Bunlar biraz ücretli olabilir ya da mikrofonunu kullanır, bu yüzden seçim senin.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Son bir şey. Bunlar biraz ücretli olabilir ya da mikrofonunu kullanır, bu yüzden seçim senin. Sonra sana ne diyeceğimi bilmek istiyorum.
+Layers	Katmanlar
+Learn more	Daha fazla bilgi
+Leaving Settings threw its picture away straight away.	Ayarlardan çıkmak resmini hemen attı.
+Legacy stand	Eski ayak
+Lie down	Yat
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Birlikte izlerken bellekte tutulan PC diyalog satırları. Onun Gördüklerini hatırla açıkken en eski yarısı bir nota dönüşür
+Listen for Capri	Capri'yi dinle
+Live reactions	Canlı tepkiler
+Local server address	Yerel sunucu adresi
+Long	Uzun
+Longest wait (minutes)	En uzun bekleme (dakika)
+Looking at this PC...	Bu PC'ye bakıyor...
+Looking for Ollama. Open it if it isn't running.	Ollama aranıyor. Çalışmıyorsa aç.
+Looking for a brain...	Bir beyin aranıyor...
+Looking in the mods directory for updates...	Mod klasöründe güncellemeler aranıyor...
+Looking in the mods directory...	Mod klasörü taranıyor...
+Looking...	Aranıyor...
+MAIN >	ANA >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ORTA INTELLIGENCE
+MEMORY VAULT >	ANI KASASI >
+MODS	MODLAR
+MODS >	MODLAR >
+MODS DIRECTORY >	MODLAR KLASÖRÜ >
+MODS INSTALLED COLORS	YÜKLÜ MODLAR RENKLERİ
+MOVES >	HAREKETLER >
+MY BRAIN	BENİM BEYNİM
+MY FREE VOICE	BENİM ÜCRETSİZ SESİM
+MY PLAN OR KEY	PLANIM VEYA ANAHTARIM
+MY PLAN OR KEY >	PLANIM VEYA ANAHTARIM >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio sesin hazır. Dinlemek için Test'e bas.
+Mainframe colours	Mainframe renkleri
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe renkleri. Night City kırmızı ve camgöbeği; Siyah, Beyaz ve Gri Mainframe'i, menülerini, Yazma kutusunu ve notlarını değiştirir
+Mainframe frames	Mainframe çerçeveleri
+Mainframe key	Mainframe tuşu
+Mainframe size	Mainframe boyutu
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe boyutu. Virtual Super Resolution veya DSR büyük bir masaüstünü daha küçük bir ekrana sığdırdığında Otomatik onu büyütür
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Aşağı
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Fish Audio sesin yapılıyor...
+Max reply	En fazla yanıt
+Maximum clip resolution, keeping the game's shape without upscaling	Oyunun biçimini koruyan, büyütmeden en yüksek klip çözünürlüğü
+Medium	Orta
+Memory	Bellek
+Memory size	Bellek boyutu
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama ve yerleşik beynin için token cinsinden bellek boyutu. Bir istek daha fazlasına ihtiyaç duyduğunda Otomatik büyür
+Mg	Mb
+Mic level:	Mikrofon seviyesi:
+Mic test finished. Sound is reaching Capri.	Mikrofon testi bitti. Ses Capri'ye ulaşıyor.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: varsayılan
+Microphone	Mikrofon
+Mini player	Mini oynatıcı
+Mini player over full screen	Tam ekranın üstünde mini oynatıcı
+Mini-games	Mini oyunlar
+Minimising the Mainframe left it sliding.	Mainframe'i küçültmek onu kaydırmada bıraktı.
+Minimize	Küçült
+Mod filter	Mod filtresi
+Mod options	Mod seçenekleri
+Mod pages	Mod sayfaları
+Mod rules	Mod kuralları
+Mod sort	Mod sıralaması
+Mod switch	Mod değiştirme
+Model	Model
+Model folder	Model klasörü
+Model name, optional	Model adı, isteğe bağlı
+Mods	Modlar
+Mods directory	Modlar klasörü
+Mods folder	Modlar klasörü
+Most NVIDIA models can't see your screen.	Çoğu NVIDIA modeli ekranını göremez.
+Mouse wheel notches got a flick's long ease:	Fare tekerleği çentikleri bir kaydırmanın uzun yavaşlamasını aldı:
+Move	Taşı
+Move key to MAX INTELLIGENCE	Anahtarı MAX INTELLIGENCE'a taşı
+Move to MAX	MAX'e taşı
+Music	Müzik
+Music app	Müzik uygulaması
+Music app: where she plays music when you don't name an app	Müzik uygulaması: bir uygulama adı vermediğinde müziği nerede çalar
+Mute	Sessize al
+Mute her	Onu sessize al
+Mute mic key	Mikrofonu sessize alma tuşu
+Mute mic:	Mikrofonu sessize al:
+Mute mic: Ctrl + Alt + N	Mikrofonu sessize al: Ctrl + Alt + N
+My brain	Beynim
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Beynim iniyor. Gelir gelmez merhaba diyeceğim, o zaman benimle konuşabilirsin.
+My brain's on its way. While it comes down, let's sort out how I sound.	Beynim yolda. İnerken, nasıl seslendiğimi ayarlayalım.
+My provider	Sağlayıcım
+NO AI	YAPAY ZEKA YOK
+NO PHONES CONNECTED	BAĞLI TELEFON YOK
+NO PREVIEW	ÖNİZLEME YOK
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ücretsiz · yoğun saatlerde genelde yavaş
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA'nın ücretsiz API'si özellikle yoğun saatlerde genelde yavaş.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) veya OpenRouter API anahtarı
+Names:	Adlar:
+Needs a key	Anahtar gerekir
+Never	Asla
+New code	Yeni kod
+New voice from a clip...	Bir klipten yeni ses...
+Next	Sonraki
+Night City	Night City
+No AI	Yapay zeka yok
+No AI · no brain at all	Yapay zeka yok · hiç beyin yok
+No brain runs, and nothing is sent anywhere.	Hiçbir beyin çalışmaz ve hiçbir şey bir yere gönderilmez.
+No brain yet	Henüz beyin yok
+No code open	Açık kod yok
+No limit	Sınırsız
+No mic found	Mikrofon bulunamadı
+No mods in the directory yet.	Klasörde henüz mod yok.
+No mods match that.	Bununla eşleşen mod yok.
+No mods match.	Eşleşen mod yok.
+No phones yet	Henüz telefon yok
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Henüz sanal mikrofon yok. Çıkış'ı seç, sonra VB-CABLE al (ücretsiz).
+None yet: pick to get VB-CABLE (free)	Henüz yok: VB-CABLE almak için seç (ücretsiz)
+Normal	Normal
+Not a relay host	Bir röle ana bilgisayarı değil
+Not imported. Nothing ran.	İçe aktarılmadı. Hiçbir şey çalışmadı.
+Not updated. The old one is still in.	Güncellenmedi. Eski sürüm hâlâ yüklü.
+Nothing needed updating.	Güncellenmesi gereken bir şey yoktu.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	İndirilecek bir şey yok, hiçbir yere bir şey gönderilmez. Geri konuşmam. Mainframe'de istediğin zaman bir beyin ekleyebilirsin.
+Nothing to show from the mods directory.	Mod klasöründe gösterilecek bir şey yok.
+Nothing? Windows Settings > Privacy & security > Microphone.	Hiçbir şey mi? Windows Ayarları > Gizlilik ve güvenlik > Mikrofon.
+Nous Portal keys aren't supported yet.	Nous Portal anahtarları henüz desteklenmiyor.
+OBS	OBS
+OFF	KAPALI
+OLLAMA	OLLAMA
+ON	AÇIK
+ON THIS PC	BU PC'DE
+OR A KEY	VEYA BİR ANAHTAR
+Obsidian memory vault	Obsidian anı kasası
+Off	Kapalı
+Off. Turn on Her voice in your mic above.	Kapalı. Yukarıdaki Onun sesi mikrofonunda seçeneğini aç.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Kapalı: her zamanki gibi konuşur. Açık: sahip olduğu tüm sesler, ElevenLabs dahil.
+Often	Sık sık
+On	Açık
+On / Off	Açık / Kapalı
+On: your mic and her voice are going in.	Açık: mikrofonun ve onun sesi içeri gidiyor.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Bu beynin gönderdiği her isteğe eklenen tek bir JSON nesnesi. Paylaştığı her ad için Capri'nin değerinin yerine geçer ve model tarafından denetlenmez.
+Online speech recognition	Çevrimiçi konuşma tanıma
+Open Capri Mainframe	Capri Mainframe'i aç
+Open Ollama, I'll find it	Ollama'yı aç, bulurum
+Open clips folder	Klipler klasörünü aç
+Open her memories	Anılarını aç
+Open her notes	Notlarını aç
+Open mods folder	Modlar klasörünü aç
+Open the page again	Sayfayı yeniden aç
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA veya OpenRouter.
+OpenAI-compatible server or provider.	OpenAI uyumlu sunucu veya sağlayıcı.
+OpenRouter · free models only	OpenRouter · yalnızca ücretsiz modeller
+Optional	İsteğe bağlı
+Optional. Blank means no key.	İsteğe bağlı. Boş, anahtar olmadığı anlamına gelir.
+Options	Seçenekler
+Out of the box a little higher, just behind her.	Varsayılan olarak biraz daha yüksek, tam arkasında.
+Out of the box lower, just behind her.	Varsayılan olarak biraz daha alçak, tam arkasında.
+Output	Çıkış
+Output:	Çıkış:
+Output: none	Çıkış: yok
+PHONE CONNECTED	TELEFON BAĞLI
+PHONES >	TELEFONLAR >
+PHONES CONNECTED	TELEFONLAR BAĞLI
+PREBUILT LOCAL	ÖNCEDEN HAZIRLANMIŞ YEREL
+PUBLISH MOD >	MOD YAYINLA >
+Pair a phone	Bir telefon eşleştir
+Paste	Yapıştır
+Paste API key	API anahtarını yapıştır
+Paste a brain API key	Bir beyin API anahtarı yapıştır
+Paste reads your clipboard once, when you press it.	Yapıştır, bastığında panonu bir kez okur.
+Paste your key here	Anahtarını buraya yapıştır
+Pat stroke	Kafa okşaması
+Perch	Perch
+Perch over {0} fps uses more CPU	{0} fps üstü perch daha fazla CPU kullanır
+Pick Output to get it.	Almak için Çıkış'ı seç.
+Pick a brain so I can talk back. You can change it any time.	Sana cevap verebilmem için bir beyin seç. İstediğin zaman değiştirebilirsin.
+Pick a clip of a voice you have the rights and consent to use	Kullanma hakkın ve iznin olan bir sesin klibini seç
+Pick a free model. I opened the page in your browser.	Ücretsiz bir model seç. Sayfayı tarayıcında açtım.
+Pick a new clip of you...	Senin yeni bir klibini seç...
+Pick a voice model...	Bir ses modeli seç...
+Pick one. Only one brain runs at a time.	Birini seç. Aynı anda yalnızca bir beyin çalışır.
+Pick the note her memories go in	Anılarının gideceği notu seç
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Kullanma hakkın ve iznin olan bir sesten {0} ile {1} saniye seç
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Kendi konuşman ya da kullanma hakkın ve iznin olan bir sesten {0} ile {1} saniye seç
+Pitch	Perde
+Play	Oynat
+Play...	Oynat...
+Player only	Yalnızca oynatıcı
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modelleri bu klibin sesini kopyalar. Dinlemek için Test'e bas.
+Pop-in times	Ortaya çıkma süreleri
+Pop-ins	Ortaya çıkmalar
+Power saver	Güç tasarrufu
+Power saver: how lightly she runs in games, or always	Güç tasarrufu: oyunlarda ne kadar hafif çalıştığı ya da her zaman
+Preset	Ön ayar
+Press Create API key	API anahtarı oluştur'a bas
+Press Create Key	Anahtar oluştur'a bas
+Press Generate API Key	API Anahtarı Üret'e bas
+Press Test and say something, so I know I can hear you.	Test'e bas ve bir şey söyle, seni duyabildiğimi bileyim.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Tek başına ya da Ctrl, Alt, Shift veya Win ile bir tuşa bas.
+Press new keys, then Confirm	Yeni tuşlara bas, sonra Onayla
+Provider	Sağlayıcı
+Provider API key, optional	Sağlayıcı API anahtarı, isteğe bağlı
+Provider base URL	Sağlayıcı temel URL'si
+Provider forgotten.	Sağlayıcı unutuldu.
+Provider overlaps the brain name or note	Sağlayıcı beyin adının veya notun üstüne biniyor
+Publish	Yayınla
+Publish mod	Modu yayınla
+Push to talk is off.	Bastığında konuş kapalı.
+Push to talk key	Bastığında konuşma tuşu
+Push to talk:	Bastığında konuş:
+Push to talk: not set	Bastığında konuş: ayarlanmadı
+QR CODE >	QR KODU >
+QR hidden while streaming	Yayın sırasında QR gizli
+Quick	Hızlı
+Quiet key	Sessiz tuşu
+Quiet:	Sessiz:
+Quiet: Ctrl + Alt + P	Sessiz: Ctrl + Alt + P
+Quit Capri	Capri'den çık
+RELAY >	RELE >
+REMOTE >	UZAKTAN >
+RUNS CODE.	KOD ÇALIŞTIRIR.
+Rarely	Nadiren
+Rate mod	Modu puanla
+Reading its README...	README okunuyor...
+Refresh	Yenile
+Reinstall	Yeniden kur
+Reload	Yeniden yükle
+Reloaded.	Yeniden yüklendi.
+Remember our chats	Sohbetlerimizi hatırla
+Remember what she sees	Gördüklerini hatırla
+Remote	Uzaktan
+Remote off	Uzaktan kapalı
+Remote on	Uzaktan açık
+Remove	Kaldır
+Remove all phones	Tüm telefonları kaldır
+Replies	Yanıtlar
+Reply length	Yanıt uzunluğu
+Report a problem	Sorun bildir
+Reset colors	Renkleri sıfırla
+Reset to her default	Varsayılanına sıfırla
+Resolution	Çözünürlük
+Restart to update	Güncellemek için yeniden başlat
+Restless	Huzursuz
+Revoke	İptal et
+Revoke also removes the phones its links added	İptal etmek, bağlantılarının eklediği telefonları da kaldırır
+Ride cursor	İmleç ile gezin
+Ride cursor / Hop off	İmleçle gezin / İn
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe için her zaman bana sağ tıkla. BEYİN altında bir beyin açılır.
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Yardım ve Discord için her zaman bana sağ tıkla.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox veya başka bir uygulama: seç
+Robot	Robot
+Rock, paper, scissors	Taş, kağıt, makas
+Run this code mod?	Bu kod modu çalıştırılsın mı?
+Running on this PC	Bu PC'de çalışıyor
+Running on this PC · :	Bu PC'de çalışıyor · :
+Runs Claude Code or Codex on this PC, signed in.	Bu PC'de Claude Code veya Codex çalışır, oturum açık.
+Runs on your PC. No key, no credits.	PC'nde çalışır. Anahtar yok, kredi yok.
+SCAN WITH YOUR PHONE · EXPIRES	TELEFONUNLA TARA · SÜRESİ DOLAR
+SECURITY >	GÜVENLİK >
+SKILL.	BECERİ.
+SKIN.	GÖRÜNÜM.
+SORT BY	ŞUNA GÖRE SIRALA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SESLER ALIŞKANLIKLAR BEYİN İZLE CAPRI DOOMSCROLL HAVA KLİPLER OYUNLAR TUŞLAR HAREKETLER SES SEN
+Same as I speak	Konuştuğum dille aynı
+Same as her ears (VOICE > Mic)	Onun kulaklarıyla aynı (SES > Mikrofon)
+Same code on the phone?	Telefonda aynı kod mu?
+Save	Kaydet
+Save big moments	Büyük anları kaydet
+Save folder	Kayıt klasörü
+Save your changes, or press Discard + reload.	Değişikliklerini kaydet ya da At + yeniden yükle'ye bas.
+Save your changes, or press Discard.	Değişikliklerini kaydet ya da At'a bas.
+Saved.	Kaydedildi.
+Saved. Ctrl + Alt + O opens her Mainframe.	Kaydedildi. Ctrl + Alt + O onun Mainframe'ini açar.
+Saving your rating...	Puanın kaydediliyor...
+Say her name anywhere to chat	Sohbet etmek için herhangi bir yerde adını söyle
+Screens	Ekranlar
+Screens is hidden or outside WATCH	Ekranlar gizli veya İZLE dışında
+Screens overlaps a WATCH row	Ekranlar bir İZLE satırının üstüne biniyor
+Screens to watch	İzlenecek ekranlar
+Sealed end to end	Uçtan uca şifrelenmiş
+Search by name or author	Ada veya yazara göre ara
+Search installed mods	Yüklü modlarda ara
+Search mods	Mod ara
+Search name, author or description	Ad, yazar veya açıklamada ara
+Security	Güvenlik
+Security:	Güvenlik:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Kur
+Set up her brain	Beynini kur
+Set up your voice model	Ses modelini kur
+Setting up her brain	Beyni kuruluyor
+Settings	Ayarlar
+Settings / Back	Ayarlar / Geri
+Settings folds the wrong rows above BRAIN	Ayarlar BEYİN'in üstündeki yanlış satırları katladı
+Settings had nothing to watch.	Ayarlar izlenecek bir şey bulamadı.
+Settings lost keyboard focus during the Tab walk	Ayarlar Tab gezintisi sırasında klavye odağını kaybetti
+Setup guide	Kurulum rehberi
+Setup stopped	Kurulum durduruldu
+She answers in	Cevap dili
+She can read it when it fits.	Uygun olduğunda okuyabilir.
+She glances at your screen and comments. Costs a little on a paid brain.	Ekranına bakar ve yorum yapar. Ücretli bir beyinde biraz maliyeti var.
+She keeps listening. Say her name, then just talk.	Dinlemeye devam ediyor. Adını söyle, sonra konuş.
+She reacts to your game until you close it.	Oyunu kapatana kadar oyununa tepki verir.
+She reads these controls before each game job.	Her oyun işinden önce bu denetimleri okur.
+She talks about your game as you play. Costs a little on a paid brain.	Sen oynarken oyunun hakkında konuşur. Ücretli bir beyinde biraz maliyeti var.
+She uses it when she plays	Oynarken bunu kullanır
+Short	Kısa
+Shortest wait (minutes)	En kısa bekleme (dakika)
+Show Capri	Capri'yi göster
+Show QR	QR'ı göster
+Show my mod file	Mod dosyamı göster
+Show on Discord	Discord'da göster
+Shum, what time is it	Shum, saat kaç
+Sign in	Oturum aç
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Oturum aç, bir anahtar oluştur ve kopyala. Sonra Yapıştır'a bas, ben bağlanayım.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Oturum aç, API anahtarı oluştur'a bas ve kopyala. Sonra Yapıştır'a bas, ben bağlanayım.
+Silent · text only	Sessiz · yalnızca metin
+Simple / Advanced Settings	Basit / Gelişmiş Ayarlar
+Simple Settings	Basit Ayarlar
+Simple Settings left a gap under Check in on me	Basit Ayarlar Bana bak'ın altında boşluk bıraktı
+Sit here	Buraya otur
+Sit on windows	Pencerelerin üstünde otur
+Size	Boyut
+Skip	Atla
+Skip all	Hepsini atla
+Skip for now	Şimdilik atla
+Sleep	Uyku
+Small	Küçük
+Sometimes	Bazen
+Sound effects volume	Ses efektleri seviyesi
+Sound sensitivity	Ses hassasiyeti
+Sounds	Sesler
+Speaker or clip	Hoparlör veya klip
+Speech model	Ses motoru
+Speed	Hız
+Start with Windows	Windows ile başlat
+Start with this!	Bununla başla!
+Starting...	Başlatılıyor...
+Stay	Kal
+Stay on my model	Modelimde kal
+Still checking your mics...	Mikrofonların hâlâ kontrol ediliyor...
+Still checking your speakers...	Hoparlörlerin hâlâ kontrol ediliyor...
+Still checking your virtual mics...	Sanal mikrofonların hâlâ kontrol ediliyor...
+Stop	Dur
+Stopped using it. Couldn't remove the saved provider.	Kullanmayı bıraktım. Kayıtlı sağlayıcı kaldırılamadı.
+Support	Destek
+Sure?	Emin misin?
+Sure? moved to a different phone	Emin misin? başka bir telefona taşındı
+TALK TO ME	BANA KONUŞ
+TEXT ONLY	YALNIZCA METİN
+Tab landed past the first option of	Tab, şunun ilk seçeneğini geçti:
+Tab never reached the quiet key	Tab sessiz tuşa hiç ulaşmadı
+Tab reached nothing	Tab hiçbir şeye ulaşmadı
+Tab selected a control without moving keyboard focus	Tab, klavye odağını taşımadan bir denetim seçti
+Talk	Konuş
+Talk key	Konuşma tuşu
+Talk:	Konuş:
+Talk: Ctrl + Alt + V	Konuş: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Hedef yakalama kare hızı; yük veya bellek bütçesi altında düşebilir
+Teases when another AI comes to the front.	Başka bir yapay zeka öne geçtiğinde dalga geçer.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Bu adres çalışmıyor. https://... veya http://localhost:{0} dene.
+That code expired	Bu kodun süresi doldu
+That mod is no longer installed. The list is updated.	Bu mod artık yüklü değil. Liste güncellendi.
+That's a paid key: it goes under MAX INTELLIGENCE.	Bu ücretli bir anahtar: MAX INTELLIGENCE altına gider.
+The Mainframe stayed composited while sliding.	Mainframe kaydırma sırasında bileşik kaldı.
+The Mainframe stayed uncomposited after the slide.	Mainframe kaydırmadan sonra bileşik olmaktan çıkmadı.
+The controls moved while the picture was sliding.	Resim kayarken denetimler taşındı.
+The cover stayed visible after the slide ended.	Kaydırma bittikten sonra kapak görünür kaldı.
+The frame thread kept running after the page settled.	Sayfa yerleştikten sonra kare iş parçacığı çalışmaya devam etti.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Token cinsinden verebileceği en uzun yanıt. Otomatik yukarıdaki Yanıtlar'a uyar; {0}K veya {1}K daha uzun çalışmasına izin verir. İşler ihtiyaç duyduğunda daha fazla alan tutar
+The longest wait must be at least the shortest wait.	En uzun bekleme, en kısa beklemeden az olmamalı.
+The picture doesn't match the scrolled page:	Resim kaydırılmış sayfayla eşleşmiyor:
+The picture of Settings doesn't match the page:	Ayarların resmi sayfayla eşleşmiyor:
+The picture stayed up after the slide ended.	Kaydırma bittikten sonra resim açık kaldı.
+The picture wasn't showing while it slid.	Kayarken resim gösterilmiyordu.
+The provider sheet is crowded:	Sağlayıcı sayfası kalabalık:
+The voice panel has no screen DPI.	Ses panelinde ekran DPI'si yok.
+The voice panel's menus share one font.	Ses panelinin menüleri tek bir yazı tipini paylaşıyor.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Panonda henüz anahtar yok. Sayfadan kopyala, sonra Yapıştır'a bas.
+These start off. Each costs a little or uses your mic.	Bunlar kapalı başlar. Her biri biraz maliyetlidir ya da mikrofonunu kullanır.
+These start off. Turn on what you want. They're all in Settings too.	Bunlar kapalı başlar. İstediklerini aç. Hepsi de Ayarlar'da.
+They can also call you Big Z, Capricorn or Nova	Bana Big Z, Capricorn veya Nova da diyebilirler
+They can also call you Nova, Big Z or Capricorn	Bana Nova, Big Z veya Capricorn da diyebilirler
+Thinking	Düşünüyor
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Bu benim ücretsiz sesim. Test'e bas, bir şey söyle, seni duyduğumu göstereceğim.
+This mod has no description yet.	Bu modun henüz açıklaması yok.
+Tic-tac-toe	XOX
+Time between glances	Bakışlar arasındaki süre
+Tiny	Minik
+Try again	Yeniden dene
+Turn Remote on first	Önce Uzaktan'ı aç
+Turn off mini player	Mini oynatıcıyı kapat
+Turn push to talk off	Bastığında konuşmayı kapat
+Turning the wheel the other way kept the page heading the old way, to	Tekerleği diğer yöne çevirmek sayfayı eski yönde tuttu, şuna kadar:
+Type	Yaz
+Type key	Yazma tuşu
+Type to me	Bana yaz
+Type:	Yaz:
+Type: Ctrl + Alt + T	Yaz: Ctrl + Alt + T
+Typing sound	Yazma sesi
+Unpacked. Press Test to hear it.	Açıldı. Dinlemek için Test'e bas.
+Unsaved changes.	Kaydedilmemiş değişiklikler.
+Up to {0} fps	{0} fps'ye kadar
+Up to {0}p	{0}p'ye kadar
+Update	Güncelle
+Update available.	Güncelleme var.
+Update mods	Modları güncelle
+Updating...	Güncelleniyor...
+Use	Kullan
+Use her cursor	İmlecini kullan
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Başka bir yerdeki sağlayıcı için https:// kullan. Düz http üzerinden gönderilen anahtar güvenli değildir.
+Use preset	Ön ayarı kullan
+Use saved	Kayıtlıyı kullan
+Use this server	Bu sunucuyu kullan
+Using your provider with a key	Anahtarlı sağlayıcını kullan
+Using your server with no key	Anahtarsız kendi sunucunu kullan
+VIEW MOD >	MODU GÖR >
+VOICE >	SES >
+VOICE IN YOUR MIC >	MİKROFONDA SES >
+VOICE LAYERS >	SES KATMANLARI >
+Verbosity	Ayrıntı
+Video bitrate	Video bit hızı
+View	Görünüm
+View mod	Modu görüntüle
+Voice	Ses
+Voice ID	Ses kimliği
+Voice from	Ses kaynağı
+Voice layers	Ses katmanları
+Voice model	Ses modeli
+Voice model:	Ses modeli:
+Voice name or ID, optional	Ses adı veya kimliği, isteğe bağlı
+Voice server address, or a voice model's folder	Ses sunucusu adresi veya bir ses modelinin klasörü
+Voice status	Ses durumu
+Voice, key and model...	Ses, anahtar ve model...
+Volume	Ses
+WAKE ME UP >	UYANDIR BENİ >
+WATCH >	İZLE >
+Waiting for the relay	Röle bekleniyor
+Wake her up	Onu uyandır
+Waking her up	Uyandırılıyor
+Wander	Dolaş
+Wander around	Etrafta dolaş
+Watch my screen	Ekranımı izle
+Watch-along memory	Birlikte izlerken hafıza
+Weather	Hava durumu
+Weather city	Hava durumu şehri
+Welcome back, choom. Let's finish setting me up.	Tekrar hoş geldin choom. Kurulumu bitirelim.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Senden izin istemeden PC'nde yaptığı şeyler. Bir anahtar kapalıyken önce sorar, sen evet dediğinde yapar.
+What should she call you?	Sana ne diye seslensin?
+When she types	Yazdığında
+White	Beyaz
+Windows default	Windows varsayılanı
+Windows did not give Settings keyboard focus	Windows Ayarlar'a klavye odağını vermedi
+Windows did not return keyboard focus to Back	Windows klavye odağını Geri'ye geri vermedi
+With no picture the wheel still tried to slide.	Resim yokken tekerlek yine de kaymaya çalıştı.
+Works best on MAX INTELLIGENCE.	En iyi MAX INTELLIGENCE'da çalışır.
+YOU	SEN
+YOU >	SEN >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	SEN SES HAREKETLER TUŞLAR OYUNLAR KLİPLER HAVA DOOMSCROLL CAPRI İZLE BEYİN ALIŞKANLIKLAR SESLER
+YOUR KEY	ANAHTARIN
+YOUR MIC	MİKROFONUN
+YOUR PLAN	PLANIN
+Yokapri what's up	Yokapri ne haber
+You can hide this. It keeps going, and the Mainframe shows it too.	Bunu gizleyebilirsin. Çalışmaya devam eder ve Mainframe da gösterir.
+Your mic and her voice go into one virtual mic, and	Mikrofonun ve onun sesi tek bir sanal mikrofona gider ve
+Your mic is muted. Unmute it to test.	Mikrofonun sessiz. Test etmek için sesini aç.
+Your mods are up to date.	Modların güncel.
+Your name or a nickname	Adın ya da bir lakap
+Your own model	Kendi modelin
+Your personality	Kişiliğin
+Your voice	Sesin
+Your voice (HD)	Sesin (HD)
+Your voice (HD) · pick a clip of you...	Sesin (HD) · senden bir klip seç...
+Your voice model	Ses modelin
+as its mic.	mikrofon olarak.
+changed. Saved as My Colors, so you can share it.	değişti. Paylaşabilmen için Renklerim olarak kaydedildi.
+choice	seçim
+clips the input line	giriş satırını kırpıyor
+cue	ipucu
+doesn't yet.	henüz değil.
+download	indir
+file.	dosya.
+flag	bayrak
+fps	fps
+hear	duymak
+hears	duyar
+hears that.	bunu duyar.
+hides or shows her.	onu gizler veya gösterir.
+hint	ipucu
+in the Mainframe.	Mainframe'de.
+in the mods directory with a pull request.	bir pull request ile mod klasöründe.
+in the picture wasn't noticed.	resimde fark edilmedi.
+is already her push-to-talk key.	zaten onun bastığında konuşma tuşu.
+is off.	kapalı.
+is on and running.	açık ve çalışıyor.
+is on, at the bottom, under	açık, en altta, şunun altında:
+is on.	açık.
+is on. She now answers to	açık. Artık şuna cevap veriyor:
+is removed.	kaldırıldı.
+is taken	alındı
+is taken by another app. Try another.	başka bir uygulama tarafından alındı. Başka bir tane dene.
+is updated	güncellendi
+isn't hearing it yet: do {0} and {1}, then join a call.	henüz duymuyor: {0} ve {1} yap, sonra bir aramaya katıl.
+it now.	şimdi.
+keeps her quiet, and lets her talk again.	onu sessiz tutar ve yeniden konuşmasına izin verir.
+key	tuşu
+key.	tuşu.
+min	dk
+more.	daha.
+ms.	ms.
+mutes mic	mikrofonu sessize alır
+mutes your mic.	mikrofonunu sessize alır.
+name	ad
+off	kapalı
+on this PC	bu PC'de
+opens her Mainframe.	onun Mainframe'ini açar.
+opens her typing box.	onun yazma kutusunu açar.
+phone	telefon
+phone pixels	telefon pikseli
+phones	telefonlar
+pixels	piksel
+pixels)	piksel)
+star.	yıldız.
+stars.	yıldız.
+starts voice chat.	sesli sohbeti başlatır.
+stays off. Nothing ran.	kapalı kalır. Hiçbir şey çalışmadı.
+still does its own job in other apps too. Confirm to keep it.	diğer uygulamalarda da kendi işini yapmaya devam eder. Tutmak için onayla.
+tall	uzun
+time	süre
+to talk	konuşmak için
+to talk to her, with a game in front too.	oyun önde açıkken onunla konuşmak için.
+too.	de.
+turns Gaming Mode on and off.	Oyun Modu'nu açıp kapatır.
+with Ollama	Ollama ile
+won't type in other apps while she runs. Confirm to keep it.	o çalışırken diğer uygulamalara yazmaz. Tutmak için onayla.
+{0}   Echo Cancellation: Off	{0}   Yankı Giderme: Kapalı
+{0}   If her voice cuts off, turn off noise filtering	{0}   Sesi kesilirse gürültü filtrelemeyi kapat
+{0}   Input Device:	{0}   Giriş Aygıtı:
+{0}   Join the call and check they hear both of you	{0}   Aramaya katıl ve ikinizi de duyduklarını kontrol et
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofon Testi > Kontrol Edelim: kendini ve konuşurken onu duyacaksın
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Gürültü Bastırma: Yok. İkisi de ilk satırdan sonra sesini kesebilir.
+{0}   Open the call or meeting's audio settings	{0}   Aramanın veya toplantının ses ayarlarını aç
+{0}   Output Device: your headphones, like before	{0}   Çıkış Aygıtı: her zamanki gibi kulaklığın
+{0}   Speaker: your headphones, like before	{0}   Hoparlör: her zamanki gibi kulaklığın
+{0}   Try a mic test in your call app	{0}   Arama uygulamanda bir mikrofon testi dene
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Kullanıcı Ayarları (adının yanındaki dişli) > Ses ve Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} satır
+{0} min	{0} dk
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· bu PC'de
+· server	· sunucu
+Edit as text	Metin olarak düzenle
+What Capri remembers about you. It stays on this computer.	Capri senin hakkında ne hatırlıyor. Bu bilgisayarda kalır.
+Tell her something to remember	Ona hatırlaması için bir şey söyle
+Search her memory	Onun hafızasında ara
+That day isn't there any more.	O gün artık yok.
+Undo	Geri al
+Remember our chats is off, so she isn't keeping new chat memories.	Sohbetlerimizi hatırla kapalı, bu yüzden yeni sohbet anıları saklamıyor.
+ABOUT YOU	SENİN HAKKINDA
+FROM YOUR CHATS	SOHBETLERİNDEN
+GAMES	OYUNLAR
+CHAT LOGS	SOHBET GÜNLÜKLERİ
+CHAT LOG	SOHBET GÜNLÜĞÜ
+Nothing matches.	Eşleşen yok.
+Nothing yet.	Henüz bir şey yok.
+Reading her notes.	Notlarını okuyor.
+Click again to forget game notes	Oyun notlarını unutmak için tekrar tıkla
+Forget game notes	Oyun notlarını unut
+Click again to forget everything about me	Seninle ilgili her şeyi unutmak için tekrar tıkla
+Forget everything about me	Seninle ilgili her şeyi unut
+Click again to forget	Unutmak için tekrar tıkla
+Forget this day	Bu günü unut
+Only the start of this day is shown.	Bu günün yalnızca başlangıcı gösteriliyor.
+Nothing in this day.	Bu günde bir şey yok.
+No chats kept yet.	Henüz sohbet kaydedilmedi.
+You	Sen
+{0} line	{0} satır
+SET UP EMAIL >	E-POSTAYI AYARLA >
+SET UP EMAIL	E-POSTAYI AYARLA
+Or type your address	Veya adresini yaz
+Email address	E-posta adresi
+Open the page	Sayfayı aç
+App password	Uygulama parolası
+IMAP server	IMAP sunucusu
+Incoming mail server	Gelen posta sunucusu
+SMTP server	SMTP sunucusu
+Outgoing mail server	Giden posta sunucusu
+An app password is a separate password just for Capri. Your normal password stays yours.	Uygulama parolası yalnızca Capri için ayrı bir paroladır. Normal parolan senin kalır.
+She keeps it only until she closes.	Onu yalnızca kapanana kadar saklar.
+She checks, searches and reads your mail. She asks before she sends any.	Postanı kontrol eder, arar ve okur. Bir şey göndermeden önce sorar.
+Watch for new mail	Yeni postayı izle
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Posta geldiğinde konuşur, kimlik avı gibi görünüyorsa uyarır. Hiçbir şey okundu olarak işaretlenmez.
+Deal with phishing on her own	Kimlik avıyla kendisi ilgilen
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Yalnızca o izlerken. Kimlik avı olduğundan emin olduğu posta spam'e gider. Geri kalanı senin evetini bekler.
+Forget account	Hesabı unut
+Use another email	Başka e-posta kullan
+Which email?	Hangi e-posta?
+Make an app password	Uygulama parolası oluştur
+Paste it	Yapıştır
+Connecting...	Bağlanıyor...
+She can use your email now.	Artık e-postanı kullanabilir.
+She's not watching your inbox.	Gelen kutunu izlemiyor.
+She's watching your inbox and deals with phishing she's sure of.	Gelen kutunu izliyor ve emin olduğu kimlik avıyla ilgileniyor.
+She's watching your inbox and tells you when mail lands.	Gelen kutunu izliyor ve posta geldiğinde sana söylüyor.
+She forgot that account and its app password.	O hesabı ve uygulama parolasını unuttu.
+She forgot that account. Its app password is gone from this PC.	O hesabı unuttu. Uygulama parolası bu bilgisayardan gitti.
