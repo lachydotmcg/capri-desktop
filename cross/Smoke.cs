@@ -3609,6 +3609,14 @@ namespace CapriDesktop
                 if (pet.Saved.MusicApp != steps.Length - 1 || pet.MusicApp != steps.Length - 1 || steps[steps.Length - 1] != "YouTube Music") throw new Exception("Music app didn't clamp at YouTube Music: " + pet.MusicApp);
                 if (!frame.Row("Music app").IsVisible || frame.Overlap() != null) throw new Exception("The cross Music app row didn't show in Simple Settings or overlapped: " + frame.Overlap());
                 checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows each music app in Simple Settings, Apple Music left out on Linux");
+                foreach (int way in new[] { 1, -1 })
+                {
+                    int from = way > 0 ? 1 : 3, expected = OperatingSystem.IsLinux() ? from + way * 2 : from + way;
+                    pet.SetMusicApp(from);
+                    string told = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "music_app", Level = way > 0 ? "up" : "down" });
+                    if (pet.MusicApp != expected) throw new Exception("One step of Music app from " + steps[from] + " landed on " + steps[pet.MusicApp] + ": " + told);
+                }
+                checks.Add("PASS cross Music app: one step up or down moves to the next choice, passing over Apple Music on Linux");
             }
             finally
             {

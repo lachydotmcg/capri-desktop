@@ -7687,7 +7687,14 @@ namespace CapriDesktop
             for (int i = 0; i < steps.Length; i++) if (steps[i].Replace(" ", "").ToLowerInvariant() == plain) return i;
             int nudge = Nudge(asked);
             if (nudge == 2 || nudge == -2) return nudge > 0 ? steps.Length - 1 : 0;
-            if (nudge != 0) return Math.Max(0, Math.Min(steps.Length - 1, now + nudge));
+            if (nudge != 0)
+            {
+                int stepped = Math.Max(0, Math.Min(steps.Length - 1, now + nudge));
+#if CROSS
+                if (name == "music_app" && stepped == Array.IndexOf(steps, "Apple Music") && System.OperatingSystem.IsLinux()) stepped += nudge;
+#endif
+                return stepped;
+            }
             if (name == "language")
             {
                 for (int i = 0; i < Brain.Languages.GetLength(0); i++)
