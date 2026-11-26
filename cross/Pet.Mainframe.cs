@@ -225,6 +225,7 @@ namespace CapriDesktop
         private Mainframe mainframe;
         private MenuItem hideItem;
         private string[] frameModels = Array.Empty<string>();
+        private string frameModelServer, frameModelKey, frameModelProvider;
         private int brainRequests;
         private int brainPending;
         private int pcPending;
@@ -258,7 +259,7 @@ namespace CapriDesktop
         internal string MainframeLocalModel { get { return localVoice.Model ?? ""; } }
         internal string MainframeLocalVoice { get { return localVoice.Speaker ?? ""; } }
         internal string MainframeLocalFormat { get { return LocalSpeaker.Known(localVoice.Format); } }
-        internal string[] MainframeModels { get { return Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 ? frameModels : Array.Empty<string>(); } }
+        internal string[] MainframeModels { get { return Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 && (Brain.Provider != null || CurrentServerModels()) ? frameModels : Array.Empty<string>(); } }
         internal string[] MainframeVoiceIds
         {
             get { var ids = new List<string>(); if (voices != null) foreach (VoiceEntry entry in voices.Voices) ids.Add(entry.Id); return ids.ToArray(); }
@@ -359,6 +360,17 @@ namespace CapriDesktop
             else Talk.Answer("(uninstall)", "I couldn't start the helper that removes me, so nothing changed. You can delete my app by hand.");
         }
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
+        private bool CurrentServerModels()
+        {
+            Brain.GetServer(out string address, out string key);
+            return frameModelServer == address && frameModelKey == key && frameModelProvider == EndpointIdOf(Saved.BrainProvider);
+        }
+
+        internal void MainframePickListedModel(string model)
+        {
+            if (Array.IndexOf(MainframeModels, model) >= 0) MainframePickModel(model);
+        }
+
         internal void MainframePickModel(string model)
         {
             if (string.IsNullOrWhiteSpace(model)) return;
@@ -432,6 +444,7 @@ namespace CapriDesktop
             string savedCustom = Saved.BrainProvider;
             if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
+            ++asking;
             if (MainframeTier == tier && Brain.Provider == null) return;
             StopNativeListening();
             Brain.Provider?.Cancel();
@@ -451,9 +464,7 @@ namespace CapriDesktop
             ProviderEndpoint custom = null;
             if (tier == 0)
             {
-                if (savedCustom != null) custom = EndpointFor(Saved, EndpointIdOf(savedCustom));
-                if (custom != null && !string.Equals(Brain.ServerAddress(custom.Address), Brain.Server, StringComparison.Ordinal)) custom = null;
-                if (custom == null) custom = EndpointAt(Saved, Brain.Server);
+                custom = savedCustom == null ? LegacyEndpointForServer() : EndpointFor(Saved, EndpointIdOf(savedCustom));
             }
             string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
             Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);

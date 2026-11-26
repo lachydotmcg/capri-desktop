@@ -461,7 +461,7 @@ namespace CapriDesktop
             // so she isn't limited to the providers Capri recognises from a key's prefix (the field below).
             Key("Provider", 280, 79, 76, 20, OpenProvider);
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
-            models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
+            models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i >= models.Choices.Length) return; if (i == models.Choices.Length - 1 && pet.MainframeTier == 0) pet.AskPull(); else pet.MainframePickListedModel(models.Choices[i]); }); models.Ellipsis = true;
             refresh = Key("Refresh", 280, 134, 76, 28, pet.MainframeRefresh);
             setup = Key("Set up her brain", 28, 226, 170, 28, pet.PullBrain); setup.Accent = MainframeTheme.Cyan; setup.Loud = true;
             Caption("1. Open Ollama.", 28, 138, 328, 18, MainframeTheme.Faint);
