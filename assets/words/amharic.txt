@@ -182,7 +182,7 @@ FREE KEY >	ነፃ ቁልፍ >
 Fast hands in games	በጨዋታዎች ፈጣን እጆች
 File editor	የፋይል አርታዒ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio፣ ElevenLabs እና ሌሎችም በMainframe ውስጥ በድምፅ ስር ናቸው።
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio፣ ElevenLabs እና ሌሎችም በMainframe ውስጥ በድምፅ ስር ናቸው።
 Follow-up messages	የክትትል መልዕክቶች
 Forget	እርሳ
 Fork capri-mods	capri-mods ቅጂ ፍጠር
@@ -222,7 +222,7 @@ Go to the next screen	ወደሚቀጥለው ማያ ሂድ
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ነፃ ደረጃ · የጥያቄ ገደብ አለው
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	የClaude ወይም የChatGPT እቅድ ወይም የራስዎ ቁልፍ አለዎት? ይምረጡ እና እገናኛለሁ።
-Got it, just me. Right-click me any time for Capri Mainframe.	ገባኝ፣ እኔ ብቻ። Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ ያድርጉኝ።
+Got it, just me. Right-click me any time for the Mainframe.	ገባኝ፣ እኔ ብቻ። Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ ያድርጉኝ።
 Grey	ግራጫ
 H.{0} video bitrate target; higher values make larger files	የH.{0} ቪዲዮ ቢትሬት ግብ; ከፍተኛ እሴቶች ትልልቅ ፋይሎችን ይፈጥራሉ
 HABITS >	ልማዶች >
@@ -256,11 +256,11 @@ Her speaker:	ድምፅ ማጉያዋ:
 Her speaker: Default	ድምፅ ማጉያዋ: ነባሪ
 Her voice in your mic	ድምጿ በማይክዎ
 Her voice in your mic: loudness	ድምጿ በማይክዎ: ድምጽ
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	የራሷ ድምፅ። ቃናው ቅንብሮች > ድምፅ > ቃና ነው፣ እና አብረው ይንቀሳቀሳሉ።
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	የራሷ ድምፅ። ቃናው ቅንብሮች > ድምፅ > ቃና ነው፣ እና አብረው ይንቀሳቀሳሉ።
 Her voice joins your mic only in call mode.	ድምጿ ወደ ማይክዎ የሚገባው በጥሪ ሁነታ ብቻ ነው።
 Her voice volume	የድምጿ መጠን
 Her voice's pitch	የድምጿ ቃና
-Her voice's pitch, the same as Settings > VOICE > Pitch	የድምጿ ቃና፣ ልክ እንደ ቅንብሮች > ድምፅ > ቃና
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	የድምጿ ቃና፣ ልክ እንደ ቅንብሮች > ድምፅ > ቃና
 Her voice's speed	የድምጿ ፍጥነት
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ድምጿ፣ እና ከሱ በታች የተቀላቀሉ ሁለት ቅጂዎች፣ እያንዳንዳቸው የራሳቸው ቃና እና መዘግየት ያላቸው።
 Her voices · free	ድምጾቿ · ነፃ
@@ -583,7 +583,7 @@ Revoke	ሻር
 Revoke also removes the phones its links added	መሻር የአገናኞቿ የጨመሯቸውን ስልኮችም ያስወግዳል
 Ride cursor	ጠቋሚ ላይ ተቀመጥ
 Ride cursor / Hop off	ጠቋሚ ላይ ተቀመጥ / ውረድ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ አድርገኝ። አእምሮ በአእምሮ ስር ይበራል።
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframeን ለመክፈት በማንኛውም ጊዜ በቀኝ ጠቅ አድርገኝ። አእምሮ በአእምሮ ስር ይበራል።
 Right-click me any time for the Mainframe, Help and the Discord.	ለMainframe፣ ለእገዛ እና ለDiscord በማንኛውም ጊዜ በቀኝ ጠቅ አድርገኝ።
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ወይም ሌላ ማንኛውም መተግበሪያ: ምረጥ

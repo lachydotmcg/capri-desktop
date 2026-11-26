@@ -182,7 +182,7 @@ FREE KEY >	ÇELËS FALAS >
 Fast hands in games	Duar të shpejta në lojëra
 File editor	Redaktori i skedarëve
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs dhe të tjerë janë nën ZË në Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs dhe të tjerë janë nën ZË në Mainframe.
 Follow-up messages	Mesazhet e vazhdimit
 Forget	Harro
 Fork capri-mods	Degëzo capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Shko te ekrani tjetër
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · nivel falas · me kufizim shpejtësie
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ke një plan Claude ose ChatGPT, ose një çelës tëndin? Zgjidhe dhe unë do të lidhem.
-Got it, just me. Right-click me any time for Capri Mainframe.	E kuptova, vetëm unë. Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	E kuptova, vetëm unë. Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe.
 Grey	Gri
 H.{0} video bitrate target; higher values make larger files	Synimi i bitrate-it të videos H.{0}; vlerat më të larta bëjnë skedarë më të mëdhenj
 HABITS >	ZAKONET >
@@ -256,11 +256,11 @@ Her speaker:	Altoparlanti i saj:
 Her speaker: Default	Altoparlanti i saj: E parazgjedhur
 Her voice in your mic	Zëri i saj në mikrofonin tënd
 Her voice in your mic: loudness	Zëri i saj në mikrofonin tënd: volumi
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Vetë zëri i saj. Lartësia e tij është Cilësimet > ZËRI > Lartësia, dhe lëvizin së bashku.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Vetë zëri i saj. Lartësia e tij është Cilësimet > ZËRI > Lartësia, dhe lëvizin së bashku.
 Her voice joins your mic only in call mode.	Zëri i saj i bashkohet mikrofonit tënd vetëm në modalitetin thirrje.
 Her voice volume	Volumi i zërit të saj
 Her voice's pitch	Lartësia e zërit të saj
-Her voice's pitch, the same as Settings > VOICE > Pitch	Lartësia e zërit të saj, njëlloj si Cilësimet > ZËRI > Lartësia
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Lartësia e zërit të saj, njëlloj si Cilësimet > ZËRI > Lartësia
 Her voice's speed	Shpejtësia e zërit të saj
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Zëri i saj, dhe dy kopje të tij të përzier poshtë saj, secila me lartësinë dhe vonesën e vet.
 Her voices · free	Zërat e saj · falas
@@ -583,7 +583,7 @@ Revoke	Revoko
 Revoke also removes the phones its links added	Revoko heq edhe telefonat që shtuan lidhjet e saj
 Ride cursor	Hip mbi kursor
 Ride cursor / Hop off	Hip mbi kursor / Zbrit
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe. Një tru ndizet poshtë TRURI.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe. Një tru ndizet poshtë TRURI.
 Right-click me any time for the Mainframe, Help and the Discord.	Kliko me të djathtën mbi mua në çdo kohë për Mainframe, Ndihmën dhe Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ose çdo aplikacion tjetër: zgjidh

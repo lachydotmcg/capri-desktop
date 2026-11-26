@@ -182,7 +182,7 @@ FREE KEY >	無料キー >
 Fast hands in games	ゲームでの器用な手
 File editor	ファイルエディター
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio、ElevenLabs などは Mainframe の音声にあります。
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio、ElevenLabs などは Mainframe の音声にあります。
 Follow-up messages	フォローアップメッセージ
 Forget	忘れる
 Fork capri-mods	capri-mods をフォーク
@@ -222,7 +222,7 @@ Go to the next screen	次の画面へ
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 無料枠 · レート制限あり
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude か ChatGPT のプラン、または自分のキーがある？選んでくれたら接続するよ。
-Got it, just me. Right-click me any time for Capri Mainframe.	了解、私だけね。いつでも右クリックで Capri Mainframe を開けるよ。
+Got it, just me. Right-click me any time for the Mainframe.	了解、私だけね。いつでも右クリックで Capri Mainframe を開けるよ。
 Grey	グレー
 H.{0} video bitrate target; higher values make larger files	H.{0} 映像ビットレート目標。値が大きいほどファイルが大きくなります
 HABITS >	習慣 >
@@ -256,11 +256,11 @@ Her speaker:	彼女のスピーカー:
 Her speaker: Default	彼女のスピーカー: デフォルト
 Her voice in your mic	あなたのマイクに入る彼女の声
 Her voice in your mic: loudness	あなたのマイクに入る彼女の声: 音量
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	彼女の声そのもの。ピッチは 設定 > 音声 > ピッチ で、両方一緒に動きます。
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	彼女の声そのもの。ピッチは 設定 > 音声 > ピッチ で、両方一緒に動きます。
 Her voice joins your mic only in call mode.	彼女の声は通話モードのときだけマイクに入ります。
 Her voice volume	彼女の声の音量
 Her voice's pitch	彼女の声のピッチ
-Her voice's pitch, the same as Settings > VOICE > Pitch	彼女の声のピッチ。設定 > 音声 > ピッチ と同じ
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	彼女の声のピッチ。設定 > 音声 > ピッチ と同じ
 Her voice's speed	彼女の声の速さ
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	彼女の声と、その下に2つのコピーがミックスされます。それぞれ独自のピッチと遅延があります。
 Her voices · free	彼女の音声 · 無料
@@ -583,7 +583,7 @@ Revoke	取り消し
 Revoke also removes the phones its links added	取り消すと、そのリンクで追加された電話も削除されます
 Ride cursor	カーソルに乗る
 Ride cursor / Hop off	カーソルに乗る / 降りる
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	いつでも右クリックで Capri Mainframe を開けるよ。ブレインは BRAIN の下でオンになります。
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	いつでも右クリックで Capri Mainframe を開けるよ。ブレインは BRAIN の下でオンになります。
 Right-click me any time for the Mainframe, Help and the Discord.	いつでも右クリックで Mainframe、ヘルプ、Discord を開けるよ。
 Roblox	Roblox
 Roblox or any other app: pick	Roblox やその他のアプリ: 選択

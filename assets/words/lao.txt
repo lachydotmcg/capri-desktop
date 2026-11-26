@@ -182,7 +182,7 @@ FREE KEY >	ກະແຈຟຣີ >
 Fast hands in games	ມືວ່ອງໄວໃນເກມ
 File editor	ໂປຣແກຣມແກ້ໄຂໄຟລ໌
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ແລະອື່ນໆຢູ່ໃນ VOICE ໃນ Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ແລະອື່ນໆຢູ່ໃນ VOICE ໃນ Mainframe.
 Follow-up messages	ຂໍ້ຄວາມຕິດຕາມ
 Forget	ລືມ
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	ໄປໜ້າຈໍຕໍ່ໄປ
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ແຜນຟຣີ · ຈຳກັດອັດຕາ
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	ມີແພັກເກດ Claude ຫຼື ChatGPT, ຫຼືກະແຈຂອງເຈົ້າເອງບໍ? ເລືອກມັນ ແລ້ວຂ້ອຍຈະເຊື່ອມຕໍ່ໃຫ້.
-Got it, just me. Right-click me any time for Capri Mainframe.	ໄດ້, ແມ່ນຂ້ອຍຄົນດຽວ. ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	ໄດ້, ແມ່ນຂ້ອຍຄົນດຽວ. ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe.
 Grey	ສີເທົາ
 H.{0} video bitrate target; higher values make larger files	ເປົ້າໝາຍ video bitrate H.{0}; ຄ່າທີ່ສູງຂຶ້ນເຮັດໃຫ້ໄຟລ໌ໃຫຍ່ຂຶ້ນ
 HABITS >	HABITS >
@@ -256,11 +256,11 @@ Her speaker:	ລຳໂພງຂອງນາງ:
 Her speaker: Default	ລຳໂພງຂອງນາງ: ຄ່າເລີ່ມຕົ້ນ
 Her voice in your mic	ສຽງຂອງນາງໃນໄມໂຄຣໂຟນຂອງເຈົ້າ
 Her voice in your mic: loudness	ສຽງຂອງນາງໃນໄມໂຄຣໂຟນຂອງເຈົ້າ: ຄວາມດັງ
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ສຽງຂອງນາງເອງ. ລະດັບສຽງຂອງມັນແມ່ນ Settings > VOICE > Pitch, ແລະມັນເຄື່ອນໄປພ້ອມກັນ.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	ສຽງຂອງນາງເອງ. ລະດັບສຽງຂອງມັນແມ່ນ Settings > VOICE > Pitch, ແລະມັນເຄື່ອນໄປພ້ອມກັນ.
 Her voice joins your mic only in call mode.	ສຽງຂອງນາງເຂົ້າໄມໂຄຣໂຟນຂອງເຈົ້າພຽງໃນໂໝດໂທເທົ່ານັ້ນ.
 Her voice volume	ລະດັບສຽງຂອງນາງ
 Her voice's pitch	ລະດັບສຽງ (pitch) ຂອງນາງ
-Her voice's pitch, the same as Settings > VOICE > Pitch	ລະດັບສຽງຂອງນາງ, ຄືກັນກັບ Settings > VOICE > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	ລະດັບສຽງຂອງນາງ, ຄືກັນກັບ Settings > VOICE > Pitch
 Her voice's speed	ຄວາມໄວຂອງສຽງນາງ
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ສຽງຂອງນາງ, ແລະສອງສຳເນົາຂອງມັນທີ່ປະສົມຢູ່ຂ້າງລຸ່ມ, ແຕ່ລະອັນມີ pitch ແລະ delay ຂອງຕົນເອງ.
 Her voices · free	ສຽງຂອງນາງ · ຟຣີ
@@ -583,7 +583,7 @@ Revoke	ເພີກຖອນ
 Revoke also removes the phones its links added	ການເພີກຖອນຍັງລຶບໂທລະສັບທີ່ລິ້ງຂອງນາງເພີ່ມໄວ້ນຳ
 Ride cursor	ຂີ່ cursor
 Ride cursor / Hop off	ຂີ່ cursor / ລົງ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe. ສະໝອງເປີດຢູ່ໃຕ້ BRAIN.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe. ສະໝອງເປີດຢູ່ໃຕ້ BRAIN.
 Right-click me any time for the Mainframe, Help and the Discord.	ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Mainframe, Help ແລະ Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ຫຼື ແອັບອື່ນ: ເລືອກ

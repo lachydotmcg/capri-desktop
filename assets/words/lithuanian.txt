@@ -182,7 +182,7 @@ FREE KEY >	NEMOKAMAS RAKTAS >
 Fast hands in games	Greitos rankos žaidimuose
 File editor	Failų redaktorius
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ir kiti yra skyriuje BALSAS Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ir kiti yra skyriuje BALSAS Mainframe.
 Follow-up messages	Tolesnės žinutės
 Forget	Pamiršti
 Fork capri-mods	Šakoti capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Eiti į kitą ekraną
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · nemokamas planas · ribojama
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Turite Claude ar ChatGPT planą arba savo raktą? Pasirinkite jį, ir aš prisijungsiu.
-Got it, just me. Right-click me any time for Capri Mainframe.	Supratau, tik aš. Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Supratau, tik aš. Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe.
 Grey	Pilka
 H.{0} video bitrate target; higher values make larger files	H.{0} vaizdo bitų srauto tikslas; didesnės reikšmės sukuria didesnius failus
 HABITS >	ĮPROČIAI >
@@ -256,11 +256,11 @@ Her speaker:	Jos garsiakalbis:
 Her speaker: Default	Jos garsiakalbis: Numatytasis
 Her voice in your mic	Jos balsas jūsų mikrofone
 Her voice in your mic: loudness	Jos balsas jūsų mikrofone: garsumas
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Pats jos balsas. Jo tonas yra Nustatymai > BALSAS > Tonas, ir jie keičiasi kartu.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Pats jos balsas. Jo tonas yra Nustatymai > BALSAS > Tonas, ir jie keičiasi kartu.
 Her voice joins your mic only in call mode.	Jos balsas įsijungia į jūsų mikrofoną tik skambučio režime.
 Her voice volume	Jos balso garsumas
 Her voice's pitch	Jos balso tonas
-Her voice's pitch, the same as Settings > VOICE > Pitch	Jos balso tonas, toks pats kaip Nustatymai > BALSAS > Tonas
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Jos balso tonas, toks pats kaip Nustatymai > BALSAS > Tonas
 Her voice's speed	Jos balso greitis
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Jos balsas ir dvi jo kopijos, sumaišytos po juo, kiekviena su savo tonu ir vėlinimu.
 Her voices · free	Jos balsai · nemokami
@@ -583,7 +583,7 @@ Revoke	Panaikinti
 Revoke also removes the phones its links added	Panaikinimas taip pat pašalina telefonus, kuriuos pridėjo jos nuorodos
 Ride cursor	Važiuoti žymeklį
 Ride cursor / Hop off	Važiuoti žymeklį / Nušokti
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe. Smegenys įsijungia po SMEGENYS.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe. Smegenys įsijungia po SMEGENYS.
 Right-click me any time for the Mainframe, Help and the Discord.	Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Mainframe, Pagalbą ir Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox arba bet kuri kita programa: pasirinkite

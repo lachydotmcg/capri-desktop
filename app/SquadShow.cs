@@ -36,7 +36,7 @@ namespace CapriDesktop
             if (job == null) return null;
             if (job.Length == 0) return squad != null ? "My squad's on \"" + HerComputer.Short(squad.Job, 60) + "\" right now." : "Squad's ready. What's the job?";
             if (squad != null) return "My squad's still on \"" + HerComputer.Short(squad.Job, 60) + "\". Say stop the squad if you want them on something else.";
-            if (SquadBrain == null && (brain.Model == null || Brain.Off)) return "I need a brain to run a squad. Pick one in Mainframe under BRAIN.";
+            if (SquadBrain == null && (brain.Model == null || Brain.Off)) return "I need a brain to run a squad. Pick one under Mainframe > BRAIN.";
             StartSquad(job, count);
             return "Splitting up for that. Hold Esc to call them back.";
         }

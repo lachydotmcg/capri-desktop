@@ -182,7 +182,7 @@ FREE KEY >	CHAVE GRÁTIS >
 Fast hands in games	Mãos rápidas nos jogos
 File editor	Editor de arquivos
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs e outros ficam em VOZ no Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs e outros ficam em VOZ no Mainframe.
 Follow-up messages	Mensagens de acompanhamento
 Forget	Esquecer
 Fork capri-mods	Fazer fork do capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Ir para a próxima tela
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · plano grátis · com limite de uso
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tem um plano do Claude ou do ChatGPT, ou uma chave sua? Escolha e eu me conecto.
-Got it, just me. Right-click me any time for Capri Mainframe.	Beleza, só eu. Clique com o botão direito em mim a qualquer hora para o Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Beleza, só eu. Clique com o botão direito em mim a qualquer hora para o Capri Mainframe.
 Grey	Cinza
 H.{0} video bitrate target; higher values make larger files	Meta de bitrate de vídeo H.{0}; valores maiores geram arquivos maiores
 HABITS >	HÁBITOS >
@@ -256,11 +256,11 @@ Her speaker:	Alto-falante dela:
 Her speaker: Default	Alto-falante dela: Padrão
 Her voice in your mic	A voz dela no seu mic
 Her voice in your mic: loudness	A voz dela no seu mic: volume
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	A própria voz dela. O tom é Configurações > VOZ > Tom, e os dois se movem juntos.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	A própria voz dela. O tom é Configurações > VOZ > Tom, e os dois se movem juntos.
 Her voice joins your mic only in call mode.	A voz dela entra no seu mic só no modo chamada.
 Her voice volume	Volume da voz dela
 Her voice's pitch	Tom da voz dela
-Her voice's pitch, the same as Settings > VOICE > Pitch	Tom da voz dela, igual a Configurações > VOZ > Tom
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Tom da voz dela, igual a Configurações > VOZ > Tom
 Her voice's speed	Velocidade da voz dela
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	A voz dela, e duas cópias dela misturadas por baixo, cada uma com seu próprio tom e atraso.
 Her voices · free	Vozes dela · grátis
@@ -583,7 +583,7 @@ Revoke	Revogar
 Revoke also removes the phones its links added	Revogar também remove os celulares que seus links adicionaram
 Ride cursor	Pegar carona no cursor
 Ride cursor / Hop off	Pegar carona no cursor / Descer
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Clique com o botão direito em mim a qualquer hora para o Capri Mainframe. Um cérebro é ligado em CÉREBRO.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Clique com o botão direito em mim a qualquer hora para o Capri Mainframe. Um cérebro é ligado em CÉREBRO.
 Right-click me any time for the Mainframe, Help and the Discord.	Clique com o botão direito em mim a qualquer hora para o Mainframe, a Ajuda e o Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ou qualquer outro app: escolha

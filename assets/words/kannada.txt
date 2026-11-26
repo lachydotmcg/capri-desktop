@@ -182,7 +182,7 @@ FREE KEY >	ಉಚಿತ ಕೀ >
 Fast hands in games	ಆಟಗಳಲ್ಲಿ ಚುರುಕಾದ ಕೈಗಳು
 File editor	ಫೈಲ್ ಸಂಪಾದಕ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ಮತ್ತು ಇನ್ನಷ್ಟು Mainframe ನಲ್ಲಿ ಧ್ವನಿ ಅಡಿಯಲ್ಲಿವೆ.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ಮತ್ತು ಇನ್ನಷ್ಟು Mainframe ನಲ್ಲಿ ಧ್ವನಿ ಅಡಿಯಲ್ಲಿವೆ.
 Follow-up messages	ಫಾಲೋ-ಅಪ್ ಸಂದೇಶಗಳು
 Forget	ಮರೆತುಬಿಡಿ
 Fork capri-mods	capri-mods ಅನ್ನು ಫೋರ್ಕ್ ಮಾಡಿ
@@ -222,7 +222,7 @@ Go to the next screen	ಮುಂದಿನ ಪರದೆಗೆ ಹೋಗು
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ಉಚಿತ ಹಂತ · ದರ ಮಿತಿ ಇದೆ
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude ಅಥವಾ ChatGPT ಯೋಜನೆ ಇದೆಯೇ, ಅಥವಾ ನಿನ್ನದೇ ಕೀ ಇದೆಯೇ? ಆರಿಸು, ನಾನು ಸಂಪರ್ಕಿಸುತ್ತೇನೆ.
-Got it, just me. Right-click me any time for Capri Mainframe.	ಸರಿ, ನಾನು ಮಾತ್ರ. ಯಾವಾಗ ಬೇಕಾದರೂ ನನ್ನ ಮೇಲೆ ಬಲ ಕ್ಲಿಕ್ ಮಾಡಿ Capri Mainframe ಪಡೆಯಿರಿ.
+Got it, just me. Right-click me any time for the Mainframe.	ಸರಿ, ನಾನು ಮಾತ್ರ. ಯಾವಾಗ ಬೇಕಾದರೂ ನನ್ನ ಮೇಲೆ ಬಲ ಕ್ಲಿಕ್ ಮಾಡಿ Capri Mainframe ಪಡೆಯಿರಿ.
 Grey	ಬೂದು
 H.{0} video bitrate target; higher values make larger files	H.{0} ವೀಡಿಯೊ ಬಿಟ್‌ರೇಟ್ ಗುರಿ; ದೊಡ್ಡ ಮೌಲ್ಯಗಳು ದೊಡ್ಡ ಫೈಲ್‌ಗಳನ್ನು ಮಾಡುತ್ತವೆ
 HABITS >	ಅಭ್ಯಾಸಗಳು >
@@ -256,11 +256,11 @@ Her speaker:	ಅವಳ ಸ್ಪೀಕರ್:
 Her speaker: Default	ಅವಳ ಸ್ಪೀಕರ್: ಡೀಫಾಲ್ಟ್
 Her voice in your mic	ನಿಮ್ಮ ಮೈಕ್‌ನಲ್ಲಿ ಅವಳ ಧ್ವನಿ
 Her voice in your mic: loudness	ನಿಮ್ಮ ಮೈಕ್‌ನಲ್ಲಿ ಅವಳ ಧ್ವನಿ: ಜೋರು
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ಅವಳ ಧ್ವನಿಯೇ. ಅದರ ಪಿಚ್ Settings > VOICE > Pitch, ಮತ್ತು ಅವು ಒಟ್ಟಿಗೆ ಚಲಿಸುತ್ತವೆ.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	ಅವಳ ಧ್ವನಿಯೇ. ಅದರ ಪಿಚ್ Settings > VOICE > Pitch, ಮತ್ತು ಅವು ಒಟ್ಟಿಗೆ ಚಲಿಸುತ್ತವೆ.
 Her voice joins your mic only in call mode.	ಅವಳ ಧ್ವನಿ ಕರೆ ಮೋಡ್‌ನಲ್ಲಿ ಮಾತ್ರ ನಿಮ್ಮ ಮೈಕ್‌ಗೆ ಸೇರುತ್ತದೆ.
 Her voice volume	ಅವಳ ಧ್ವನಿಯ ಪರಿಮಾಣ
 Her voice's pitch	ಅವಳ ಧ್ವನಿಯ ಪಿಚ್
-Her voice's pitch, the same as Settings > VOICE > Pitch	ಅವಳ ಧ್ವನಿಯ ಪಿಚ್, Settings > VOICE > Pitch ನಂತೆಯೇ
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	ಅವಳ ಧ್ವನಿಯ ಪಿಚ್, Settings > VOICE > Pitch ನಂತೆಯೇ
 Her voice's speed	ಅವಳ ಧ್ವನಿಯ ವೇಗ
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ಅವಳ ಧ್ವನಿ, ಮತ್ತು ಅದರ ಎರಡು ಪ್ರತಿಗಳು ಅದರ ಅಡಿಯಲ್ಲಿ ಮಿಶ್ರಣಗೊಂಡಿವೆ, ಪ್ರತಿಯೊಂದಕ್ಕೂ ತನ್ನದೇ ಪಿಚ್ ಮತ್ತು ವಿಳಂಬ.
 Her voices · free	ಅವಳ ಧ್ವನಿಗಳು · ಉಚಿತ
@@ -583,7 +583,7 @@ Revoke	ರದ್ದುಮಾಡು
 Revoke also removes the phones its links added	ರದ್ದುಮಾಡುವುದು ಅವಳ ಲಿಂಕ್‌ಗಳು ಸೇರಿಸಿದ ಫೋನ್‌ಗಳನ್ನೂ ತೆಗೆದುಹಾಕುತ್ತದೆ
 Ride cursor	ಕರ್ಸರ್ ಮೇಲೆ ಸವಾರಿ
 Ride cursor / Hop off	ಕರ್ಸರ್ ಮೇಲೆ ಸವಾರಿ / ಇಳಿ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ಯಾವಾಗ ಬೇಕಾದರೂ ನನ್ನ ಮೇಲೆ ಬಲ ಕ್ಲಿಕ್ ಮಾಡಿ Capri Mainframe ಪಡೆಯಿರಿ. BRAIN ಅಡಿಯಲ್ಲಿ ಒಂದು ಮೆದುಳು ಆನ್ ಆಗುತ್ತದೆ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	ಯಾವಾಗ ಬೇಕಾದರೂ ನನ್ನ ಮೇಲೆ ಬಲ ಕ್ಲಿಕ್ ಮಾಡಿ Capri Mainframe ಪಡೆಯಿರಿ. BRAIN ಅಡಿಯಲ್ಲಿ ಒಂದು ಮೆದುಳು ಆನ್ ಆಗುತ್ತದೆ.
 Right-click me any time for the Mainframe, Help and the Discord.	ಯಾವಾಗ ಬೇಕಾದರೂ ನನ್ನ ಮೇಲೆ ಬಲ ಕ್ಲಿಕ್ ಮಾಡಿ Mainframe, Help ಮತ್ತು Discord ಪಡೆಯಿರಿ.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ಅಥವಾ ಬೇರೆ ಯಾವುದೇ ಆ್ಯಪ್: ಆರಿಸು

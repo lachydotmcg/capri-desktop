@@ -182,7 +182,7 @@ FREE KEY >	KUNCI GRATIS >
 Fast hands in games	Tangan cepet ing game
 File editor	Editor file
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs lan liyane ana ing SWARA ing Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs lan liyane ana ing SWARA ing Mainframe.
 Follow-up messages	Pesen lanjutan
 Forget	Lalekake
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Pindah menyang layar sabanjure
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tingkat gratis · diwatesi
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Duwe paket Claude utawa ChatGPT, utawa kunci dhewe? Pilih, lan aku bakal nyambung.
-Got it, just me. Right-click me any time for Capri Mainframe.	Oke, aku thok. Klik tengen aku kapan wae kanggo Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Oke, aku thok. Klik tengen aku kapan wae kanggo Capri Mainframe.
 Grey	Abu-abu
 H.{0} video bitrate target; higher values make larger files	Target bitrate video H.{0}; nilai sing luwih dhuwur nggawe file sing luwih gedhe
 HABITS >	KEBIASAAN >
@@ -256,11 +256,11 @@ Her speaker:	Speaker dheweke:
 Her speaker: Default	Speaker dheweke: Standar
 Her voice in your mic	Swara dheweke ing mikropon-mu
 Her voice in your mic: loudness	Swara dheweke ing mikropon-mu: volume
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Swara dheweke dhewe. Nada-ne Setelan > SWARA > Nada, lan bakal pindah bebarengan.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Swara dheweke dhewe. Nada-ne Setelan > SWARA > Nada, lan bakal pindah bebarengan.
 Her voice joins your mic only in call mode.	Swara dheweke gabung karo mikropon-mu mung ing mode telpon.
 Her voice volume	Volume swara dheweke
 Her voice's pitch	Nada swara dheweke
-Her voice's pitch, the same as Settings > VOICE > Pitch	Nada swara dheweke, padha karo Setelan > SWARA > Nada
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Nada swara dheweke, padha karo Setelan > SWARA > Nada
 Her voice's speed	Kecepatan swara dheweke
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Swara dheweke, lan rong salinan sing dicampur ing sangisore, saben nduwe nada lan tundha dhewe.
 Her voices · free	Swara dheweke · gratis
@@ -583,7 +583,7 @@ Revoke	Cabut
 Revoke also removes the phones its links added	Nyabut uga nyopot HP sing ditambahake lan link-e
 Ride cursor	Numpak kursor
 Ride cursor / Hop off	Numpak kursor / Mudhun
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klik tengen aku kapan wae kanggo Capri Mainframe. Otak bakal nyala ing ngisor OTAK.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Klik tengen aku kapan wae kanggo Capri Mainframe. Otak bakal nyala ing ngisor OTAK.
 Right-click me any time for the Mainframe, Help and the Discord.	Klik tengen aku kapan wae kanggo Mainframe, Bantuan lan Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox utawa aplikasi liyane: pilih

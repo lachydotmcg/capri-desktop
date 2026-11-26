@@ -182,7 +182,7 @@ FREE KEY >	GRATIS SLEUTEL >
 Fast hands in games	Vinnige hande in speletjies
 File editor	Lêerredigeerder
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs en meer is onder STEM in die Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs en meer is onder STEM in die Mainframe.
 Follow-up messages	Opvolgboodskappe
 Forget	Vergeet
 Fork capri-mods	Vertak capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Gaan na die volgende skerm
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratis vlak · beperk
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Het jy 'n Claude- of ChatGPT-plan, of jou eie sleutel? Kies dit en ek koppel in.
-Got it, just me. Right-click me any time for Capri Mainframe.	Verstaan, net ek. Regsklik op my enige tyd vir Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Verstaan, net ek. Regsklik op my enige tyd vir Capri Mainframe.
 Grey	Grys
 H.{0} video bitrate target; higher values make larger files	H.{0}-video-bitkoersdoel; hoër waardes maak groter lêers
 HABITS >	GEWOONTES >
@@ -256,11 +256,11 @@ Her speaker:	Haar luidspreker:
 Her speaker: Default	Haar luidspreker: Standaard
 Her voice in your mic	Haar stem in jou mikrofoon
 Her voice in your mic: loudness	Haar stem in jou mikrofoon: luidheid
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Haar stem self. Die toonhoogte is Instellings > STEM > Toonhoogte, en hulle beweeg saam.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Haar stem self. Die toonhoogte is Instellings > STEM > Toonhoogte, en hulle beweeg saam.
 Her voice joins your mic only in call mode.	Haar stem sluit net in oproepmodus by jou mikrofoon aan.
 Her voice volume	Haar stemvolume
 Her voice's pitch	Haar stem se toonhoogte
-Her voice's pitch, the same as Settings > VOICE > Pitch	Haar stem se toonhoogte, dieselfde as Instellings > STEM > Toonhoogte
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Haar stem se toonhoogte, dieselfde as Instellings > STEM > Toonhoogte
 Her voice's speed	Haar stem se spoed
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Haar stem, en twee afskrifte daarvan onder haar gemeng, elk met sy eie toonhoogte en vertraging.
 Her voices · free	Haar stemme · gratis
@@ -583,7 +583,7 @@ Revoke	Herroep
 Revoke also removes the phones its links added	Herroep verwyder ook die fone wat sy skakels bygevoeg het
 Ride cursor	Ry kursor
 Ride cursor / Hop off	Ry kursor / Klim af
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Regsklik op my enige tyd vir Capri Mainframe. 'n Brein skakel aan onder BREIN.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Regsklik op my enige tyd vir Capri Mainframe. 'n Brein skakel aan onder BREIN.
 Right-click me any time for the Mainframe, Help and the Discord.	Regsklik op my enige tyd vir die Mainframe, Hulp en die Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox of enige ander program: kies

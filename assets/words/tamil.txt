@@ -182,7 +182,7 @@ FREE KEY >	இலவச விசை >
 Fast hands in games	விளையாட்டுகளில் வேகமான கைகள்
 File editor	கோப்புத் திருத்தி
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs மற்றும் பிறவை Mainframe-இல் குரல் கீழ் உள்ளன.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs மற்றும் பிறவை Mainframe-இல் குரல் கீழ் உள்ளன.
 Follow-up messages	தொடர் செய்திகள்
 Forget	மறந்துவிடு
 Fork capri-mods	capri-mods-ஐ ஃபோர்க் செய்
@@ -222,7 +222,7 @@ Go to the next screen	அடுத்த திரைக்குச் செ�
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · இலவச அடுக்கு · வேக வரம்பு உண்டு
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude அல்லது ChatGPT திட்டம் உள்ளதா, அல்லது உங்கள் சொந்த விசை உள்ளதா? ஒன்றைத் தேர்ந்தெடுங்கள், நான் இணைக்கிறேன்.
-Got it, just me. Right-click me any time for Capri Mainframe.	சரி, நான் மட்டும். Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள்.
+Got it, just me. Right-click me any time for the Mainframe.	சரி, நான் மட்டும். Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள்.
 Grey	சாம்பல்
 H.{0} video bitrate target; higher values make larger files	H.{0} வீடியோ பிட்ரேட் இலக்கு; அதிக மதிப்புகள் பெரிய கோப்புகளை உருவாக்கும்
 HABITS >	பழக்கங்கள் >
@@ -256,11 +256,11 @@ Her speaker:	அவளுடைய ஸ்பீக்கர்:
 Her speaker: Default	அவளுடைய ஸ்பீக்கர்: இயல்புநிலை
 Her voice in your mic	உங்கள் மைக்கில் அவளுடைய குரல்
 Her voice in your mic: loudness	உங்கள் மைக்கில் அவளுடைய குரல்: ஒலியளவு
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	அவளுடைய குரலே. அதன் சுருதி அமைப்புகள் > குரல் > சுருதி, இரண்டும் ஒன்றாக நகரும்.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	அவளுடைய குரலே. அதன் சுருதி அமைப்புகள் > குரல் > சுருதி, இரண்டும் ஒன்றாக நகரும்.
 Her voice joins your mic only in call mode.	அழைப்பு முறையில் மட்டுமே அவளுடைய குரல் உங்கள் மைக்கில் சேரும்.
 Her voice volume	அவளுடைய குரல் ஒலியளவு
 Her voice's pitch	அவளுடைய குரலின் சுருதி
-Her voice's pitch, the same as Settings > VOICE > Pitch	அவளுடைய குரலின் சுருதி, அமைப்புகள் > குரல் > சுருதி போலவே
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	அவளுடைய குரலின் சுருதி, அமைப்புகள் > குரல் > சுருதி போலவே
 Her voice's speed	அவளுடைய குரலின் வேகம்
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	அவளுடைய குரல், அதன் கீழ் கலக்கப்பட்ட இரண்டு நகல்களுடன், ஒவ்வொன்றும் அதன் சொந்த சுருதி மற்றும் தாமதத்துடன்.
 Her voices · free	அவளுடைய குரல்கள் · இலவசம்
@@ -583,7 +583,7 @@ Revoke	திரும்பப் பெறு
 Revoke also removes the phones its links added	திரும்பப் பெறுவது அதன் இணைப்புகள் சேர்த்த ஃபோன்களையும் அகற்றும்
 Ride cursor	கர்சரில் சவாரி செய்
 Ride cursor / Hop off	கர்சரில் சவாரி / இறங்கு
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள். மூளை என்பதன் கீழ் ஒரு மூளை இயங்கும்.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframe-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள். மூளை என்பதன் கீழ் ஒரு மூளை இயங்கும்.
 Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, உதவி மற்றும் Discord-க்கு எப்போது வேண்டுமானாலும் என்னை வலது-கிளிக் செய்யுங்கள்.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox அல்லது வேறு செயலி: தேர்ந்தெடு

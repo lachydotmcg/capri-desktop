@@ -124,7 +124,7 @@ namespace CapriDesktop
         {
             TypeSearch("comments");
             if (!SearchOpen || searchFound.Count == 0 || !searchFound[0].Controls.Contains(comments) || searchFound[0].Name != "Comments" || searchFound[0].Section != "GAMES")
-                throw new Exception("\"comments\" didn't list GAMES > Comments first: " + Listed(searchFound));
+                throw new Exception("\"comments\" didn't list Mainframe > Settings > GAMES > Comments first: " + Listed(searchFound));
             Stopwatch clock = Stopwatch.StartNew();
             bool jumped = Strike(Keys.Enter);
             Update();

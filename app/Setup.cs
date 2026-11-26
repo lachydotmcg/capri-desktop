@@ -137,7 +137,7 @@ namespace CapriSetup
                     Snap(preview, Path.Combine(output, "installer.png"));
                     preview.Speaking(127L << 20, VoicePack.Size, Megabytes(127L << 20) + " of " + Megabytes(VoicePack.Size));
                     Application.DoEvents();
-                    if (!preview.Saying("FREE VOICE", "Installing her free voice", "This may take some time. Other voices are under VOICE in Capri Mainframe.")) throw new InvalidDataException("The installer doesn't name her free voice or say where to pick other voices.");
+                    if (!preview.Saying("FREE VOICE", "Installing her free voice", "This may take some time. Other voices are under Mainframe > VOICE.")) throw new InvalidDataException("The installer doesn't name her free voice or say where to pick other voices.");
                     Snap(preview, Path.Combine(output, "installer-speech.png"));
                     preview.Close();
                 }
@@ -339,7 +339,7 @@ namespace CapriSetup
             string sum;
             using (SHA256 sha = SHA256.Create())
             using (FileStream file = File.OpenRead(part)) sum = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "").ToLowerInvariant();
-            if (have != VoicePack.Size || sum != VoicePack.Sha) { File.Delete(part); throw new IOException("The download came down damaged. Try again from Capri Mainframe."); }
+            if (have != VoicePack.Size || sum != VoicePack.Sha) { File.Delete(part); throw new IOException("The download came down damaged. Try again from the Mainframe."); }
             if (File.Exists(zip)) File.Delete(zip);
             File.Move(part, zip);
             progress("Unpacking", VoicePack.Size, VoicePack.Size);
@@ -962,7 +962,7 @@ namespace CapriSetup
             // The Mainframe's own words for it, so people can find it again under VOICE.
             section.Text = "FREE VOICE";
             stage.Text = "Installing her free voice";
-            note.Text = "This may take some time. Other voices are under VOICE in Capri Mainframe.";
+            note.Text = "This may take some time. Other voices are under Mainframe > VOICE.";
             stage.Visible = true;
             note.Visible = true;
             if (!stopping) cancel.Text = "Skip";
@@ -1009,7 +1009,7 @@ namespace CapriSetup
             fetching = false;
             if (string.IsNullOrEmpty(failed)) { Finish(); return; }
             stage.Text = "Couldn't install the local speech model";
-            note.Text = "Capri is installed. Get it later in Capri Mainframe, or add an API key.";
+            note.Text = "Capri is installed. Get it later in the Mainframe, or add an API key.";
             status.Text = failed;
             cancel.Visible = false;
             primary.Text = "Finish";

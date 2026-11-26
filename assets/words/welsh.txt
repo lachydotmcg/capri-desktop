@@ -182,7 +182,7 @@ FREE KEY >	ALLWEDD RHAD AC AM DDIM >
 Fast hands in games	Dwylo cyflym mewn gemau
 File editor	Golygydd ffeiliau
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Mae Fish Audio, ElevenLabs a mwy o dan LLAIS yn y Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Mae Fish Audio, ElevenLabs a mwy o dan LLAIS yn y Mainframe.
 Follow-up messages	Negeseuon dilynol
 Forget	Anghofio
 Fork capri-mods	Fforchio capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Mynd i'r sgrin nesaf
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · haen rhad ac am ddim · cyfyngedig o ran cyflymder
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Oes gen ti gynllun Claude neu ChatGPT, neu dy allwedd dy hun? Dewisa fe ac fe wna i gysylltu.
-Got it, just me. Right-click me any time for Capri Mainframe.	Iawn, dim ond fi. Cliciwch dde arnaf unrhyw bryd am Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Iawn, dim ond fi. Cliciwch dde arnaf unrhyw bryd am Capri Mainframe.
 Grey	Llwyd
 H.{0} video bitrate target; higher values make larger files	Targed cyfradd did fideo H.{0}; mae gwerthoedd uwch yn creu ffeiliau mwy
 HABITS >	ARFERION >
@@ -256,11 +256,11 @@ Her speaker:	Ei seinydd:
 Her speaker: Default	Ei seinydd: Rhagosodiad
 Her voice in your mic	Ei llais yn dy feic
 Her voice in your mic: loudness	Ei llais yn dy feic: uchder sain
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ei llais ei hun. Mae ei thraw yn Gosodiadau > LLAIS > Traw, ac maen nhw'n symud gyda'i gilydd.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Ei llais ei hun. Mae ei thraw yn Gosodiadau > LLAIS > Traw, ac maen nhw'n symud gyda'i gilydd.
 Her voice joins your mic only in call mode.	Dim ond mewn modd galwad mae ei llais yn ymuno â'th feic.
 Her voice volume	Cyfaint ei llais
 Her voice's pitch	Traw ei llais
-Her voice's pitch, the same as Settings > VOICE > Pitch	Traw ei llais, yr un fath â Gosodiadau > LLAIS > Traw
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Traw ei llais, yr un fath â Gosodiadau > LLAIS > Traw
 Her voice's speed	Cyflymder ei llais
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ei llais, a dau gopi ohono wedi'u cymysgu oddi tani, pob un gyda'i draw a'i oedi ei hun.
 Her voices · free	Ei lleisiau · am ddim
@@ -583,7 +583,7 @@ Revoke	Dirymu
 Revoke also removes the phones its links added	Mae dirymu hefyd yn tynnu'r ffonau a ychwanegwyd gan ei gysylltiadau
 Ride cursor	Marchogaeth cyrchwr
 Ride cursor / Hop off	Marchogaeth cyrchwr / Neidio i ffwrdd
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cliciwch dde arnaf unrhyw bryd am Capri Mainframe. Mae ymennydd yn troi ymlaen o dan YMENNYDD.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Cliciwch dde arnaf unrhyw bryd am Capri Mainframe. Mae ymennydd yn troi ymlaen o dan YMENNYDD.
 Right-click me any time for the Mainframe, Help and the Discord.	Cliciwch dde arnaf unrhyw bryd am y Mainframe, Cymorth a'r Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox neu unrhyw ap arall: dewisa

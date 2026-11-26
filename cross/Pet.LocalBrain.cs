@@ -53,7 +53,7 @@ namespace CapriDesktop
             pulling = true;
             pulled = -1;
             pullingName = pick.Name;
-            Talk.Answer(BrainHeard, "Downloading my brain, " + pick.Name + " (" + pick.Download + "). BRAIN in Capri Mainframe shows its progress.");
+            Talk.Answer(BrainHeard, "Downloading my brain, " + pick.Name + " (" + pick.Download + "). Mainframe > BRAIN shows its progress.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;

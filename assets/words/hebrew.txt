@@ -182,7 +182,7 @@ FREE KEY >	מפתח חינמי >
 Fast hands in games	ידיים מהירות במשחקים
 File editor	עורך קבצים
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ועוד נמצאים תחת VOICE ב-Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ועוד נמצאים תחת VOICE ב-Mainframe.
 Follow-up messages	הודעות המשך
 Forget	שכח
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	עבור למסך הבא
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · שכבה חינמית · מוגבל בקצב
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	יש לך תוכנית Claude או ChatGPT, או מפתח משלך? בחר ואחבר.
-Got it, just me. Right-click me any time for Capri Mainframe.	בסדר, רק אני. לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	בסדר, רק אני. לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe.
 Grey	אפור
 H.{0} video bitrate target; higher values make larger files	יעד bitrate של וידאו H.{0}; ערכים גבוהים יותר יוצרים קבצים גדולים יותר
 HABITS >	הרגלים >
@@ -256,11 +256,11 @@ Her speaker:	הרמקול שלה:
 Her speaker: Default	הרמקול שלה: ברירת מחדל
 Her voice in your mic	הקול שלה במיקרופון שלך
 Her voice in your mic: loudness	הקול שלה במיקרופון שלך: עוצמה
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	הקול שלה עצמו. הגובה שלו הוא הגדרות > VOICE > Pitch, והם זזים יחד.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	הקול שלה עצמו. הגובה שלו הוא הגדרות > VOICE > Pitch, והם זזים יחד.
 Her voice joins your mic only in call mode.	הקול שלה מצטרף למיקרופון שלך רק במצב שיחה.
 Her voice volume	עוצמת הקול שלה
 Her voice's pitch	גובה הקול שלה
-Her voice's pitch, the same as Settings > VOICE > Pitch	גובה הקול שלה, זהה להגדרות > VOICE > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	גובה הקול שלה, זהה להגדרות > VOICE > Pitch
 Her voice's speed	מהירות הקול שלה
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	הקול שלה, ושני עותקים שלו מעורבבים מתחתיו, לכל אחד גובה ועיכוב משלו.
 Her voices · free	הקולות שלה · חינם
@@ -583,7 +583,7 @@ Revoke	בטל
 Revoke also removes the phones its links added	ביטול מסיר גם את הטלפונים שהקישורים שלה הוסיפו
 Ride cursor	רכוב על הסמן
 Ride cursor / Hop off	רכוב על הסמן / רד
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe. מוח מופעל תחת BRAIN.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe. מוח מופעל תחת BRAIN.
 Right-click me any time for the Mainframe, Help and the Discord.	לחץ עליי ימני בכל רגע לפתיחת ה-Mainframe, העזרה וה-Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox או כל אפליקציה אחרת: בחר

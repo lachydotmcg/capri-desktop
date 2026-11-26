@@ -2561,7 +2561,7 @@ namespace CapriDesktop
                 case "zu": return "Faka izwi lalolu limi ku-CUSTOM LOCAL ku-Mainframe.";
                 case "xh": return "Yongeza ilizwi lolu lwimi kwi-CUSTOM LOCAL kwi-Mainframe.";
                 case "so": return "Ku dar codka luqaddan qaybta CUSTOM LOCAL ee Mainframe.";
-                default: return "Add a voice for this language under CUSTOM LOCAL in Mainframe.";
+                default: return "Add a voice for this language under Mainframe > VOICE > CUSTOM LOCAL.";
             }
         }
     }
@@ -2898,7 +2898,7 @@ namespace CapriDesktop
             string wanted = code == null ? (gb ? "en" : "en-us") : VoiceTongues.Lang(code);
             if (tts != IntPtr.Zero && lang == wanted) return;
             if (IntPtr.Size != 8) throw new VoiceException("Her free voice needs 64-bit Windows.");
-            if (!Installed) throw new VoiceException("Set up her free voice in Capri Mainframe.");
+            if (!Installed) throw new VoiceException("Set up her free voice in the Mainframe.");
             Load(folder);
             Close();
             List<IntPtr> held = new List<IntPtr>();
@@ -3737,7 +3737,7 @@ namespace CapriDesktop
                     if (awake && (server == null || !server.HasExited)) return;
                     Close();
                     memoryFailed = false;
-                    if (!Installed) throw new VoiceException("Get her HD voice in Capri Mainframe first.");
+                    if (!Installed) throw new VoiceException("Get her HD voice in the Mainframe first.");
                     number = port = Engine.FreePort();
                     try { running = server = Spawn(StartInfo(number)); }
                     catch (System.ComponentModel.Win32Exception error) { throw new VoiceException("Her HD voice wouldn't start: " + Brain.Plainly("HD voice", error)); }

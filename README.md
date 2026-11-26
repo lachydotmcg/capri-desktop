@@ -54,12 +54,12 @@ Ask her to join your Discord call and pass something on, like "Hey Capri, join t
 
 - **She clicks into the voice channel herself** and tells your friends you're away, with a cheeky made-up excuse
 - **She launches the game they pick,** or plays the song they want
-- **Not just Discord:** call mode also hears Zoom, Microsoft Teams, WhatsApp, Telegram, Slack, Signal, Skype, TeamSpeak, Mumble, Steam voice chat and browser calls. Pick one under VOICE > Call app, or leave it on Auto. In other apps she joins by clicking the Join button that's already on screen
+- **Not just Discord:** call mode also hears Zoom, Microsoft Teams, WhatsApp, Telegram, Slack, Signal, Skype, TeamSpeak, Mumble, Steam voice chat and browser calls. Pick one under Mainframe > Settings > VOICE > Call app, or leave it on Auto. In other apps she joins by clicking the Join button that's already on screen
 - **Calls feel like calls:** rings that grow with each voice, captions of who said what, a red hang-up button, a call-ended card, and a small call pill when you minimise it
 - **She knows who said what,** even inside one line. Only your words wake her or say yes, and Discord leaking into your mic stays Discord
 - **Friends can ask her for things, and you confirm.** It's a SECURITY switch, off by default, and only your mic or typing can say yes
 - **She talks over a laugh** or a quick yeah, and stops once someone really talks over her for about a second
-- **Your friends hear her** with Settings > VOICE > **Her voice in your mic**: pick CABLE Output or Steam Streaming Microphone as your mic in Discord. Her voice goes into your mic only in call mode, and a slider sets how loud she is there
+- **Your friends hear her** with Mainframe > Settings > VOICE > **Her voice in your mic**: pick CABLE Output or Steam Streaming Microphone as your mic in Discord. Her voice goes into your mic only in call mode, and a slider sets how loud she is there
 
 Call mode is Windows only, and still in beta. Asking her to join turns it on, or flip **Call mode (beta)** in her type box. If she only says one line on calls, turn off Discord's Echo Cancellation and Noise Suppression.
 
@@ -87,7 +87,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 </details>
 
 <details>
-<summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
+<summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
 - **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (chat and photos on Windows, Mac and Linux; calls and Room voice are Windows-only).
@@ -122,16 +122,16 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 </details>
 
 <details>
-<summary><h2><a name="mac-and-linux-preview"></a>Mac and Linux (preview)</h2><br><a name="mac-and-linux-preview-1"><img src="assets/readme/mac-desktop.png" alt="Capri on a Mac, answering in her speech bubble beside her TYPE and TALK pill" width="220"></a> <a name="mac-and-linux-preview-2"><img src="assets/readme/mac-mainframe.png" alt="Capri Mainframe on a Mac: the main page with BRAIN, VOICE and CAPRI, and Advanced Settings behind it" width="500"></a></summary>
+<summary><h2><a name="mac-and-linux-preview"></a>Mac and Linux (preview)</h2><br><a name="mac-and-linux-preview-1"><img src="assets/readme/mac-desktop.png" alt="Capri on a Mac, answering in her speech bubble beside her TYPE and TALK pill" width="220"></a> <a name="mac-and-linux-preview-2"><img src="assets/readme/mac-mainframe.png" alt="The Mainframe on a Mac: the main page with BRAIN, VOICE and CAPRI, and Advanced Settings behind it" width="500"></a></summary>
 
-0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
+0.8.3 gives Mac and Linux her full **Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
 Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls are Windows only for now. Wake words work on Apple Silicon Macs and on Linux too, once her offline ears are set up.
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage), [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz), [Linux arm64 (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.AppImage) or [Linux arm64 (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.tar.gz). The arm64 files are for boards like the Raspberry Pi 5 running a 64-bit system
-2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+2. For her brain, open **Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app
@@ -161,7 +161,7 @@ Capri doesn't download or ship these models. You pick one, check its licence and
 - She tells models apart by their files: a transducer like Parakeet has an encoder, a decoder and a joiner, and SenseVoice has one `model.onnx` next to `tokens.txt`.
 - She hears each language with the model that knows it best: Parakeet v2 for English, Parakeet Ultra or v3 for the other European languages and SenseVoice for Chinese, Japanese, Korean and Cantonese. A model she can't place by its name comes next, and with no model for your language she still hears you with the one that hears the most.
 - **Mainframe > Settings > VOICE > Her ears** shows what she found. Leave it on **Auto**, or pick one model to hear every language with.
-- For Japanese, Chinese or Korean, use the [SenseVoice int8 model from 2024-07-17](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2), then pick your language under **YOU > Language**. The 2025-09-09 SenseVoice is tuned for Cantonese and hears Japanese as Cantonese.
+- For Japanese, Chinese or Korean, use the [SenseVoice int8 model from 2024-07-17](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2), then pick your language under **Mainframe > Settings > YOU > Language**. The 2025-09-09 SenseVoice is tuned for Cantonese and hears Japanese as Cantonese.
 
 </details>
 
@@ -213,7 +213,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 <summary><a name="getting-started-1"><img src="site/assets/presence/plugged.gif" alt="Capri glitching as she powers up" width="96" align="left"></a><h2><a name="getting-started"></a>Getting started</h2><br>Three steps, and what your PC needs<br clear="left"></summary>
 
 1. Download **[Capri-Setup.exe](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe)** and run it
-2. In the Capri Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
+2. In the Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
 3. Optional: pick another voice under **VOICE** (see [Her voice](#her-voice))
 
 **On Windows,** the latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so SmartScreen may show an unrecognized-app warning. Check the official release and checksum before deciding whether to run it. A named malware detection is different: keep the file quarantined and report the exact detection for review. Every download is on [capriai.app](https://capriai.app/#download), with the one for your device on top. The Microsoft Store copy isn't available to download right now.
@@ -265,7 +265,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Shift + drop | sit her right where you drop her |
 | Ctrl + drop | she hangs on; click her to let go |
 | Mic button | mute your mic in voice chat |
-| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Settings > VOICE (Apple Silicon Mac and Linux once her local ears are set up) |
+| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Mainframe > Settings > VOICE (Apple Silicon Mac and Linux once her local ears are set up) |
 | Ctrl + Alt + V | start or stop voice chat (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + N | mute your mic (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + T | open her typing box from anywhere |
@@ -302,7 +302,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt from the setup guide](https://capriai.app/setup/#voice) into their Voice Design.
 
 > [!IMPORTANT]
-> Our project-provided synthetic voice is in Capri's Mainframe and runs on your PC. You may connect third-party text-to-speech services, but we don't provide guides for voice cloning tools. Our only voice-design help is a text prompt for making a synthetic voice.
+> Our project-provided synthetic voice is in the Mainframe and runs on your PC. You may connect third-party text-to-speech services, but we don't provide guides for voice cloning tools. Our only voice-design help is a text prompt for making a synthetic voice.
 >
 > Only use voices you have the necessary rights and permissions to use, and follow the provider's terms. We do not endorse unauthorized cloning or impersonation of voice actors or other individuals. **Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization.**
 
@@ -311,7 +311,7 @@ For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt fro
 <details>
 <summary><a name="make-her-yours-1"><img src="site/assets/presence/dancing.gif" alt="Capri dancing" width="96" align="left"></a><h2><a name="make-her-yours"></a>Make her yours</h2><br>What she calls you, her language, her voice and who she is<br clear="left"></summary>
 
-Pick what she calls you, her language, her voice and what she does on your PC from the Capri Mainframe. To change who she is and how she talks, rewrite `personality.md`: Settings > YOU > Her personality > Edit personality.md. It starts as her default, and Reset to her default puts her back. For her colours, skins and new tricks, see [Mods](#mods).
+Pick what she calls you, her language, her voice and what she does on your PC from the Mainframe. To change who she is and how she talks, rewrite `personality.md`: Mainframe > Settings > YOU > Her personality > Edit personality.md. It starts as her default, and Reset to her default puts her back. For her colours, skins and new tricks, see [Mods](#mods).
 
 - **Her safety rules are part of who she is.** They're fixed in her code, in `Safety` in [app/Brain.cs](app/Brain.cs), right after her personality. If you build on her, please keep them as they are, out of respect for Capri's character
 - Her personality is `DefaultPersonality` in [app/Brain.cs](app/Brain.cs), so a pull request can suggest a change for everyone
@@ -461,7 +461,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 **Setup and updates**
 
 - [x] One installer with everything in it, no admin rights needed
-- [x] The Capri Mainframe for her brain, voice and settings
+- [x] The Mainframe for her brain, voice and settings
 - [x] A Start with Windows switch, off until you turn it on
 - [x] Updates that install themselves
 - [x] Changing her keys from a KEYS row in Settings: talk, mute mic, type to her and hide/show

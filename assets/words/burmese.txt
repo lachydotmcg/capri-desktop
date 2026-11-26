@@ -182,7 +182,7 @@ FREE KEY >	အခမဲ့ KEY >
 Fast hands in games	ဂိမ်းများတွင် မြန်သော လက်
 File editor	ဖိုင် တည်းဖြတ်ကိရိယာ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio၊ ElevenLabs နှင့် အခြားများသည် Mainframe ရှိ အသံ အောက်တွင် ရှိသည်။
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio၊ ElevenLabs နှင့် အခြားများသည် Mainframe ရှိ အသံ အောက်တွင် ရှိသည်။
 Follow-up messages	Follow-up မက်ဆေ့ချ်များ
 Forget	မေ့
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	နောက် မျက်နှာပြင်သို
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · အခမဲ့အဆင့် · နှုန်းကန့်သတ်ထား
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude သို့မဟုတ် ChatGPT plan၊ သို့မဟုတ် ကိုယ်ပိုင် key ရှိသလား? ရွေးချယ်ပါ၊ ကျွန်ုပ် ချိတ်ဆက်ပေးမည်။
-Got it, just me. Right-click me any time for Capri Mainframe.	ကောင်းပြီ၊ ကျွန်ုပ်တစ်ယောက်တည်းပဲ။ Capri Mainframe အတွက် ငါ့ကို ညာကလစ်နှိပ်ပါ အချိန်မရွေး။
+Got it, just me. Right-click me any time for the Mainframe.	ကောင်းပြီ၊ ကျွန်ုပ်တစ်ယောက်တည်းပဲ။ Capri Mainframe အတွက် ငါ့ကို ညာကလစ်နှိပ်ပါ အချိန်မရွေး။
 Grey	မီးခိုးရောင်
 H.{0} video bitrate target; higher values make larger files	H.{0} ဗီဒီယို bitrate ပန်းတိုင်; ပိုမြင့်သော တန်ဖိုးများသည် ဖိုင်ပိုကြီးစေသည်
 HABITS >	အလေ့အထများ >
@@ -256,11 +256,11 @@ Her speaker:	သူမ၏ speaker:
 Her speaker: Default	သူမ၏ speaker: Default
 Her voice in your mic	သင့် mic ထဲရှိ သူမ၏ အသံ
 Her voice in your mic: loudness	သင့် mic ထဲရှိ သူမ၏ အသံ: အသံကျယ်
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	သူမ၏ အသံကိုယ်တိုင်။ ၎င်း၏ pitch သည် Settings > VOICE > Pitch ဖြစ်ပြီး အတူတူ ရွေ့သွားသည်။
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	သူမ၏ အသံကိုယ်တိုင်။ ၎င်း၏ pitch သည် Settings > VOICE > Pitch ဖြစ်ပြီး အတူတူ ရွေ့သွားသည်။
 Her voice joins your mic only in call mode.	သူမ၏ အသံသည် call mode တွင်သာ သင့် mic သို့ ဝင်သည်။
 Her voice volume	သူမ၏ အသံအတိုးအကျယ်
 Her voice's pitch	သူမ၏ အသံ pitch
-Her voice's pitch, the same as Settings > VOICE > Pitch	သူမ၏ အသံ pitch၊ Settings > VOICE > Pitch နှင့် တူသည်
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	သူမ၏ အသံ pitch၊ Settings > VOICE > Pitch နှင့် တူသည်
 Her voice's speed	သူမ၏ အသံ အမြန်နှုန်း
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	သူမ၏ အသံနှင့် ၎င်း၏ မိတ္တူ နှစ်ခု၊ သူမအောက်တွင် ရောထားပြီး၊ တစ်ခုချင်းစီသည် ကိုယ်ပိုင် pitch နှင့် delay ရှိသည်။
 Her voices · free	သူမ၏ အသံများ · အခမဲ့
@@ -583,7 +583,7 @@ Revoke	Revoke
 Revoke also removes the phones its links added	Revoke သည် ၎င်း၏ link များက ထည့်ထားသော ဖုန်းများကိုလည်း ဖယ်ရှားသည်
 Ride cursor	Cursor ကို စီးပါ
 Ride cursor / Hop off	Cursor ကို စီး / ဆင်းပါ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ငါ့ကို ညာကလစ်နှိပ်ပြီး Capri Mainframe ဖွင့်ပါ။ ဦးနှောက်သည် BRAIN အောက်တွင် ဖွင့်သည်။
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	ငါ့ကို ညာကလစ်နှိပ်ပြီး Capri Mainframe ဖွင့်ပါ။ ဦးနှောက်သည် BRAIN အောက်တွင် ဖွင့်သည်။
 Right-click me any time for the Mainframe, Help and the Discord.	ငါ့ကို ညာကလစ်နှိပ်ပြီး Mainframe၊ Help နှင့် Discord ဖွင့်ပါ။
 Roblox	Roblox
 Roblox or any other app: pick	Roblox သို့မဟုတ် အခြား app ဖြစ်စေ: ရွေးပါ

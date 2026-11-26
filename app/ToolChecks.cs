@@ -1162,7 +1162,7 @@ namespace CapriDesktop
                 string faked = planner.Ask("make yourself even bigger");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
-                if (grown != "There, a bit bigger, choom." || still != "Okay, I'll stay put." || faked != "That setting hasn't changed yet. It's in Capri Mainframe > Settings." || sent.Length != 6
+                if (grown != "There, a bit bigger, choom." || still != "Okay, I'll stay put." || faked != "That setting hasn't changed yet. It's in Mainframe > Settings." || sent.Length != 6
                     || string.Join(",", did.ToArray()) != "capri_settings:size:set:bigger,capri_settings:wander:off" || levels["size"] != 4 || switches["wander"] != false
                     || !sent[0].Contains("like set size bigger for make yourself bigger") || !sent[0].Contains("\"voice_speed\"") || !sent[1].Contains("Set my size to Medium+.") || !sent[3].Contains("Turned Wander off.")
                     || !sent[5].Contains("You said you did something that needs capri_settings"))

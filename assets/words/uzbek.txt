@@ -182,7 +182,7 @@ FREE KEY >	BEPUL KALIT >
 Fast hands in games	O'yinlarda tez qo'llar
 File editor	Fayl tahrirlovchi
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs va boshqalar Mainframe'da OVOZ ostida.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs va boshqalar Mainframe'da OVOZ ostida.
 Follow-up messages	Davom ettiruvchi xabarlar
 Forget	Unutish
 Fork capri-mods	capri-mods'ni fork qilish
@@ -222,7 +222,7 @@ Go to the next screen	Keyingi ekranga o'ting
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · bepul daraja · so'rovlar cheklangan
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude yoki ChatGPT tarifingiz yoki o'z kalitingiz bormi? Tanlang, men ulanaman.
-Got it, just me. Right-click me any time for Capri Mainframe.	Tushunarli, faqat men. Istalgan vaqtda Capri Mainframe uchun meni o'ng tugmani bosib turing.
+Got it, just me. Right-click me any time for the Mainframe.	Tushunarli, faqat men. Istalgan vaqtda Capri Mainframe uchun meni o'ng tugmani bosib turing.
 Grey	Kulrang
 H.{0} video bitrate target; higher values make larger files	H.{0} video bitreyt maqsadi; yuqori qiymatlar kattaroq fayllar yaratadi
 HABITS >	ODATLAR >
@@ -256,11 +256,11 @@ Her speaker:	Uning karnayi:
 Her speaker: Default	Uning karnayi: Standart
 Her voice in your mic	Uning ovozi mikrofoningizda
 Her voice in your mic: loudness	Uning ovozi mikrofoningizda: balandlik
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Uning ovozining o'zi. Uning pitch'i Sozlamalar > OVOZ > Pitch, va ular birga harakatlanadi.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Uning ovozining o'zi. Uning pitch'i Sozlamalar > OVOZ > Pitch, va ular birga harakatlanadi.
 Her voice joins your mic only in call mode.	Uning ovozi mikrofoningizga faqat qo'ng'iroq rejimida qo'shiladi.
 Her voice volume	Uning ovoz balandligi
 Her voice's pitch	Uning ovozining pitch'i
-Her voice's pitch, the same as Settings > VOICE > Pitch	Uning ovozining pitch'i, Sozlamalar > OVOZ > Pitch bilan bir xil
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Uning ovozining pitch'i, Sozlamalar > OVOZ > Pitch bilan bir xil
 Her voice's speed	Uning ovozining tezligi
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Uning ovozi va uning ostida aralashtirilgan ikki nusxa, har birining o'z pitch'i va kechikishi bilan.
 Her voices · free	Uning ovozlari · bepul
@@ -583,7 +583,7 @@ Revoke	Bekor qilish
 Revoke also removes the phones its links added	Bekor qilish, uning havolalari qo'shgan telefonlarni ham olib tashlaydi
 Ride cursor	Kursorda uchish
 Ride cursor / Hop off	Kursorda uchish / Tushish
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Men bilan istalgan vaqtda o'ng tugmani bosing va Capri Mainframe'ni oching. MIYA ostida miya yoqiladi.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Men bilan istalgan vaqtda o'ng tugmani bosing va Capri Mainframe'ni oching. MIYA ostida miya yoqiladi.
 Right-click me any time for the Mainframe, Help and the Discord.	Men bilan istalgan vaqtda o'ng tugmani bosing va Mainframe, Yordam va Discord'ni oching.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox yoki boshqa ilova: tanlang

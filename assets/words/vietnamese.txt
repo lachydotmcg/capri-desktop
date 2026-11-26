@@ -182,7 +182,7 @@ FREE KEY >	KHÓA MIỄN PHÍ >
 Fast hands in games	Tay nhanh trong game
 File editor	Trình soạn tệp
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs và các dịch vụ khác nằm trong GIỌNG trong Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs và các dịch vụ khác nằm trong GIỌNG trong Mainframe.
 Follow-up messages	Tin nhắn tiếp theo
 Forget	Quên
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Chuyển sang màn hình kế tiếp
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gói miễn phí · giới hạn tốc độ
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Có gói Claude hoặc ChatGPT, hoặc khóa riêng? Chọn đi và mình sẽ kết nối.
-Got it, just me. Right-click me any time for Capri Mainframe.	Được rồi, chỉ mình thôi. Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Được rồi, chỉ mình thôi. Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe.
 Grey	Xám
 H.{0} video bitrate target; higher values make larger files	Mục tiêu bitrate video H.{0}; giá trị cao hơn tạo tệp lớn hơn
 HABITS >	THÓI QUEN >
@@ -256,11 +256,11 @@ Her speaker:	Loa của cô ấy:
 Her speaker: Default	Loa của cô ấy: Mặc định
 Her voice in your mic	Giọng cô ấy trong mic của bạn
 Her voice in your mic: loudness	Giọng cô ấy trong mic của bạn: âm lượng
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Chính giọng của cô ấy. Cao độ là Cài đặt > GIỌNG > Cao độ, và chúng thay đổi cùng nhau.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Chính giọng của cô ấy. Cao độ là Cài đặt > GIỌNG > Cao độ, và chúng thay đổi cùng nhau.
 Her voice joins your mic only in call mode.	Giọng cô ấy chỉ đi vào mic của bạn ở chế độ gọi.
 Her voice volume	Âm lượng giọng cô ấy
 Her voice's pitch	Cao độ giọng cô ấy
-Her voice's pitch, the same as Settings > VOICE > Pitch	Cao độ giọng cô ấy, giống Cài đặt > GIỌNG > Cao độ
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Cao độ giọng cô ấy, giống Cài đặt > GIỌNG > Cao độ
 Her voice's speed	Tốc độ giọng cô ấy
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Giọng cô ấy, và hai bản sao trộn bên dưới, mỗi bản có cao độ và độ trễ riêng.
 Her voices · free	Giọng cô ấy · miễn phí
@@ -583,7 +583,7 @@ Revoke	Thu hồi
 Revoke also removes the phones its links added	Thu hồi cũng gỡ các điện thoại do liên kết của nó thêm vào
 Ride cursor	Cưỡi con trỏ
 Ride cursor / Hop off	Cưỡi con trỏ / Xuống
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe. Một não sẽ bật ở mục NÃO.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe. Một não sẽ bật ở mục NÃO.
 Right-click me any time for the Mainframe, Help and the Discord.	Nhấn chuột phải vào mình bất cứ lúc nào để mở Mainframe, Trợ giúp và Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox hoặc ứng dụng khác: chọn

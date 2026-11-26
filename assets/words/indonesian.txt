@@ -182,7 +182,7 @@ FREE KEY >	KUNCI GRATIS >
 Fast hands in games	Tangan cepat di game
 File editor	Editor file
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs, dan lainnya ada di bawah SUARA di Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs, dan lainnya ada di bawah SUARA di Mainframe.
 Follow-up messages	Pesan lanjutan
 Forget	Lupakan
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Ke layar berikutnya
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tingkat gratis · dibatasi
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Punya paket Claude atau ChatGPT, atau kunci sendiri? Pilih dan aku akan terhubung.
-Got it, just me. Right-click me any time for Capri Mainframe.	Oke, cuma aku. Klik kanan aku kapan saja untuk Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Oke, cuma aku. Klik kanan aku kapan saja untuk Capri Mainframe.
 Grey	Abu-abu
 H.{0} video bitrate target; higher values make larger files	Target bitrate video H.{0}; nilai lebih tinggi menghasilkan file lebih besar
 HABITS >	KEBIASAAN >
@@ -256,11 +256,11 @@ Her speaker:	Speakernya:
 Her speaker: Default	Speakernya: Default
 Her voice in your mic	Suaranya di mikmu
 Her voice in your mic: loudness	Suaranya di mikmu: volume
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Suaranya sendiri. Pitch-nya Pengaturan > SUARA > Pitch, dan keduanya bergerak bersama.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Suaranya sendiri. Pitch-nya Pengaturan > SUARA > Pitch, dan keduanya bergerak bersama.
 Her voice joins your mic only in call mode.	Suaranya masuk ke mikmu hanya dalam mode panggilan.
 Her voice volume	Volume suaranya
 Her voice's pitch	Pitch suaranya
-Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch suaranya, sama dengan Pengaturan > SUARA > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Pitch suaranya, sama dengan Pengaturan > SUARA > Pitch
 Her voice's speed	Kecepatan suaranya
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Suaranya, dan dua salinan yang dicampur di bawahnya, masing-masing dengan pitch dan jeda sendiri.
 Her voices · free	Suaranya · gratis
@@ -583,7 +583,7 @@ Revoke	Cabut
 Revoke also removes the phones its links added	Mencabut juga menghapus telepon yang ditautkan oleh tautannya
 Ride cursor	Tunggangi kursor
 Ride cursor / Hop off	Tunggangi kursor / Turun
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klik kanan aku kapan saja untuk Capri Mainframe. Otak akan menyala di bawah OTAK.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Klik kanan aku kapan saja untuk Capri Mainframe. Otak akan menyala di bawah OTAK.
 Right-click me any time for the Mainframe, Help and the Discord.	Klik kanan aku kapan saja untuk Mainframe, Bantuan, dan Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox atau aplikasi lain: pilih
