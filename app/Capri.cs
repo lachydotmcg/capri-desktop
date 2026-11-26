@@ -1056,6 +1056,7 @@ namespace CapriDesktop
         [DataMember] public int GpuLimit;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
+        [DataMember(EmitDefaultValue = false)] public string HistoryRetention;
         [DataMember] public bool ClipGames;
         [DataMember] public bool ClipMoments;
         [DataMember] public string ClipFolder;
@@ -3165,7 +3166,12 @@ namespace CapriDesktop
             if (chosen != null && Directory.Exists(Path.GetDirectoryName(chosen))) { Brain.MemoryPath = chosen; Brain.VaultFolder = Path.GetDirectoryName(chosen); }
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
-            if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
+            if (!smoke)
+            {
+                string chat = Path.Combine(data, "chat.json");
+                if (LimitsHistory) Retention.Sweep(settingsPath, Brain.TranscriptPath, chat, DateTime.Now);
+                brain.Load(chat);
+            }
             Voice.Loudness = Math.Max(0, Math.Min(150, preferences.Volume));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, preferences.VoicePitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, preferences.VoiceSpeed));
@@ -7437,6 +7443,15 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }
+        internal bool LimitsHistory { get { return preferences.HistoryRetention == Retention.Limited; } }
+
+        internal void SetHistoryLimit(bool on)
+        {
+            string previous = preferences.HistoryRetention;
+            preferences.HistoryRetention = on ? Retention.Limited : null;
+            if (!SavePreferences() && Retention.Enabled(settingsPath) != on)
+                preferences.HistoryRetention = previous;
+        }
 
         internal bool ClipsOn { get { return preferences.ClipGames; } }
 
@@ -17671,6 +17686,7 @@ namespace CapriDesktop
             string notice;
             Preferences value = ReadPreferences(settingsPath, out notice);
             if (notice != null) unreadableNotice = notice;
+            if (notice != null || !Retention.Enabled(settingsPath)) value.HistoryRetention = null;
             return value;
         }
 

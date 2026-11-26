@@ -390,6 +390,7 @@ internal static class Program
         try
         {
             SettingsRoundTrip(folder);
+            RetentionChecks.Run(folder);
             ProviderNames();
             ProviderMemory();
             DualWrite();
