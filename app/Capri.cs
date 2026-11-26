@@ -2352,6 +2352,9 @@ namespace CapriDesktop
         private readonly Random random = new Random();
         private readonly NotifyIcon tray;
         private readonly ContextMenuStrip menu;
+        // The hidden window that holds their focus while her right-click or player menu is open, and what had it before.
+        private readonly NativeWindow menuHost = new NativeWindow();
+        private IntPtr menuWas;
         // Her right-click, tray and player menus' fonts in points, drawn in pixels for the screen each opens on, and where
         // that is with its DPI, which the smoke swaps for made-up monitors. 0 means Windows can't say, and they stay as built.
         private readonly Font menuType = Neon.Type(10f), menuTitle = Neon.Display(12f);
@@ -3206,7 +3209,7 @@ namespace CapriDesktop
             AutoScaleMode = AutoScaleMode.None;
             menu = new ContextMenuStrip();
             // Before her look's own Opening, which measures the words with the fonts they'll open with.
-            menu.Opening += delegate { ScaleMenus(); };
+            menu.Opening += delegate { ScaleMenus(); TakeMenuFocus(); };
             menu.Renderer = new Mainframe.MenuLook();
             menu.ForeColor = Mainframe.MenuLook.Ink;
             menu.BackColor = Mainframe.MenuLook.Panel;
@@ -3318,9 +3321,9 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }));
             menu.Opened += delegate { Computer.MenuOpen = true; };
-            menu.Closed += delegate { Computer.MenuOpen = false; };
+            menu.Closed += delegate { Computer.MenuOpen = false; Post(GiveFocusBack); };
             playerMenu = new ContextMenuStrip();
-            playerMenu.Opening += delegate { ScaleMenus(); };
+            playerMenu.Opening += delegate { ScaleMenus(); TakeMenuFocus(); };
             playerMenu.Renderer = menu.Renderer;
             playerMenu.ForeColor = menu.ForeColor;
             playerMenu.BackColor = menu.BackColor;
@@ -3330,6 +3333,8 @@ namespace CapriDesktop
             playerMenu.Items.Add(playerOpenItem);
             playerMenu.Items.Add(new ToolStripMenuItem("Hide for now", null, delegate { playerClosed = true; HidePlayer(); }));
             playerMenu.Items.Add(new ToolStripMenuItem("Turn off mini player", null, delegate { TogglePlayer(); }));
+            playerMenu.Opened += delegate { Computer.MenuOpen = true; };
+            playerMenu.Closed += delegate { Computer.MenuOpen = false; Post(GiveFocusBack); };
             player.Command += PlayerCommand;
             player.Loud = Math.Max(0, Math.Min(100, preferences.PlayerVolume)) / 100.0;
             try { FolderTunes.Loudness = player.Loud; } catch (Exception) { }
@@ -9540,6 +9545,27 @@ namespace CapriDesktop
             playerOpenItem.Text = "Open " + Tunes.AppName(tune != null ? tune.App : null);
             playerOpenItem.Enabled = tune != null;
             playerMenu.Show(Cursor.Position);
+        }
+
+        // Her window and task panel never take focus, so a menu opened from them never heard about a click on another app, the
+        // desktop or another screen, or about Esc, and stayed up. Like her tray icon, their focus comes to a hidden window of
+        // hers while it's open, and goes back to where it was if nothing they picked took it. A window on her own thread already
+        // tells the menu, and a full screen game or video keeps its focus: some games minimize when they lose it.
+        private void TakeMenuFocus()
+        {
+            IntPtr was = Native.GetForegroundWindow();
+            int process;
+            if (Native.GetWindowThreadProcessId(was, out process) == Native.GetCurrentThreadId() || Native.FillsScreen()) return;
+            if (menuHost.Handle == IntPtr.Zero) menuHost.CreateHandle(new CreateParams());
+            if (Native.SetForegroundWindow(menuHost.Handle)) menuWas = was;
+        }
+
+        private void GiveFocusBack()
+        {
+            if (menu.Visible || playerMenu.Visible) return;
+            IntPtr was = menuWas;
+            menuWas = IntPtr.Zero;
+            if (was != IntPtr.Zero && Native.GetForegroundWindow() == menuHost.Handle) Native.SetForegroundWindow(was);
         }
 
         internal bool PlayerOn { get { return !preferences.NoPlayer; } }
@@ -41394,6 +41420,146 @@ namespace CapriDesktop
             checks.Add("PASS her Mainframe's menus follow it to a screen with another scale, the speaker, personality, jealousy, screen, Husk and thinking ones too");
         }
 
+        // Her right-click and player menus close on a click outside them and on Esc, though her window never takes focus (nathanZW,
+        // 26 Nov). Another app is played by a window on a thread of its own: Windows tells her thread focus went elsewhere just as
+        // it would for another app.
+        private void SmokeMenuDismiss(System.Collections.Generic.List<string> checks)
+        {
+            IntPtr theirs = Native.GetForegroundWindow();
+            Form other = null;
+            IntPtr otherWindow = IntPtr.Zero;
+            ManualResetEvent ready = new ManualResetEvent(false);
+            Thread elsewhere = new Thread(delegate()
+            {
+                other = new Form { Text = "Another app", ShowInTaskbar = false, StartPosition = FormStartPosition.Manual, Location = new Point(40, 40), Size = new Size(320, 200) };
+                other.Shown += delegate { otherWindow = other.Handle; ready.Set(); };
+                Application.Run(other);
+            });
+            elsewhere.SetApartmentState(ApartmentState.STA);
+            elsewhere.IsBackground = true;
+            elsewhere.Start();
+            Func<bool> front = delegate { return Hands.Front(otherWindow); };
+            Action<int> wait = delegate(int ms) { DateTime until = DateTime.UtcNow.AddMilliseconds(ms); while (DateTime.UtcNow < until) { Application.DoEvents(); Thread.Sleep(10); } };
+            // The program that has the front, when it isn't her.
+            Func<string> taker = delegate
+            {
+                int process;
+                Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out process);
+                if (process == Process.GetCurrentProcess().Id) return null;
+                try { return Process.GetProcessById(process).ProcessName; } catch (ArgumentException) { return "process " + process; }
+            };
+            ToolStripMenuItem moves = null;
+            foreach (ToolStripItem item in menu.Items) if (item.Text == "Move") moves = item as ToolStripMenuItem;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            Point at = new Point(work.Left + 420, work.Top + 300);
+            try
+            {
+                if (!ready.WaitOne(5000)) throw new Exception("The stand-in for another app didn't open.");
+                if (moves == null) throw new Exception("Her right-click menu has no Move.");
+                if (!front()) { checks.Add("LIMIT her menus closing on a click elsewhere: the runner couldn't put another window in front"); return; }
+                foreach (ContextMenuStrip strip in new[] { menu, playerMenu })
+                {
+                    string name = strip == menu ? "Her right-click menu" : "Her player menu";
+                    string took = null;
+                    for (int tries = 0; tries < 3 && !strip.Visible; tries++)
+                    {
+                        front();
+                        wait(150);
+                        strip.Show(at);
+                        wait(150);
+                        took = taker();
+                    }
+                    if (!strip.Visible && took != null) { checks.Add("LIMIT her menus closing on a click elsewhere: " + took + " kept taking the front"); return; }
+                    if (!strip.Visible) throw new Exception(name + " didn't open.");
+                    bool moved = front();
+                    wait(400);
+                    bool stayed = strip.Visible;
+                    strip.Close();
+                    if (!moved) { checks.Add("LIMIT her menus closing on a click elsewhere: " + (taker() ?? "something") + " held the front"); return; }
+                    if (stayed) throw new Exception(name + " stayed open after a click on another app.");
+                }
+                bool? gamingWas = Native.FakedGaming;
+                Native.FakedGaming = true;
+                try
+                {
+                    front();
+                    wait(150);
+                    menu.Show(at);
+                    wait(150);
+                    bool gameKept = Native.GetForegroundWindow() == otherWindow;
+                    menu.Close();
+                    if (!gameKept && taker() == null) throw new Exception("Her menu took their focus from a full screen game.");
+                }
+                finally { Native.FakedGaming = gamingWas; }
+                // Esc goes to whichever window has their keys, so it's only sent while a window of hers has them: on a desktop in
+                // use another program can take the front between steps.
+                IntPtr keys = IntPtr.Zero;
+                string busy = null;
+                for (int tries = 0; tries < 3; tries++)
+                {
+                    front();
+                    wait(150);
+                    menu.Show(at);
+                    wait(150);
+                    keys = Native.GetForegroundWindow();
+                    busy = taker();
+                    if (busy == null && menu.Visible) break;
+                    if (busy == null) busy = "her own closing";
+                    menu.Close();
+                }
+                if (busy != null)
+                {
+                    checks.Add("PASS her right-click and player menus close on a click in another app");
+                    checks.Add("LIMIT her menu closing on Esc: " + busy + " kept taking the front while it was open");
+                    return;
+                }
+                // The smoke keeps the keys of whoever is using the PC out, which would keep this Esc out too.
+                if (smokeInput != null) Application.RemoveMessageFilter(smokeInput);
+                try
+                {
+                    Native.PostMessage(keys, 0x0100, new IntPtr(0x1B), new IntPtr(1));
+                    Native.PostMessage(keys, 0x0101, new IntPtr(0x1B), new IntPtr(unchecked((int)0xC0000001)));
+                    wait(400);
+                }
+                finally { if (smokeInput != null) Application.AddMessageFilter(smokeInput); }
+                bool open = menu.Visible;
+                menu.Close();
+                if (open) throw new Exception("Her right-click menu stayed open after Esc, with their keys at " + (keys == menuHost.Handle ? "her menu's window" : keys == otherWindow ? "the other app" : "another window of hers") + ".");
+                wait(200);
+                IntPtr after = Native.GetForegroundWindow();
+                if (after == menuHost.Handle) throw new Exception("Closing her menu with Esc didn't give their focus back to the app they were in.");
+                string elsewhereNow = after == otherWindow ? null : taker();
+                bool nested = false;
+                for (int tries = 0; tries < 3 && !nested; tries++)
+                {
+                    front();
+                    wait(150);
+                    menu.Show(at);
+                    moves.ShowDropDown();
+                    wait(300);
+                    nested = menu.Visible && moves.DropDown.Visible;
+                    string took = taker();
+                    menu.Close();
+                    if (!nested && took == null) throw new Exception("Her Move submenu didn't stay open over her right-click menu.");
+                    if (!nested) busy = took;
+                }
+                checks.Add("PASS her right-click and player menus close on a click in another app and on Esc" + (elsewhereNow == null ? ", Esc gives their focus back to the app they were in" : "") + (nested ? ", and her submenus still open" : ""));
+                if (elsewhereNow != null) checks.Add("LIMIT her menu giving their focus back after Esc: " + elsewhereNow + " took the front first");
+                if (!nested) checks.Add("LIMIT her submenus staying open: " + busy + " kept taking the front while they were open");
+                return;
+            }
+            finally
+            {
+                menu.Close();
+                playerMenu.Close();
+                if (other != null) try { other.Invoke(new Action(other.Close)); } catch (InvalidOperationException) { }
+                elsewhere.Join(2000);
+                ready.Close();
+                menuWas = IntPtr.Zero;
+                if (Native.GetForegroundWindow() == menuHost.Handle && theirs != IntPtr.Zero) Native.SetForegroundWindow(theirs);
+            }
+        }
+
         private void SmokePlanChoice(System.Collections.Generic.List<string> checks, string output, Action<string, bool> claudeSays)
         {
             Preferences wasPreferences = preferences;
@@ -47489,6 +47655,7 @@ namespace CapriDesktop
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeMenuScreens", delegate { SmokeMenuScreens(checks); });
+            Section(checks, "SmokeMenuDismiss", delegate { SmokeMenuDismiss(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokeLingo", delegate { SmokeLingo(checks); });
             Section(checks, "SmokeBetterModels", delegate { SmokeBetterModels(checks); });
@@ -67046,6 +67213,8 @@ namespace CapriDesktop
         [StructLayout(LayoutKind.Sequential)] private struct InputInfo { internal int Size; internal uint Time; }
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] internal static extern bool SetForegroundWindow(IntPtr window);
+        [DllImport("kernel32.dll")] internal static extern int GetCurrentThreadId();
         [DllImport("user32.dll")] internal static extern bool IsWindowVisible(IntPtr window);
         [DllImport("user32.dll")] internal static extern bool InSendMessage();
         [DllImport("user32.dll")] internal static extern void DisableProcessWindowsGhosting();
