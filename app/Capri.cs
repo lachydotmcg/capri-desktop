@@ -115,7 +115,9 @@ namespace CapriDesktop
                     HerCursor.Off();
                     if (smoke) { Directory.CreateDirectory(args[1]); File.WriteAllText(Path.Combine(args[1], "failure.txt"), error.ToString()); return 1; }
                     Crashed(error);
-                    Notice.Tell(null, "Capri could not start.\n\n" + error.Message, "Capri", true);
+                    // Companion may be what failed to load, so her plain words still show if its notice can't.
+                    try { Companion.CouldNotStart(error); }
+                    catch (Exception) { Notice.Tell(null, StartProblem(Brain.LogPath, false, false), StartCaption, true); }
                     return 1;
                 }
             }
@@ -223,6 +225,19 @@ namespace CapriDesktop
             fresh.Remote = old.Remote == null ? null : new RemoteSettings { Host = old.Remote.Host, Sealed = old.Remote.Sealed };
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
+        }
+
+        internal const string StartCaption = "Capri couldn't start";
+
+        // What her start failure notice says: plainly that she didn't start, where her log is and what to do next. `keys` says
+        // whether it has Copy error details and Report a problem (the Help page outside the Store) to point at.
+        internal static string StartProblem(string log, bool store, bool keys)
+        {
+            return "Something went wrong while Capri was starting."
+                + (string.IsNullOrEmpty(log) ? "" : "\n\nThe details are saved in Capri's error log:\n" + log)
+                + "\n\nTry opening Capri again. If it still won't start, "
+                + (!keys ? "the help page at capriai.app/help says where to send that log." : "press Copy error details, then "
+                + (store ? "Report a problem and paste them into a new report." : "Help page to find where to send them."));
         }
 
         // A crash goes in errors.txt: what it was and where in her code, so Copy error details shows it.
@@ -5543,12 +5558,138 @@ namespace CapriDesktop
         {
             Cloud remote = brain.Remote;
             string head = "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
+            return head + Environment.NewLine + LoggedErrors();
+        }
+
+        // The last 25 lines of errors.txt and every close it holds, keys taken out: what Copy error details pastes under its first line.
+        private static string LoggedErrors()
+        {
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
             System.Collections.Generic.List<string> details = new System.Collections.Generic.List<string>();
             for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
-            return head + Environment.NewLine + (details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray())));
+            return details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray()));
+        }
+
+        internal static Action<string> CopyText = delegate(string text) { try { Clipboard.SetText(text); } catch (System.Runtime.InteropServices.ExternalException) { } };
+
+        // When she can't start there's no her to right-click, so the notice says where her log is and carries her Help menu's
+        // Copy error details and Report a problem (the Help page outside the Store, as in that menu). What was thrown only goes in
+        // the copy, and the words alone still say what to do if Windows' plain box shows them instead.
+        internal static void CouldNotStart(Exception error)
+        {
+            bool store = Packaged.Is;
+            Notice.Tell(null, Program.StartProblem(Brain.LogPath, store, true), Program.StartCaption, true, Program.StartProblem(Brain.LogPath, store, false), StartKeys(error, store));
+        }
+
+        internal static KeyValuePair<string, Action<Button>>[] StartKeys(Exception error, bool store)
+        {
+            string details = StartDetails(error);
+            return new[]
+            {
+                new KeyValuePair<string, Action<Button>>("Copy error details", delegate(Button key) { CopyText(details); key.Text = "Copied"; }),
+                new KeyValuePair<string, Action<Button>>(store ? "Report a problem" : "Help page", delegate { OpenPage(store ? IssuesPage : HelpPage); })
+            };
+        }
+
+        private static string StartDetails(Exception error)
+        {
+            string thrown;
+            try { thrown = string.Join(Environment.NewLine, Brain.Cleaned(error.ToString().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))); }
+            catch (Exception)
+            {
+                try { thrown = error.GetType().Name + ": " + Brain.Redacted(error.Message); }
+                catch (Exception) { thrown = error.GetType().FullName; }
+            }
+            string logged;
+            try { logged = LoggedErrors(); }
+            catch (Exception) { logged = "Capri's error log couldn't be read."; }
+            return "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | could not start" + Environment.NewLine + thrown + Environment.NewLine + logged;
+        }
+
+        private void SmokeStartFailure(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "start-failure");
+            Directory.CreateDirectory(folder);
+            string raw = "Smoke start failure " + Guid.NewGuid().ToString("N").Substring(0, 8) + ": settings.json is locked";
+            Exception thrown;
+            try { throw new InvalidDataException(raw); }
+            catch (Exception error) { thrown = error; }
+            string keptLog = Brain.LogPath;
+            Action<string> keptCopy = CopyText;
+            Action<string> keptBrowse = Browse;
+            string copied = null, opened = null;
+            try
+            {
+                CopyText = delegate(string text) { copied = text; };
+                Browse = delegate(string page) { opened = page; };
+                string log = Path.Combine(folder, "errors.txt");
+                if (File.Exists(log)) File.Delete(log);
+                Brain.LogPath = log;
+                Program.Crashed(thrown);
+                if (!File.Exists(log) || !File.ReadAllText(log).Contains("InvalidDataException: " + raw)) throw new Exception("A start failure wasn't written to the error log.");
+                string storeLog = @"C:\Users\averyveryverylongname\AppData\Local\Packages\CapriAI.CapriDesktop_8wekyb3d8bbwe\LocalCache\Local\Capri\errors.txt";
+                foreach (string[] shape in new[] { new[] { log, "website", "start-failure.png" }, new[] { storeLog, "store", "start-failure-store.png" }, new[] { null, "website", null } })
+                {
+                    bool store = shape[1] == "store";
+                    Brain.LogPath = shape[0] == storeLog ? log : shape[0];
+                    copied = opened = null;
+                    using (Notice notice = new Notice(Program.StartProblem(shape[0], store, true), Program.StartCaption, true, StartKeys(thrown, store)))
+                    {
+                        notice.Opacity = 0;
+                        notice.Show();
+                        Application.DoEvents();
+                        string said = notice.Said;
+                        if (said.Contains(raw) || said.Contains("InvalidDataException") || said.Contains(" at ") || said.Contains("Exception"))
+                            throw new Exception("The start failure notice shows what was thrown: " + said);
+                        if (!said.StartsWith("CAPRI COULDN'T START\nSomething went wrong while Capri was starting.", StringComparison.Ordinal) || !said.Contains("Try opening Capri again.") || said.Contains("choom"))
+                            throw new Exception("The start failure notice lost its plain first line or next step: " + said);
+                        if (shape[0] != null ? !said.Contains("error log:\n" + shape[0]) : said.Contains("error log"))
+                            throw new Exception("The start failure notice " + (shape[0] != null ? "doesn't say where the error log is" : "names an error log that wasn't written") + ": " + said);
+                        if (!notice.Fits) throw new Exception("The start failure notice doesn't fit its words and keys" + (store ? " with a Store copy's long log path." : "."));
+                        Button[] keys = notice.Extras;
+                        string help = store ? "Report a problem" : "Help page";
+                        if (keys.Length != 2 || keys[0].Text != "Copy error details" || keys[1].Text != help || notice.AcceptButton != notice.CancelButton || ((Button)notice.AcceptButton).Text != "OK")
+                            throw new Exception("The start failure notice's keys aren't Copy error details, " + help + " and OK.");
+                        if (shape[2] != null)
+                        {
+                            using (Bitmap bitmap = new Bitmap(notice.Width, notice.Height))
+                            using (Bitmap sheet = new Bitmap(notice.Width + 48, notice.Height + 48))
+                            {
+                                notice.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                                using (Graphics graphics = Graphics.FromImage(sheet))
+                                {
+                                    graphics.Clear(Color.FromArgb(44, 47, 56));
+                                    if (notice.Region != null) using (Region shapeRegion = notice.Region.Clone()) { shapeRegion.Translate(24, 24); graphics.SetClip(shapeRegion, CombineMode.Replace); }
+                                    graphics.DrawImageUnscaled(bitmap, 24, 24);
+                                }
+                                sheet.Save(Path.Combine(folder, shape[2]), ImageFormat.Png);
+                            }
+                        }
+                        string plain = Program.StartProblem(shape[0], store, false);
+                        if (plain.Contains("Copy error details") || plain.Contains("Report a problem") || !plain.Contains("capriai.app/help") || (shape[0] != null && !plain.Contains(shape[0])))
+                            throw new Exception("Windows' plain box for a start failure points at keys it doesn't have or loses the log: " + plain);
+                        keys[0].Select();
+                        keys[0].PerformClick();
+                        if (notice.ActiveControl != notice.AcceptButton) throw new Exception("After Copy error details, Enter on the start failure notice wouldn't press OK.");
+                        if (copied == null || !copied.Contains(raw) || !copied.Contains("InvalidDataException") || !copied.Contains(" | could not start") || !copied.Contains(" at "))
+                            throw new Exception("Copy error details on the start failure notice lost what was thrown: " + copied);
+                        if (shape[0] != null && !copied.Contains("| crash | ")) throw new Exception("Copy error details on the start failure notice left out the error log.");
+                        if (keys[0].Text != "Copied" || !notice.Visible) throw new Exception("Copy error details on the start failure notice didn't say Copied, or closed the notice.");
+                        keys[1].PerformClick();
+                        if (opened != (store ? IssuesPage : HelpPage) || !notice.Visible) throw new Exception(help + " on the start failure notice opened " + opened + ".");
+                        notice.Close();
+                    }
+                }
+                checks.Add("PASS a start failure is logged and its notice says plainly that Capri couldn't start, where the error log is (a Store copy's long path wraps) and what to do, with Copy error details carrying what was thrown and Report a problem (Help page outside the Store), never the raw exception in its words");
+            }
+            finally
+            {
+                Brain.LogPath = keptLog;
+                CopyText = keptCopy;
+                Browse = keptBrowse;
+            }
         }
 
         private void CopyErrors()
@@ -47466,6 +47607,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
+            Section(checks, "SmokeStartFailure", delegate { SmokeStartFailure(checks, output); });
             Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
