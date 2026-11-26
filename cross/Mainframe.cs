@@ -390,6 +390,9 @@ namespace CapriDesktop
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
         private readonly NeonButton support, remoteKey;
         private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote, spendLine, resourcesLine;
+        private readonly NeonCaption hearingNote;
+        private readonly NeonButton[] hearingFixes = new NeonButton[2];
+        private readonly NeonSwitch nameToggle;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
@@ -515,15 +518,28 @@ namespace CapriDesktop
             voiceNote = Caption("", 28, 499, 244, 22, MainframeTheme.Faint); voiceNote.Ellipsis = true;
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
+            // The hearing line sits under her voice rows, like Windows' under VOICE, and her name listening waits below it.
+            hearingNote = Caption("", 28, 524, 328, 20, MainframeTheme.Faint); hearingNote.Ellipsis = true;
+            var hearingTip = new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap, Text = HearingStatus.Tip };
+            ToolTip.SetTip(hearingNote, hearingTip);
+            hearingFixes[0] = Add(new NeonButton { Text = "" }, 28, 548, 136, 22);
+            hearingFixes[1] = Add(new NeonButton { Text = "" }, 172, 548, 110, 22);
+            for (int i = 0; i < hearingFixes.Length; i++)
+            {
+                int at = i;
+                hearingFixes[i].Click += (_, _) => pet.HearingFixAt(at);
+                hearingFixes[i].IsVisible = false;
+                ToolTip.SetTip(hearingFixes[i], new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap, Text = i == 0 ? HearingStatus.TestTip : HearingStatus.TypeTip });
+            }
             nameListeningNote = null;
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             {
-                var nameToggle = Toggle("Listen for Hey Capri", 0, 524, () => pet.Saved.ListenCapri, pet.SetNameListening);
+                nameToggle = Toggle("Listen for Hey Capri", 0, 574, () => pet.Saved.ListenCapri, pet.SetNameListening);
                 nameToggle.Switch = 138;
                 var nameTip = new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap };
                 ToolTip.SetTip(nameToggle, nameTip);
                 readers.Add(() => nameTip.Text = pet.NameListeningStatus);
-                nameListeningNote = Caption("", 28, 555, 328, 22, MainframeTheme.Faint); nameListeningNote.Ellipsis = true;
+                nameListeningNote = Caption("", 28, 605, 328, 22, MainframeTheme.Faint); nameListeningNote.Ellipsis = true;
                 MainframeTips.Explain(nameListeningNote, "Listen for Capri");
             }
             Section("CAPRI", 0, 540);
@@ -874,6 +890,24 @@ namespace CapriDesktop
                 more.Text = paged || modded ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
                 string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup + "|" + pet.NvidiaBrain;
                 if (layout != next) { layout = next; ArrangePage(); }
+                HearingStatus hearing = pet.HearingNow;
+                bool main = !paged && !modded;
+                hearingNote.Text = hearing.Text;
+                AutomationProperties.SetName(hearingNote, hearing.Text);
+                hearingNote.Ink = hearing.Problem ? MainframeTheme.Hot : MainframeTheme.Faint;
+                hearingNote.InvalidateVisual();
+                for (int i = 0; i < hearingFixes.Length; i++)
+                {
+                    bool shown = main && i < hearing.Actions.Length;
+                    hearingFixes[i].IsVisible = shown;
+                    if (!shown) continue;
+                    string name = HearingStatus.Name(hearing.Actions[i]);
+                    hearingFixes[i].Text = name;
+                    AutomationProperties.SetName(hearingFixes[i], name);
+                    TextBlock tip = ToolTip.GetTip(hearingFixes[i]) as TextBlock;
+                    if (tip != null) tip.Text = hearing.Actions[i] == HearingAction.Ears ? HearingStatus.EarsTip : hearing.Actions[i] == HearingAction.Type ? HearingStatus.TypeTip : HearingStatus.TestTip;
+                    hearingFixes[i].InvalidateVisual();
+                }
                 FillMods();
             }
             finally { syncing = false; }
@@ -981,9 +1015,10 @@ namespace CapriDesktop
                         if (!OperatingSystem.IsLinux() && item.Y >= 256) y -= 24;
                         if (item.Y >= 499) y -= 117 + fold;
                         // A section control starts five pixels above its authored band.
-                        // Move CAPRI's heading with its rows past the name controls.
-                        if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && control != nameListeningNote &&
-                            (item.Y >= 539 || control is NeonHead band && band.Text == "CAPRI")) y += 70;
+                        // Move CAPRI's heading with its rows past the hearing line and the name controls.
+                        if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && control != nameListeningNote && control != nameToggle &&
+                            control != hearingNote && control != hearingFixes[0] && control != hearingFixes[1] &&
+                            (item.Y >= 539 || control is NeonHead band && band.Text == "CAPRI")) y += 124;
                     }
                     if (item.Y == 310) show &= voice == 3;
                     if (item.Y == 346)
@@ -1047,6 +1082,38 @@ namespace CapriDesktop
                 if (chimeListening.Checked) each.Add("listening");
                 bool enabled = chimeVolume.IsEnabled && chimeSet.IsEnabled;
                 return (chimeSent.Checked || chimeHeard.Checked || chimeListening.Checked ? "on" : "off") + " | " + chimeVolume.Shown + " | " + string.Join(" ", each.ToArray()) + " | " + (enabled ? "enabled" : "disabled");
+            }
+        }
+        internal Control HearingRow { get { return hearingNote; } }
+        internal string HearingText { get { return hearingNote.Text; } }
+        internal bool HearingWarning { get { return hearingNote.Ink == MainframeTheme.Hot; } }
+        internal string HearingButtons
+        {
+            get
+            {
+                var names = new List<string>();
+                foreach (NeonButton fix in hearingFixes) if (fix.IsVisible) names.Add(fix.Text);
+                return string.Join(" | ", names);
+            }
+        }
+        internal void PressHearing(int index) { hearingFixes[index].Press(); }
+        internal bool HearingActionsFit
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(AutomationProperties.GetName(hearingNote))) return false;
+                HearingStatus status = pet.HearingNow;
+                for (int i = 0; i < hearingFixes.Length; i++)
+                {
+                    bool shown = i < status.Actions.Length;
+                    if (hearingFixes[i].IsVisible != shown) return false;
+                    if (!shown) continue;
+                    if (string.IsNullOrEmpty(AutomationProperties.GetName(hearingFixes[i])) || hearingFixes[i].Text != HearingStatus.Name(status.Actions[i]) || hearingFixes[i].TextFits() != null) return false;
+                }
+                if (status.Actions.Length > 0 && Box(hearingNote).Bottom > Box(hearingFixes[0]).Top) return false;
+                if (status.Actions.Length < 2) return true;
+                Rect both = Box(hearingFixes[0]).Intersect(Box(hearingFixes[1]));
+                return !(both.Width > 0.5 && both.Height > 0.5);
             }
         }
         internal string Outside()
