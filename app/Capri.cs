@@ -43786,16 +43786,11 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Discord Bot:",
-                    "Capricord:",
-                    "Plug-ins:",
-                    "Tools:",
-                    "Connect:",
-                    "Cloud voice:",
-                    "Download warnings:",
-                    "Job controls:",
-                    "Colours:",
-                    "Music:"
+                    "Holocall:",
+                    "Full size:",
+                    "Capri Camera:",
+                    "Startup:",
+                    "Menus:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
