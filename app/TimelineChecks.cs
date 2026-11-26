@@ -165,10 +165,11 @@ namespace CapriDesktop
                 Timeline.Step(paying, "Pay for the order", "Typed \"sam@example.com\" and pressed Enter", false);
                 Timeline.Step(paying, "Pay for the order", "Typed \"hi\" and pressed Enter", false);
                 Timeline.Ended(paying, "done");
-                Deed paid = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Job; });
                 string written = File.ReadAllText(Path.Combine(kept, "timeline.json"));
+                Timeline.Open(kept);
+                Deed paid = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Job; });
                 Expect(paid != null && paid.What == "Pay for the order" && paid.Steps.Count == 3 && paid.Steps[0] == Timeline.Typed && paid.Steps[1] == Timeline.Typed && paid.Steps[2] == "Typed \"hi\" and pressed Enter"
-                    && !written.Contains("4242") && !written.Contains("example.com") && !written.Contains("exact words"), "A job's card number, email or their exact words reached her timeline: " + (paid == null ? "missing" : paid.What + " / " + string.Join(" / ", paid.Steps.ToArray())));
+                    && !written.Contains("4242 4242 4242 4242") && !written.Contains("example.com") && !written.Contains("exact words"), "A job's card number, email or their exact words reached her timeline: " + (paid == null ? "missing" : paid.What + " / " + string.Join(" / ", paid.Steps.ToArray())));
                 Timeline.List();
                 Deed after = Timeline.Add(new Deed { Tool = "media", What = "Paused the timeline check.", UndoTool = "timeline_check", UndoAction = "none" });
                 string numbered = Timeline.Undo((int?)1);

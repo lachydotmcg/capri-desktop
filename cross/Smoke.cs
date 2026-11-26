@@ -3254,8 +3254,9 @@ namespace CapriDesktop
                 checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:", "Desktops:" } : new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:" })
+                foreach (string fact in new[] { "Lite mode:", "Custom endpoints:", "Spend:", "Chimes:", "Favourites:", "Provider help:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                if (News.Facts.Contains("Plasma:") != OperatingSystem.IsLinux()) throw new Exception("Cross update help put the Plasma fix on the wrong platform.");
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
                     if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
@@ -3988,6 +3989,22 @@ namespace CapriDesktop
                 string off = SettingsJson(pet.Saved);
                 if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
                     throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
+
+                pet.SetLite(true);
+                string stopWatch = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "watch_my_screen" });
+                if (!stopWatch.Contains("stay off") || SettingsCopy().LiteWatch) throw new Exception("An explicit Watch off did not clear the saved restart: " + stopWatch);
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed after an explicit off while paused.");
+                pet.SetLite(true);
+                string startWatch = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "watch_my_screen" });
+                if (!startWatch.Contains("when Lite mode ends") || pet.Saved.Watch || !SettingsCopy().LiteWatch) throw new Exception("An explicit Watch on did not wait for Lite to end: " + startWatch);
+                pet.SetLite(false);
+                if (!pet.Saved.Watch) throw new Exception("Watch did not resume after an explicit on while paused.");
+                pet.SetLite(true);
+                pet.SetWatchEvery(0);
+                pet.SetLite(false);
+                if (pet.Saved.Watch || SettingsCopy().LiteWatch) throw new Exception("Watch Every Off did not clear the saved restart.");
+                checks.Add("PASS Watch requests while paused wait for Lite mode to end, and an explicit Off clears the saved restart");
 
                 SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
@@ -6437,7 +6454,7 @@ namespace CapriDesktop
                 PlugTile[] tiles = frame.PlugTileRow;
                 string[] names = { "Email", "Notion", "Linear", "Todoist" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, ServiceLogo.Todoist };
                 for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
@@ -6452,7 +6469,7 @@ namespace CapriDesktop
                 }
                 pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
                 frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
-                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion, Linear and Todoist as tiles, Email with an envelope and the others with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
 
                 tiles[1].Press();
                 PluginWindow notion = frame.PluginSheet;
@@ -6522,6 +6539,12 @@ namespace CapriDesktop
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
                 List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                Dictionary<string, ServiceLogo> logosOnLaterPages = new Dictionary<string, ServiceLogo>
+                {
+                    { "github", ServiceLogo.GitHub }, { "atlassian", ServiceLogo.Atlassian },
+                    { "monday", ServiceLogo.Monday }, { "miro", ServiceLogo.Miro },
+                    { "cloudflare-docs", ServiceLogo.Cloudflare }, { "context7", ServiceLogo.Context7 }
+                };
                 for (int first = 0; first < expectedPlugs.Count; first += tiles.Length)
                 {
                     if (frame.PlugFirst != first || frame.PlugBack.IsEnabled != (first > 0) || frame.PlugNext.IsEnabled != (first + tiles.Length < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
@@ -6529,6 +6552,8 @@ namespace CapriDesktop
                     {
                         int at = first + slot;
                         if (tiles[slot].IsVisible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && tiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                        if (at < expectedPlugs.Count && logosOnLaterPages.TryGetValue(expectedPlugs[at].File.Id, out ServiceLogo logo) && tiles[slot].Logo != logo)
+                            throw new Exception("PLUG-INS didn't show the service logo for " + tiles[slot].Text);
                     }
                     if (frame.PlugNext.IsEnabled) frame.PlugNext.Press();
                 }
@@ -13512,7 +13537,8 @@ namespace CapriDesktop
                 if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
                 if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
-                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                // Let the bridge reject the declared length before the test client starts sending the body.
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), "Expect", "100-continue") != 413) throw new Exception("The companion bridge accepted an oversized body.");
                 if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
                 bridge.Dispose();
                 bridge = null;

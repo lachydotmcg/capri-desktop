@@ -562,7 +562,7 @@ namespace CapriDesktop
     {
         private const double LongestIntro = 15, IntroWait = 8;
         private IntroScreen introScreen;
-        // Her door is due on her first start after an update, and plays instead of a mod's intro that once.
+        // Her door is due once after an update when Peek isn't the startup choice.
         private bool doorPending;
 
         private DoorIntro NewDoor(bool popups)
@@ -575,8 +575,8 @@ namespace CapriDesktop
             get
             {
                 string picked = preferences.IntroPick;
-                if (picked == null || picked == Intros.FromMods) return ModList.WantsIntro ? Intros.FromMods : Intros.Classic;
-                return Intros.Known(picked) && (!Intros.IsArt(picked) || ArtIntro.Frames(picked) > 0) ? picked : Intros.Classic;
+                if (picked == null || picked == Intros.FromMods) return ModList.WantsIntro ? Intros.FromMods : Intros.Default;
+                return Intros.Known(picked) && (!Intros.IsArt(picked) || ArtIntro.Frames(picked) > 0) ? picked : Intros.Default;
             }
         }
 
@@ -590,9 +590,9 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        private ICapriIntro PickedIntro(bool live)
+        private ICapriIntro PickedIntro(bool live, string pick = null)
         {
-            string pick = IntroPick;
+            pick = pick ?? IntroPick;
             if (pick == Intros.Door) return NewDoor(live);
             if (pick == Intros.FromMods) return ModList.Intro;
             return Intros.IsArt(pick) ? ArtIntro.Make(pick) : null;
@@ -627,13 +627,15 @@ namespace CapriDesktop
 
         private bool HoldForIntro(Action arrival, bool spawn)
         {
-            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !(doorPending || IntroPick != Intros.Classic) || FullScreenDisplay) return false;
+            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || FullScreenDisplay) return false;
+            string pick = IntroPick;
+            if (!doorPending && pick == Intros.Classic) return false;
             if (spawn) SpawnInMiddle();
-            WaitForIntro(arrival, IntroWait);
+            WaitForIntro(arrival, IntroWait, pick);
             return true;
         }
 
-        private void WaitForIntro(Action arrival, double patience)
+        private void WaitForIntro(Action arrival, double patience, string pick)
         {
             veilUntil = clock.Elapsed.TotalSeconds + patience + LongestIntro + 5;
             Play(idle);
@@ -649,7 +651,8 @@ namespace CapriDesktop
             wait.Tick += delegate
             {
                 if (IsDisposed) { wait.Dispose(); return; }
-                ICapriIntro intro = doorPending ? NewDoor(true) : PickedIntro(true);
+                string startup = Intros.AtStartup(pick, doorPending);
+                ICapriIntro intro = PickedIntro(true, startup);
                 if (doorPending)
                 {
                     doorPending = false;
@@ -657,7 +660,7 @@ namespace CapriDesktop
                     SavePreferences();
                 }
                 bool out_ = clock.Elapsed.TotalSeconds >= gaveUpAt;
-                if (intro == null && IntroPick == Intros.FromMods && !ModList.CodeSettled && !out_) return;
+                if (intro == null && startup == Intros.FromMods && !ModList.CodeSettled && !out_) return;
                 wait.Dispose();
                 if (intro == null) release();
                 else RunIntro(intro, release);
@@ -823,7 +826,7 @@ namespace CapriDesktop
             bool arrived = false;
             Clip clipWas = clip;
             bool settledWas = ModList.CodeSettled;
-            WaitForIntro(delegate { arrived = true; }, 0.2);
+            WaitForIntro(delegate { arrived = true; }, 0.2, Intros.Classic);
             bool veilHeld = clock.Elapsed.TotalSeconds < veilUntil;
             if (!veilHeld || !until(() => arrived) || clock.Elapsed.TotalSeconds < veilUntil) throw new Exception("Waiting for an intro that never comes did not bring her in.");
             Play(clipWas);
@@ -979,7 +982,8 @@ namespace CapriDesktop
             List<string> timing = new List<string>();
             foreach (string id in new[] { "peek", "up-close" })
             {
-                int frames = ArtIntro.Frames(id), wanted = id == "peek" ? 20 : 22;
+                int frames = ArtIntro.Frames(id), wanted = id == Intros.Peek ? 93 : 22;
+                double fps = ArtIntro.Fps(id);
                 if (frames != wanted) throw new Exception(Intros.NameOf(id) + " has " + frames + " frames inside her, not " + wanted + ".");
                 for (int i = 0; i < frames; i++)
                 {
@@ -1001,7 +1005,7 @@ namespace CapriDesktop
                 {
                     using (ArtIntro intro = ArtIntro.Make(id))
                     {
-                        if (Math.Abs(intro.Seconds - frames / ArtIntro.Fps) > 0.001) throw new Exception(Intros.NameOf(id) + " runs " + intro.Seconds + " s.");
+                        if (Math.Abs(intro.Seconds - frames / fps) > 0.001) throw new Exception(Intros.NameOf(id) + " runs " + intro.Seconds + " s.");
                         intro.Begin(fake, screen, spot);
                         if (intro.Shown != 0) throw new Exception(Intros.NameOf(id) + " hadn't got its first frame ready when it began.");
                         bool[] seen = new bool[frames];
@@ -1032,7 +1036,7 @@ namespace CapriDesktop
                         intro.Begin(fake, screen, spot);
                         for (int i = 0; i < frames; i++)
                         {
-                            double at = (i + 0.5) / ArtIntro.Fps;
+                            double at = (i + 0.5) / fps;
                             System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
                             while (true)
                             {
@@ -1067,11 +1071,12 @@ namespace CapriDesktop
                     bool shaped = Math.Abs(fit.Width * (double)ArtIntro.ArtHigh / ArtIntro.ArtWide - fit.Height) <= 1;
                     if (!bottom || !middle || !inside || !shaped) throw new Exception(Intros.NameOf(id) + " doesn't sit on the bottom of a " + other.Width + " x " + other.Height + " screen: " + fit);
                 }
-                using (Bitmap exact = ArtIntro.Render(id, 5, size))
+                int sample = id == Intros.Peek ? 82 : 5;
+                using (Bitmap exact = ArtIntro.Render(id, sample, size))
                 {
                     double[] truth = Looks(exact);
                     foreach (Size scaled in new[] { new Size(1366, 768), new Size(2560, 1440), new Size(3840, 2160), new Size(480, 270) })
-                        using (Bitmap made = ArtIntro.Render(id, 5, scaled))
+                        using (Bitmap made = ArtIntro.Render(id, sample, scaled))
                         {
                             if (made == null || made.Size != scaled) throw new Exception(Intros.NameOf(id) + " didn't make a " + scaled.Width + " x " + scaled.Height + " frame.");
                             double[] looks = Looks(made);
@@ -1081,7 +1086,7 @@ namespace CapriDesktop
                 }
                 if (slow > 2) throw new Exception(Intros.NameOf(id) + " drew " + slow + " of its " + draws + " frames slowly, the slowest " + worst.ToString("0") + " ms at " + worstAt.ToString("0.00") + " s.");
                 if (skipped > 2) throw new Exception(Intros.NameOf(id) + " skipped " + skipped + " of its " + frames + " frames playing in real time.");
-                timing.Add(Intros.NameOf(id) + " " + frames + " frames in " + draws + " draws, " + (frames / ArtIntro.Fps).ToString("0.0") + " s, slowest " + worst.ToString("0") + " ms, " + slow + " over 60 ms, " + skipped + " skipped");
+                timing.Add(Intros.NameOf(id) + " " + frames + " frames at " + fps + " fps in " + draws + " draws, " + (frames / fps).ToString("0.0") + " s, slowest " + worst.ToString("0") + " ms, " + slow + " over 60 ms, " + skipped + " skipped");
             }
             checks.Add("PASS hand-drawn intros play in real time at 1920x1080, drawn only when a new frame is ready, with frames made ahead off the drawing thread; they scale cleanly from 768p to 4K and sit on the bottom of wide, tall and 4K screens (" + string.Join("; ", timing) + ")");
         }
@@ -1129,10 +1134,12 @@ namespace CapriDesktop
             try
             {
                 preferences.IntroPick = null;
-                string first = ModList.WantsIntro ? Intros.FromMods : Intros.Classic;
+                string first = ModList.WantsIntro ? Intros.FromMods : Intros.Peek;
                 if (IntroPick != first) throw new Exception("With nothing picked her startup animation is " + IntroPick + ", not " + first + ".");
                 preferences.IntroPick = "nonsense";
-                if (IntroPick != Intros.Classic) throw new Exception("An unknown pick wasn't Classic.");
+                if (IntroPick != Intros.Peek) throw new Exception("An unknown pick didn't fall back to Peek.");
+                if (Intros.AtStartup(Intros.Peek, true) != Intros.Peek || Intros.AtStartup(Intros.Classic, true) != Intros.Door)
+                    throw new Exception("The once-after-update Door intro changed Peek's startup.");
                 preferences.IntroPick = Intros.Classic;
                 if (PickedIntro(false) != null) throw new Exception("Classic picked a full-screen intro.");
                 foreach (string id in new[] { "peek", "up-close", Intros.Door })

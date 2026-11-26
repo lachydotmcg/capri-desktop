@@ -145,6 +145,7 @@ namespace CapriDesktop
             Explain(micLoudness, "Her voice in your mic: loudness", "Mainframe.cs", micLoudnessName, "Her voice in your mic: loudness");
             Explain(showHide, "Hide Capri", "Mainframe.cs", null, "Hide / Show Capri");
             Explain(perch, "Ride cursor", "Mainframe.cs", null, "Ride cursor / Hop off");
+            if (discordBotKey != null) Explain(discordBotKey, "Discord Bot", "MainframeDiscordBot.cs");
             Explain(notesKey, "Open her notes");
             Explain(memoriesKey, "Remember our chats", "Mainframe.cs", null, "Her memories");
             Explain(popTimes, "Pop-ins", "Mainframe.cs", null, "Pop-in times");

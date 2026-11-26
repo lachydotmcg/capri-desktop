@@ -450,6 +450,7 @@
         lineHeld = performance.now() + 30000;
       } else sayLine('Capri Camera is on. Pick Capri Camera in Discord, Zoom or OBS.');
     } else if (state === 'missing') sayLine('Capri Camera isn’t in this build of Capri.');
+    else if (state === 'busy') sayLine('Capri Camera is showing her Holocall portrait. Stop that feed to switch to Room.');
     else sayLine('Capri Camera wasn’t set up.');
   });
   let camTicker = null;
