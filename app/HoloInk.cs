@@ -157,6 +157,8 @@ namespace CapriDesktop
 
         internal static readonly Color Rose = Color.FromArgb(248, 14, 64);
         internal static readonly Color Green = Color.FromArgb(5, 248, 103);
+        internal static readonly Color Speaker = Color.FromArgb(255, 84, 92);
+        internal static readonly Color Spoken = Color.FromArgb(98, 236, 244);
         internal static readonly Color Chalk = Color.FromArgb(238, 241, 246);
         internal static readonly Color Quiet = Color.FromArgb(178, 188, 204);
         internal static readonly Color Glass = Color.FromArgb(70, 8, 10, 18);
@@ -188,7 +190,7 @@ namespace CapriDesktop
                 try { return new Font(family, pixels, style, GraphicsUnit.Pixel); }
                 catch (ArgumentException) { }
             }
-            string fallback = role == "mono" ? "Consolas" : role == "title" ? "Bahnschrift SemiBold SemiConden" : "Bahnschrift SemiCondensed";
+            string fallback = role == "mono" ? "Consolas" : role == "title" || role == "subtitle" ? "Bahnschrift SemiBold SemiConden" : "Bahnschrift SemiCondensed";
             try { return new Font(fallback, pixels, style, GraphicsUnit.Pixel); }
             catch (ArgumentException) { return new Font(FontFamily.GenericSansSerif, pixels, style, GraphicsUnit.Pixel); }
         }
@@ -253,7 +255,7 @@ namespace CapriDesktop
             using (SolidBrush glass = new SolidBrush(Glass)) graphics.FillRectangle(glass, face);
             DrawFace(graphics, face, scene, scale);
             Scanlines(graphics, face, scale, scene.Time, view.Motion);
-            if (view.Captions && !string.IsNullOrWhiteSpace(view.Caption)) DrawCaption(graphics, face, view.Caption, 12.5f * scale, scale);
+            if (view.Captions && !string.IsNullOrWhiteSpace(view.Caption)) DrawCaption(graphics, face, view.Caption, 14 * scale, scale);
 
             float arm = 24 * scale * Ease(reveal);
             RectangleF frame = RectangleF.Inflate(face, 6 * scale, 6 * scale);
@@ -269,10 +271,9 @@ namespace CapriDesktop
                 float rowY = 9 * scale, rowH = 18 * scale;
                 bool live = view.Speaking || view.InCall;
                 Color dot = view.Speaking ? Rose : Green;
-                float pulse = view.Speaking ? 0.55f + 0.45f * (float)Math.Abs(Math.Sin(scene.Time * 6)) : 1f;
-                using (SolidBrush glow = new SolidBrush(Color.FromArgb((int)(70 * pulse), dot)))
+                using (SolidBrush glow = new SolidBrush(Color.FromArgb(70, dot)))
                     graphics.FillEllipse(glow, 11 * scale, rowY + rowH / 2 - 6 * scale, 12 * scale, 12 * scale);
-                using (SolidBrush core = new SolidBrush(Color.FromArgb((int)(255 * pulse), dot)))
+                using (SolidBrush core = new SolidBrush(dot))
                     graphics.FillEllipse(core, 14 * scale, rowY + rowH / 2 - 3 * scale, 6 * scale, 6 * scale);
                 string name = Reveal("CAPRI", reveal * 1.6f);
                 SizeF named = Write(graphics, name, title, Chalk, new PointF(26 * scale, rowY), rowH);
@@ -324,9 +325,9 @@ namespace CapriDesktop
             HoloView view = scene.View;
             if (view.Captions && !string.IsNullOrWhiteSpace(view.Caption))
             {
-                float width = Math.Min(bounds.Width - 80 * unit, 1100 * unit);
-                RectangleF strip = new RectangleF((bounds.Width - width) / 2, bounds.Height - 150 * unit, width, 110 * unit);
-                DrawCaption(graphics, strip, view.Caption, 30 * unit, unit);
+                float width = Math.Min(bounds.Width - 80 * unit, 1200 * unit);
+                RectangleF strip = new RectangleF((bounds.Width - width) / 2, bounds.Height - 170 * unit, width, 120 * unit);
+                DrawCaption(graphics, strip, view.Caption, 34 * unit, unit);
             }
             if (scene.ChipShare > 0.01f)
             {
@@ -423,19 +424,76 @@ namespace CapriDesktop
 
         private static void DrawCaption(Graphics graphics, RectangleF stage, string text, float pixels, float scale)
         {
-            using (Font words = MakeFont("text", pixels, FontStyle.Regular))
-            using (StringFormat format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far, Trimming = StringTrimming.EllipsisWord })
+            using (Font words = MakeFont("subtitle", pixels, FontStyle.Regular))
+            using (StringFormat tight = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces | StringFormatFlags.NoWrap })
             {
-                float width = stage.Width - 16 * scale;
-                SizeF need = graphics.MeasureString(text, words, (int)width, format);
-                float height = Math.Min(need.Height, graphics.MeasureString("Ag", words).Height * 2.05f);
-                RectangleF well = new RectangleF(stage.Left + (stage.Width - Math.Min(width, need.Width) - 16 * scale) / 2,
-                    stage.Bottom - height - 14 * scale, Math.Min(width, need.Width) + 16 * scale, height + 8 * scale);
-                using (SolidBrush fill = new SolidBrush(Color.FromArgb(210, 8, 9, 16))) graphics.FillRectangle(fill, well);
-                using (SolidBrush mark = new SolidBrush(Rose)) graphics.FillRectangle(mark, well.Left, well.Top, Math.Max(2, 2 * scale), well.Height);
-                RectangleF inner = RectangleF.Inflate(well, -8 * scale, -4 * scale);
-                using (SolidBrush ink = new SolidBrush(Chalk)) graphics.DrawString(text, words, ink, inner, format);
+                float space = graphics.MeasureString("a a", words, PointF.Empty, tight).Width - graphics.MeasureString("aa", words, PointF.Empty, tight).Width;
+                float limit = stage.Width - 28 * scale;
+                List<string> body = new List<string>(text.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries));
+                bool cut = false;
+                List<List<string>> lines = SubtitleLines(graphics, words, tight, space, limit, body, cut);
+                while (lines.Count > 2 && body.Count > 1)
+                {
+                    body.RemoveAt(0);
+                    cut = true;
+                    lines = SubtitleLines(graphics, words, tight, space, limit, body, cut);
+                }
+                float rowH = graphics.MeasureString("Ag", words).Height * 1.02f;
+                float widest = 0;
+                foreach (List<string> line in lines) widest = Math.Max(widest, LineWidth(graphics, words, tight, space, line));
+                widest = Math.Min(widest, limit);
+                float padX = 10 * scale, padY = 3 * scale;
+                float height = rowH * lines.Count + padY * 2;
+                RectangleF well = new RectangleF(stage.Left + (stage.Width - widest) / 2 - padX, stage.Bottom - height - 12 * scale, widest + padX * 2, height);
+                using (SolidBrush fill = new SolidBrush(Color.FromArgb(120, 4, 6, 10))) graphics.FillRectangle(fill, well);
+                float lift = Math.Max(1, pixels / 16);
+                using (SolidBrush shade = new SolidBrush(Color.FromArgb(200, 0, 0, 0)))
+                using (SolidBrush name = new SolidBrush(Speaker))
+                using (SolidBrush said = new SolidBrush(Spoken))
+                    for (int row = 0; row < lines.Count; row++)
+                    {
+                        float x = stage.Left + (stage.Width - LineWidth(graphics, words, tight, space, lines[row])) / 2;
+                        float y = well.Top + padY + rowH * row;
+                        for (int i = 0; i < lines[row].Count; i++)
+                        {
+                            string word = lines[row][i];
+                            graphics.DrawString(word, words, shade, new PointF(x + lift, y + lift), tight);
+                            graphics.DrawString(word, words, row == 0 && i == 0 ? name : said, new PointF(x, y), tight);
+                            x += graphics.MeasureString(word, words, PointF.Empty, tight).Width + space;
+                        }
+                    }
             }
+        }
+
+        private static List<List<string>> SubtitleLines(Graphics graphics, Font font, StringFormat tight, float space, float limit, List<string> body, bool cut)
+        {
+            List<string> all = new List<string>();
+            all.Add("Capri:");
+            for (int i = 0; i < body.Count; i++) all.Add(i == 0 && cut ? "\u2026" + body[i] : body[i]);
+            List<List<string>> lines = new List<List<string>>();
+            List<string> current = new List<string>();
+            float used = 0;
+            foreach (string word in all)
+            {
+                float width = graphics.MeasureString(word, font, PointF.Empty, tight).Width;
+                if (current.Count > 0 && used + space + width > limit)
+                {
+                    lines.Add(current);
+                    current = new List<string>();
+                    used = 0;
+                }
+                used += (current.Count > 0 ? space : 0) + width;
+                current.Add(word);
+            }
+            if (current.Count > 0) lines.Add(current);
+            return lines;
+        }
+
+        private static float LineWidth(Graphics graphics, Font font, StringFormat tight, float space, List<string> line)
+        {
+            float width = 0;
+            for (int i = 0; i < line.Count; i++) width += graphics.MeasureString(line[i], font, PointF.Empty, tight).Width + (i > 0 ? space : 0);
+            return width;
         }
 
         private static float Ease(float t) { return 1 - (1 - t) * (1 - t) * (1 - t); }
