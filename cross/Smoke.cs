@@ -156,11 +156,13 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 MacFiles.Checks(checks);
                 FileToolChecks();
+                FavouritesChecks();
                 X11Safety.Checks(checks);
                 SpeechAudio.Checks(checks);
                 MoveReports.Checks(checks);
                 NiriDesktop.Checks(checks);
                 Labwc.Checks(checks);
+                Resources.Checks(checks);
                 NameListeningChecks.Checks(pet, checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
@@ -558,6 +560,7 @@ namespace CapriDesktop
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
                 LinuxInputChecks();
+                PlasmaHandsChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -3251,7 +3254,7 @@ namespace CapriDesktop
                 checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:", "Desktops:" } : new[] { "Plug-ins:", "Email:", "Phishing:", "Languages:", "What she did:", "Companion packs:", "New moves:", "Listen for Capri:", "Wander:", "Brains:", "Settings search:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Plug-ins:", "Tools:", "Connect:", "Languages:", "Settings search:", "Cloud voice:", "Colours:", "Music:", "Listen for Capri:", "Omarchy:" } : new[] { "Plug-ins:", "Tools:", "Connect:", "Languages:", "Settings search:", "Cloud voice:", "Colours:", "Music:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
@@ -3381,6 +3384,7 @@ namespace CapriDesktop
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
+                Chimes.Checks(pet, frame, checks);
                 HuskChecks(frame);
                 MusicAppChecks(frame);
                 CareChecks(frame);
@@ -3399,6 +3403,7 @@ namespace CapriDesktop
                 checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
                 KeyChecks(frame);
                 SearchChecks();
+                LiteChecks(frame);
             }
             finally
             {
@@ -3445,9 +3450,10 @@ namespace CapriDesktop
             Func<string, bool> existsWas = Hands.Exists;
             Func<string, string> fetchWas = Hands.Fetch;
             Func<string, bool> pressWas = Hands.PressPlay;
-            List<string> ran = new List<string>(), jobs = new List<string>();
+            List<string> ran = new List<string>(), jobs = new List<string>(), fetched = new List<string>();
             List<InstalledApp> installed = new List<InstalledApp>();
             InstalledApp spotify = new InstalledApp("Spotify", Hands.OnMac ? "/Applications/Spotify.app" : "exec:spotify");
+            InstalledApp deezer = new InstalledApp("Deezer", Hands.OnMac ? "/Applications/Deezer.app" : "exec:deezer");
             int presetWas = Security.Preset;
             try
             {
@@ -3455,7 +3461,7 @@ namespace CapriDesktop
                 Hands.Run = ran.Add;
                 Hands.Catalog = delegate { return new List<InstalledApp>(installed); };
                 Hands.Exists = delegate { return false; };
-                Hands.Fetch = delegate { return "\"videoId\":\"abcdefghijk\""; };
+                Hands.Fetch = delegate(string address) { fetched.Add(address); return "\"videoId\":\"abcdefghijk\""; };
                 Hands.PressPlay = delegate { return true; };
                 if (new Settings().MusicApp != 0) throw new Exception("Music app didn't start on Spotify.");
                 pet.SetMusicApp(0);
@@ -3472,11 +3478,12 @@ namespace CapriDesktop
                 string tool;
                 ToolArguments heard;
                 string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
-                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" }, { "play Never Fade Away on deezer", "deezer" },
+                    { "play Never Fade Away on youtube music", "youtubemusic" }, { "open youtube music and play Never Fade Away", "youtubemusic" }, { "open deezer and play Never Fade Away", "deezer" } };
                 for (int i = 0; i < named.GetLength(0); i++)
                     if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
                         throw new Exception("A named music app wasn't caught on Mac or Linux: " + named[i, 0] + " / " + tool);
-                checks.Add("PASS cross Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                checks.Add("PASS cross Music app: play X on Apple Music, Spotify, YouTube, Deezer or YouTube Music is caught and play_music takes each");
                 pet.SetMusicApp(2);
                 if (Hands.MusicApp(null) != "applemusic" || Hands.MusicApp("youtube") != "youtube") throw new Exception("Music app's Apple Music didn't reach her hands.");
                 string loved = Hands.AppleMusicJob("Liked Songs", "playlist"), own = Hands.AppleMusicJob("my Chill", "playlist"), album = Hands.AppleMusicJob("Random Access Memories", "album");
@@ -3504,17 +3511,54 @@ namespace CapriDesktop
                     if (!worked) throw new Exception("Apple Music didn't play on a Mac: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran));
                     checks.Add("PASS cross Music app: on a Mac, play X goes to Apple Music, " + (cursor ? "a job with her mouse and keyboard" : "the Music app on a search"));
                 }
+                Hands.NativeWork = args => { jobs.Add(args.Task); return "Did it."; };
+                bool hands = Hands.KitFor().Has("use_computer") && Security.On(Security.Mouse);
+                string[,] services =
+                {
+                    { "3", "", "https://www.deezer.com/search/Midnight%20Drive", "Opened a Deezer search for Midnight Drive." },
+                    { "3", "app", "/", "Opened Deezer. Search for Midnight Drive there" },
+                    { "4", "", "https://music.youtube.com/search?q=Midnight%20Drive", "Opened a YouTube Music search for Midnight Drive." }
+                };
+                for (int i = 0; i < services.GetLength(0); i++)
+                {
+                    pet.SetMusicApp(int.Parse(services[i, 0]));
+                    string app = Hands.MusicApp(null);
+                    installed.Clear(); if (services[i, 1] == "app") installed.Add(deezer); Hands.Forget();
+                    ran.Clear(); jobs.Clear(); fetched.Clear();
+                    string done = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    string job = Hands.ServiceJob(app, "Midnight Drive", "song");
+                    bool viaApp = services[i, 1] == "app";
+                    bool worked = fetched.Count == 0 && (hands
+                        ? jobs.Count == 1 && jobs[0] == job && done == "Did it." && ran.Count == 0 && (viaApp ? job.Contains("open the Deezer app, click its search box") : job.Contains(services[i, 2]))
+                        : jobs.Count == 0 && ran.Count == 1 && (viaApp ? ran[0] == deezer.Id : ran[0] == services[i, 2]) && done.StartsWith(services[i, 3], StringComparison.Ordinal));
+                    if (!worked) throw new Exception("Music app " + app + (viaApp ? " with its app" : "") + " didn't play: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran) + " / fetched " + fetched.Count);
+                }
+                installed.Clear(); Hands.Forget();
+                ToolArguments guessed = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, saidDeezer = new ToolArguments { Song = "Spring by Flume", App = "deezer" };
+                Hands.AimMusic(guessed, "play spring by flume");
+                Hands.AimMusic(saidDeezer, "play spring by flume on deezer");
+                if (guessed.App != null || saidDeezer.App != "deezer" || Hands.Address("music.youtube.com", "Midnight Drive") != "https://music.youtube.com/search?q=Midnight%20Drive" || Hands.Address("deezer.com", "Midnight Drive") != "https://www.deezer.com/search/Midnight%20Drive")
+                    throw new Exception("A music app they didn't say was kept, or a music site's search left it: " + guessed.App + " / " + saidDeezer.App);
+                string lovedDeezer = Hands.ServiceJob("deezer", "Liked Songs", "playlist"), ownYouTube = Hands.ServiceJob("youtubemusic", "my Chill", "playlist");
+                if (!lovedDeezer.StartsWith("Play their Favourite tracks on Deezer: open https://www.deezer.com with open_website", StringComparison.Ordinal) || !ownYouTube.StartsWith("Play their playlist \"Chill\" on YouTube Music: open https://music.youtube.com with open_website", StringComparison.Ordinal))
+                    throw new Exception("Deezer or YouTube Music's job lost what to play: " + lovedDeezer + " / " + ownYouTube);
+                checks.Add("PASS cross Music app: Deezer plays in its app or on deezer.com, and YouTube Music on music.youtube.com, " + (hands ? "as a job with her mouse and keyboard" : "by opening the search") + ", with nothing fetched");
                 string[] steps = Hands.StepsOf("music_app");
+                string[] shown = OperatingSystem.IsLinux() ? Pet.LinuxMusicSteps : steps;
                 pet.SetAdvancedSettings(false);
                 frame.ShowSettings(true);
-                for (int choice = 0; choice < (OperatingSystem.IsLinux() ? 2 : steps.Length); choice++)
+                for (int choice = 0; choice < shown.Length; choice++)
                 {
+                    int picked = OperatingSystem.IsLinux() ? Pet.LinuxMusicApp(choice) : choice;
                     frame.Change("Music app", choice);
-                    if (pet.MusicApp != choice || Hands.LevelOf("music_app") != choice || frame.Value("Music app") != steps[choice] || SettingsCopy().MusicApp != choice || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != choice)
-                        throw new Exception("The cross Music app picker did not save, load or show: " + steps[choice]);
+                    if (pet.MusicApp != picked || Hands.LevelOf("music_app") != picked || frame.Value("Music app") != shown[choice] || SettingsCopy().MusicApp != picked || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != picked)
+                        throw new Exception("The cross Music app picker did not save, load or show: " + shown[choice]);
                 }
+                pet.SetMusicApp(0);
+                pet.SetMusicApp(9);
+                if (pet.Saved.MusicApp != steps.Length - 1 || pet.MusicApp != steps.Length - 1 || steps[steps.Length - 1] != "YouTube Music") throw new Exception("Music app didn't clamp at YouTube Music: " + pet.MusicApp);
                 if (!frame.Row("Music app").IsVisible || frame.Overlap() != null) throw new Exception("The cross Music app row didn't show in Simple Settings or overlapped: " + frame.Overlap());
-                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows Spotify, YouTube and Apple Music in Simple Settings");
+                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows each music app in Simple Settings, Apple Music left out on Linux");
             }
             finally
             {
@@ -3832,6 +3876,256 @@ namespace CapriDesktop
                 pet.SetAdvancedSettings(advancedWas);
                 frame.ShowSettings(pagedWas);
             }
+        }
+
+        // Lite mode and Why slow? on Mac and Linux: the switch and its saved copies, the words its search answers to, and the check's line.
+        private void LiteChecks(Mainframe frame)
+        {
+            pet.OpenMainframe();
+            frame = pet.Frame;
+            bool settingsWas = frame.SettingsShown;
+            frame.ShowSettings(true);
+            Control lite = null;
+            try { lite = frame.Row("Lite mode"); } catch (KeyNotFoundException) { }
+            NeonButton why = frame.Button("Why slow?");
+            if (lite == null || !(lite is NeonSwitch) || Avalonia.Automation.AutomationProperties.GetName(lite) != "Lite mode" || !lite.IsVisible)
+                throw new Exception("Her Settings have no visible Lite mode switch named Lite mode: found " + (lite == null ? "nothing" : lite.GetType().Name + " visible " + lite.IsVisible + " at " + Avalonia.Controls.Canvas.GetTop(lite) + " named " + Avalonia.Automation.AutomationProperties.GetName(lite)) + ", settings " + frame.SettingsShown + ", advanced " + pet.Saved.AdvancedSettings + ", frame visible " + frame.IsVisible);
+            if (why == null || Avalonia.Automation.AutomationProperties.GetName(why) != "Why slow?")
+                throw new Exception("Her Settings have no Why slow? key beside Lite mode.");
+            bool watchWas = pet.Saved.Watch, liteWas = Brain.Lite, offWas = Brain.Off;
+            Cloud remoteWas = pet.Brain.Remote;
+            string serverWas = pet.Brain.Server;
+            Engine localWas = pet.Brain.Local;
+            Pick pickWas = pet.Brain.LocalPick;
+            string modelWas = pet.Brain.Model;
+            try
+            {
+                frame.Strike(Avalonia.Input.Key.F, KeyModifiers.Control);
+                foreach (string key in new[] { "lite mode", "slow", "lag", "laggy" })
+                {
+                    frame.SearchBox.Box.Text = key;
+                    if (!frame.SearchOpen || !frame.SearchListed.Contains("Lite mode · HABITS"))
+                        throw new Exception("Searching \"" + key + "\" didn't list Lite mode under HABITS: " + string.Join(", ", frame.SearchListed.ToArray()));
+                }
+                frame.SearchBox.Box.Text = "";
+                frame.Strike(Avalonia.Input.Key.Escape);
+
+                // A brain busy with a reply or a load refuses to rest, so she asks again on later ticks, stops it once
+                // it's free, and after a small bound stops asking without claiming it stopped.
+                Func<bool> restWas = pet.LiteRestTry;
+                Action<Action> restQueueWas = pet.LiteRestQueue;
+                try
+                {
+                    pet.LiteRestQueue = action => action();
+                    int tried = 0;
+                    pet.LiteRestTry = () => { tried++; return false; };
+                    pet.SetLite(true);
+                    double restAt = pet.Now;
+                    for (int i = 0; i < 14; i++) pet.CheckLiteRest(restAt + 5 * i);
+                    if (tried != 12) throw new Exception("Lite mode asked a busy brain to rest " + tried + " times, not 12.");
+                    pet.LiteRestTry = () => ++tried >= 14;
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    restAt = pet.Now;
+                    pet.CheckLiteRest(restAt);
+                    pet.CheckLiteRest(restAt + 5);
+                    pet.CheckLiteRest(restAt + 10);
+                    if (tried != 14) throw new Exception("Lite mode kept asking a rested brain to stop: " + tried + " tries.");
+
+                    Queue<Action> deferred = new Queue<Action>();
+                    pet.LiteRestQueue = deferred.Enqueue;
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    pet.CheckLiteRest(pet.Now);
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    deferred.Dequeue()();
+                    if (tried != 14) throw new Exception("A stale Lite mode request stopped the brain after a toggle.");
+                    pet.CheckLiteRest(pet.Now);
+                    deferred.Dequeue()();
+                    if (tried != 15) throw new Exception("A stale Lite mode request interfered with the latest request.");
+                    checks.Add("PASS Lite mode's brain rest: a brain busy with a reply or a load is asked again on later ticks, up to 12 tries, stops once it's free, and a brain that never frees leaves Why slow? saying it's still winding down");
+                }
+                finally
+                {
+                    pet.SetLite(false);
+                    pet.LiteRestTry = restWas;
+                    pet.LiteRestQueue = restQueueWas;
+                }
+
+                // Watch my screen pauses during Lite mode and comes back exactly as it was; a new Every interval must
+                // not wake it while Lite mode is on.
+                pet.SetWatch(false, false);
+                pet.SetLite(true);
+                pet.SetWatchEvery(Pet.GlanceGaps[0]);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed during Lite mode.");
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch did not restore its prior off state.");
+
+                pet.SetWatch(true, false);
+                Settings oldCopy = SettingsCopy();
+                frame.Change("Lite mode", 1);
+                string on = SettingsJson(pet.Saved);
+                if (!on.Contains("\"Lite\":true") || !on.Contains("\"LiteWatch\":true") || !on.Contains("\"Watch\":false") || !Brain.Lite || frame.Value("Lite mode") != "On")
+                    throw new Exception("Lite mode didn't save on, remember Watch my screen, pause it or stop her brain: " + on + " / brain " + Brain.Lite);
+                string newer = SettingsJson(Pet.Newest(SettingsCopy()));
+                if (!newer.Contains("\"Lite\":true") || !newer.Contains("\"LiteWatch\":true"))
+                    throw new Exception("Her newer settings copy lost Lite mode: " + newer);
+                oldCopy.VoiceProvider = null;
+                string kept = SettingsJson(Pet.Kept(oldCopy, Pet.Newest(SettingsCopy())));
+                if (!kept.Contains("\"Lite\":true") || !kept.Contains("\"LiteWatch\":true"))
+                    throw new Exception("An older copy coming back lost Lite mode: " + kept);
+                string liteFolder = Path.Combine(folder, "lite-settings");
+                Directory.CreateDirectory(liteFolder);
+                string path = Path.Combine(liteFolder, "cross.json");
+                File.WriteAllText(path, on);
+                string notice;
+                string back = SettingsJson(Pet.ReadSettings(path, out notice));
+                if (notice != null || !back.Contains("\"Lite\":true") || !back.Contains("\"LiteWatch\":true"))
+                    throw new Exception("A saved Lite mode didn't read back: " + notice + " / " + back);
+
+                frame.Change("Lite mode", 0);
+                string off = SettingsJson(pet.Saved);
+                if (!off.Contains("\"Lite\":false") || !off.Contains("\"LiteWatch\":false") || !off.Contains("\"Watch\":true") || Brain.Lite || frame.Value("Lite mode") != "Off")
+                    throw new Exception("Turning Lite mode off didn't wake her brain or put Watch my screen back: " + off + " / brain " + Brain.Lite);
+
+                SlowSigns healthy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns cpuOnly = new SlowSigns { Kind = "built-in", Read = true, Running = true, CpuOnly = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns resting = new SlowSigns { Kind = "built-in", Read = true, Running = false, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns fewThreads = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 4, Processor = "Intel Core i3-2100", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns fewThreadsCloud = new SlowSigns { Kind = "cloud", Read = true, Threads = 2, RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns lowRam = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 900L << 20, RamTotal = 8L << 30, Busy = 12 };
+                SlowSigns busy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 96.2 };
+                SlowSigns watching = new SlowSigns { Kind = "built-in", Read = true, Running = true, Watch = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteOn = new SlowSigns { Kind = "built-in", Read = true, Running = false, CpuOnly = true, Lite = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteWinding = new SlowSigns { Kind = "built-in", Read = true, Running = true, Lite = true, Winding = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteStuck = new SlowSigns { Kind = "built-in", Read = true, Running = true, Lite = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns cloud = new SlowSigns { Kind = "cloud", Read = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns unreadable = new SlowSigns { Kind = "built-in", Read = false, Running = true, Threads = 16 };
+                string[] wanted = {
+                    "I checked your PC and nothing is slowing me down right now.",
+                    "My brain is set to run on your processor, so it's slower than on a graphics card. Turn on Lite mode to stop my brain on your PC, or press Free key under BRAIN for a free cloud brain.",
+                    "My brain on your PC rests after 15 minutes unused, so my next reply waits while it loads again. Only that first reply is slow. Press Free key under BRAIN in Capri Mainframe for a free cloud brain.",
+                    "Your processor, Intel Core i3-2100, has only 4 threads, which is small for running a brain. Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.",
+                    "Your processor has only 2 threads, which is small for everything I do. Close apps you're not using to give me room.",
+                    "Only 900 MB of your 8.0 GB of RAM is free. Close apps or browser tabs you're not using, or turn on Lite mode.",
+                    "Your processor is 96% busy. Close what you're not using to give me room.",
+                    "Watch my screen is on, and it keeps working in the background. Turn on Lite mode to pause it, or turn it off under WATCH.",
+                    "Lite mode is on, so my brain on your PC is switched off. Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off.",
+                    "Lite mode is on, and my brain on your PC is still winding down, so it's using your PC's power for a moment. It stops as soon as it finishes what it's doing.",
+                    "Lite mode is on, but my brain on your PC is still busy, so it's using your PC's power. Turn Lite mode off and on once it's free to stop it.",
+                    "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.",
+                    "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now."
+                };
+                SlowSigns[] signs = { healthy, cpuOnly, resting, fewThreads, fewThreadsCloud, lowRam, busy, watching, liteOn, liteWinding, liteStuck, cloud, unreadable };
+                for (int i = 0; i < signs.Length; i++)
+                {
+                    string said = Pet.SlowLine(signs[i]);
+                    if (said != wanted[i]) throw new Exception("Why slow said the wrong thing: " + said + " (wanted: " + wanted[i] + ")");
+                }
+                if (Pet.SlowLine(new SlowSigns { Kind = "off" }) != "Nothing on your PC is slowing me down right now. No AI is on, so I'm not thinking at all."
+                    || Pet.SlowLine(new SlowSigns { Kind = "server" }) != "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server."
+                    || Pet.SlowLine(new SlowSigns { Kind = "none" }) != "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.")
+                    throw new Exception("Why slow lost its off, server or no-brain words.");
+                SlowSigns macFew = new SlowSigns { Kind = "ollama", Read = false, Threads = 3, Processor = null, RamFree = -1, Busy = -1 };
+                SlowSigns macUnread = new SlowSigns { Kind = "ollama", Read = false, Threads = 8, Processor = null, RamFree = -1, Busy = -1 };
+                if (Pet.SlowLine(macFew) != MacSlowLine(3) || Pet.SlowFound(macFew) != MacSlowFound(3) || Pet.SlowLine(macUnread) != MacSlowLine(8) || Pet.SlowFound(macUnread) != MacSlowFound(8))
+                    throw new Exception("Why slow's Mac-shaped words are wrong: " + Pet.SlowLine(macFew) + " / " + Pet.SlowFound(macFew) + " / " + Pet.SlowLine(macUnread) + " / " + Pet.SlowFound(macUnread));
+                string foundOff = "From a check of your PC just now: Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help. Lite mode is off.";
+                string foundOn = "From a check of your PC just now: Lite mode is on, so my brain on your PC is switched off. What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off. Lite mode is on.";
+                if (Pet.SlowFound(cloud) != foundOff || Pet.SlowFound(liteOn) != foundOn)
+                    throw new Exception("Why slow's found line lost its Lite mode note: " + Pet.SlowFound(cloud) + " / " + Pet.SlowFound(liteOn));
+                if (OperatingSystem.IsMacOS())
+                {
+                    Brain.Off = false;
+                    pet.Brain.Remote = null;
+                    pet.Brain.Server = null;
+                    pet.Brain.Local = null;
+                    pet.Brain.LocalPick = null;
+                    pet.Brain.Model = "gemma4:e4b";
+                    pet.SetWatch(false, false);
+                    SlowSigns mac = pet.ReadSlowSigns();
+                    if (mac.Threads != Environment.ProcessorCount || mac.RamTotal <= 0 || mac.RamFree != -1 || mac.Busy != -1 || mac.Read || mac.Processor != null || mac.Kind != "ollama" || mac.Name != "gemma4:e4b" || mac.Lite || mac.Watch)
+                        throw new Exception("Why slow's Mac read isn't the honest unread shape: " + mac.Kind + " " + mac.Name + ", " + mac.RamFree + " of " + mac.RamTotal + ", CPU " + mac.Busy + ", " + mac.Threads + " threads, read " + mac.Read + ", processor " + (mac.Processor ?? "none") + ", lite " + mac.Lite + ", watch " + mac.Watch);
+                    string macLine = MacSlowLine(mac.Threads), macFound = MacSlowFound(mac.Threads);
+                    if (Pet.SlowLine(mac) != macLine || Pet.SlowFound(mac) != macFound)
+                        throw new Exception("Why slow's Mac words missed the unread line: " + Pet.SlowLine(mac) + " / " + Pet.SlowFound(mac));
+                    checks.Add("PASS why slow words on a Mac: her read has no free RAM, CPU or processor name, so she says " + macFound);
+                }
+                else
+                {
+                    SlowSigns here = pet.ReadSlowSigns();
+                    if (here.Threads != Environment.ProcessorCount || here.RamTotal <= 0 || here.RamFree < -1 || here.RamFree > here.RamTotal || here.Busy > 100 || here.Lite != pet.Saved.Lite || here.Watch != pet.Saved.Watch)
+                        throw new Exception("Why slow couldn't read this PC: " + here.RamFree + " of " + here.RamTotal + ", " + here.Threads + " threads, CPU " + here.Busy);
+                    checks.Add("PASS why slow words: from faked signs she names Lite mode first, her brain on the processor or resting, few threads, little free RAM, a busy processor and Watch my screen, each with a fix, says nothing when nothing's wrong, and can't read on a Mac yet; on this PC she read " + here.Threads + " threads, " + Pet.Bytes(here.RamFree) + " of " + Pet.Bytes(here.RamTotal) + " RAM free and CPU " + (here.Busy < 0 ? "unread" : Math.Round(here.Busy) + "%"));
+                }
+
+                Pet.FakedSigns = delegate { return cloud; };
+                pet.Talk.Dismiss();
+                why.Press();
+                Stopwatch waited = Stopwatch.StartNew();
+                string reply = null;
+                while (waited.ElapsedMilliseconds < 8000)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    reply = pet.Talk.Reply;
+                    if (reply != null) break;
+                    Thread.Sleep(10);
+                }
+                if (reply != foundOff) throw new Exception("Why slow? didn't say what it found: " + reply);
+                pet.Talk.Dismiss();
+                string liteHelp = SelfKnow.Matching("what is lite mode?") ?? "", slowHelp = SelfKnow.Matching("what does the Why slow? button do?") ?? "";
+                if (!liteHelp.StartsWith("Lite mode: Mainframe > Settings > HABITS > Lite mode", StringComparison.Ordinal) || liteHelp.IndexOf("brain on this PC stays off", StringComparison.Ordinal) < 0 || liteHelp.IndexOf("Watch my screen", StringComparison.Ordinal) < 0
+                    || liteHelp.IndexOf("draws herself", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("HD voice", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("game comments", StringComparison.Ordinal) >= 0 || liteHelp.IndexOf("Windows only", StringComparison.Ordinal) >= 0
+                    || !slowHelp.StartsWith("Why slow?: Mainframe > Settings > HABITS > Why slow?", StringComparison.Ordinal) || slowHelp.IndexOf("few threads", StringComparison.Ordinal) < 0 || slowHelp.IndexOf("free RAM", StringComparison.Ordinal) < 0 || slowHelp.IndexOf("busy processor", StringComparison.Ordinal) < 0
+                    || slowHelp.IndexOf("chat", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("settings tool", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("Windows only", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("graphics card", StringComparison.Ordinal) >= 0)
+                    throw new Exception("Her help on Mac and Linux doesn't explain Lite mode and Why slow? truthfully: " + liteHelp + " / " + slowHelp);
+                checks.Add("PASS her help on Mac and Linux explains Lite mode and Why slow? without Windows-only claims");
+                checks.Add("PASS Lite mode and Why slow? on Mac and Linux: the switch saves both copies, pauses Watch my screen and restores it exactly as it was, an Every interval doesn't wake it while Lite mode is on, answers lite mode, slow, lag and laggy in search, and the Why slow? key says what it found: " + reply);
+            }
+            finally
+            {
+                if (lite != null && lite.IsVisible && frame.Value("Lite mode") == "On") frame.Change("Lite mode", 0);
+                pet.SetWatch(watchWas, false);
+                Brain.Lite = liteWas;
+                Brain.Off = offWas;
+                pet.Brain.Remote = remoteWas;
+                pet.Brain.Server = serverWas;
+                pet.Brain.Local = localWas;
+                pet.Brain.LocalPick = pickWas;
+                pet.Brain.Model = modelWas;
+                Pet.FakedSigns = null;
+                pet.Talk.Dismiss();
+                frame.SearchBox.Box.Text = "";
+                frame.ShowSettings(settingsWas);
+            }
+        }
+
+        private static string SettingsJson(object settings)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                new System.Runtime.Serialization.Json.DataContractJsonSerializer(settings.GetType()).WriteObject(stream, settings);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        private static string MacSlowFew(int threads)
+        {
+            return "Your processor has only " + threads + (threads == 1 ? " thread" : " threads") + ", which is small for running a brain.";
+        }
+
+        private static string MacSlowLine(int threads)
+        {
+            if (threads > 0 && threads <= 4) return MacSlowFew(threads) + " Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.";
+            return "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now.";
+        }
+
+        private static string MacSlowFound(int threads)
+        {
+            if (threads > 0 && threads <= 4)
+                return "From a check of your PC just now: " + MacSlowFew(threads) + " What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too. Lite mode is off.";
+            return "From a check of your PC just now: " + MacSlowLine(threads) + " Lite mode is off.";
         }
 
         private void HeldKeyChecks(Mainframe frame)
@@ -4468,6 +4762,7 @@ namespace CapriDesktop
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" },
+                { "Message sent", "", "NoChimeSent" }, { "Heard you", "", "NoChimeHeard" }, { "Listening", "", "NoChimeListening" },
                 { "Weather", "", "Weather" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
@@ -4483,13 +4778,13 @@ namespace CapriDesktop
                 }
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
-                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
+                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Chime volume", i => (i + 1) * 10 }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
                 { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Replies", i => Math.Min(2, i) }, { "Memory", i => new[] { 8, 16, 32 }[i] },
                 { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
-                { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
+                { "Sounds", "Sounds", "sounds" }, { "Chime volume", "ChimeVolume", "" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
                 { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
                 { "Bubble", "Bubble", "bubble" }
             };
@@ -4558,8 +4853,15 @@ namespace CapriDesktop
                 pet.SetMainframeColours(look);
                 if (pet.Saved.MainframeColours != look || ((SolidColorBrush)MainframeTheme.Ground).Color != Color.Parse(MainframeTheme.LookColours(look)[0]) || MainframeTheme.Mono != (look != 0))
                     throw new Exception(MainframeTheme.LookNames[look] + " did not reach the Mainframe.");
+                Color[] themed = { BubbleLook.Panel, BubbleLook.Ink, BubbleLook.Dim, BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Blue, BubbleLook.Pink, PillFace.Unlit, PillFace.Caption };
+                if (look == 0)
+                {
+                    Color[] before = { Look.Panel, Look.Ink, Look.Dim, Look.Cyan, Look.Red, Look.Neon, Look.Pink, Color.FromRgb(46, 52, 64), Color.FromRgb(168, 174, 184) };
+                    for (int i = 0; i < before.Length; i++) if (themed[i] != before[i]) throw new Exception("Night City changed her bubble, Type box or TYPE | TALK pill colours.");
+                }
+                else foreach (Color colour in themed) if (colour.R != colour.G || colour.G != colour.B) throw new Exception(MainframeTheme.LookNames[look] + " left colour in her bubble, Type box or TYPE | TALK pill.");
             }
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe straight away and are saved");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe, her bubble, her Type box and her TYPE | TALK pill straight away and are saved, and those keep their colours on Night City");
             if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
             pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
             var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local, NoHuskVerbosity = true, ThinkingPicks = new[] { new ThinkingPick { Source = "openai|gpt-6-astra", Level = ThinkingLevels.High, Extra = "{}" } } }));
@@ -4873,6 +5175,180 @@ namespace CapriDesktop
             }
             finally { security.Close(); }
             checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
+            string spendWas = Spend.Folder;
+            bool pagedWas = frame.SettingsShown;
+            MainframeSheet spend = null;
+            try
+            {
+                Spend.Folder = Path.Combine(folder, "spend-sheet");
+                Directory.CreateDirectory(Spend.Folder);
+                Spend.Forget();
+                if (File.Exists(Path.Combine(Spend.Folder, Spend.File))) File.Delete(Path.Combine(Spend.Folder, Spend.File));
+                Spend.Add("anthropic", "claude-sonnet-5-5", 1000000, 0, 0, 1000000);
+                Spend.Add("openai", "gpt-6.1-terra", 1000000, 0, 0, 0);
+                Spend.Add("nvidia", "meta/llama", 10, 0, 0, 0);
+                Spend.Add("other:api.example.com", "mystery-1", 10, 0, 0, 0);
+                spend = new MainframeSheet(pet, "spend", "spend", "SPEND >");
+                spend.Sync();
+                Func<string, string> said = name =>
+                {
+                    Control row;
+                    if (!spend.Rows.TryGetValue(name, out row) || !(row is NeonCaption caption)) throw new Exception("The Spend panel has no " + name + " row.");
+                    return caption.Text;
+                };
+                if (said("Today") != "$12.50") throw new Exception("The Spend panel's today total says " + said("Today"));
+                if (said("This month") != "$12.50") throw new Exception("The Spend panel's month total says " + said("This month"));
+                if (said("This month total") != "4 asks · 3M tokens") throw new Exception("The Spend panel's month line says " + said("This month total"));
+                if (said("Model 1") != "claude-sonnet-5-5" || said("Asks 1") != "1" || said("Tokens 1") != "2M" || said("Cost 1") != "$12.00") throw new Exception("The Spend panel's first model row reads " + said("Model 1") + " " + said("Asks 1") + " " + said("Tokens 1") + " " + said("Cost 1"));
+                if (said("Model 2") != "gpt-6.1-terra" || said("Cost 2") != "$0.50") throw new Exception("The Spend panel's second model row reads " + said("Model 2") + " " + said("Cost 2"));
+                if (said("Model 3") != "meta/llama" || said("Cost 3") != "free") throw new Exception("A free model isn't marked free: " + said("Model 3") + " " + said("Cost 3"));
+                if (said("Model 4") != "api.example.com · mystery-1" || said("Cost 4") != "?") throw new Exception("An unpriced model isn't marked ?: " + said("Model 4") + " " + said("Cost 4"));
+                if (said("Small jobs") != "Pick a brain with an API key and she'll count what it costs here.") throw new Exception("The Spend panel's small jobs note says " + said("Small jobs"));
+                if (said("Prices note") != "List prices from each provider. Free tiers, credits and discounts aren't taken off.") throw new Exception("The Spend panel's prices note says " + said("Prices note"));
+                if (!(spend.Rows["Models"] is NeonHead models) || models.Text != "MODELS >") throw new Exception("The Spend panel has no models heading.");
+                frame.ShowSettings(false);
+                var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("updateNote", fields).GetValue(frame);
+                NeonButton opener = frame.Button("Spend");
+                if (opener == null || !opener.IsVisible) throw new Exception("The Mainframe's main page has no Spend key.");
+                if (Avalonia.Automation.AutomationProperties.GetName(opener) != "Spend: what her brain cost on your API keys today and this month, model by model") throw new Exception("The Spend key's accessible name says " + Avalonia.Automation.AutomationProperties.GetName(opener));
+                if (!opener.Chevron) throw new Exception("The Spend key lost its chevron.");
+                if (Math.Abs(Canvas.GetTop(opener) - Canvas.GetTop(note) - 60) > 0.5) throw new Exception("The Spend key isn't 60 below her update note, under Resources: " + Canvas.GetTop(opener) + " / " + Canvas.GetTop(note));
+                if (frame.SpendLine != "$12.50 today · $12.50 this month") throw new Exception("The Mainframe's Spend line says " + frame.SpendLine);
+                frame.Press("Spend");
+                var opened = frame.OwnedWindows.OfType<MainframeSheet>().Single();
+                try
+                {
+                    if (opened.Title != "Capri spend" || opened.Page.Children.OfType<NeonCaption>().First().Text != "SPEND >") throw new Exception("Spend titles differ from Windows.");
+                    string spendPath = Spend.FileAt;
+                    string day = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                    File.WriteAllText(spendPath, day + "\topenai\tprobe\t1\t100\t0\t0\t0\t0.75\t0\n" + day + "\topenai\tprobe\t2\t200\t0\t0\t0\t1.25\t0\nbroken\trow\n");
+                    byte[] Hash() => System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(spendPath));
+                    byte[] before = Hash();
+                    Spend.Forget();
+                    opened.Sync();
+                    if (((NeonCaption)opened.Rows["Today"]).Text != "$2.00" ||
+                        ((NeonCaption)opened.Rows["Asks 1"]).Text != "3" || !before.SequenceEqual(Hash()))
+                        throw new Exception("Spend did not aggregate read-only.");
+                }
+                finally { opened.Close(); }
+                checks.Add("PASS spend sheet: today and this month's totals, each model's asks, tokens and cost, free models marked free and unpriced ones marked ?, the small jobs explanation and list prices note, Windows' own \"Capri spend\" window title and \"SPEND >\" heading, a seeded file with a broken row aggregating read-only, and the Mainframe's Spend key by her update note showing \"$12.50 today · $12.50 this month\"");
+            }
+            finally
+            {
+                if (spend != null) spend.Close();
+                frame.ShowSettings(pagedWas);
+                Spend.Folder = spendWas;
+                Spend.Forget();
+            }
+            ResourcesChecks(frame);
+        }
+
+        private void ResourcesChecks(Mainframe frame)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            bool pagedWas = frame.SettingsShown;
+            Func<ResourceView> readWas = Resources.Source;
+            ResourcesSheet sheet = null;
+            try
+            {
+                ResourceView made = new ResourceView { Cpu = 37, RamUsed = 12300L << 20, RamTotal = 32L << 30, Gpu = 64, VramUsed = 5300L << 20, VramTotal = 8L << 30, GpuName = "NVIDIA GeForce RTX 4060", Note = "The card's total use · RTX 4060 (8.0 GB). This computer doesn't name each program's share." };
+                made.Capri.Add(new ResourceRow { Name = "Capri", Cpu = 1.2, Ram = 410L << 20, Gpu = 3, Vram = 120L << 20 });
+                made.Capri.Add(new ResourceRow { Name = "Her brain", Cpu = 0.4, Ram = 220L << 20, Gpu = 0, Vram = 3400L << 20 });
+                made.Capri.Add(new ResourceRow { Name = "HD voice", Cpu = 0, Ram = 96L << 20, Gpu = 0, Vram = 1100L << 20 });
+                made.Others.Add(new ResourceRow { Name = "FortniteClient-Win64-Shipping", Cpu = 22.5, Ram = 5100L << 20, Gpu = 58, Vram = 2900L << 20 });
+                made.Others.Add(new ResourceRow { Name = "chrome", Count = 31, Cpu = 8, Ram = 2300L << 20, Gpu = 2, Vram = 300L << 20 });
+                made.Others.Add(new ResourceRow { Name = "Microsoft Edge WebView2", Count = 12, Cpu = 1, Ram = 900L << 20, Gpu = 0, Vram = 0 });
+                made.Others.Add(new ResourceRow { Name = "Discord", Count = 6, Cpu = 2, Ram = 700L << 20, Gpu = 1, Vram = 90L << 20 });
+                made.Others.Add(new ResourceRow { Name = "Spotify", Count = 5, Cpu = 0.5, Ram = 400L << 20, Gpu = 0, Vram = 40L << 20 });
+                made.Others.Add(new ResourceRow { Name = "explorer", Cpu = 0.2, Ram = 150L << 20, Gpu = 0, Vram = 20L << 20 });
+                made.Others.Add(new ResourceRow { Name = "never shown", Cpu = 0, Ram = 1L << 20 });
+                made.CapriTotal.Cpu = 1.6; made.CapriTotal.Ram = 726L << 20; made.CapriTotal.Gpu = 3; made.CapriTotal.Vram = 4620L << 20; made.CapriTotal.Count = 3;
+                made.OthersTotal.Cpu = 35.4; made.OthersTotal.Ram = 11574L << 20; made.OthersTotal.Gpu = 61; made.OthersTotal.Vram = 3350L << 20; made.OthersTotal.Count = 220;
+                sheet = new ResourcesSheet(pet);
+                sheet.Fill(made);
+                Func<string, string> said = name =>
+                {
+                    Control row;
+                    if (!sheet.Rows.TryGetValue(name, out row) || !(row is NeonCaption caption)) throw new Exception("The Resources panel has no " + name + " row.");
+                    return caption.Text;
+                };
+                if (said("CPU amount") != "37%") throw new Exception("The Resources panel's CPU says " + said("CPU amount"));
+                if (said("RAM amount") != "12.0 of 32 GB") throw new Exception("The Resources panel's RAM says " + said("RAM amount"));
+                if (said("GPU amount") != "64% · 5.2 of 8.0 GB") throw new Exception("The Resources panel's GPU says " + said("GPU amount"));
+                if (said("Legend") != "Cyan is Capri, red is everything else") throw new Exception("The Resources panel's legend says " + said("Legend"));
+                if (said("GPU note") != made.Note) throw new Exception("The Resources panel's graphics note says " + said("GPU note"));
+                if (said("Capri total") != "2% CPU · 726 MB · 3% GPU") throw new Exception("The Resources panel's Capri total says " + said("Capri total"));
+                if (said("Others total") != "35% CPU · 11 GB · 61% GPU") throw new Exception("The Resources panel's other programs total says " + said("Others total"));
+                if (said("Summary") != "Capri uses 2% of your CPU and 2% of your RAM. Using the most: FortniteClient-Win64-Shipping.") throw new Exception("The Resources panel's summary says " + said("Summary"));
+                if (sheet.Capri[0].Name.Text != "Capri" || sheet.Capri[0].Cpu.Text != "1%" || sheet.Capri[0].Ram.Text != "410 MB" || sheet.Capri[0].Gpu.Text != "3%" || sheet.Capri[0].Vram.Text != "120 MB") throw new Exception("The Resources panel's first Capri row reads " + sheet.Capri[0].Name.Text + " " + sheet.Capri[0].Cpu.Text + " " + sheet.Capri[0].Ram.Text + " " + sheet.Capri[0].Gpu.Text + " " + sheet.Capri[0].Vram.Text);
+                if (sheet.Capri[1].Name.Text != "Her brain" || sheet.Capri[1].Cpu.Text != "<1%" || sheet.Capri[1].Ram.Text != "220 MB" || sheet.Capri[1].Vram.Text != "3.3 GB") throw new Exception("The Resources panel's second Capri row reads " + sheet.Capri[1].Name.Text + " " + sheet.Capri[1].Cpu.Text + " " + sheet.Capri[1].Ram.Text + " " + sheet.Capri[1].Vram.Text);
+                if (sheet.Capri[2].Name.Text != "HD voice" || sheet.Capri[2].Vram.Text != "1.1 GB") throw new Exception("The Resources panel's third Capri row reads " + sheet.Capri[2].Name.Text + " " + sheet.Capri[2].Vram.Text);
+                if (sheet.Others[0].Name.Text != "FortniteClient-Win64-Shipping" || sheet.Others[0].Cpu.Text != "22%" || sheet.Others[0].Ram.Text != "5.0 GB" || sheet.Others[0].Gpu.Text != "58%" || sheet.Others[0].Vram.Text != "2.8 GB") throw new Exception("The Resources panel's busiest other program reads " + sheet.Others[0].Name.Text + " " + sheet.Others[0].Cpu.Text + " " + sheet.Others[0].Ram.Text + " " + sheet.Others[0].Gpu.Text + " " + sheet.Others[0].Vram.Text);
+                if (sheet.Others[1].Name.Text != "chrome ×31" || sheet.Others[1].Ram.Text != "2.2 GB") throw new Exception("The Resources panel's grouped chrome row reads " + sheet.Others[1].Name.Text + " " + sheet.Others[1].Ram.Text);
+                if (sheet.Others[2].Vram.Text != "0 MB" || sheet.Others[3].Vram.Text != "90 MB" || sheet.Others[4].Cpu.Text != "<1%" || sheet.Others[5].Name.Text != "explorer") throw new Exception("The Resources panel's other program rows read " + sheet.Others[2].Vram.Text + " " + sheet.Others[3].Vram.Text + " " + sheet.Others[4].Cpu.Text + " " + sheet.Others[5].Name.Text);
+                if (sheet.Others.Length != 6) throw new Exception("The Resources panel shows " + sheet.Others.Length + " other programs.");
+                string wrong = sheet.Shows(made);
+                if (wrong != null) throw new Exception("The Resources panel doesn't show its view: " + wrong);
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("The Resources panel is crowded: " + crowded);
+
+                ResourceView real = Resources.Sample();
+                if (OperatingSystem.IsMacOS())
+                {
+                    if (real.Cpu >= 0 || real.RamUsed >= 0 || real.Gpu >= 0 || real.Capri.Count != 0 || real.Others.Count != 0 || real.RamTotal <= 0)
+                        throw new Exception("The Mac Resources view invented a value: CPU " + real.Cpu + ", RAM " + real.RamUsed + " of " + real.RamTotal + ", GPU " + real.Gpu + ", " + real.Capri.Count + " of hers, " + real.Others.Count + " others");
+                    sheet.Fill(real);
+                    if (said("CPU amount") != "-" || said("RAM amount") != "-" || said("GPU amount") != "-") throw new Exception("The Mac Resources panel shows " + said("CPU amount") + " / " + said("RAM amount") + " / " + said("GPU amount"));
+                    if (said("Summary") != "" || sheet.Rows["Legend"].IsVisible) throw new Exception("The Mac Resources panel shows a summary or legend it can't read.");
+                    if (!said("Limits note").StartsWith("macOS doesn't share ", StringComparison.Ordinal)) throw new Exception("The Mac Resources panel's limits note says " + said("Limits note"));
+                }
+                else
+                {
+                    ResourceSampler sampler = new ResourceSampler();
+                    sampler.Read(true);
+                    Thread.Sleep(250);
+                    real = sampler.Read(true);
+                    if (real.RamTotal <= 0 || real.RamUsed <= 0 || real.RamUsed > real.RamTotal || real.Cpu < 0 || real.Cpu > 100 || real.Capri.Count == 0 || real.Capri[0].Name != "Capri" || real.CapriTotal.Count < 1 || real.Others.Count == 0)
+                        throw new Exception("The Resources view can't read this PC: CPU " + real.Cpu + ", RAM " + real.RamUsed + " of " + real.RamTotal + ", " + real.Capri.Count + " of hers (" + (real.Capri.Count == 0 ? "none" : real.Capri[0].Name) + " of " + real.CapriTotal.Count + "), " + real.Others.Count + " others");
+                    sheet.Fill(real);
+                    if (said("CPU amount") != ResourceView.Percent(real.Cpu) || said("CPU amount") == "-") throw new Exception("The Resources panel shows live CPU as " + said("CPU amount"));
+                    if (said("RAM amount") != ResourceView.Of(real.RamUsed, real.RamTotal) || said("Summary").Length == 0 || !sheet.Rows["Legend"].IsVisible) throw new Exception("The Resources panel's live RAM, summary or legend is missing: " + said("RAM amount") + " / " + said("Summary"));
+                }
+
+                frame.ShowSettings(false);
+                NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("updateNote", fields).GetValue(frame);
+                NeonButton resources = frame.Button("Resources");
+                NeonButton spend = frame.Button("Spend");
+                if (resources == null || !resources.IsVisible) throw new Exception("The Mainframe's main page has no Resources key.");
+                if (Avalonia.Automation.AutomationProperties.GetName(resources) != "Resources: what's using your CPU, RAM and GPU, Capri's parts apart from other programs") throw new Exception("The Resources key's accessible name says " + Avalonia.Automation.AutomationProperties.GetName(resources));
+                if (!resources.Chevron) throw new Exception("The Resources key lost its chevron.");
+                if (Math.Abs(Canvas.GetTop(resources) - Canvas.GetTop(note) - 30) > 0.5) throw new Exception("The Resources key isn't 30 below her update note: " + Canvas.GetTop(resources) + " / " + Canvas.GetTop(note));
+                if (spend == null || Math.Abs(Canvas.GetTop(spend) - Canvas.GetTop(note) - 60) > 0.5) throw new Exception("The Spend key isn't 60 below her update note, under Resources: " + (spend == null ? "missing" : Canvas.GetTop(spend).ToString()));
+                Resources.Source = () => new ResourceView { Cpu = 12.4, RamUsed = 4L << 30, RamTotal = 16L << 30 };
+                frame.Sync();
+                if (frame.ResourcesLine != "CPU 12% · RAM 4.0/16 GB") throw new Exception("The Mainframe's Resources line says " + frame.ResourcesLine);
+                NeonCaption resourcesLine = (NeonCaption)typeof(Mainframe).GetField("resourcesLine", fields).GetValue(frame);
+                if (Avalonia.Automation.AutomationProperties.GetName(resourcesLine) != "CPU and RAM in use") throw new Exception("The Mainframe's Resources line is named " + (Avalonia.Automation.AutomationProperties.GetName(resourcesLine) ?? "nothing"));
+                frame.Press("Resources");
+                var sheets = (List<Window>)typeof(Mainframe).GetField("sheets", fields).GetValue(frame);
+                ResourcesSheet opened = null;
+                foreach (Window window in sheets) if (window is ResourcesSheet) opened = (ResourcesSheet)window;
+                if (opened == null) throw new Exception("The Resources key didn't open its panel.");
+                if (opened.Title != "Capri resources") throw new Exception("The Resources panel's title says " + opened.Title);
+                opened.Close();
+                string help = SelfKnow.Matching("what's using my CPU?") ?? "";
+                if (!help.StartsWith("Resources: ", StringComparison.Ordinal) || !help.Contains(OperatingSystem.IsMacOS() ? "macOS doesn't share CPU, memory or graphics card use with apps yet" : "OTHER PROGRAMS lists"))
+                    throw new Exception("Her Resources help says " + help);
+                checks.Add("PASS resources panel: CPU, RAM and GPU with Capri's share, her own parts and the busiest other programs from seeded values, a Mac's honest - rows and limits note, the CPU/RAM line under her update note named CPU and RAM in use, and the Resources and Spend keys 30 and 60 below it");
+            }
+            finally
+            {
+                Resources.Source = readWas;
+                if (sheet != null) sheet.Close();
+                frame.ShowSettings(pagedWas);
+                frame.Sync();
+            }
         }
 
         private void PlainChecks(Mainframe frame, System.Reflection.BindingFlags fields)
@@ -5961,7 +6437,7 @@ namespace CapriDesktop
                 PlugTile[] tiles = frame.PlugTileRow;
                 string[] names = { "Email", "Notion", "Linear", "Todoist" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, ServiceLogo.Todoist };
                 for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
@@ -5976,7 +6452,7 @@ namespace CapriDesktop
                 }
                 pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
                 frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
-                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion, Linear and Todoist as tiles, Email with an envelope and the others with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
 
                 tiles[1].Press();
                 PluginWindow notion = frame.PluginSheet;
@@ -6046,6 +6522,12 @@ namespace CapriDesktop
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
                 List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                Dictionary<string, ServiceLogo> logosOnLaterPages = new Dictionary<string, ServiceLogo>
+                {
+                    { "github", ServiceLogo.GitHub }, { "atlassian", ServiceLogo.Atlassian },
+                    { "monday", ServiceLogo.Monday }, { "miro", ServiceLogo.Miro },
+                    { "cloudflare-docs", ServiceLogo.Cloudflare }, { "context7", ServiceLogo.Context7 }
+                };
                 for (int first = 0; first < expectedPlugs.Count; first += tiles.Length)
                 {
                     if (frame.PlugFirst != first || frame.PlugBack.IsEnabled != (first > 0) || frame.PlugNext.IsEnabled != (first + tiles.Length < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
@@ -6053,6 +6535,8 @@ namespace CapriDesktop
                     {
                         int at = first + slot;
                         if (tiles[slot].IsVisible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && tiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                        if (at < expectedPlugs.Count && logosOnLaterPages.TryGetValue(expectedPlugs[at].File.Id, out ServiceLogo logo) && tiles[slot].Logo != logo)
+                            throw new Exception("PLUG-INS didn't show the service logo for " + tiles[slot].Text);
                     }
                     if (frame.PlugNext.IsEnabled) frame.PlugNext.Press();
                 }
@@ -6583,7 +7067,38 @@ namespace CapriDesktop
                     if (pet.Saved.ServerModel != "server-other") throw new Exception("The Mainframe did not save its server model.");
                     MainframeEnter(frame, "Local server address", ""); MainframeWait(() => pet.Brain.Server == null && pet.Brain.Model != null && Array.IndexOf(pet.MainframeModels, Pet.Starter) >= 0, "returning to Ollama");
                     if (!server.Requests.Exists(line => line.Contains("/api/pull") && line.Contains(Pet.Starter))) throw new Exception("Set up did not use the existing model download.");
-                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, and her own brain server use loopback fakes");
+                    // A custom OpenAI-compatible provider, set up from the Mainframe with any address and a key, not just a preset provider's key.
+                    frame.ShowSettings(false);
+                    if (frame.Button("Provider") == null) throw new Exception("The Mainframe BRAIN panel has no Provider button.");
+                    var provider = new MainframeSheet(pet, "BRAIN PROVIDER", "provider"); provider.Show(frame);
+                    try
+                    {
+                        var address = ((NeonEntry)provider.Rows["Address"]).Box;
+                        var key = ((NeonEntry)provider.Rows["API key"]).Box;
+                        var connect = (NeonButton)provider.Rows["Connect"];
+                        var forget = (NeonButton)provider.Rows["Forget"];
+                        var note = (NeonCaption)provider.Rows["Note"];
+                        if (key.PasswordChar == '\0' || forget.IsEnabled) throw new Exception("The provider key should be masked and there is no provider to forget yet.");
+
+                        address.Text = "http://example.invalid/v1";
+                        key.Text = "provider-key-test";
+                        connect.Press();
+                        if (pet.Brain.Server != null || !note.Text.Contains("Use https://") || !string.IsNullOrEmpty(key.Text))
+                            throw new Exception("The sheet did not reject an insecure keyed endpoint and clear the key.");
+
+                        address.Text = server.Address + "/v1";
+                        key.Text = "provider-key-test";
+                        connect.Press();
+                        MainframeWait(() => note.Text == "Provider connected.", "the custom provider from its panel");
+                        if (pet.Saved.BrainServer != server.Address || pet.Brain.Server != server.Address || pet.Brain.ServerKey != "provider-key-test")
+                            throw new Exception("The custom provider address and key did not save together.");
+                        forget.Press();
+                        MainframeWait(() => note.Text == "Provider forgotten.", "forgetting the custom provider");
+                        if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainServer != null || forget.IsEnabled)
+                            throw new Exception("The sheet did not remove the custom provider pair.");
+                    }
+                    finally { provider.Close(); }
+                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, her own brain server and any OpenAI-compatible provider address with a key use loopback fakes");
                 }
                 finally
                 {
@@ -7102,7 +7617,7 @@ namespace CapriDesktop
                 pet.Brain.Attachments.Clear();
                 string heard = null;
                 pet.Talk.Dismiss();
-                MacFiles.Drop(new[] { path }, words => { heard = words; pet.Hear(words); });
+                MacFiles.Drop(new[] { path }, words => { heard = words; pet.HearNotTyped(words); });
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop without a brain");
                 if (heard != Files.Dropped || pet.Talk.Reply != listed || pet.Brain.Attachments.Waiting || !pet.Brain.Attachments.Message("").Contains("made up")) throw new Exception("A drop without a brain wasn't read and listed like Windows: " + pet.Talk.Reply);
                 string opened = null; Hands.Run = value => opened = value;
@@ -7130,6 +7645,227 @@ namespace CapriDesktop
                 pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider; Hands.Run = opener;
                 pet.Brain.Attachments.Clear();
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
+            }
+        }
+
+        private void FavouritesChecks()
+        {
+            string keptWas = Favourites.Kept;
+            Func<DateTime> nowWas = Favourites.Now;
+            Func<string> frontWas = Favourites.Front;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened;
+            bool macWas = Hands.OnMac;
+            DateTime morning = new DateTime(2026, 11, 24, 9, 0, 0);
+            DateTime when = morning;
+            string file = Path.Combine(folder, "apps-used-check.txt");
+            List<string> ran = new List<string>();
+            try
+            {
+                File.Delete(file);
+                Favourites.Kept = file;
+                Favourites.Now = delegate { return when; };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Opened = delegate(string name) { return ""; };
+                Favourites.Reload();
+
+                string[][] kinds = {
+                    new[] { "open my browser", "browser" }, new[] { "please launch the music player", "music" },
+                    new[] { "start our image viewer now", "images" }, new[] { "run a code editor for me", "editor" },
+                    new[] { "open my chat app", "chat" }, new[] { "my calendar", "calendar" },
+                    new[] { "open the internet", "browser" }, new[] { "open my diary", "calendar" },
+                    new[] { "open tunes", "music" }, new[] { "open the gallery", "images" },
+                    new[] { "open my ide", "editor" }, new[] { "open the messenger", "chat" }
+                };
+                List<string> wrong = new List<string>();
+                foreach (string[] pair in kinds)
+                    if (Favourites.KindOf(pair[0]) != pair[1]) wrong.Add(pair[0] + " -> " + (Favourites.KindOf(pair[0]) ?? "null"));
+                foreach (string said in new[] { "open the fridge", "what is my browser", "" })
+                    if (Favourites.KindOf(said) != null) wrong.Add(said + " -> " + Favourites.KindOf(said));
+                if (Favourites.KindOf(null) != null) wrong.Add("null -> " + Favourites.KindOf(null));
+                if (wrong.Count > 0) throw new Exception("Favourites' kind words went wrong: " + string.Join(" / ", wrong));
+                // The plain app names the rest of the smoke opens keep their own path: none of them is a kind.
+                foreach (string plainName in new[] { "spotify", "hades", "minecraft", "modrinth", "Discord", "Notepad", "Fake app", "Awake app", "Bridge App" })
+                    if (Favourites.KindOf(plainName) != null) throw new Exception("Favourites took a plain app name as a kind: " + plainName);
+                if (Favourites.Best("browser") != null) throw new Exception("Favourites had a best browser before anything was seen.");
+
+                // Three sittings four minutes apart: a repeat inside four minutes is the same sitting.
+                Favourites.Seen("firefox", morning);
+                Favourites.Seen("firefox", morning.AddMinutes(1));
+                bool spell = Favourites.Best("browser") == null;
+                Favourites.Seen("firefox", morning.AddMinutes(4));
+                Favourites.Seen("firefox", morning.AddMinutes(8));
+                if (!spell || Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't learn three uses four minutes apart, or counted a repeat inside four minutes: " + (Favourites.Best("browser") ?? "null"));
+
+                // Her own open is marked, so the sampler doesn't count it back as their choice.
+                when = morning.AddMinutes(20);
+                Favourites.SheOpened("vlc");
+                Favourites.Seen("vlc", morning.AddMinutes(21));
+                bool markHeld = Favourites.Best("music") == null;
+                Favourites.Seen("vlc", morning.AddMinutes(25));
+                Favourites.Seen("vlc", morning.AddMinutes(29));
+                Favourites.Seen("vlc", morning.AddMinutes(33));
+                if (!markHeld || Favourites.Best("music") != "vlc") throw new Exception("Favourites counted her own open as their choice: " + (Favourites.Best("music") ?? "null"));
+
+                // The file is Windows' apps-used.txt: faded, then a count for each program.
+                Favourites.Save();
+                string[] rows = File.ReadAllLines(file);
+                if (rows.Length != 3 || rows[0] != "faded\t2026-11-24" || Array.IndexOf(rows, "firefox\t3") < 0 || Array.IndexOf(rows, "vlc\t3") < 0)
+                    throw new Exception("Favourites' apps-used.txt was wrong: " + string.Join(" | ", rows));
+
+                // A day later each count is 0.95 of itself, and the file reads back.
+                Favourites.Seen("firefox", morning.AddDays(1));
+                Favourites.Reload();
+                if (Favourites.Best("browser") != "firefox" || Favourites.Best("music") != null) throw new Exception("Favourites didn't fade a day's counts or read them back: " + (Favourites.Best("browser") ?? "null") + " / " + (Favourites.Best("music") ?? "null"));
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "faded\t2026-11-25") < 0 || Array.IndexOf(rows, "firefox\t3.85") < 0 || Array.IndexOf(rows, "vlc\t2.85") < 0)
+                    throw new Exception("Favourites faded its counts wrong: " + string.Join(" | ", rows));
+
+                // Ninety days of fade takes a count under 0.2 and it's gone.
+                Favourites.Seen("zen", morning.AddDays(92));
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "faded\t2027-02-24") < 0 || Array.IndexOf(rows, "zen\t1") < 0 || Array.FindIndex(rows, row => row.StartsWith("firefox\t", StringComparison.Ordinal)) >= 0 || Array.FindIndex(rows, row => row.StartsWith("vlc\t", StringComparison.Ordinal)) >= 0)
+                    throw new Exception("Favourites kept a count under 0.2: " + string.Join(" | ", rows));
+                if (Favourites.Best("browser") != null || Favourites.Best("music") != null) throw new Exception("Favourites had a best app after ninety days of fade.");
+
+                // A Windows-written file's pick: and notthat: rows stay out of the counts.
+                File.WriteAllText(file, "faded\t2026-11-24\npick:browser\tfirefox\nnotthat:browser\tchromium\n \t  \nfirefox\t3\n");
+                Favourites.Reload();
+                if (Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't keep a Windows apps-used.txt's counts, or counted a pick: " + (Favourites.Best("browser") ?? "null"));
+                string portable = File.ReadAllText(file).ReplaceLineEndings("\n");
+                Favourites.Save();
+                if (File.ReadAllText(file).ReplaceLineEndings("\n") != portable)
+                    throw new Exception("Saving learned counts discarded Windows preference records.");
+
+                Hands.Catalog = delegate
+                {
+                    return new List<InstalledApp>
+                    {
+                        new InstalledApp("Brave", "exec:brave"),
+                        new InstalledApp("Google Chrome", "argv:[\"/usr/bin/google-chrome-stable\"]"),
+                        new InstalledApp("Firefox", "exec:firefox"),
+                        new InstalledApp("Visual Studio Code", "argv:[\"/usr/bin/code\"]"),
+                        new InstalledApp("Spotify", "exec:spotify")
+                    };
+                };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("firefox", morning);
+                Favourites.Seen("firefox", morning.AddMinutes(4));
+                Favourites.Seen("firefox", morning.AddMinutes(8));
+                ran.Clear();
+                when = morning.AddMinutes(8);
+                string learnedOpen = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (learnedOpen != "Opened Firefox." || string.Join(",", ran) != "exec:firefox") throw new Exception("A learned browser didn't open: " + learnedOpen + " / " + string.Join(",", ran));
+
+                // Her own open through open_app is marked too, so a front sample right after doesn't count.
+                Favourites.Seen("firefox", morning.AddMinutes(9));
+                Favourites.Save();
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "firefox\t3") < 0) throw new Exception("Her own open was counted as their choice: " + string.Join(" | ", rows));
+                Favourites.Seen("firefox", morning.AddMinutes(13));
+                if (Favourites.Best("browser") != "firefox" || Array.IndexOf(File.ReadAllLines(file), "firefox\t4") < 0) throw new Exception("A use five minutes after her own open wasn't counted.");
+
+                // A learned browser that isn't installed falls back to the first known browser.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Google Chrome", "argv:[\"/usr/bin/google-chrome-stable\"]"), new InstalledApp("Firefox", "exec:firefox") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("brave", morning);
+                Favourites.Seen("brave", morning.AddMinutes(4));
+                Favourites.Seen("brave", morning.AddMinutes(8));
+                ran.Clear();
+                string fallback = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (fallback != "Opened Google Chrome." || string.Join(",", ran) != "argv:[\"/usr/bin/google-chrome-stable\"]") throw new Exception("A learned browser that isn't installed didn't fall back to the first known browser: " + fallback + " / " + string.Join(",", ran));
+
+                // No known browser installed: the cross line keeps no promise.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Spotify", "exec:spotify") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                ran.Clear();
+                string none = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (none != "I can't tell which browser is yours yet." || ran.Count != 0) throw new Exception("A browser with none installed said the wrong thing: " + none + " / " + string.Join(",", ran));
+
+                // A non-browser kind opens its learned app, and one with nothing learned keeps its usual line.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Visual Studio Code", "argv:[\"/usr/bin/code\"]") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("code", morning);
+                Favourites.Seen("code", morning.AddMinutes(4));
+                Favourites.Seen("code", morning.AddMinutes(8));
+                ran.Clear();
+                string editor = Hands.Do("open_app", new ToolArguments { Name = "my editor" });
+                if (editor != "Opened Visual Studio Code." || string.Join(",", ran) != "argv:[\"/usr/bin/code\"]") throw new Exception("A learned editor didn't open: " + editor + " / " + string.Join(",", ran));
+                string calendar = Hands.Do("open_app", new ToolArguments { Name = "my calendar" });
+                if (calendar != "No app called my calendar is installed on this PC." || ran.Count != 1) throw new Exception("A kind with no learned app and no browser fallback changed its line: " + calendar);
+
+                // The sampler takes the app in front; Mac has no front-app signal, so it learns nothing.
+                File.Delete(file);
+                Favourites.Reload();
+                Favourites.Front = delegate { return "firefox"; };
+                when = morning;
+                Favourites.Sample();
+                when = morning.AddMinutes(1);
+                Favourites.Sample();
+                when = morning.AddMinutes(4);
+                Favourites.Sample();
+                when = morning.AddMinutes(8);
+                Favourites.Sample();
+                if (Favourites.Learning != !OperatingSystem.IsMacOS()) throw new Exception("Favourites' learning flag doesn't follow the OS.");
+                if (Favourites.Learning)
+                {
+                    if (Favourites.Best("browser") != "firefox") throw new Exception("The app-in-front sample didn't learn: " + (Favourites.Best("browser") ?? "null"));
+                    using ManualResetEventSlim started = new ManualResetEventSlim();
+                    using ManualResetEventSlim release = new ManualResetEventSlim();
+                    Favourites.Front = delegate { started.Set(); release.Wait(TimeSpan.FromSeconds(5)); return "vlc"; };
+                    Task sample = Favourites.SampleInBackground();
+                    try
+                    {
+                        if (sample == null || !started.Wait(TimeSpan.FromSeconds(5)) || sample.IsCompleted)
+                            throw new Exception("The foreground sampler didn't run independently of its caller.");
+                        if (Favourites.SampleInBackground() != null)
+                            throw new Exception("Another foreground sample started while the first was still waiting.");
+                        Favourites.SheOpened("code");
+                    }
+                    finally { release.Set(); sample?.GetAwaiter().GetResult(); }
+                    Favourites.Save();
+                    if (Array.Exists(File.ReadAllLines(file), row => row.StartsWith("vlc\t", StringComparison.Ordinal)))
+                        throw new Exception("A stale foreground sample was recorded after her own open.");
+                }
+                else if (Favourites.Best("browser") != null || Favourites.FrontProgram() != null) throw new Exception("Mac learned an app with no front-app signal, or FrontProgram wasn't null.");
+
+                Hands.OnMac = false;
+                string linuxAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = true;
+                string macAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = macWas;
+                if (!linuxAppsHelp.Contains("She learns from the app in front") || !linuxAppsHelp.Contains("apps-used.txt")
+                    || !macAppsHelp.Contains("Learning which app you use most is off on a Mac") || macAppsHelp == linuxAppsHelp)
+                    throw new Exception("Cross app help lost its learning description or its Mac answer: " + linuxAppsHelp + " / " + macAppsHelp);
+
+                checks.Add(Favourites.Learning
+                    ? "PASS Favourites: her six app kinds and their words resolve (browser, calendar, music, images, editor and chat, with internet, diary, tunes, gallery, ide and messenger), junk and questions don't, three uses four minutes apart make an app hers while a repeat inside four minutes or her own open isn't counted, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back, keeps Windows' pick: and notthat: rows out of the counts and writes them back on save, the app help gives Linux's learning description and Mac's learning-off answer, open my browser opens the learned app or else the first installed known browser and says \"I can't tell which browser is yours yet.\" when there's none, my editor opens the learned editor, and the sampler learns the app in front"
+                    : "PASS Favourites: on Mac learning is off because the shared surface has no front app, so the sampler counts nothing and FrontProgram is null, while her six app kinds and their words still resolve, three uses four minutes apart make an app hers, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back and saving writes back the rows it doesn't own, the app help gives Mac's learning-off answer and Linux's learning description, and open my browser still tries the known browsers in order and says \"I can't tell which browser is yours yet.\" when there's none");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.OnMac = macWas;
+                Hands.Forget();
+                Favourites.Front = frontWas;
+                Favourites.Now = nowWas;
+                Favourites.Kept = keptWas;
+                Favourites.Reload();
+                File.Delete(file);
             }
         }
 
@@ -8310,6 +9046,58 @@ namespace CapriDesktop
             }
         }
 
+        // Issue #421: Plasma 6.8 Wayland with a writable /dev/uinput. The compositor helper is Hyprland-only, so her
+        // use_computer tool must reach her uinput chores path instead of answering with the Hyprland-only line.
+        private void PlasmaHandsChecks()
+        {
+            if (!OperatingSystem.IsLinux() || HyprlandDesktop.Current != null) return;
+            Func<bool> present = Fingers.Present, writable = Fingers.Writable;
+            Func<ToolArguments, string> native = Hands.NativeWork;
+            Func<ToolArguments, string> fallback = Hands.FallbackWork;
+            Func<string, string, string> work = Hands.Work;
+            Func<string, string> resume = Hands.Resume;
+            Action<string, System.Text.Json.JsonElement> doing = Chores.Doing;
+            bool own = Hands.OwnHands;
+            System.Reflection.FieldInfo field = typeof(ComputerJobs).GetField("brain", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Brain brain = (Brain)field.GetValue(null);
+            try
+            {
+                Fingers.Present = delegate { return true; };
+                Fingers.Writable = delegate { return true; };
+                Hands.OwnHands = true;
+                Hands.NativeWork = null;
+                Hands.Work = null;
+                Chores.Doing = null;
+                ComputerJobs.Attach(new Brain());
+                string workLine = Hands.Work("write something in Claude", "write something in Claude");
+                string cancelled = Hands.Do("use_computer", new ToolArguments
+                {
+                    Task = "edit a test document",
+                    Current = () => false
+                });
+                string nativeLine = ComputerJobs.Run("write something in Claude", "write something in Claude");
+                const string offline = "Couldn't do that: your brain is offline.";
+                const string nativeOnly = "Native screen jobs need Hyprland and Capri's native/capri-input helper.";
+                const string nativeFallback = nativeOnly + " Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
+                if (Hands.NativeWork != null || workLine != offline || nativeLine != nativeFallback)
+                    throw new Exception("A writable /dev/uinput without Hyprland didn't reach her uinput hands: native " + (Hands.NativeWork != null) + ", work " + workLine + ", native line " + nativeLine);
+                if (cancelled != "That job has ended.")
+                    throw new Exception("A cancelled use_computer request reached her uinput hands: " + cancelled);
+                checks.Add("PASS Plasma Wayland with a writable /dev/uinput leaves the Hyprland-only runner unclaimed, so use_computer reaches her uinput hands, and a native refusal names Hyprland's helper as its own requirement instead of telling every desktop to reopen Capri in a Hyprland session");
+                Fingers.Writable = delegate { return false; };
+                if (ComputerJobs.Run("enter sample text in a test editor", "") != nativeOnly)
+                    throw new Exception("Native refusal overclaims the uinput fallback.");
+                checks.Add("PASS Plasma Wayland without a writable /dev/uinput keeps a native refusal to Hyprland's own requirement instead of promising her uinput hands");
+            }
+            finally
+            {
+                Fingers.Present = present; Fingers.Writable = writable;
+                Hands.OwnHands = own; Hands.NativeWork = native; Hands.FallbackWork = fallback; Hands.Work = work; Hands.Resume = resume;
+                Chores.Doing = doing;
+                field.SetValue(null, brain);
+            }
+        }
+
         // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
         // keyboard (watched here instead), again until the brain says done or stop; and its replies, keys and secrets read right.
         private void ChoresChecks()
@@ -8338,6 +9126,25 @@ namespace CapriDesktop
                 string unsafeStream = Chores.Run(brain, "stream mode", null);
                 if (streamCaptures != 0 || Hands.Streaming || unsafeStream.IndexOf("can't check permissions", StringComparison.Ordinal) < 0)
                     throw new Exception("The fallback stream continued without enforceable action permissions.");
+                bool current = true;
+                Chores.Shoot = delegate { current = false; return null; };
+                string cancelled = Chores.Run(brain, "open a folder", null, () => current);
+                if (cancelled != "Stopped my job.")
+                    throw new Exception("The fallback continued processing after a capture cancelled its request: " + cancelled);
+                if (!OperatingSystem.IsMacOS())
+                {
+                    Func<string, bool> copy = Fingers.Copy;
+                    try
+                    {
+                        current = true;
+                        Fingers.Copy = delegate { current = false; return true; };
+                        bool stoppedBeforePaste = false;
+                        try { Fingers.Type("é", () => current); }
+                        catch (OperationCanceledException) { stoppedBeforePaste = true; }
+                        if (!stoppedBeforePaste) throw new Exception("The fallback pasted after its request was cancelled.");
+                    }
+                    finally { Fingers.Copy = copy; }
+                }
                 int runs = 0;
                 Chores.Doing = delegate { };
                 Chores.Skills = null;
@@ -10716,18 +11523,42 @@ namespace CapriDesktop
                         if (started == null || first == null || !first.Is("done", false) || (double)first["n"] != 1 || runs != before + 1) throw new Exception("A permitted job lost its running state or first step.");
                         string id = started.Text("id");
                         release.Set(); rows.Clear();
-                        RemoteBridgeWait(delegate
+                        Func<string> stepFrames = () => string.Join(", ", rows.Where(row => row.Text("id") == id && (row.Text("type") == "job.step" || row.Text("type") == "job.state"))
+                            .Select(row => row.Text("device") + ":" + row.Text("type") + ":" + (row.ContainsKey("n") ? Convert.ToString(row["n"], System.Globalization.CultureInfo.InvariantCulture) : row.Text("state")) + ":done=" + row.Is("done", true) + ":failed=" + row.Is("failed", true)));
+                        Func<bool> finishedSteps = delegate
                         {
-                            rows.AddRange(bridge.DrainJobs());
-                            return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == id && row.Text("state") == "done")
-                                && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
-                        }, "the permitted job completion");
-                        all.AddRange(rows);
-                        foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            bool finished = true;
+                            foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                            {
+                                int last = 0;
+                                bool[] done = new bool[3];
+                                foreach (RemoteJson.Map step in rows.Where(row => row.Text("type") == "job.step" && row.Text("id") == id && row.Text("device") == device))
+                                {
+                                    double number;
+                                    if (!step.Number("n", out number) || (number != 1 && number != 2) || number < last || step.Is("failed", true)
+                                        || (done[(int)number] && !step.Is("done", true)) || (number == 2 && !done[1]))
+                                        throw new Exception("A successful job had invalid, failed or regressing step replacements for " + id + ": " + stepFrames());
+                                    last = (int)number;
+                                    done[last] = step.Is("done", true);
+                                }
+                                if (!done[1] || !done[2]) finished = false;
+                            }
+                            return finished;
+                        };
+                        try
                         {
-                            List<RemoteJson.Map> steps = rows.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
-                            if (steps.Count != 2 || (double)steps[0]["n"] != 1 || (double)steps[1]["n"] != 2 || steps.Any(row => !row.Is("done", true) || row.Is("failed", true))) throw new Exception("A successful job lost its ordered finished step replacements.");
+                            RemoteBridgeWait(delegate
+                            {
+                                rows.AddRange(bridge.DrainJobs());
+                                bool finished = finishedSteps();
+                                if (rows.Any(row => row.Text("type") == "job.state" && row.Text("id") == id && (row.Text("state") == "failed" || row.Text("state") == "stopped")))
+                                    throw new Exception("The permitted successful job " + id + " failed or stopped: " + stepFrames());
+                                return finished && !SelfJobs.Active && bridge.Phones.All(phone => rows.Exists(row => row.Text("type") == "job.state" && row.Text("device") == phone.Id && row.Text("id") == id && row.Text("state") == "done"))
+                                    && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
+                            }, "the permitted job completion and both phones' finished steps");
                         }
+                        catch (Exception error) { throw new Exception(error.Message + " Job " + id + " frames: " + stepFrames(), error); }
+                        all.AddRange(rows);
                         bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
                         rows = bridge.DrainJobs(); all.AddRange(rows);
                         RemoteJson.Map recent = rows.Find(row => row.Text("type") == "job.recent");
@@ -12689,7 +13520,8 @@ namespace CapriDesktop
                 if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
                 if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
-                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                // Let the bridge reject the declared length before the test client starts sending the body.
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), "Expect", "100-continue") != 413) throw new Exception("The companion bridge accepted an oversized body.");
                 if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
                 bridge.Dispose();
                 bridge = null;

@@ -447,7 +447,7 @@ namespace CapriDesktop
         private void SendFirstJob(string job)
         {
             if (FirstJobTo != null) FirstJobTo(job);
-            else Hear(job);
+            else HearNotTyped(job);
         }
 
         internal void CheckFirstJob()

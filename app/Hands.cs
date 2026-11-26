@@ -610,7 +610,7 @@ namespace CapriDesktop
                 case "clip": return a.Action == "open_folder" ? "open your clips folder" : "open your last clip";
                 case "updates": return "install the Capri update";
                 case "job_control": return "change the job to " + Plain(a.Task, "that");
-                case "play_music": return "play " + Plain(a.Song, "some music") + (a.App == "spotify" ? " on Spotify" : a.App == "youtube" ? " on YouTube" : a.App == "applemusic" ? " on Apple Music" : "");
+                case "play_music": return "play " + Plain(a.Song, "some music") + (a.App == "spotify" ? " on Spotify" : a.App == "youtube" ? " on YouTube" : a.App == "applemusic" ? " on Apple Music" : a.App == "deezer" ? " on Deezer" : a.App == "youtubemusic" ? " on YouTube Music" : "");
                 case "shortcut":
                     switch (a.Name)
                     {
@@ -1055,11 +1055,24 @@ namespace CapriDesktop
         }
 
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
-        internal static bool Instant(string tool, ToolArguments args = null)
+        internal static bool Instant(string tool, ToolArguments args = null, string request = null)
         {
+            if (tool == "app_window" && args != null && args.Action == "close" && ExactAppClose(args, request ?? args.Asked)) return true;
             // Known websites and file names need no planner to reinterpret them (john_sandevistan, B88).
             if (tool == "website_nickname" || tool == "find_file" || tool == "open_website" && args != null && string.IsNullOrWhiteSpace(args.Search) && Websites != null && Websites.Nickname(args.Site) != null) return true;
             return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember" || tool == "stopwatch";
+        }
+
+        private static bool ExactAppClose(ToolArguments args, string request)
+        {
+            if (string.IsNullOrWhiteSpace(args.Name) || string.IsNullOrWhiteSpace(args.Asked)) return false;
+            string target = args.Name.Trim();
+            if (!Regex.IsMatch(Asked(request), @"\A(?:close|quit|exit|kill|shut down)\s+" + Regex.Escape(target) + @"\z", RegexOptions.IgnoreCase)) return false;
+            try
+            {
+                return Windows().Exists(window => string.Equals(window.Program, target, StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception) { return false; }
         }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it. Only a brain on their
@@ -1190,7 +1203,7 @@ namespace CapriDesktop
         internal static int ClampLevel(string name, int step) { string[] steps = StepsOf(name); return steps == null ? -1 : Math.Max(0, Math.Min(steps.Length - 1, step)); }
         private static int[] CareValues() { return new[] { 15, 25, 30, 45, 60, 90, 120, 180, 240 }; }
         private static string[] CareSteps() { return new[] { "15 min", "25 min", "30 min", "45 min", "1 h", "90 min", "2 h", "3 h", "4 h" }; }
-        internal static string[] MusicSteps() { return new[] { "Spotify", "YouTube", "Apple Music" }; }
+        internal static string[] MusicSteps() { return new[] { "Spotify", "YouTube", "Apple Music", "Deezer", "YouTube Music" }; }
         private static int[] AmountValues() { return new[] { 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100 }; }
         private static string[] AmountSteps() { return new[] { "Off", "5%", "10%", "15%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }; }
         // A voice layer's pitch in semitones and delay in ms at a step: Windows' sliders move in halves and fives, Mac and Linux
@@ -1249,7 +1262,7 @@ namespace CapriDesktop
             { "game_comments", "game comments run on their own; Off stops them and your live reactions and keeps Gaming Mode off. Turn it on only when they clearly ask for game comments, never to get Gaming Mode on" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens; off turns game_comments off too, and it stays off while game_comments is off" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "explore_away", "you explore while they're away" },
-            { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
+            { "cursor", "your visible pointer for YouTube searches, Apple Music, Deezer, YouTube Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
             { "listen_for_capri", "your mic stays open and you answer any sentence with your name in it, without turning voice chat on or off; after just your name, like Hey Capri, their next line needs no name" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
@@ -1258,7 +1271,7 @@ namespace CapriDesktop
             { "reply_limit", "the longest a reply can be; 256 is Short and 2K or 8K is No limit in Replies" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
             { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Player only, where keeping the player leaves your mini player up over borderless full screen" },
             { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace, and in games or always her free voice takes over from HD in full-screen games" },
-            { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
+            { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube, Apple Music, Deezer or YouTube Music" },
             { "chimes", "all three chimes at once: when their typed message is sent, when you've heard them and when Listen for Capri opens your ears; on by default" },
             { "chime_sent", "the chime when their typed message is sent" }, { "chime_heard", "the chime when you've heard them finish talking" },
             { "chime_listening", "the chime when Listen for Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
@@ -1391,8 +1404,8 @@ namespace CapriDesktop
 #endif
             { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen." + LookingAt,
               "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}" + LookPlace + "}}", "look at your screen", "look at their screen" },
-            { "play_music", "Play a song, playlist, album or artist they name, on Spotify, YouTube or Apple Music, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
-              "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\",\"applemusic\"]}},\"required\":[\"song\"]}", "play songs, playlists, albums and artists on Spotify, YouTube or Apple Music", "play songs on Spotify, YouTube or Apple Music" },
+            { "play_music", "Play a song, playlist, album or artist they name, on Spotify, YouTube, Apple Music, Deezer or YouTube Music, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
+              "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\",\"applemusic\",\"deezer\",\"youtubemusic\"]}},\"required\":[\"song\"]}", "play songs, playlists, albums and artists on Spotify, YouTube, Apple Music, Deezer or YouTube Music", "play songs on Spotify, YouTube, Apple Music, Deezer or YouTube Music" },
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\",\"pin_on_top\",\"unpin\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
               "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize, maximize, snap, move, resize or close their windows" },
@@ -1711,6 +1724,7 @@ namespace CapriDesktop
 #if CROSS
         internal static Func<ToolArguments, string> NativeLook;
         internal static Func<ToolArguments, string> NativeWork;
+        internal static Func<ToolArguments, string> FallbackWork;
 #endif
         // A look at the monitor they named; where she can't tell their monitors apart, the usual look.
         internal static Func<string, string, string> LookOn = delegate(string focus, string screen) { return Look(focus); };
@@ -1895,6 +1909,11 @@ namespace CapriDesktop
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
         [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
         private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
+        private static readonly string[,] SiteSearches =
+        {
+            { "music.youtube.com", "https://music.youtube.com/search?q=" },
+            { "deezer.com", "https://www.deezer.com/search/" }
+        };
         private static readonly string[,] Searches =
         {
             { "youtube", "https://www.youtube.com/results?search_query=" },
@@ -1956,7 +1975,13 @@ namespace CapriDesktop
                 return was ? "Stopped streaming." : "I'm not streaming right now.";
             }
 #if CROSS
-            if (NativeWork == null) return Work("stream mode", args.Asked);
+            if (NativeWork == null)
+            {
+                if (FallbackWork == null) return Work("stream mode", args.Asked);
+                ToolArguments fallback = args.Copy();
+                fallback.Task = "stream mode";
+                return FallbackWork(fallback);
+            }
 #endif
             Streaming = true;
             string game = string.IsNullOrWhiteSpace(args.Name) ? null : args.Name.Trim();
@@ -2177,9 +2202,10 @@ namespace CapriDesktop
                     }
 #endif
                     ToolArguments musicArgs;
-                    if (MusicJob(args.Task, out musicArgs)) return Do("play_music", musicArgs);
+                    if (MusicJob(args.Task, out musicArgs)) { AimMusic(musicArgs, args.Asked); return Do("play_music", musicArgs); }
 #if CROSS
                     if (NativeWork != null) return NativeWork(args);
+                    if (FallbackWork != null) return FallbackWork(args);
 #endif
                     return Work(args.Task.Trim(), args.Asked);
                 }
@@ -3566,7 +3592,7 @@ namespace CapriDesktop
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"^(no|nah|never mind|nevermind|don't|do not|non|annule)\b", RegexOptions.IgnoreCase)) return false;
             if (Wants(text) && Regex.IsMatch(text, @"\b(it|this|that|them|there|again|instead|ça|celui)\b|-(le|la)\b", RegexOptions.IgnoreCase)) return true;
             if (!Wants(asked)) return false;
-            if (Regex.IsMatch(text, @"^(do (it|that)|same again|again|on (spotify|youtube|apple music)( instead)?|fais(-le| ça)|encore)$", RegexOptions.IgnoreCase)) return true;
+            if (Regex.IsMatch(text, @"^(do (it|that)|same again|again|on (spotify|youtube music|youtube|apple music|deezer)( instead)?|fais(-le| ça)|encore)$", RegexOptions.IgnoreCase)) return true;
             if (!Regex.IsMatch(answered ?? "", @"\b(which|what should I play|lequel|laquelle)\b|\b(or|ou)\b[^?]*\?", RegexOptions.IgnoreCase)) return false;
             if (Regex.IsMatch(text, @"^(the )?(first|second|other|last)( one)?$|^(le|la) (premi[èe]re?|deuxi[èe]me|seconde?|derni[èe]re?|autre)$|^(yes|yeah|yep|oui)$", RegexOptions.IgnoreCase)) return true;
             return text.Length > 1 && text.Length < 80 && Regex.IsMatch(answered ?? "", @"(?<!\w)" + Regex.Escape(text) + @"(?!\w)", RegexOptions.IgnoreCase);
@@ -4099,7 +4125,7 @@ namespace CapriDesktop
             action = level = null;
             string text = Regex.Replace((said ?? "").ToLowerInvariant().Replace('\u2019', '\''), @"^(?:(?:i (?:want|need) (?:you|u) to|go ahead and|just|quickly|quick)\s+)+", "");
             spotify = Regex.IsMatch(text, @"\bspotify\b");
-            text = Regex.Replace(text, @"\s+(?:on|in|for)\s+(?:spotify|youtube|apple music|my pc|the pc|my computer|the computer|my laptop)$", "");
+            text = Regex.Replace(text, @"\s+(?:on|in|for)\s+(?:spotify|youtube music|youtube|apple music|deezer|my pc|the pc|my computer|the computer|my laptop)$", "");
             text = Regex.Replace(text, @"(?<!all the )\bway (up|down)$", "$1 a lot");
             string step = null;
             Match by = Regex.Match(text, @"\s+(?:(?<small>(?:just )?a (?:bit|little|lil|tad|notch|touch|smidge|hair)(?: more)?|a little bit(?: more)?|slightly)|(?<big>a lot(?: more)?|loads|heaps|tons|(?:a )?(?:bunch|ton)(?: more)?|much more)|by (?<n>\d{1,3})" + Percent + @")$");
@@ -4124,6 +4150,21 @@ namespace CapriDesktop
 
         // A model's media call squared with what they said: unmute isn't mute, only saying Spotify means Spotify's own volume, and
         // play_pause for "pause it" or "unpause it" only pauses or only plays, so it can't flip the music the wrong way.
+        private static readonly string[,] MusicApps =
+        {
+            { "spotify", @"\bspotify\b" }, { "youtube", @"\b(you ?tube|yt)\b" }, { "applemusic", @"\bapple\s+music\b|\bitunes\b" },
+            { "deezer", @"\bdeezer\b" }, { "youtubemusic", @"\b(you ?tube|yt)\s*music\b" }
+        };
+
+        internal static void AimMusic(ToolArguments args, string said)
+        {
+            if (args == null || string.IsNullOrEmpty(args.App) || string.IsNullOrWhiteSpace(said)) return;
+            if (Regex.IsMatch(said, @"[^\u0000-\u024F\u1E00-\u1EFF]") || !Regex.IsMatch(said, @"\b(play|put on|shuffle|blast|queue|listen to)\b", RegexOptions.IgnoreCase)) return;
+            if (Regex.IsMatch(said, @"\b(again|same|instead|video|videos|mv)\b", RegexOptions.IgnoreCase)) return;
+            for (int i = 0; i < MusicApps.GetLength(0); i++)
+                if (MusicApps[i, 0] == args.App && !Regex.IsMatch(said, MusicApps[i, 1], RegexOptions.IgnoreCase)) args.App = null;
+        }
+
         internal static void Aim(ToolArguments args, string said)
         {
             if (args == null) return;
@@ -4481,7 +4522,7 @@ namespace CapriDesktop
                 if (spotify && (loud == "volume_up" || loud == "volume_down")) args.App = "spotify";
                 return true;
             }
-            Match found = Regex.Match(text, @"^(?:open|launch|start|go to|fire up|load up)\s+(spotify|youtube|apple music)\s*(?:,|and|&)?\s*(?:then\s+)?(?:play|shuffle|put on|blast)\s+(.+)$", RegexOptions.IgnoreCase);
+            Match found = Regex.Match(text, @"^(?:open|launch|start|go to|fire up|load up)\s+(spotify|youtube\s+music|youtube|apple\s+music|deezer)\s*(?:,|and|&)?\s*(?:then\s+)?(?:play|shuffle|put on|blast)\s+(.+)$", RegexOptions.IgnoreCase);
             if (found.Success) text = "play " + found.Groups[2].Value + " on " + found.Groups[1].Value;
             if (Regex.IsMatch(text, @"\b(and|then|but)\s+(open|launch|play|close|quit|pause|don't|do not)\b", RegexOptions.IgnoreCase)) return false;
             ToolArguments website = WebsiteRequest(text);
@@ -4507,7 +4548,7 @@ namespace CapriDesktop
             found = Regex.Match(text, @"^(google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
             if (found.Success && !Regex.IsMatch(found.Groups[2].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = string.Equals(found.Groups[1].Value, "google", StringComparison.OrdinalIgnoreCase) ? "google" : null; args.Search = found.Groups[2].Value.Trim(); return true; }
             if (Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Search = text; return true; }
-            found = Regex.Match(text, @"^(?:play|shuffle|put on|blast)\s+(.+?)(\s+on\s+(spotify|youtube|apple\s+music))?$", RegexOptions.IgnoreCase);
+            found = Regex.Match(text, @"^(?:play|shuffle|put on|blast)\s+(.+?)(\s+on\s+(spotify|youtube\s+music|youtube|apple\s+music|deezer))?$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
                 string target = found.Groups[1].Value.Trim();
@@ -4956,7 +4997,7 @@ namespace CapriDesktop
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
             if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));
             if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z") || Mods.MoveNamed(args.Name) != null;
-            return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube" || args.App == "applemusic");
+            return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube" || args.App == "applemusic" || args.App == "deezer" || args.App == "youtubemusic");
         }
 
         // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own, and so does "open steam and then
@@ -5102,7 +5143,6 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-#if !CROSS
             string kind = null;
             try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
             if (kind != null)
@@ -5114,7 +5154,6 @@ namespace CapriDesktop
                 if (installed) wanted = theirs;
                 else if (string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase)) return OpenBrowserKind(current);
             }
-#endif
             List<InstalledApp> found;
 #if CROSS
             found = FindApps(wanted);
@@ -5127,9 +5166,7 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
-#if !CROSS
             try { Favourites.SheOpened(chosen.Id); } catch (Exception) { }
-#endif
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
             // Windows saying no gets said, instead of "Opened" over nothing.
             try { Run(chosen.Id); }
@@ -5138,7 +5175,6 @@ namespace CapriDesktop
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
 
-#if !CROSS
         private static string OpenBrowserKind(Func<bool> current)
         {
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
@@ -5154,9 +5190,12 @@ namespace CapriDesktop
                 catch (System.ComponentModel.Win32Exception) { continue; }
                 return "Opened " + named + (current == null ? Opened(named) : "") + ".";
             }
+#if CROSS
+            return "I can't tell which browser is yours yet.";
+#else
             return "I can't tell which browser is yours yet. Name it once and I'll remember.";
-        }
 #endif
+        }
 
 #if !CROSS
         internal static string AppMeant(string named)
@@ -5983,6 +6022,8 @@ namespace CapriDesktop
             if (searching)
             {
                 if (host.Length == 0) return Searches[1, 1] + Uri.EscapeDataString(search.Trim());
+                for (int i = 0; i < SiteSearches.GetLength(0); i++)
+                    if (host == SiteSearches[i, 0] || host.StartsWith(SiteSearches[i, 0] + "/", StringComparison.Ordinal)) return SiteSearches[i, 1] + Uri.EscapeDataString(search.Trim());
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];
@@ -6537,6 +6578,7 @@ namespace CapriDesktop
                     if (Regex.IsMatch(song, KnownSongs[i, 0], RegexOptions.IgnoreCase)) { known = KnownSongs[i, 1]; song = KnownSongs[i, 2]; look = KnownSongs[i, 3]; }
             string named = kind == "song" ? song : "the " + song + " " + kind;
             app = MusicApp(app);
+            if (app == "deezer" || app == "youtubemusic") return OnService(ServiceFor(app), kind == "song" ? song : asked, kind == "song" ? "song" : askedKind, look, songOnly, current);
             if (app == "applemusic")
             {
                 string opened = AppleMusic(kind == "song" ? song : asked, kind == "song" ? "song" : askedKind, look, songOnly, current);
@@ -6612,12 +6654,12 @@ namespace CapriDesktop
         {
             if (!string.IsNullOrEmpty(app)) return app;
             int step = LevelOf("music_app");
-            return step == 1 ? "youtube" : step == 2 ? "applemusic" : null;
+            return step == 1 ? "youtube" : step == 2 ? "applemusic" : step == 3 ? "deezer" : step == 4 ? "youtubemusic" : null;
         }
 
-        private static readonly Regex LovedSongs = new Regex(@"^((my|your|the)\s+)?((liked|saved|loved|favou?rite)\s+songs|likes)(\s+playlist)?$", RegexOptions.IgnoreCase);
+        private static readonly Regex LovedSongs = new Regex(@"^((my|your|the)\s+)?((liked|saved|loved|favou?rite)\s+songs|likes|favou?rite\s+tracks|liked\s+music)(\s+playlist)?$", RegexOptions.IgnoreCase);
 
-        private static string AppleMusicKind(ref string song, string kind, bool songOnly, out bool own)
+        private static string MusicKind(ref string song, string kind, bool songOnly, out bool own)
         {
             song = song.Trim();
             own = false;
@@ -6637,16 +6679,78 @@ namespace CapriDesktop
 #else
             if (app == null) app = "Apple Music";
 #endif
-            bool own;
-            string what = AppleMusicKind(ref song, kind, songOnly, out own);
-            string open = " on Apple Music: open the " + app + " app, ", stop = " If " + app + " asks them to sign in, subscribe or start a trial, stop there and tell them.";
-            if (what == "loved") return "Play their Favourite Songs" + open + "go to Library, then Playlists, open Favourite Songs, or Songs if it isn't there, and press play." + stop;
-            if (own) return "Play their playlist " + Voice.Quote(song) + open + "go to Library, then Playlists, open " + Voice.Quote(song) + " and press play." + stop;
-            if (what == "song") return "Play " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then click the song that fits best and press play." + stop;
-            return "Play the " + what + " " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then open the " + what + " that fits best and press its play button." + stop;
+            return ServiceJob(AppleMusicService, app, song, kind, songOnly);
         }
 
-        internal static InstalledApp AppleMusicApp()
+        private sealed class Service
+        {
+            internal readonly string Name, Wanted, Search, Home, Loved, LovedSteps, Playlists, LovedLine, PlaylistLine;
+
+            internal Service(string name, string wanted, string search, string home, string loved, string lovedSteps, string playlists, string lovedLine, string playlistLine)
+            {
+                Name = name; Wanted = wanted; Search = search; Home = home; Loved = loved; LovedSteps = lovedSteps; Playlists = playlists; LovedLine = lovedLine; PlaylistLine = playlistLine;
+            }
+        }
+
+        private static readonly Service AppleMusicService = new Service("Apple Music", "apple music", null, null, "Favourite Songs",
+            "go to Library, then Playlists, open Favourite Songs, or Songs if it isn't there, and press play.", "go to Library, then Playlists, ", null, null);
+        private static readonly Service DeezerService = new Service("Deezer", "deezer", "https://www.deezer.com/search/", "https://www.deezer.com", "Favourite tracks",
+            "go to Favourites, open Favourite tracks and press play.", "go to Favourites, then Playlists, ", "Your Favourite tracks are under Favourites.", "Your {0} playlist is under Favourites, then Playlists.");
+        private static readonly Service YouTubeMusicService = new Service("YouTube Music", "youtube music", "https://music.youtube.com/search?q=", "https://music.youtube.com", "Liked music",
+            "go to Library, open Liked music and press play.", "go to Library, then Playlists, ", "Your Liked music is under Library.", "Your {0} playlist is under Library, then Playlists.");
+
+        private static Service ServiceFor(string app) { return app == "deezer" ? DeezerService : YouTubeMusicService; }
+
+        internal static string ServiceJob(string app, string song, string kind, bool songOnly = false)
+        {
+            Service service = ServiceFor(app);
+            InstalledApp found = MusicAppNamed(service.Wanted);
+            return ServiceJob(service, found == null ? null : found.Name, song, kind, songOnly);
+        }
+
+        private static string ServiceJob(Service service, string app, string song, string kind, bool songOnly)
+        {
+            bool own;
+            string what = MusicKind(ref song, kind, songOnly, out own);
+            string on = " on " + service.Name + ": ", stop = " If " + (app ?? service.Name) + " asks them to sign in, subscribe or start a trial, stop there and tell them." + (app == null ? " Open pages only with open_website, never by typing in the browser's address bar." : "");
+            string open = app != null ? "open the " + app + " app, " : "open " + service.Home + " with open_website, refuse any cookie notice, ";
+            if (what == "loved") return "Play their " + service.Loved + on + open + service.LovedSteps + stop;
+            if (own) return "Play their playlist " + Voice.Quote(song) + on + open + service.Playlists + "open " + Voice.Quote(song) + " and press play." + stop;
+            string find = app != null ? open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then " : "open " + service.Search + Uri.EscapeDataString(song) + " with open_website, refuse any cookie notice, then ";
+            if (what == "song") return "Play " + Voice.Quote(song) + on + find + "click the song that fits best and press play." + stop;
+            return "Play the " + what + " " + Voice.Quote(song) + on + find + "open the " + what + " that fits best and press its play button." + stop;
+        }
+
+        private static string OnService(Service service, string song, string kind, string look, bool songOnly, Func<bool> current)
+        {
+            bool own;
+            string search = song;
+            string what = MusicKind(ref search, kind, songOnly, out own);
+            string named = own ? "their " + search + " playlist" : what == "song" ? search : "the " + search + " " + what;
+            if (what == "song") search = look;
+            InstalledApp app = MusicAppNamed(service.Wanted);
+            if (current != null && !current()) return "That call errand has ended.";
+#if CROSS
+            if (NativeWork != null && Security.On(Security.Mouse) && KitFor().Has("use_computer"))
+                return NativeWork(new ToolArguments { Task = ServiceJob(service, app == null ? null : app.Name, what == "song" ? look : song, kind, songOnly), Current = current });
+#endif
+            if (what == "loved" || own)
+            {
+                Run(app != null ? app.Id : service.Home);
+                return "Opened " + (app != null ? app.Name : service.Name) + ". " + (what == "loved" ? service.LovedLine : string.Format(service.PlaylistLine, search));
+            }
+            if (app != null && !WebApp(app) && service != YouTubeMusicService)
+            {
+                Run(app.Id);
+                return "Opened " + app.Name + ". Search for " + named + " there and press play, since I need my cursor to play it for you.";
+            }
+            Run(service.Search + Uri.EscapeDataString(search));
+            return "Opened a " + service.Name + " search for " + named + ". Press play on the one you want" + (service == DeezerService ? ", after signing in if it asks." : ".");
+        }
+
+        internal static InstalledApp AppleMusicApp() { return MusicAppNamed("apple music"); }
+
+        private static InstalledApp MusicAppNamed(string wanted)
         {
             try
             {
@@ -6658,7 +6762,7 @@ namespace CapriDesktop
                     foreach (InstalledApp app in apps)
                     {
                         string name = AppName(app);
-                        if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
+                        if (name != wanted && !name.StartsWith(wanted + " ", StringComparison.Ordinal)) continue;
                         if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
                     }
                     if (chosen != null) return chosen;
@@ -6672,7 +6776,7 @@ namespace CapriDesktop
         {
             bool own;
             string search = song;
-            string what = AppleMusicKind(ref search, kind, songOnly, out own);
+            string what = MusicKind(ref search, kind, songOnly, out own);
             string named = what == "loved" ? "their Favourite Songs" : own ? "their " + search + " playlist" : what == "song" ? search : "the " + search + " " + what;
             if (what == "loved") search = "Favourite Songs";
             if (what == "song") search = look;

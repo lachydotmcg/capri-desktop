@@ -59,6 +59,7 @@ namespace CapriDesktop
             }
         }
         private readonly List<ChatMessage> history = new List<ChatMessage>();
+        private readonly string conversationRules;
         private int generation;
         private bool enabled;
         private CallErrand errand;
@@ -69,6 +70,9 @@ namespace CapriDesktop
         private DateTime askedUntil;
         private int friendTurn, friendSetting;
         internal Func<DateTime> Now = delegate { return DateTime.UtcNow; };
+
+        internal CallSession(string conversationRules = null) { this.conversationRules = conversationRules; }
+        internal bool Shared { get { return conversationRules != null; } }
 
         internal int Generation { get { lock (gate) return generation; } }
         internal bool Enabled { get { lock (gate) return enabled; } }
@@ -254,7 +258,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (!enabled || generation != version) return null;
-                List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", character + Instruction) };
+                List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", character + (conversationRules ?? Instruction)) };
                 foreach (ChatMessage message in history) messages.Add(new ChatMessage(message.Role, message.Content));
                 messages.Add(new ChatMessage("user", text));
                 return messages;
@@ -377,6 +381,7 @@ namespace CapriDesktop
                 ChooseCallApp(back, backName);
             }
             typer.CallMode = on;
+            CheckHoloCall();
             SavePreferences();
             mainframe.VoiceNote(on ? "Call mode (beta) on. " + CallSession.EchoLine : "Call mode off.", false);
             if (!chatting && !testing && EarsAfterCall(on, wasChatting, preferences.ListenCapri, earsClosed)) ToggleChat();
@@ -401,7 +406,8 @@ namespace CapriDesktop
 
         private void ShowCallPanel()
         {
-            if (testing && !callWindowsTest) return;
+            if (quitting || testing && !callWindowsTest) return;
+            if (HoloShowing) { HideCallWindows(); return; }
             if (!CallModeOn && (callDismissed || callEndedAt == DateTime.MinValue || (DateTime.UtcNow - callEndedAt).TotalSeconds >= 6)) { HideCallWindows(); return; }
             if (callPanel == null) MakeCallWindows(CallViewNow);
             callPanel.TopMost = preferences.OnTop;
@@ -441,6 +447,7 @@ namespace CapriDesktop
 
         private void ShowCallWindow()
         {
+            if (HoloShowing) return;
             if (callSmall)
             {
                 if (!callPillPlaced)
@@ -1025,7 +1032,8 @@ namespace CapriDesktop
             string sure = line.Sure;
             CallSaid(line);
             bool answer = sure.Length > 0 && (CallSession.Agrees(sure) || CallSession.Refuses(sure));
-            if (Hands.HeardName(sure) || answer && (callSession.FriendAsked || OwnCallQuestion())) { Hear(sure, text, "> you: ", 0, true, text); return; }
+            if (Hands.HeardName(sure) || answer && (callSession.FriendAsked || OwnCallQuestion())
+                || DiscordCompanion.OwnerJoinAsked(sure) && LinkedDiscord) { Hear(sure, text, "> you: ", 0, true, text); return; }
             if (sure.Length > 0) callSession.DropFriend();
             // Mid-job the call gets her answer beside the job, so someone talking on it can't end the job or take its turn (F-6nov-18).
             Job running = job;

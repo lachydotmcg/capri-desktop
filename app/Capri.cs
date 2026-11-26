@@ -2673,6 +2673,9 @@ namespace CapriDesktop
         private readonly TalkPill pill = new TalkPill();
         private readonly SpeechBox box = new SpeechBox();
         private readonly TypeBox typer = new TypeBox();
+        private readonly TypeBox jobEditor = new TypeBox(true);
+        private Job editingJob;
+        private long editRequest;
         private readonly Tear tear = new Tear();
         private readonly Shatter shatter = new Shatter();
         private readonly Ribbons ribbons = new Ribbons();
@@ -3177,7 +3180,7 @@ namespace CapriDesktop
             preferences.WanderPace = Math.Max(0, Math.Min(3, preferences.WanderPace));
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
-            preferences.MusicApp = Math.Max(0, Math.Min(2, preferences.MusicApp));
+            preferences.MusicApp = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, preferences.MusicApp));
             Brain.Lite = preferences.Lite;
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
@@ -3218,6 +3221,7 @@ namespace CapriDesktop
             AddSize(sizes, "Large", 320);
             AddSize(sizes, "Huge", 440);
             AddSize(sizes, "Giant", 560);
+            AddHoloModes(sizes);
             menu.Items.Add(sizes);
             ToolStripMenuItem moves = new ToolStripMenuItem("Move");
             wanderItem = new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); });
@@ -3251,6 +3255,24 @@ namespace CapriDesktop
             hologramItem.ToolTipText = "Clicks go through her until you turn it off from her tray icon";
             hologramItem.AccessibleName = "Hologram. " + hologramItem.ToolTipText;
             menu.Items.Add(hologramItem);
+            ToolStripMenuItem editJobItem = new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); });
+            ToolStripMenuItem jobMicItem = new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); });
+            menu.Items.Add(editJobItem);
+            menu.Items.Add(jobMicItem);
+            menu.Opening += delegate
+            {
+                bool activeJob = MidJob(job);
+                editJobItem.Visible = activeJob;
+                editJobItem.Enabled = activeJob && editingJob == null && !OwnCallQuestion();
+                jobMicItem.Visible = activeJob && chatting;
+                jobMicItem.Text = ears.Muted ? "Unmute Capri's mic" : "Mute Capri's mic";
+            };
+            taskPanel.ContextMenuStrip = menu;
+            taskPanel.EditRequested += EditCurrentJob;
+            taskPanel.MicRequested += ToggleMic;
+            taskPanel.JobMic = delegate { return !chatting ? "" : ears.Muted ? "UNMUTE" : "MUTE"; };
+            jobEditor.Submitted += FinishJobEdit;
+            jobEditor.VisibleChanged += delegate { if (!jobEditor.Visible) FinishJobEdit(null); };
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
@@ -3706,11 +3728,12 @@ namespace CapriDesktop
         {
             base.OnFormClosing(e);
             bool shutdown = e.CloseReason == CloseReason.WindowsShutDown;
+            if (!e.Cancel && discordCompanion != null) discordCompanion.Stop();
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); SquadOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
+            if (!e.Cancel) { quitting = true; LeaveHolo(); CloseCameraOutput(); if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); SquadOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -3724,6 +3747,7 @@ namespace CapriDesktop
             if (frames.Interval != interval) frames.Interval = interval;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             if ((docked || hidden) && gifCard.Showing) gifCard.Stop();
+            if (HoloShowing && !docked) { UpdateTalk(now); return; }
             if (docked) { DockTick(now); if (iconRampage != null) frames.Start(); return; }
             if (hidden) { if (iconRampage != null) ClearIcons(); frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
@@ -4798,7 +4822,7 @@ namespace CapriDesktop
             {
                 ToolStripMenuItem group = entry as ToolStripMenuItem;
                 if (group == null || group.Text != "Size") continue;
-                foreach (ToolStripMenuItem option in group.DropDownItems) option.Checked = (int)option.Tag == size;
+                foreach (ToolStripItem option in group.DropDownItems) if (option.Tag is int) ((ToolStripMenuItem)option).Checked = (int)option.Tag == size;
             }
             RenderFrame();
             SavePreferences();
@@ -6670,6 +6694,7 @@ namespace CapriDesktop
             {
                 tool = "play_music";
                 if (args.FromFriend) { musicArgs.Asked = args.Asked; musicArgs.FromFriend = true; musicArgs.Current = args.Current; }
+                Hands.AimMusic(musicArgs, args.Asked);
                 args = musicArgs;
             }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
@@ -6950,12 +6975,13 @@ namespace CapriDesktop
                     if (apple != null) return Hands.AppleMusicJob(song, args.Kind, apple.Name, args.SongOnly);
                     app = null;
                 }
+                if (app == "deezer" || app == "youtubemusic") return Hands.ServiceJob(app, song, args.Kind, args.SongOnly);
                 bool spotify = app == "spotify" || (app != "youtube" && Hands.Installed("spotify"));
-                if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
+                if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar on the page, not the browser's address bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
                 return null;
             }
             if (tool == "open_website" && !string.IsNullOrWhiteSpace(args.Search) && Regex.IsMatch((args.Site ?? "").Trim(), @"^(https?://)?(www\.|m\.)?youtube(\.com)?/?$", RegexOptions.IgnoreCase))
-                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar, type it and press Enter, then scroll down through the results.";
+                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar on the page, not the browser's address bar, type it and press Enter, then scroll down through the results.";
             // Volume is the PC's volume. Spotify's own slider only when they said Spotify.
             if (tool == "media" && (args.Action == "volume_up" || args.Action == "volume_down") && args.App == "spotify" && SpotifyOpen())
             {
@@ -7107,7 +7133,12 @@ namespace CapriDesktop
         internal void Quit()
         {
             if (fileEditor != null && !fileEditor.Clear(Quit)) return;
-            quitting = true; ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose);
+            quitting = true;
+            bool fromHolo = HoloShowing;
+            LeaveHolo();
+            ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake();
+            if (fromHolo) Close();
+            else { quitClose = Close; GlitchOut(quitClose); }
         }
 
         private void StartHeartbeat()
@@ -7465,6 +7496,9 @@ namespace CapriDesktop
             mainframe.Restore();
             mainframe.ShowSettings(true);
             List<ToolStripItem> standIns = new List<ToolStripItem>();
+            SpeechBox liveBubble = new SpeechBox();
+            MiniPlayer livePlayer = new MiniPlayer();
+            TalkPill livePill = new TalkPill();
             try
             {
                 // Every dropdown and menu gets a stand-in item with no colours of its own, like most of hers, and each colour they
@@ -7477,6 +7511,15 @@ namespace CapriDesktop
                 foreach (ToolStrip strip in menus) standIns.Add(strip.Items.Add("Smoke"));
                 List<KeyValuePair<object, int[]>> menuSlots = new List<KeyValuePair<object, int[]>>();
                 foreach (ToolStrip strip in menus) MenuSlots(strip, Neon.LookColours(0), menuSlots);
+                liveBubble.Layer = delegate { };
+                liveBubble.State = TalkState.Online;
+                liveBubble.Reply = "Smoke colours.";
+                liveBubble.Revealed = liveBubble.Reply.Length;
+                livePlayer.Layer = delegate { };
+                livePlayer.ShowTune(SmokeColourTune(), new Point(40, 40));
+                livePill.Layer = delegate { };
+                livePill.Motion = false;
+                livePill.Place(new Point(200, 200), 1);
                 for (int look = 3; look >= 0; look--)
                 {
                     mainframe.PickColours(look);
@@ -7495,6 +7538,7 @@ namespace CapriDesktop
                     if (LoadPreferences().MainframeColours != look) throw new Exception(Neon.LookNames[look] + " was not saved.");
                     if (Neon.ShownToWindows(typer)) throw new Exception(Neon.LookNames[look] + " made the hidden Type box visible to Windows.");
                     if (playerMenu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the mini player's menu.");
+                    CheckBubbleColours(look, liveBubble, livePlayer, livePill, output);
                     Application.DoEvents();
                     if (ForeColor.ToArgb() != herFore || BackColor.ToArgb() != herBack || pill.ForeColor.ToArgb() != pillFore || pill.BackColor.ToArgb() != pillBack) throw new Exception(Neon.LookNames[look] + " changed a window outside the Mainframe look.");
                     mainframe.Settle();
@@ -7521,6 +7565,9 @@ namespace CapriDesktop
             finally
             {
                 foreach (ToolStripItem standIn in standIns) standIn.Dispose();
+                liveBubble.Dispose();
+                livePlayer.Dispose();
+                livePill.Dispose();
                 mainframe.PickColours(0);
                 mainframe.ShowSettings(false);
                 mainframe.WindowState = stateWas;
@@ -7529,7 +7576,102 @@ namespace CapriDesktop
             }
             if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
             if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box and her menus straight away from any look to any other, leave hidden windows hidden, are saved, and Night City comes back as it was");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box, her menus, her bubble, her TYPE | TALK pill and her music player straight away from any look to any other, keep her bubble, pill and player as they were on Night City, leave hidden windows hidden, are saved, and Night City comes back as it was");
+        }
+
+        private static Tune SmokeColourTune() { return new Tune { Title = "Smoke song", Artist = "Smoke artist", App = "Spotify.exe", Playing = true, Shuffle = true, Repeat = "all" }; }
+
+        // Her bubble and music player in this look: Night City keeps the colours they had before they followed the look, every
+        // look's words read on its sheet, Black, White and Grey leave no colour in them, and the ones on screen redraw at once.
+        private void CheckBubbleColours(int look, SpeechBox liveBubble, MiniPlayer livePlayer, TalkPill livePill, string output)
+        {
+            string name = Neon.LookNames[look];
+            if (look == 0)
+            {
+                Color[] themed = { BubbleLook.Panel, BubbleLook.Ink, BubbleLook.Dim, BubbleLook.Yellow, BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Blue, BubbleLook.Pink };
+                Color[] before = { Look.Panel, Look.Ink, Look.Dim, Look.Yellow, Look.Cyan, Look.Red, Look.Neon, Look.Pink };
+                for (int i = 0; i < before.Length; i++) if (themed[i].ToArgb() != before[i].ToArgb()) throw new Exception("Night City changed her bubble and music player's colours.");
+                string pillLook = TalkPill.Check();
+                if (pillLook != null) throw new Exception("Night City changed her TYPE | TALK pill: " + pillLook);
+            }
+            foreach (Color words in new[] { BubbleLook.Ink, BubbleLook.Blue, BubbleLook.Yellow })
+                if (LookContrast(words, BubbleLook.Panel) < 4.5) throw new Exception(name + "'s bubble words are hard to read.");
+            foreach (Color accent in new[] { BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Pink, BubbleLook.Dim })
+                if (LookContrast(accent, BubbleLook.Panel) < 3) throw new Exception(name + "'s bubble accents are hard to see.");
+            if (Neon.Mono && Math.Abs(BubbleLook.Pink.R - BubbleLook.Dim.R) < 30) throw new Exception(name + "'s music player shows shuffle and repeat on too close to off.");
+            if (Neon.Mono && Math.Abs(BubbleLook.Cyan.R - TalkPill.Idle.R) < 30) throw new Exception(name + "'s TYPE | TALK pill shows lit too close to not lit.");
+            using (Bitmap still = MiniPlayer.Render(1, SmokeColourTune(), Tunes.Now, 0, false, -1, -1, -1, 0))
+            using (Bitmap hovered = MiniPlayer.Render(1, SmokeColourTune(), Tunes.Now, PlayerPart.Menu, false, -1, -1, -1, 0))
+                if (PixelsApart(still, hovered) < 150) throw new Exception(name + "'s music player barely shows a hovered button.");
+            using (Bitmap talkOn = TalkPill.Render(1, 0, true, false, 0, 0, 0, false))
+            using (Bitmap talkWaiting = TalkPill.Render(1, 0, true, false, 0, 0, 0, true))
+                if (BubbleLeftover(talkOn, BubbleLook.Cyan) <= BubbleLeftover(talkWaiting, BubbleLook.Cyan)) throw new Exception(name + "'s TYPE | TALK pill doesn't light TALK in voice chat.");
+            Point head = new Point(600, 400), feet = new Point(600, 650);
+            Rectangle area = new Rectangle(0, 0, 1200, 800);
+            liveBubble.Update(30, 1, head, feet, area);
+            Bitmap bubble = liveBubble.Image, player = livePlayer.Image;
+            if (bubble == null || player == null) throw new Exception(name + " left her bubble or music player undrawn.");
+            if (BubbleLeftover(bubble, BubbleLook.Red) < 20) throw new Exception(name + " did not reach her bubble straight away.");
+            if (Neon.Mono && (Colourful(bubble) > 0 || Colourful(player) > 0)) throw new Exception(name + " left colour in her bubble or music player.");
+            if (!Neon.Mono && (Colourful(bubble) < 50 || Colourful(player) < 50)) throw new Exception("Night City took the colour out of her bubble or music player.");
+            if (BubbleLeftover(player, BubbleLook.Ink) < 20) throw new Exception(name + " did not reach her music player straight away.");
+            Bitmap pillShown = livePill.Image;
+            using (Bitmap pillFresh = TalkPill.Render(1, 0))
+            using (Bitmap pillHover = TalkPill.Render(1, 2))
+            {
+                if (pillShown == null || !SamePicture(pillShown, pillFresh)) throw new Exception(name + " did not reach her TYPE | TALK pill straight away.");
+                if (Neon.Mono && (Colourful(pillFresh) > 0 || Colourful(pillHover) > 0)) throw new Exception(name + " left colour in her TYPE | TALK pill.");
+                if (!Neon.Mono && Colourful(pillFresh) < 50) throw new Exception("Night City took the colour out of her TYPE | TALK pill.");
+                if (LookContrast(TalkPill.Caption, BubbleLook.Panel) < 4.5) throw new Exception(name + "'s TYPE and TALK are hard to read.");
+                pillHover.Save(Path.Combine(output, "pill-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
+            }
+            bubble.Save(Path.Combine(output, "bubble-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
+            player.Save(Path.Combine(output, "player-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
+        }
+
+        private static int BubbleLeftover(Bitmap image, Color colour)
+        {
+            int found = 0;
+            for (int y = 0; y < image.Height; y++)
+                for (int x = 0; x < image.Width; x++)
+                {
+                    Color seen = image.GetPixel(x, y);
+                    if (seen.A == 255 && seen.R == colour.R && seen.G == colour.G && seen.B == colour.B) found++;
+                }
+            return found;
+        }
+
+        private static bool SamePicture(Bitmap one, Bitmap two)
+        {
+            if (one.Size != two.Size) return false;
+            for (int y = 0; y < one.Height; y++)
+                for (int x = 0; x < one.Width; x++)
+                    if (one.GetPixel(x, y) != two.GetPixel(x, y)) return false;
+            return true;
+        }
+
+        private static int PixelsApart(Bitmap one, Bitmap two)
+        {
+            int changed = 0;
+            for (int y = 0; y < Math.Min(one.Height, two.Height); y++)
+                for (int x = 0; x < Math.Min(one.Width, two.Width); x++)
+                {
+                    Color a = one.GetPixel(x, y), b = two.GetPixel(x, y);
+                    if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 24) changed++;
+                }
+            return changed;
+        }
+
+        private static int Colourful(Bitmap image)
+        {
+            int found = 0;
+            for (int y = 0; y < image.Height; y++)
+                for (int x = 0; x < image.Width; x++)
+                {
+                    Color seen = image.GetPixel(x, y);
+                    if (seen.A > 200 && Math.Max(seen.R, Math.Max(seen.G, seen.B)) - Math.Min(seen.R, Math.Min(seen.G, seen.B)) > 12) found++;
+                }
+            return found;
         }
 
         // Each colour a menu, its items and the menus they drop take from the look, by its slot in the look, so a change can be
@@ -7588,6 +7730,11 @@ namespace CapriDesktop
             windows.AddRange(mainframe.Dropdowns);
             Neon.Repaint(preferences.MainframeColours, windows.ToArray());
             mainframe.ShowColours();
+            foreach (Form open in Application.OpenForms)
+            {
+                if (open is MiniPlayer) ((MiniPlayer)open).Restyle();
+                else if (open is TalkPill) ((TalkPill)open).Restyle();
+            }
         }
 
         internal double PopGap() { return ((double)PopMin + random.NextDouble() * ((double)PopMax - PopMin)) * 60; }
@@ -8614,7 +8761,7 @@ namespace CapriDesktop
 
         internal void SetMusicApp(int level)
         {
-            preferences.MusicApp = Math.Max(0, Math.Min(2, level));
+            preferences.MusicApp = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, level));
             SavePreferences();
             mainframe.Sync();
         }
@@ -8864,7 +9011,7 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
-        internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
+        internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|^music\.youtube\.com-|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
 
         internal static bool IsSong(string title, string artist, TimeSpan length)
         {
@@ -10276,6 +10423,7 @@ namespace CapriDesktop
             // Fullscreen does not take her controls away (Lachy, 2 Nov: keep her draggable and clickable).
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
+            if (HoloShowing) return;
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked && !PlayingGame;
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
@@ -10934,10 +11082,10 @@ namespace CapriDesktop
         {
             // Her mini player and her reactions feed too, so they never hide what she's working on, and her glow where Windows can't
             // keep it out of screenshots by itself.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen);
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen) | HoloUnseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen) | HoloUnseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -11466,7 +11614,7 @@ namespace CapriDesktop
             {
                 Job joining = new Job(task, asked);
                 string result = Work(joining);
-                return FinishCallJoin(task, joining.Outcome, ticket, result);
+                return FinishCallJoin(joining.Task, joining.Outcome, ticket, result);
             }
             // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
             // a plain job over its stream tool.
@@ -11476,7 +11624,12 @@ namespace CapriDesktop
                 Job plain = new Job(task, asked);
                 string finished = Work(plain);
                 Hands.Held(plain.Outcome == "waiting" ? finished : null);
-                if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return finished; }
+                if (plain.TaskEdited) { task = plain.Task; asked = plain.Words; }
+                if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted)
+                {
+                    Computer.Streaming = Computer.StreamingAlways;
+                    return plain.TaskEdited ? FinishCallJoin(task, plain.Outcome, ticket, finished) : finished;
+                }
             }
             // On stream only their Esc ends it (Lachy, 30 Oct: "play for hours ... while im asleep"). Anything else that stops
             // her, like a brain error or a run of turns without a move, starts the stream again after a breather, a longer one
@@ -11492,6 +11645,7 @@ namespace CapriDesktop
                     string result;
                     try { result = Work(running); }
                     catch (Exception error) { result = Hands.Problem(error); }
+                    if (running.TaskEdited) { task = running.Task; asked = running.Words; }
                     if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
                     rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
                     int wait = 15000 << rests;
@@ -11569,7 +11723,6 @@ namespace CapriDesktop
             };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { RemoteJobStatus(running, status); Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
-            bool social = Computer.Social(running.Task + " " + running.Words);
             string[] called = { null };
             running.Seen = delegate(Sight sight)
             {
@@ -11580,7 +11733,7 @@ namespace CapriDesktop
                 // It shows while she's hidden too, beside her glow, so they can always see which app she's in (#106).
                 Post(delegate { if (job == running && preferences.Motion) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
                 string program = sight.Program;
-                if (social && !string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
+                if (!string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight) && Computer.Social(running.Task + " " + running.Words)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
             };
             running.Busy = delegate(string what) { RemoteJobStatus(running, what); Post(delegate { taskPanel.Busy(running, what); }); };
             running.Stepped = delegate(JobStep step) { RemoteJobStep(running, step); Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
@@ -11598,7 +11751,7 @@ namespace CapriDesktop
                 RemoteJobOn(running);
                 if (RemoteJobStopped(running)) { running.Outcome = "stopped"; return Computer.Escaped; }
                 result = running.Run();
-                if (media && !running.Playing) KeepPlaying(running.Outcome, before, 800);
+                if (media && !running.TaskEdited && !running.Playing) KeepPlaying(running.Outcome, before, 800);
                 return result;
             }
             catch (BrainException error) { brainTrouble = error.Message; throw; }
@@ -11752,6 +11905,7 @@ namespace CapriDesktop
         // She stays on the panel until it fades.
         private void JobOff(Job running, string outcome, string result)
         {
+            if (editingJob == running) FinishJobEdit(null);
             working = null;
             asideShown = null;
             if (jobEars)
@@ -12034,7 +12188,7 @@ namespace CapriDesktop
         // Which step one of her sliders is on, read the way her Mainframe shows it.
         private int LevelOf(string name)
         {
-            if (name == "music_app") return Math.Max(0, Math.Min(2, MusicApp));
+            if (name == "music_app") return Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, MusicApp));
             if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
@@ -12065,7 +12219,7 @@ namespace CapriDesktop
                 case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
-                case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
+                case "music_app": return Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_language": return ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), ReplyLanguage));
                 case "reply_limit": return ReplyLength;
@@ -14487,7 +14641,7 @@ namespace CapriDesktop
         private void UpdatePill(double now)
         {
             if (!IsHandleCreated) return;
-            bool allowed = !hidden && !riding && !onPanel && !dragging && !pressed && !falling;
+            bool allowed = !hidden && !HoloShowing && !riding && !onPanel && !dragging && !pressed && !falling;
             Point cursor = Cursor.Position;
             Point inside = PointToClient(cursor);
             bool near = frame != null && inside.X >= 0 && inside.Y >= 0 && inside.X < Width && inside.Y < Height && Solid(inside, true);
@@ -14512,6 +14666,44 @@ namespace CapriDesktop
             if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
             else typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
             pillUntil = clock.Elapsed.TotalSeconds + 1.5;
+        }
+
+        private void EditCurrentJob()
+        {
+            Job running = job;
+            if (editingJob != null || !MidJob(running) || OwnCallQuestion()) return;
+            editingJob = running;
+            long request = ++editRequest;
+            if (!running.RequestEdit(delegate { Post(delegate { OpenJobEditor(running, request); }); }))
+            {
+                editingJob = null;
+                return;
+            }
+            taskPanel.Busy(running, "Pausing to edit instructions");
+        }
+
+        private void OpenJobEditor(Job running, long request)
+        {
+            if (request != editRequest || editingJob != running) return;
+            if (job != running || quitting || Computer.Interrupted || OwnCallQuestion()) { FinishJobEdit(null); return; }
+            if (typer.Visible) typer.Hide();
+            Point head = Head();
+            Rectangle panel = taskPanel.Visible ? taskPanel.Bounds : Rectangle.Empty;
+            jobEditor.Draft = running.Words;
+            taskPanel.Busy(running, "Waiting for your edit");
+            jobEditor.Open(head, Feet(), Screen.FromPoint(head).WorkingArea, TalkScale(), panel);
+        }
+
+        private void FinishJobEdit(string text)
+        {
+            Job running = editingJob;
+            if (running == null) return;
+            editingJob = null;
+            if (jobEditor.Visible) jobEditor.Hide();
+            string replacement = job == running && !quitting && !Computer.Interrupted && !OwnCallQuestion() ? text : null;
+            if (!string.IsNullOrWhiteSpace(replacement)) taskPanel.JobWords(running, replacement);
+            running.FinishEdit(replacement);
+            taskPanel.Busy(running, null);
         }
 
         private void ToggleChat()
@@ -14790,11 +14982,18 @@ namespace CapriDesktop
         // behind open ears, and costs no reload.
         private void EarsModel(bool open)
         {
+            lock (earsModelGate) earsModelDesktop = open;
+            RefreshEarsModel();
+        }
+
+        private void RefreshEarsModel()
+        {
+            bool discord = discordCompanion != null && discordCompanion.InVoice && parakeet.Ready;
             lock (earsModelGate)
             {
-                earsModelWanted = open;
+                earsModelWanted = earsModelDesktop || discord;
                 // Watch Along can load it too, so closing always unloads.
-                if (!open) earsModelUnload = true;
+                if (!earsModelWanted) earsModelUnload = true;
                 if (earsModelBusy) return;
                 earsModelBusy = true;
             }
@@ -14912,7 +15111,7 @@ namespace CapriDesktop
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
         private readonly object earsModelGate = new object();
-        private bool earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
+        private bool earsModelDesktop, earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
         private double listenAt;
 
         private void AgentVoice()
@@ -15790,6 +15989,8 @@ namespace CapriDesktop
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
             if (CallModeOn) return CallSession.Conversation;
+            if (opened != null && DiscordCompanion.OwnerJoinAsked(opened.LastHeard) && LinkedDiscord)
+                return "The linked Discord bot is handling this request.";
             if (args == null) args = new ToolArguments();
             // What the agent picked runs as it picked it (Lachy, 8 Nov): its tools say a game to play is one use_computer job.
             args.FromAgent = opened != null;
@@ -15851,6 +16052,12 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
+            if (JoinLinkedDiscord(text))
+            {
+                dropping = true;
+                Hush("Discord bot joining");
+                return;
+            }
             Chimes.Play(Chime.Heard);
             // A sorry in voice chat makes up with her too, and the agent hears so before it answers (Zr4, F44).
             if (Sulking && Apology(text)) Forgive();
@@ -16193,6 +16400,7 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text, typed)) return;
             if (StopListening(input)) return;
+            if (callReply == null && prompt == "> you: " && switches == 0 && !Security.FromMod(input) && JoinLinkedDiscord(input)) return;
             if (callReply == null && prompt == "> you: " && WorkspaceAsked(input)) { OpenWorkspace(); return; }
             // Sorry, typed or said while she sulks over being thrown, makes up with her, and a plain sorry gets her forgiving line
             // back. Mid-job it still goes to the job (Zr4, F44).
@@ -16786,7 +16994,7 @@ namespace CapriDesktop
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
             if (jealousOffer == null && !box.Choosing && replyDone >= 0 && hdSpeaking != asking && (!reminderUp || answerVoice != asking) && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
-            if (hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
+            if (HoloShowing || hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
@@ -16819,7 +17027,7 @@ namespace CapriDesktop
 
         private void RenderFrame()
         {
-            if (!IsHandleCreated || hidden || docked || IsDisposed) return;
+            if (!IsHandleCreated || hidden || docked || HoloShowing || IsDisposed) return;
             double now = clock.Elapsed.TotalSeconds;
             int cell = Advance(now);
             if (arrivalDue)
@@ -17619,6 +17827,8 @@ namespace CapriDesktop
                 pill.Dispose();
                 box.Dispose();
                 gifCard.Dispose();
+                FinishJobEdit(null);
+                jobEditor.Dispose();
                 typer.Dispose();
                 CloseCallWindows();
                 mainframe.Dispose();
@@ -28160,6 +28370,13 @@ namespace CapriDesktop
         // Power saver (issue #111): HABITS' row saves, syncs and stays in Simple Settings. Only while it works, over a faked game
         // for In games or all the time for Always, she rests at 15 fps, runs her background checks once a second and her ears go
         // at a gentler pace; Off, or In games with nothing in front, leaves every interval as it was.
+        private static bool MusicAppKept(string said)
+        {
+            ToolArguments music = new ToolArguments { Song = "Spring by Flume", App = "youtube" };
+            Hands.AimMusic(music, said);
+            return music.App == "youtube";
+        }
+
         private void SmokeMusicApp(System.Collections.Generic.List<string> checks)
         {
             int musicWas = preferences.MusicApp;
@@ -28250,13 +28467,14 @@ namespace CapriDesktop
                 checks.Add("PASS Music app: Apple Music's job says song, playlist, album or artist, and opens Favourite Songs and their own playlists from Library");
 
                 string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "play Never Fade Away on Apple  Music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
-                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" }, { "play Never Fade Away on deezer", "deezer" },
+                    { "play Never Fade Away on YouTube Music", "youtubemusic" }, { "open youtube music and play Never Fade Away", "youtubemusic" }, { "open deezer and play Never Fade Away", "deezer" } };
                 for (int i = 0; i < named.GetLength(0); i++)
                     if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
                         throw new Exception("A named music app wasn't caught: " + named[i, 0] + " / " + tool + " / " + (heard == null ? "" : heard.App));
                 if (!Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "applemusic" }) || Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "tidal" }))
                     throw new Exception("play_music took the wrong apps.");
-                checks.Add("PASS Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                checks.Add("PASS Music app: play X on Apple Music, Spotify, YouTube, Deezer or YouTube Music is caught and play_music takes each");
 
                 bool spotifyWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "spotify" }) == null;
                 string youtubeWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "youtube" }) ?? "";
@@ -28286,6 +28504,71 @@ namespace CapriDesktop
                     throw new Exception("Apple Music Preview wasn't found over the web app, or Apple Devices was taken for it: " + previewJob);
                 checks.Add("PASS Music app: an app named Apple Music Preview counts as Apple Music, before its web app, and Apple Devices doesn't");
 
+                InstalledApp deezer = new InstalledApp("Deezer Music", "Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music");
+                InstalledApp youTubeMusic = new InstalledApp("YouTube Music", "music.youtube.com-1A2B3C4D_abcdefghijk12!App");
+                InstalledApp youTubeMusicClient = new InstalledApp("YouTube Music Desktop App", "th-ch.YouTubeMusic");
+                preferences.QuickHands = false;
+                SetMusicApp(3);
+                installed.Clear(); installed.Add(spotify); installed.Add(deezer); Hands.Forget();
+                jobs.Clear(); ran.Clear(); fetched.Clear();
+                string deezerDone = DoTool("play_music", new ToolArguments { Song = "Midnight Drive" });
+                string deezerJob = jobs.Count == 1 ? jobs[0] : "";
+                string deezerLoved = CursorJob("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist" }) ?? "";
+                string deezerOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                string deezerOwn = Hands.Do("play_music", new ToolArguments { Song = "my Chill", Kind = "playlist" });
+                bool deezerApp = ran.Count == 2 && ran[0] == deezer.Id && ran[1] == deezer.Id;
+                installed.Clear(); installed.Add(spotify); Hands.Forget();
+                ran.Clear();
+                string deezerWebJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive" }) ?? "";
+                string deezerWeb = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                if (deezerDone != "Did it." || !deezerJob.StartsWith("Play \"Midnight Drive\" on Deezer: open the Deezer Music app, click its search box, type \"Midnight Drive\" and press Enter, then click the song that fits best and press play.", StringComparison.Ordinal)
+                    || !deezerLoved.StartsWith("Play their Favourite tracks on Deezer: open the Deezer Music app, go to Favourites, open Favourite tracks", StringComparison.Ordinal)
+                    || !deezerApp || !deezerOpened.StartsWith("Opened Deezer Music. Search for Midnight Drive there", StringComparison.Ordinal) || deezerOwn != "Opened Deezer Music. Your Chill playlist is under Favourites, then Playlists."
+                    || !deezerWebJob.StartsWith("Play \"Midnight Drive\" on Deezer: open https://www.deezer.com/search/Midnight%20Drive with open_website, refuse any cookie notice, then click the song", StringComparison.Ordinal)
+                    || ran.Count != 1 || ran[0] != "https://www.deezer.com/search/Midnight%20Drive" || !deezerWeb.StartsWith("Opened a Deezer search for Midnight Drive.", StringComparison.Ordinal) || fetched.Count != 0)
+                    throw new Exception("Deezer didn't play in its app, or on deezer.com without it: " + deezerDone + " / " + deezerJob + " / " + deezerLoved + " / " + deezerOpened + " / " + deezerOwn + " / " + deezerWebJob + " / " + deezerWeb + " / " + string.Join(" / ", ran.ToArray()) + " / fetched " + fetched.Count);
+                checks.Add("PASS Music app: Deezer plays in the Deezer app with her cursor, or on deezer.com without the app, and without her cursor she opens it, fetching nothing");
+
+                SetMusicApp(4);
+                installed.Clear(); installed.Add(youTubeMusicClient); Hands.Forget();
+                ran.Clear();
+                string clientOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool clientSkipped = ran.Count == 1 && ran[0] == "https://music.youtube.com/search?q=Midnight%20Drive" && clientOpened.StartsWith("Opened a YouTube Music search", StringComparison.Ordinal);
+                string favouriteTracks = Hands.ServiceJob("deezer", "my favourite tracks", null), likedMusic = Hands.ServiceJob("youtubemusic", "liked music", null);
+                installed.Clear(); installed.Add(youTubeMusic); Hands.Forget();
+                ran.Clear(); fetched.Clear();
+                string youTubeMusicJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive" }) ?? "";
+                string youTubeMusicOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                installed.Clear(); Hands.Forget();
+                string youTubeMusicWebJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive", Kind = "album" }) ?? "";
+                string youTubeMusicLoved = Hands.Do("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist" });
+                if (!youTubeMusicJob.StartsWith("Play \"Midnight Drive\" on YouTube Music: open the YouTube Music app, click its search box", StringComparison.Ordinal)
+                    || !youTubeMusicWebJob.StartsWith("Play the album \"Midnight Drive\" on YouTube Music: open https://music.youtube.com/search?q=Midnight%20Drive with open_website", StringComparison.Ordinal)
+                    || ran.Count != 2 || ran[0] != "https://music.youtube.com/search?q=Midnight%20Drive" || ran[1] != "https://music.youtube.com" || !youTubeMusicOpened.StartsWith("Opened a YouTube Music search for Midnight Drive.", StringComparison.Ordinal)
+                    || youTubeMusicLoved != "Opened YouTube Music. Your Liked music is under Library." || fetched.Count != 0 || !clientSkipped
+                    || !favouriteTracks.StartsWith("Play their Favourite tracks on Deezer:", StringComparison.Ordinal) || !likedMusic.StartsWith("Play their Liked music on YouTube Music:", StringComparison.Ordinal))
+                    throw new Exception("YouTube Music didn't play in its web app or on music.youtube.com: " + youTubeMusicJob + " / " + youTubeMusicWebJob + " / " + youTubeMusicOpened + " / " + youTubeMusicLoved + " / " + clientOpened + " / " + favouriteTracks + " / " + likedMusic + " / " + string.Join(" / ", ran.ToArray()) + " / fetched " + fetched.Count);
+                if (Tunes.AppName(youTubeMusic.Id) != "YouTube Music" || Tunes.AppName(deezer.Id) != "Deezer" || !IsMusicApp(youTubeMusic.Id) || !IsMusicApp(deezer.Id) || IsMusicApp("Chrome") || Tunes.AppName("Chrome") != "Chrome")
+                    throw new Exception("Her player didn't name YouTube Music's web app or Deezer: " + Tunes.AppName(youTubeMusic.Id) + " / " + Tunes.AppName(deezer.Id));
+                checks.Add("PASS Music app: YouTube Music plays in its installed web app with her cursor, or on music.youtube.com, and her player names it and Deezer");
+
+                installed.Clear(); Hands.Forget();
+                ToolArguments guessed = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, saidYouTube = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, spoken = new ToolArguments { Song = "Spring by Flume", App = "youtubemusic" };
+                Hands.AimMusic(guessed, "play spring by flume");
+                Hands.AimMusic(saidYouTube, "play spring by flume on youtube");
+                Hands.AimMusic(spoken, "play spring by flume on yt music");
+                string guessedJob = CursorJob("play_music", guessed) ?? "";
+                jobs.Clear();
+                string jobDone = DoTool("use_computer", new ToolArguments { Task = "Play Spring by Flume on YouTube", Asked = "play spring by flume" });
+                string musicJob = jobs.Count == 1 ? jobs[0] : string.Join(" | ", jobs.ToArray());
+                string musicSearch = Hands.Address("music.youtube.com", "Midnight Drive"), deezerSearch = Hands.Address("www.deezer.com", "Midnight Drive"), youtubeSearch = Hands.Address("youtube", "Midnight Drive"), musicPage = Hands.Address("https://music.youtube.com/search?q=Midnight%20Drive", null);
+                if (guessed.App != null || saidYouTube.App != "youtube" || spoken.App != "youtubemusic" || !guessedJob.StartsWith("Play \"Spring by Flume\" on YouTube Music: open https://music.youtube.com/search?q=Spring%20by%20Flume with open_website", StringComparison.Ordinal)
+                    || guessedJob.IndexOf("never by typing in the browser's address bar", StringComparison.Ordinal) < 0 || jobDone != "Did it." || !musicJob.StartsWith("Play \"Spring by Flume\" on YouTube Music:", StringComparison.Ordinal)
+                    || musicSearch != "https://music.youtube.com/search?q=Midnight%20Drive" || deezerSearch != "https://www.deezer.com/search/Midnight%20Drive" || youtubeSearch != "https://www.youtube.com/results?search_query=Midnight%20Drive" || !string.Equals(musicPage, "https://music.youtube.com/search?q=Midnight%20Drive", StringComparison.OrdinalIgnoreCase)
+                    || !MusicAppKept("again") || !MusicAppKept("play it again on the same app") || !MusicAppKept("play the music video for spring by flume") || !MusicAppKept("включи spring на ютубе") || !MusicAppKept("do it"))
+                    throw new Exception("YouTube Music went to YouTube: " + guessed.App + " / " + saidYouTube.App + " / " + spoken.App + " / " + guessedJob + " / " + jobDone + " / " + musicJob + " / " + musicSearch + " / " + deezerSearch + " / " + youtubeSearch + " / " + musicPage);
+                checks.Add("PASS Music app: a brain's guess of YouTube, or a job that says YouTube, still plays on YouTube Music when they didn't say YouTube, and music.youtube.com and deezer.com searches stay on their sites");
+
                 string[] steps = Hands.StepsOf("music_app");
                 for (int level = 0; level < steps.Length; level++)
                 {
@@ -28294,7 +28577,10 @@ namespace CapriDesktop
                         throw new Exception("Music app " + steps[level] + " didn't save, load and show: " + preferences.MusicApp + " / " + mainframe.MusicAppShown + " / " + told);
                 }
                 string facts = SelfKnow.Matching("What is the Music app setting in Capri?") ?? "";
-                if (string.Join("|", steps) != "Spotify|YouTube|Apple Music" || !facts.StartsWith("Music app: Mainframe > Settings > HABITS > Music app", StringComparison.Ordinal)) throw new Exception("Music app's steps or self knowledge are wrong: " + facts);
+                SetMusicApp(0);
+                SetMusicApp(9);
+                int clamped = preferences.MusicApp;
+                if (clamped != 4 || string.Join("|", steps) != "Spotify|YouTube|Apple Music|Deezer|YouTube Music" || !facts.StartsWith("Music app: Mainframe > Settings > HABITS > Music app", StringComparison.Ordinal)) throw new Exception("Music app's steps or self knowledge are wrong: " + facts);
                 simpleTest = true;
                 preferences.AdvancedSettings = false;
                 mainframe.ShowSettings(true);
@@ -28305,7 +28591,7 @@ namespace CapriDesktop
                 string advancedRow = mainframe.MusicAppRow, advancedOverlap = mainframe.Overlap();
                 if (simpleRow != "shown" || advancedRow != "shown" || simpleOverlap != null || advancedOverlap != null)
                     throw new Exception("Music app's row didn't fit Simple and Advanced Settings: " + simpleRow + " / " + advancedRow + ", overlap " + simpleOverlap + " / " + advancedOverlap);
-                checks.Add("PASS Music app: HABITS' row and her settings tool save, load and show Spotify, YouTube and Apple Music, in Simple and Advanced Settings");
+                checks.Add("PASS Music app: HABITS' row and her settings tool save, load and show Spotify, YouTube, Apple Music, Deezer and YouTube Music, in Simple and Advanced Settings");
             }
             finally
             {
@@ -43379,25 +43665,16 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
+                    "Discord Bot:",
+                    "Capricord:",
                     "Plug-ins:",
-                    "Email:",
-                    "Phishing:",
-                    "Settings search:",
-                    "Languages:",
-                    "Startup animations:",
-                    "Lite mode:",
-                    "Games:",
-                    "What she did:",
-                    "Companion packs:",
-                    "Spend:",
-                    "Wander:",
-                    "New moves:",
-                    "Listen for Capri:",
-                    "Comments Off:",
-                    "OpenAI keys:",
-                    "Voice:",
-                    "Fixes:",
-                    "Squad:"
+                    "Tools:",
+                    "Connect:",
+                    "Cloud voice:",
+                    "Download warnings:",
+                    "Job controls:",
+                    "Colours:",
+                    "Music:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
@@ -47294,6 +47571,7 @@ namespace CapriDesktop
             Section(checks, "SmokePrivacy", delegate { SmokePrivacy(checks, output); });
             Section(checks, "SmokeMemoryWindow", delegate { SmokeMemoryWindow(checks, output); });
             Section(checks, "SmokeGifs", delegate { SmokeGifs(checks, output); });
+            Section(checks, "SmokeHolo", delegate { SmokeHolo(checks, output); });
         }
 
         // What her redaction keeps and hides, on its own, so a change to it is quick to check.
@@ -54642,7 +54920,16 @@ namespace CapriDesktop
                                 && bypassTools.IndexOf("buys or pays", StringComparison.Ordinal) < 0 && bypassTools.Split(new[] { "never ask before buying" }, StringSplitOptions.None).Length == 4
                                 && !payJob.Needs("buy") && !payJob.Needs("delete") && !Computer.Barred("ctrl+shift+esc") && !Computer.Barred("win+r");
                             string bypassPrompt = Computer.Allowing(Computer.Prompt), bypassSeeing = Computer.Allowing(Computer.Seeing);
+                            Job downloadJob = new Job("Download and install the app I asked for");
+                            bool reportsDownloadWarning = true;
+                            foreach (string modePrompt in new[] { Computer.Prompt, Computer.Seeing, Computer.Sees })
+                            {
+                                string full = downloadJob.Prompted(modePrompt);
+                                if (!full.Contains("SmartScreen or antivirus blocks a file, leave it alone and report the exact warning") || full.Contains("then Run anyway"))
+                                    reportsDownloadWarning = false;
+                            }
                             Computer.Bypass = bypassWas;
+                            if (!reportsDownloadWarning) throw new Exception("A computer job lost its download warning instructions in Blackwall mode.");
                             if (!checksPay || !paysAhead || bypassPrompt.IndexOf("call ask before you buy", StringComparison.Ordinal) >= 0 || bypassPrompt.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("stop and ask", StringComparison.Ordinal) >= 0
                                 || bypassSeeing.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassPrompt.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0 || bypassSeeing.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0
                                 || bypassPrompt.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("needs their OK", StringComparison.Ordinal) >= 0
@@ -56597,7 +56884,7 @@ namespace CapriDesktop
                                     if (driveSent != "Sent blah in #general." || driveSend.Outcome != "done" || driveShots != 4 || driven.Count != 4 || driveImages != 3 || !driveWellFormed
                                         || string.Join("|", driveOpened.ToArray()) != "open_app:Discord" || string.Join("|", driveMoves.ToArray()) != "left_click 200,400|type blah\\n|scroll 1280,720"
                                         || string.Join("|", driveRows.ToArray()) != "Opened Discord|Clicked general|Typed \"blah\" and pressed Enter|Scrolled down"
-                                        || driveSystem != Computer.Seeing || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
+                                        || driveSystem != Computer.Seeing + Computer.DownloadWarning || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
                                         || !driven[0].StartsWith("[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Job: ", StringComparison.Ordinal) || driven[0].IndexOf("Window in front:", StringComparison.Ordinal) < 0 || driven[0].IndexOf("The screen now, 1280x720:\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"Open Discord first.\",\"signature\":\"c2ln\"}", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t1\",\"content\":[{\"type\":\"text\",\"text\":\"Opened Discord.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
@@ -56605,6 +56892,50 @@ namespace CapriDesktop
                                         || driven[2].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t3\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[3].IndexOf("[Image omitted]", StringComparison.Ordinal) < 0 || !driven[3].EndsWith(",\"cache_control\":{\"type\":\"ephemeral\"}}]}]", StringComparison.Ordinal) || Regex.Matches(driven[3], "cache_control").Count != 1)
                                         throw new Exception("Claude's screenshot hands went wrong: " + driveSent + " / shots " + driveShots + " / images " + driveImages + " / " + string.Join("|", driveMoves.ToArray()) + " / " + string.Join("|", driveRows.ToArray()));
+                                    driveMoves.Clear();
+                                    driveOpened.Clear();
+                                    Job driveEdit = new Job("open Discord");
+                                    int editTurns = 0;
+                                    driveEdit.Drive = delegate(string system, string tools, string messages)
+                                    {
+                                        if (++editTurns == 1)
+                                        {
+                                            if (!driveEdit.RequestEdit(delegate { driveEdit.FinishEdit("open Notepad"); })) throw new Exception("A thinking job wouldn't let its user edit it.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"obsolete\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}}],\"stop_reason\":\"tool_use\"}");
+                                        }
+                                        if (editTurns == 2)
+                                        {
+                                            if (driveEdit.Task != "open Notepad" || !messages.Contains("open Notepad") || messages.Contains("open Discord") || driveMoves.Count != 0)
+                                                throw new Exception("Editing a job kept its old instruction or applied a stale action.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"current\",\"name\":\"open_app\",\"input\":{\"name\":\"Notepad\"}}],\"stop_reason\":\"tool_use\"}");
+                                        }
+                                        return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Opened Notepad.\"}],\"stop_reason\":\"end_turn\"}");
+                                    };
+                                    if (driveEdit.Run() != "Opened Notepad." || editTurns != 3 || driveOpened.Count != 1 || driveOpened[0] != "open_app:Notepad" || driveMoves.Count != 0)
+                                        throw new Exception("The edited job didn't continue with the new instruction.");
+                                    Job editBatch = new Job("click general and type hello");
+                                    int batchTurns = 0, batchEdits = 0;
+                                    driveMoves.Clear();
+                                    Func<Point, Target> fakeUnder = Computer.Under;
+                                    Computer.Under = delegate(Point at)
+                                    {
+                                        if (at.X == 400 && !editBatch.RequestEdit(delegate { batchEdits++; editBatch.FinishEdit("leave the chat alone"); }))
+                                            throw new Exception("Couldn't edit a job while it checked where to click.");
+                                        return fakeUnder(at);
+                                    };
+                                    try
+                                    {
+                                        editBatch.Drive = delegate(string system, string tools, string messages)
+                                        {
+                                            if (++batchTurns == 1) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"click\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}},{\"type\":\"tool_use\",\"id\":\"old-click\",\"name\":\"right_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[200,200]}}],\"stop_reason\":\"tool_use\"}");
+                                            if (!messages.Contains("leave the chat alone") || !messages.Contains("Recent steps")) throw new Exception("Editing between steps lost finished work or the new instruction.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Left it alone.\"}],\"stop_reason\":\"end_turn\"}");
+                                        };
+                                        if (editBatch.Run() != "Left it alone." || batchEdits != 1 || batchTurns != 2 || driveMoves.Count != 1 || driveMoves[0] != "left_click 200,400")
+                                            throw new Exception("Editing between steps let a stale action run.");
+                                    }
+                                    finally { Computer.Under = fakeUnder; }
+                                    checks.Add("PASS job edits replace the current instructions, keep finished work, and discard obsolete model replies and clicks");
                                     driven.Clear();
                                     driveMoves.Clear();
                                     driveTurn = 0;
@@ -56617,6 +56948,7 @@ namespace CapriDesktop
                                     driveBuy.Drive = scripted;
                                     string driveAsk = driveBuy.Run();
                                     bool driveHeld = driveAsk == "Should I press \"Buy now\"?" && driveBuy.Asking && driveBuy.Outcome == "waiting" && driveMoves.Count == 0;
+                                    if (driveBuy.RequestEdit(delegate { driveBuy.FinishEdit("buy something else"); })) throw new Exception("A job edit accepted while its approval was pending.");
                                     string driveBought = driveBuy.Run();
                                     if (!driveHeld || driveBought != "Bought the hat." || driveBuy.Asking || string.Join("|", driveMoves.ToArray()) != "left_click 200,1400" || driven.Count != 2 || driven[1].IndexOf("\"tool_use_id\":\"b1\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0)
                                         throw new Exception("Claude's hands pressed Buy without asking, or lost the click after yes: " + driveAsk + " / " + driveBought + " / " + string.Join("|", driveMoves.ToArray()));
@@ -56779,7 +57111,8 @@ namespace CapriDesktop
                                     string funRun = driveFun.Run();
                                     string funSystem = driveSystem;
                                     Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
-                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != Computer.Seeing + Computer.Playing || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != Computer.Seeing + Computer.Playing || new Job("send hi in #general on discord").Playing)
+                                    string expectedGamePrompt = Computer.Seeing + Computer.Playing + Computer.DownloadWarning;
+                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != expectedGamePrompt || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != expectedGamePrompt || new Job("send hi in #general on discord").Playing)
                                         throw new Exception("A game job didn't get her game lines: " + drivePlayed + " / " + drivePlay.Playing + " / " + funRun + " / " + driveFun.Playing);
                                     // Whether a game job is really over is a brain's call, in any language.
                                     driveTurn = 0;
@@ -66684,8 +67017,9 @@ namespace CapriDesktop
         internal static bool FillsScreen()
         {
             if (FakedGaming.HasValue) return FakedGaming.Value;
-            if (Exclusive()) return true;
             IntPtr front = GetForegroundWindow();
+            if (Companion.IsHoloWindow(front)) return false;
+            if (Exclusive()) return true;
             if (front == IntPtr.Zero || IsZoomed(front) || Titled(front)) return false;
             if (Overlay(GetWindowLong(front, -20))) return false;
             if (Gaming()) return true;

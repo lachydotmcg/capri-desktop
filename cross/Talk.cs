@@ -10,6 +10,19 @@ using Avalonia.Media.Imaging;
 
 namespace CapriDesktop
 {
+    // Her bubble's, Type box's and TYPE | TALK pill's colours, from her Mainframe colours: on Night City they're Look's own, on Black, White and
+    // Grey they're greys that read on that look's sheet.
+    internal static class BubbleLook
+    {
+        internal static Color Panel { get { return ((ISolidColorBrush)MainframeTheme.SpeechPanel).Color; } }
+        internal static Color Ink { get { return ((ISolidColorBrush)MainframeTheme.SpeechInk).Color; } }
+        internal static Color Dim { get { return ((ISolidColorBrush)MainframeTheme.SpeechDim).Color; } }
+        internal static Color Cyan { get { return ((ISolidColorBrush)MainframeTheme.SpeechCyan).Color; } }
+        internal static Color Red { get { return ((ISolidColorBrush)MainframeTheme.SpeechRed).Color; } }
+        internal static Color Blue { get { return ((ISolidColorBrush)MainframeTheme.SpeechBlue).Color; } }
+        internal static Color Pink { get { return ((ISolidColorBrush)MainframeTheme.SpeechPink).Color; } }
+    }
+
     internal sealed class Sheet : Control
     {
         internal const int Columns = 34;
@@ -50,7 +63,7 @@ namespace CapriDesktop
                 double band = 2 + random.Next(6);
                 double row = random.Next(Math.Max(1, (int)(Bounds.Height - band)));
                 double shift = (random.NextDouble() * 2 - 1) * 14 * Glitch;
-                Color tint = i == 0 ? Look.Cyan : Look.Red;
+                Color tint = i == 0 ? BubbleLook.Cyan : BubbleLook.Red;
                 using (context.PushClip(new Rect(shift, row, Bounds.Width, band)))
                     context.FillRectangle(new SolidColorBrush(Color.FromArgb((byte)(150 * Glitch), tint.R, tint.G, tint.B)), new Rect(0, row, Bounds.Width, band));
             }
@@ -61,15 +74,15 @@ namespace CapriDesktop
         {
             Rect panel = Panel;
             Geometry path = Look.Plate(panel, 10, TipX, TipY, 18);
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(46, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), 7), path);
-            context.DrawGeometry(new SolidColorBrush(Color.FromArgb(238, Look.Panel.R, Look.Panel.G, Look.Panel.B)), null, path);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(46, BubbleLook.Cyan.R, BubbleLook.Cyan.G, BubbleLook.Cyan.B)), 7), path);
+            context.DrawGeometry(new SolidColorBrush(Color.FromArgb(238, BubbleLook.Panel.R, BubbleLook.Panel.G, BubbleLook.Panel.B)), null, path);
             using (context.PushGeometryClip(path))
             {
                 Pen scan = new Pen(new SolidColorBrush(Color.FromArgb(9, 255, 255, 255)), 1);
                 for (double row = panel.Top; row < panel.Bottom; row += 3) context.DrawLine(scan, new Point(panel.Left, row), new Point(panel.Right, row));
             }
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(Look.Cyan), 2), path);
-            context.FillRectangle(new SolidColorBrush(Look.Red), new Rect(panel.Left + 10, panel.Top + 13, 3, panel.Height - 26));
+            context.DrawGeometry(null, new Pen(MainframeTheme.SpeechCyan, 2), path);
+            context.FillRectangle(MainframeTheme.SpeechRed, new Rect(panel.Left + 10, panel.Top + 13, 3, panel.Height - 26));
         }
 
         private void TextLayer(DrawingContext context)
@@ -78,7 +91,7 @@ namespace CapriDesktop
             double cw = Look.CharWidth(Type), x = Math.Round(Panel.Left + 24), top = Math.Round(Panel.Top + 12);
             string you = (Prompt + (Heard ?? "")).Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
             if (Look.Cells(you) > Columns) you = Look.Cut(you, Columns - 3) + "...";
-            context.DrawText(Look.Text(you, Look.Italic, Type, Look.Dim), new Point(x, top));
+            context.DrawText(Look.Text(you, Look.Italic, Type, BubbleLook.Dim), new Point(x, top));
             top += layout.LineHeight;
             int reveal = Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed));
             Point caret = new Point(x, top);
@@ -89,16 +102,16 @@ namespace CapriDesktop
                 if (shown.Length == 0) continue;
                 double y = top + i * layout.LineHeight;
                 int name = i == 0 ? Math.Min(shown.Length, Speaker.Length) : 0;
-                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, Look.Red), new Point(x, y));
+                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, BubbleLook.Red), new Point(x, y));
                 string ink = shown.Substring(name);
                 double prefix = ReplyLayout.Measure(shown.Substring(0, name));
                 bool rtl = Look.RightToLeft(row.Text.Substring(Math.Min(name, row.Text.Length)));
-                var words = Look.Text(rtl ? "\u200f" + ink + "\u200f" : ink, Look.Regular, Type, Look.Neon);
+                var words = Look.Text(rtl ? "\u200f" + ink + "\u200f" : ink, Look.Regular, Type, BubbleLook.Blue);
                 double left = rtl ? x + Columns * cw - words.WidthIncludingTrailingWhitespace : x + prefix;
                 context.DrawText(words, new Point(left, y));
                 caret = new Point(rtl ? left - cw - 2 : left + words.WidthIncludingTrailingWhitespace, y);
             }
-            if (CursorOn) context.FillRectangle(new SolidColorBrush(Look.Neon), new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, layout.LineHeight - 5));
+            if (CursorOn) context.FillRectangle(MainframeTheme.SpeechBlue, new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, layout.LineHeight - 5));
         }
     }
 
@@ -153,8 +166,8 @@ namespace CapriDesktop
         public override void Render(DrawingContext context)
         {
             Geometry path = Look.Plate(new Rect(1, 1, Bounds.Width - 2, Bounds.Height - 2), 10, -1, Bounds.Height / 2, 0, true);
-            context.DrawGeometry(new SolidColorBrush(Look.Panel), new Pen(new SolidColorBrush(Look.Cyan), 2), path);
-            context.FillRectangle(new SolidColorBrush(Look.Red), new Rect(10, 10, 3, Bounds.Height - 20));
+            context.DrawGeometry(MainframeTheme.SpeechPanel, new Pen(MainframeTheme.SpeechCyan, 2), path);
+            context.FillRectangle(MainframeTheme.SpeechRed, new Rect(10, 10, 3, Bounds.Height - 20));
         }
     }
 
@@ -176,7 +189,7 @@ namespace CapriDesktop
             Look.HideOnClose(this, Hide);
             Width = Math.Ceiling(Sheet.PanelWidth());
             Height = Tall;
-            prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = new SolidColorBrush(Look.Dim), VerticalAlignment = VerticalAlignment.Center };
+            prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = MainframeTheme.SpeechDim, VerticalAlignment = VerticalAlignment.Center };
             input.FontFamily = Look.Mono;
             input.FontSize = Sheet.Type;
             // No limit, so her brain reads a long request whole.
@@ -187,11 +200,12 @@ namespace CapriDesktop
             input.VerticalAlignment = VerticalAlignment.Center;
             input.VerticalContentAlignment = VerticalAlignment.Center;
             IBrush clear = Brushes.Transparent;
-            IBrush ink = new SolidColorBrush(Look.Ink);
+            IBrush ink = MainframeTheme.SpeechInk;
             foreach (string key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused", "TextControlBorderBrush", "TextControlBorderBrushPointerOver", "TextControlBorderBrushFocused" }) input.Resources[key] = clear;
             foreach (string key in new[] { "TextControlForeground", "TextControlForegroundPointerOver", "TextControlForegroundFocused" }) input.Resources[key] = ink;
-            input.Resources["TextControlSelectionHighlightColor"] = new SolidColorBrush(Look.Neon);
-            input.CaretBrush = new SolidColorBrush(Look.Neon);
+            input.Resources["TextControlSelectionHighlightColor"] = MainframeTheme.SpeechBlue;
+            input.SelectionForegroundBrush = MainframeTheme.SpeechPanel;
+            input.CaretBrush = MainframeTheme.SpeechBlue;
             input.TextChanged += delegate { if (Typed != null) Typed(); };
             input.KeyDown += delegate(object sender, KeyEventArgs e)
             {
@@ -308,9 +322,11 @@ namespace CapriDesktop
         internal const int TearFrames = 4;
         // Segments in each of the wave's five bars when it's full: the wave's shape, and the top of the mic level.
         internal static readonly int[] Bars = { 2, 4, 5, 3, 2 };
-        internal static readonly Color Fill = Color.FromArgb(246, 9, 11, 15);
-        internal static readonly Color Unlit = Color.FromRgb(46, 52, 64);
-        internal static readonly Color Caption = Color.FromRgb(168, 174, 184);
+        internal static Color Fill { get { return Color.FromArgb(246, BubbleLook.Panel.R, BubbleLook.Panel.G, BubbleLook.Panel.B); } }
+        internal static Color Unlit { get { return MainframeTheme.Tint("#2E3440"); } }
+        internal static Color Caption { get { return MainframeTheme.Mono ? BubbleLook.Dim : Color.FromRgb(168, 174, 184); } }
+        // Its icons when not lit. Black, White and Grey have no hue to tell lit from not, so theirs sit dimmer than the lit grey.
+        internal static Color Idle { get { return MainframeTheme.Mono ? BubbleLook.Dim : BubbleLook.Ink; } }
         private const byte WashAlpha = 40;
         internal int Hover;
         internal bool Chatting;
@@ -396,7 +412,7 @@ namespace CapriDesktop
         // The icon's box and the label's letters in one half, 1 the pencil's and 2 the wave's, the pair in the middle of it.
         internal static Rect[] Layout(double s, int part, string label)
         {
-            Rect ink = Ink(Words(label, s, Look.Ink));
+            Rect ink = Ink(Words(label, s, BubbleLook.Ink));
             Rect body = Body(s);
             double mid = Math.Floor(Measure(s).Width / 2);
             double edge = EdgeWidth(s);
@@ -440,7 +456,7 @@ namespace CapriDesktop
                 Rect strip = new Rect(0, tops[i], width, tall[i]);
                 using (context.PushClip(strip))
                 using (context.PushTransform(Matrix.CreateTranslation(shifts[i], 0))) Clean(context, s, hover, chatting, muted, level);
-                Color tint = i % 2 == 0 ? Look.Pink : Look.Cyan;
+                Color tint = i % 2 == 0 ? BubbleLook.Pink : BubbleLook.Cyan;
                 IBrush wash = new SolidColorBrush(Color.FromArgb((byte)(96 * amount), tint.R, tint.G, tint.B));
                 foreach (Rect plate in chatting ? new[] { Body(s), MicBody(s) } : new[] { Body(s) })
                 {
@@ -455,25 +471,25 @@ namespace CapriDesktop
             Rect body = Body(s);
             double mid = Math.Floor(Measure(s).Width / 2);
             Rect lit = hover == 1 ? new Rect(body.Left, body.Top, mid - body.Left, body.Height) : hover == 2 ? new Rect(mid, body.Top, body.Right - mid, body.Height) : new Rect();
-            Plate(context, body, s, lit, Look.Pink, Look.Cyan);
+            Plate(context, body, s, lit, BubbleLook.Pink, BubbleLook.Cyan);
             // A slanted seam where the two halves' hit areas meet.
-            context.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(66, 72, 86)), Math.Max(1, Math.Round(s))), new Point(mid + 1.5 * s, body.Top + 10 * s), new Point(mid - 1.5 * s, body.Bottom - 10 * s));
+            context.DrawLine(new Pen(new SolidColorBrush(MainframeTheme.Tint("#424856")), Math.Max(1, Math.Round(s))), new Point(mid + 1.5 * s, body.Top + 10 * s), new Point(mid - 1.5 * s, body.Bottom - 10 * s));
             // Her glitch, like her mini player on Windows: slivers of the edge torn loose, cyan at the top right and pink at the bottom left.
             double sliver = Math.Max(1, Math.Round(s));
-            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), new Rect(body.Right - Math.Round(32 * s), body.Top - Math.Round(2 * s), Math.Round(15 * s), sliver));
-            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, Look.Pink.R, Look.Pink.G, Look.Pink.B)), new Rect(body.Left + Math.Round(12 * s), body.Bottom + Math.Round(2 * s) - sliver, Math.Round(11 * s), sliver));
-            Color wash = Mix(Fill, Look.Cyan, WashAlpha);
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, BubbleLook.Cyan.R, BubbleLook.Cyan.G, BubbleLook.Cyan.B)), new Rect(body.Right - Math.Round(32 * s), body.Top - Math.Round(2 * s), Math.Round(15 * s), sliver));
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, BubbleLook.Pink.R, BubbleLook.Pink.G, BubbleLook.Pink.B)), new Rect(body.Left + Math.Round(12 * s), body.Bottom + Math.Round(2 * s) - sliver, Math.Round(11 * s), sliver));
+            Color wash = Mix(Fill, BubbleLook.Cyan, WashAlpha);
             string talk = Label(2, chatting, muted);
             Rect[] pencil = Layout(s, 1, "TYPE"), wave = Layout(s, 2, talk);
-            Pencil(context, pencil[0].Center, 0.9 * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);
-            Words(context, "TYPE", s, pencil[1], hover == 1 ? Look.Cyan : Caption);
-            Meter(context, wave[0], s, chatting, muted, level, hover == 2 || chatting ? Look.Cyan : Look.Ink);
-            Words(context, talk, s, wave[1], chatting && muted ? Look.Red : hover == 2 || chatting ? Look.Cyan : Caption);
+            Pencil(context, pencil[0].Center, 0.9 * s, hover == 1 ? BubbleLook.Cyan : Idle, hover == 1 ? wash : Fill);
+            Words(context, "TYPE", s, pencil[1], hover == 1 ? BubbleLook.Cyan : Caption);
+            Meter(context, wave[0], s, chatting, muted, level, hover == 2 || chatting ? BubbleLook.Cyan : Idle);
+            Words(context, talk, s, wave[1], chatting && muted ? BubbleLook.Red : hover == 2 || chatting ? BubbleLook.Cyan : Caption);
             if (!chatting) return;
             Rect mic = MicBody(s);
-            Color edge = muted ? Look.Red : Look.Cyan;
+            Color edge = muted ? BubbleLook.Red : BubbleLook.Cyan;
             Plate(context, mic, s, hover == 3 ? mic : new Rect(), edge, edge);
-            Mic(context, mic.Center, s, hover == 3 ? Look.Cyan : muted ? Look.Dim : Look.Ink, muted, hover == 3 ? wash : Fill);
+            Mic(context, mic.Center, s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : Idle, muted, hover == 3 ? wash : Fill);
         }
 
         // A plate with cut corners: a soft glow, the black fill with faint scan lines, a cyan wash where it's hovered, and a neon
@@ -491,7 +507,7 @@ namespace CapriDesktop
                 double line = Math.Max(1, Math.Round(s));
                 Pen scan = new Pen(new SolidColorBrush(Color.FromArgb(9, 255, 255, 255)), line);
                 for (double row = box.Top; row < box.Bottom; row += Math.Max(3, Math.Round(3 * s))) context.DrawLine(scan, new Point(box.Left, row + line / 2), new Point(box.Right, row + line / 2));
-                if (lit.Width > 0) context.FillRectangle(new SolidColorBrush(Color.FromArgb(WashAlpha, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), lit);
+                if (lit.Width > 0) context.FillRectangle(new SolidColorBrush(Color.FromArgb(WashAlpha, BubbleLook.Cyan.R, BubbleLook.Cyan.G, BubbleLook.Cyan.B)), lit);
             }
             double inset = edge / 2;
             Geometry rim = Look.Plate(new Rect(box.Left + inset, box.Top + inset, box.Width - edge, box.Height - edge), cut - inset * 0.586, -1, middle, 0, true);
@@ -527,7 +543,7 @@ namespace CapriDesktop
             double[] heights = { 5, 10, 14, 9, 4 };
             double stretch = !chatting ? 1 : 0.45 + (muted ? 0 : level) * 0.14;
             Point centre = meter.Center;
-            Pen bar = new Pen(new SolidColorBrush(chatting && muted ? Look.Dim : colour), 2.3 * s) { LineCap = PenLineCap.Round };
+            Pen bar = new Pen(new SolidColorBrush(chatting && muted ? BubbleLook.Dim : colour), 2.3 * s) { LineCap = PenLineCap.Round };
             for (int i = 0; i < heights.Length; i++)
             {
                 double x = centre.X + (i - 2) * 3.6 * s;
@@ -554,7 +570,7 @@ namespace CapriDesktop
             context.DrawLine(line, new Point(x - 3.5 * s, y + 7 * s), new Point(x + 3.5 * s, y + 7 * s));
             if (!muted) return;
             context.DrawLine(new Pen(new SolidColorBrush(back), 4.2 * s), new Point(x - 7.5 * s, y - 9.5 * s), new Point(x + 7.5 * s, y + 7.5 * s));
-            context.DrawLine(new Pen(new SolidColorBrush(Look.Red), 2 * s, null, PenLineCap.Round), new Point(x - 7.5 * s, y - 9.5 * s), new Point(x + 7.5 * s, y + 7.5 * s));
+            context.DrawLine(new Pen(new SolidColorBrush(BubbleLook.Red), 2 * s, null, PenLineCap.Round), new Point(x - 7.5 * s, y - 9.5 * s), new Point(x + 7.5 * s, y + 7.5 * s));
         }
 
         // A square-cut pencil at 45 degrees, centred on where its outline's middle falls.

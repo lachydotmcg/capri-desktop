@@ -53,11 +53,25 @@ namespace CapriDesktop
             return herComputer;
         }
 
+        private void ShowCapricordForJoin()
+        {
+            if (!preferences.HerComputer || IsDisposed) return;
+            try { ShowHerComputer(false).ShowCapricord(); }
+            catch (Exception error) { Brain.Log("her computer", -1, "Capricord view: " + error.Message); }
+        }
+
         private void MakeHerComputer()
         {
             if (herComputer != null && !herComputer.IsDisposed) return;
             herComputer = new HerComputerWindow(new HerComputer(HerComputerFolder));
             herComputer.Ask = delegate(string system, string user) { return brain.Aside(system, user, 700, true); };
+            herComputer.CapricordSnapshot = delegate { return discordCompanion == null ? null : discordCompanion.Snapshot(); };
+            if (DiscordCompanion.Included)
+            {
+                herComputer.CapricordJoin = delegate { JoinLinkedDiscord("join my Discord call"); };
+                herComputer.CapricordSetup = mainframe.OpenDiscordBot;
+                herComputer.CapricordControl = delegate(string session, bool leave) { DiscordBot.CapricordControl(session, leave); };
+            }
             herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
             herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
             herComputer.HandOff = delegate(HerJob done) { Post(delegate { HerComputerHandOff(done); }); };

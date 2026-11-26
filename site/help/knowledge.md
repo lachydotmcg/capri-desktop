@@ -474,7 +474,7 @@ CAPRI
 - Check in on me (called Pop in on me before 0.7.3): on by default. Every 8 to 20 minutes while you're using the PC she glitches in on top of whatever you're doing, even a game or when she's hidden, says hi, then hides again if she was hidden. She also asks for attention now and then: if you're using the PC and haven't clicked or talked to her for about 2 hours, she comes over near your mouse and asks for some. Click her or talk to her and she's pleased. Ignore her for 20 seconds and she sulks, then waits twice as long before trying again, up to 8 hours. She doesn't do it while you're away from the PC or while she's hidden. Turn Check in on me off and she does neither; it stays off after updates.
 - Always on top: keeps her above your other windows. Off, other windows can cover her; she still comes to the front to pop in or ask for attention. On Mac and Linux it's right-click her > Settings > Always on top.
 - Mainframe size (0.7.7 and newer): Auto, 100%, 125%, 150%, 175% or 200%. Auto makes the Mainframe and its windows bigger when your desktop is bigger than the screen showing it, like AMD Virtual Super Resolution or NVIDIA DSR drawing 3840 x 2160 on a 1920 x 1080 screen, and shows what it picked, like "Auto · 200%". On an ordinary screen Auto is 100%, and Windows' own display scaling still applies on top. Pick a size to set it yourself. It doesn't change Capri's own size; that's Size above.
-- Mainframe colours: Night City (red and cyan), Black, White or Grey. Changes the Mainframe and its windows, her right-click menu, the Type box and her notes straight away. On Mac and Linux it changes the Mainframe only. Her bubble and her own colours stay as they are; colour sets change those.
+- Mainframe colours: Night City (red and cyan), Black, White or Grey. Changes the Mainframe and its windows, her right-click menu, the Type box, her bubble, her TYPE | TALK pill, her music player and her notes straight away. On Mac and Linux it changes the Mainframe, her bubble, her Type box, her TYPE | TALK pill and her music player. Her own colours stay as they are; colour sets change those.
 - Pat stroke (0.9.0): how long you have to stroke her before a head pat counts, so the cursor brushing past her doesn't count.
 - Jealous of other AIs (0.9.0): off by default. When it's on and you open another AI, like ChatGPT in a tab or an app, she gets a little jealous. Apps she may close sets which ones she can offer to close for you; picking apps there is what lets her close them.
 
@@ -987,7 +987,7 @@ If a clip doesn't work, the note under VOICE says why, in red:
 Her other free voice styles (Her own, Bright, Sly and Sharp) are set voices and can't copy yours. With one of them picked, the note under VOICE says "Your voice only works with HD."
 
 ### Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)
-Her voice can come from Fish Audio's cloud, OpenAI, a voice model file she runs herself, or any speech model you run behind a server. On Mac and Linux, CUSTOM LOCAL points her at a speech server you run yourself; Fish Audio, OpenAI and picking a voice model file are Windows only for now.
+Her voice can come from Fish Audio's cloud, OpenAI, a voice model file she runs herself, or any speech model you run behind a server. On Mac and Linux, CUSTOM LOCAL points her at a speech server you run yourself, and Fish Audio and OpenAI work from her voice menu with your own key; picking a voice model file is Windows only for now.
 1. Mainframe > VOICE:
    - On your PC (a voice model file, Fish Speech, Kokoro or any OpenAI-style server): press Set up on the CUSTOM LOCAL row.
    - In the cloud (Fish Audio or OpenAI): click CLOUD VOICE. Fish Audio is first in the menu under it and its panel opens; pick OpenAI in that menu instead if you want it. The setup guide has Fish Audio's steps: https://capriai.app/setup/#fish
@@ -1140,7 +1140,7 @@ In Discord, open User Settings > Voice & Video. Set Echo Cancellation to Off and
 
 Press Ctrl + Alt + V again, or TALK, to stop. With Listen for Capri on, her ears stay open for her name after you stop.
 
-### "Hey Capri" (0.7.6 and newer, Windows)
+### "Hey Capri" (0.7.6 and newer)
 With Listen for Capri on, say "Hey Capri" and she answers, then takes your next line without her name. That's one line: the one after needs her name again. It doesn't start voice chat; Ctrl + Alt + V or TALK does.
 - Where: it's now Capri Mainframe > Settings > VOICE > Listen for Capri, off by default; saying Hey Capri works there, and there's no separate Hey Capri switch. Settings that had Hey Capri on now have Listen for Capri on.
 - The first time you turn it on she downloads what it needs, once, and says so in her bubble and the Mainframe: an 18 MB listening pack ("Getting what I need to hear "Hey Capri"..."), plus her free voice (316 MB) first if it isn't in yet, because the wake word runs on the speech engine that comes with it. Then: "Listening for "Hey Capri". Nothing leaves your PC until you say it."
@@ -1960,7 +1960,7 @@ The update worked. Open Capri from the Start menu.
 Wait a few seconds, then press Restart to update again.
 
 ### Mac and Linux
-On a Mac, and on Linux from the tarball, there are no automatic updates yet, but she tells you when a new version is out: "Capri X is out. Right-click me > Get Capri X." Started from Capri-linux-x64.AppImage (0.9.0 and newer), she downloads a newer release by herself when she checks for updates, and her right-click menu shows "Restart Capri to update to X" (see "The Linux AppImage updates itself" in section 21).
+On Linux from the tarball there are no automatic updates yet, but she tells you when a new version is out: "Capri X is out. Right-click me > Get Capri X." Started from Capri-linux-x64.AppImage (0.9.0 and newer), she downloads a newer release by herself when she checks for updates, and her right-click menu shows "Restart Capri to update to X" (see "The Linux AppImage updates itself" in section 21). Her Mac app updates itself too (0.9.3).
 1. Right-click her > Get Capri X. Its download page opens. (The item only shows when there's a new version.)
 2. Download Capri-mac-apple-silicon.zip, Capri-mac-intel.zip, Capri-linux-x64.AppImage or Capri-linux-x64.tar.gz.
 3. Quit Capri and put the new one where the old one was. Her settings, notes, chat and keys stay, because they're kept outside the app.
@@ -2135,7 +2135,6 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 - Her own moves (0.7.6 and newer): "capri, teleport here", "go to my other monitor", "sit down", "stand up", "hang here", "let go", "hide" and "show yourself", and her animations by name ("dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation"), even before she has a brain. Screens count from the left. Moving the Mainframe works on Mac and Linux too. Riding your cursor works on a Mac and on X11 or XWayland desktops; on native Wayland she can't let clicks through her window, so she says so.
 - Getting to know you (0.7.6 and newer): on a new install, once she's said hello, she asks what to call you, your pronouns and what you're into in her typing box and writes the answers to me.md, like on Windows. Right-click her > Settings > Get to know me asks again.
 - Security (0.7.6 and newer): right-click her > Settings > Security picks Lockdown, Guarded, Trusted (the default) or Blackwall, and ticks the toggles Mac and Linux have: Open apps, games and sites; Music, media and volume; Shortcuts; Close and switch apps and tabs; Shut down, restart, sleep, lock and sign out; Use your mouse and keyboard for jobs once her hands are ready; Keep personal details out of her memories; Use tools your mods added; and Run terminal commands. With one off she asks first ("Open Spotify? Say yes and I will.") and does it when you say yes, like on Windows. Untick or tick one and it says Custom.
-- Quiet: right-click her, or the tray or menu bar icon, > Quiet. It's the same as Windows' quiet key (Ctrl + Alt + P): she stops pop-ins, asking for attention, cheers, the lag joke and Watch my screen until you untick it, and still answers when you talk to her.
 - Remember our chats: a daily transcript and memories.md, like on Windows (right-click her > Settings). She digs through them on her own here too.
 
 ### Not yet
@@ -2153,7 +2152,6 @@ On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works
 
 ### Right-click menu
 - Talk to her
-- Quiet: for when you focus or game. She stops pop-ins, asking for attention, cheers, the lag joke and Watch my screen until you untick it, and still answers when you talk to her. It's in the tray or menu bar menu too. Starting her again ends it.
 - Sit here: she sits right where she is. While she sits like that it says Stand up. Holding Shift as you drop her does Sit here too, like on Windows.
 - Hang here: she hangs on right where she is. While she hangs it says Let go.
 - Go to sleep: she sleeps until you click her, talk to her or say "wake up". While she sleeps it says Wake up.
@@ -2227,7 +2225,7 @@ From 0.9.0 on a Mac and Linux:
 - She reads PDF pages: PDFKit on a Mac, pdftotext on Linux. If pdftotext is missing she says which package to install (poppler-utils, or poppler on Arch).
 - On a Mac she sits on a window you name, and focus goes back to your app when her mini player closes.
 - On Linux she moves on niri, and stays put when the desktop answers late or a few pixels off.
-- Settings > HABITS > Music app: Spotify, YouTube, or Apple Music on a Mac.
+- Settings > HABITS > Music app: Spotify, YouTube, Deezer, YouTube Music, or Apple Music on a Mac.
 
 ### The Linux AppImage updates itself (0.9.0)
 Started from Capri-linux-x64.AppImage, she downloads a newer release by herself when she checks for updates (after she starts, every 6 hours, or when you pick Check for updates). She takes only a finished release and checks its size and SHA-256 against the release's SHA256SUMS.txt. Her right-click menu then shows "Restart Capri to update to X". Picking it, or asking her clearly to update, copies the new AppImage next to yours, then she closes, swaps the two and starts the new one. If the new one closes within 4 seconds, the old one is put back and she says so once.

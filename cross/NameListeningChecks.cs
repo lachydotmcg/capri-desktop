@@ -75,12 +75,22 @@ namespace CapriDesktop
                 Limbs.LockClock = nowWas;
             }
             checks.Add("PASS name listening: an unknown session lock never bars her, Hyprland and logind's LockedHint still stop her, idle is never read as locked, and her tick keeps the logind answer instead of a busctl each frame");
-            if (OperatingSystem.IsLinux()) HoldChecks(pet, checks);
-            if (OperatingSystem.IsLinux()) CorrectionChecks(pet, checks);
-            if (OperatingSystem.IsLinux()) ReviewChecks(pet, checks);
-            if (OperatingSystem.IsLinux()) LensChecks(pet, checks);
-            if (OperatingSystem.IsLinux()) VerifierChecks(pet, checks);
-            if (OperatingSystem.IsLinux()) HygieneCheck(pet, checks);
+            if (!OperatingSystem.IsLinux()) return;
+            var lifetimeField = typeof(Pet).GetField("nameLifetime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            object lifetimeWas = lifetimeField.GetValue(pet);
+            // These groups assert that startup was entered. Keep them at the previous worker's lifetime gate so
+            // a fast decoder configuration failure cannot finish startup before they observe it.
+            lifetimeField.SetValue(pet, new TaskCompletionSource().Task);
+            try
+            {
+                HoldChecks(pet, checks);
+                CorrectionChecks(pet, checks);
+                ReviewChecks(pet, checks);
+                LensChecks(pet, checks);
+            }
+            finally { lifetimeField.SetValue(pet, lifetimeWas); }
+            VerifierChecks(pet, checks);
+            HygieneCheck(pet, checks);
         }
 
         // The verifier reproduced these against the fix branches. They drive the real tick, the real Talk recovery prompt and
@@ -844,6 +854,8 @@ namespace CapriDesktop
             {
                 pet.Talk.Dismiss();
                 Pet.LockedForNameListening = () => false;
+                // Check that an unlock starts listening while the decoder remains parked, as in the other lock checks.
+                lifetimeField.SetValue(pet, new TaskCompletionSource().Task);
                 saved.MicrophoneNode = "check-node";
                 saved.MicrophoneFingerprint = "check-fp";
 

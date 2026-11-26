@@ -427,7 +427,8 @@ namespace CapriDesktop
             double size = Math.Min(area.Width, area.Height) * 0.86;
             if (size <= 0) return;
             using (context.PushTransform(Matrix.CreateScale(size / 24, size / 24) * Matrix.CreateTranslation(area.X + (area.Width - size) / 2, area.Y + (area.Height - size) / 2)))
-                context.DrawGeometry(new SolidColorBrush(ink), null, Outline(logo));
+                foreach (ServiceLogo layer in logo.Layers ?? new[] { logo })
+                    context.DrawGeometry(new SolidColorBrush(logo.Layers == null ? ink : MainframeTheme.Tint(layer.Ink)), null, Outline(layer));
         }
 
         internal static Geometry Outline(ServiceLogo logo)

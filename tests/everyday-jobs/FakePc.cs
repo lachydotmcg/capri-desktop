@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CapriDesktop;
 
 namespace CapriEverydayJobs
@@ -9,6 +10,15 @@ namespace CapriEverydayJobs
         private readonly Outcome run;
 
         internal FakePc(Job job, Outcome run) { this.job = job; this.run = run; }
+
+        internal static List<OpenWindow> Windows()
+        {
+            return new List<OpenWindow> {
+                new OpenWindow(new IntPtr(1), "YouTube - Google Chrome", "Chrome"),
+                new OpenWindow(new IntPtr(2), "Discord", "Discord"),
+                new OpenWindow(new IntPtr(3), "Spotify", "Spotify"),
+                new OpenWindow(new IntPtr(4), "File Explorer", "File Explorer") };
+        }
 
         internal string Act(string tool, ToolArguments args)
         {

@@ -12,8 +12,8 @@ namespace CapriDesktop
     {
         // Her Mainframe's own look, after Cyberpunk 2077's settings screen (Lachy, 30 Oct): near black with a wine glow at the
         // top, sections on dark bands under a teal rule, setting names in red, values in cyan, and boxes with a dark red rim and
-        // clipped corners. The colours come from Neon, which her menus, type box, installer and notices share too; her bubbles
-        // keep Look's.
+        // clipped corners. The colours come from Neon, which her menus, type box, bubble, music player, installer and notices
+        // share too.
         private static Color Ground { get { return Neon.Ground; } }
         private static Color Glow { get { return Neon.Glow; } }
         private static Color Band { get { return Neon.Band; } }
@@ -42,6 +42,7 @@ namespace CapriDesktop
         private static readonly FontFamily Narrow = Family("Bahnschrift SemiBold Condensed");
         private const int Wide = 380;
         private const int Tall = 794;
+        private static readonly int DiscordBotRow = DiscordCompanion.Included ? 30 : 0;
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
@@ -654,8 +655,9 @@ namespace CapriDesktop
             Key quit = Lower(Make("Quit Capri", 256, 250 + v, 100, 28, delegate { capri.Quit(); }));
             quit.Accent = Hot;
             updateNote = Lower(Caption("", 28, 288 + v, small, Faint));
-            MakeResourcesKey(318 + v);
-            MakeSpendKey(348 + v);
+            MakeDiscordBotKey(318 + v);
+            MakeResourcesKey(318 + v + DiscordBotRow);
+            MakeSpendKey(348 + v + DiscordBotRow);
             for (int i = header; i < Controls.Count; i++) mainLeft.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Left));
             for (int i = 0; i < Controls.Count; i++) mainScrolled.Add(Controls[i]);
             for (int i = header; i < Controls.Count; i++)
@@ -885,7 +887,7 @@ namespace CapriDesktop
             frameSizeName = new Readout(frameSize);
             frameSize.Changed += delegate { if (!syncing) ShowFrameSize(); };
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
-            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes");
+            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box, her bubble, her TYPE | TALK pill, her music player and her notes");
             frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
             headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
@@ -2583,7 +2585,7 @@ namespace CapriDesktop
         private Rectangle Area() { return TestScreen.IsEmpty ? Screen.FromControl(this).WorkingArea : TestScreen; }
 
         // Her main page as Arrange lays it out, so its window, its scroll and her zoom all read the same rows.
-        private int MainTall { get { return Tall + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0) - Fold - (hearingActions.Length == 0 ? HearingFixRow : 0); } }
+        private int MainTall { get { return Tall + DiscordBotRow + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0) - Fold - (hearingActions.Length == 0 ? HearingFixRow : 0); } }
 
         private int ScrollTall { get { return paged ? PageNow : MainTall; } }
 
@@ -7217,7 +7219,7 @@ namespace CapriDesktop
                 cursorRow.Font = Font;
                 cursorRow.Switch = 96;
                 cursorRow.Bounds = Box(28, 444, Column, 22);
-                cursorRow.AccessibleName = "Use her cursor. She uses her visible pointer for YouTube searches, Apple Music and Spotify's volume slider; off, she uses quick tools instead";
+                cursorRow.AccessibleName = "Use her cursor. She uses her visible pointer for YouTube searches, Apple Music, Deezer, YouTube Music and Spotify's volume slider; off, she uses quick tools instead";
                 cursorRow.CheckedChanged += delegate { if (!syncing) owner.capri.ToggleCursor(); };
                 Controls.Add(cursorRow);
                 owner.Fit(this);

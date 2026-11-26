@@ -265,7 +265,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Shift + drop | sit her right where you drop her |
 | Ctrl + drop | she hangs on; click her to let go |
 | Mic button | mute your mic in voice chat |
-| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
+| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Settings > VOICE (Apple Silicon Mac and Linux once her local ears are set up) |
 | Ctrl + Alt + V | start or stop voice chat (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + N | mute your mic (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + T | open her typing box from anywhere |
@@ -390,7 +390,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 **Jobs on your PC**
 
 - [x] Opening apps, games and websites
-- [x] Playing music on Spotify, YouTube or Apple Music (pick one in Settings; she plays Apple Music with her cursor on Windows and a Mac): pause, skip, volume and "what's playing?"
+- [x] Playing music on Spotify, YouTube, Apple Music, Deezer or YouTube Music (pick one in Settings; she plays Apple Music with her cursor on Windows and a Mac, and Deezer and YouTube Music with her cursor too): pause, skip, volume and "what's playing?"
 - [x] Switching to, minimizing or closing your apps and tabs
 - [x] Pressing Discord and Windows shortcuts, like mute, deafen and screenshot
 - [x] Jobs that take a few steps: clicking, typing and scrolling in your apps
