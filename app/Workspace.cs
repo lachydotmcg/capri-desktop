@@ -347,12 +347,9 @@ namespace CapriDesktop
                         "trustAsked", chat.TrustAsked, "homePending", chat.HomePending, "homeIdentity", chat.HomeIdentity, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
                 }
                 string text = HuskJson.Write(copy);
-                Exception failed = null;
-                for (int attempt = 0; attempt < 4; attempt++)
-                {
-                    try { Atomic(Path.Combine(Root, "chats", chat.Id + ".json"), text, ReplaceFile); failed = null; break; }
-                    catch (Exception error) { failed = error; if (attempt < 3) Thread.Sleep(650); }
-                }
+                Exception failed;
+                try { failed = Files.Retried(4, 650, delegate { Atomic(Path.Combine(Root, "chats", chat.Id + ".json"), text, ReplaceFile); }); }
+                catch (Exception error) { failed = error; }
                 WorkspaceItem warning = null;
                 lock (chat.Gate)
                 {

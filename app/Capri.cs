@@ -2419,6 +2419,7 @@ namespace CapriDesktop
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
         private static int saveLogged;
+        private bool settingsSaveStuck;
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
@@ -18109,16 +18110,17 @@ namespace CapriDesktop
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
             ModsSaved();
-            try
+            // Short pauses keep a held file from blocking the UI for long. After exhausting retries, try once per save
+            // until one succeeds, so a read-only file or full disk doesn't stall every change.
+            Exception failed = Files.Retried(settingsSaveStuck ? 1 : 4, 200, delegate
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
                 string temporary = settingsPath + ".new";
                 using (FileStream stream = File.Create(temporary)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, preferences);
                 if (File.Exists(settingsPath)) File.Replace(temporary, settingsPath, null); else File.Move(temporary, settingsPath);
-                return true;
-            }
-            catch (IOException error) { return SaveFailed(error); }
-            catch (UnauthorizedAccessException error) { return SaveFailed(error); }
+            });
+            settingsSaveStuck = failed != null;
+            return failed == null || SaveFailed(failed);
         }
 
         private static bool SaveFailed(Exception error)
@@ -31666,6 +31668,7 @@ namespace CapriDesktop
         {
             string folder = Path.Combine(output, "save-log-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath, temporary = settingsPath + ".new";
             int loggedWas = saveLogged;
+            bool stuckWas = settingsSaveStuck;
             byte[] kept = File.Exists(temporary) ? File.ReadAllBytes(temporary) : null;
             Directory.CreateDirectory(folder);
             string log = Path.Combine(folder, "errors.txt");
@@ -31694,6 +31697,77 @@ namespace CapriDesktop
                 if (Directory.Exists(temporary)) Directory.Delete(temporary);
                 if (kept == null) File.Delete(temporary); else File.WriteAllBytes(temporary, kept);
                 saveLogged = loggedWas;
+                settingsSaveStuck = stuckWas;
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+        }
+
+        // Holds the file open the way an antivirus scan or the search indexer does, lets go of it 250 ms later on another
+        // thread, and expects the save made meanwhile to land.
+        private static bool SavesThroughHeld(string path, Func<bool> save)
+        {
+            FileStream held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Thread release = new Thread(delegate() { Thread.Sleep(250); held.Dispose(); });
+            try
+            {
+                release.Start();
+                return save();
+            }
+            finally
+            {
+                release.Join();
+                held.Dispose();
+            }
+        }
+
+        private void SmokeHeldSettings(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "held-settings-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath;
+            int loggedWas = saveLogged, musicWas = preferences.MusicApp;
+            bool stuckWas = settingsSaveStuck;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Brain.LogPath = Path.Combine(folder, "errors.txt");
+                saveLogged = 0;
+                using (FileStream held = new FileStream(settingsPath + ".new", FileMode.Create, FileAccess.Write, FileShare.None))
+                    if (SavePreferences() || !settingsSaveStuck) throw new Exception("A persistently blocked settings save did not exhaust retries.");
+                if (!SavePreferences()) throw new Exception("Settings didn't save before the held-file check.");
+                int wanted = musicWas == 0 ? 1 : 0;
+                preferences.MusicApp = wanted;
+                if (!SavesThroughHeld(settingsPath, SavePreferences) || LoadPreferences().MusicApp != wanted)
+                    throw new Exception("A settings change made while settings.json was held for 250 ms was lost.");
+                string notePath = Path.Combine(folder, "held.md");
+                File.WriteAllText(notePath, "Before.");
+                WrittenNote note = new WrittenNote(notePath, "", new object());
+                if (!SavesThroughHeld(notePath, delegate { return note.Save("After.") == null; }) || File.ReadAllText(notePath) != "After." || Directory.GetFiles(folder, "*.new").Length != 0)
+                    throw new Exception("A note saved while its file was held for 250 ms was lost or left a temporary file.");
+                bool edited = false;
+                string conflicted;
+                using (FileStream held = new FileStream(notePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    conflicted = note.Save("Mine.", delegate
+                    {
+                        // The first replacement has failed and closed its handles. Edit before the next attempt reads the note.
+                        if (edited) return;
+                        if (Directory.GetFiles(folder, "held.md.*.new").Length != 1)
+                            throw new Exception("The held note did not reach its first replacement attempt.");
+                        held.Dispose();
+                        File.WriteAllText(notePath, "External edit.");
+                        edited = true;
+                    });
+                }
+                if (!edited || conflicted != "This note changed. Reload it before saving." || File.ReadAllText(notePath) != "External edit." || Directory.GetFiles(folder, "*.new").Length != 0)
+                    throw new Exception("A retry overwrote an external edit made while the note was held.");
+                checks.Add("PASS settings and note saves wait out their file held open for 250 ms by another reader and land once it's let go");
+            }
+            finally
+            {
+                preferences.MusicApp = musicWas;
+                SavePreferences();
+                saveLogged = loggedWas;
+                settingsSaveStuck = stuckWas;
                 Brain.LogPath = logWas;
                 try { Directory.Delete(folder, true); } catch (IOException) { }
             }
@@ -48257,6 +48331,7 @@ namespace CapriDesktop
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeFetch", delegate { SmokeFetch(checks, output); });
             Section(checks, "SmokeSaveLog", delegate { SmokeSaveLog(checks, output); });
+            Section(checks, "SmokeHeldSettings", delegate { SmokeHeldSettings(checks, output); });
             Section(checks, "SmokeFolderNotices", delegate { SmokeFolderNotices(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
             Section(checks, "SmokeToolCallErrors", delegate { SmokeToolCallErrors(checks); });
