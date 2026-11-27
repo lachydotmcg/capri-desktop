@@ -472,7 +472,7 @@ namespace CapriDesktop
                     drop.Font = menu.Font;
                     drop.ShowImageMargin = false;
                     drop.ShowCheckMargin = false;
-                    drop.ShowItemToolTips = true;
+                    drop.ShowItemToolTips = false;
                 }
             }
             modMenu.DropDownItems.Clear();

@@ -10,7 +10,7 @@ namespace CapriDesktop
     internal sealed class HoloWindow : Form
     {
         internal bool FullSize { get; private set; }
-        internal event Action ClosePressed, MicPressed, EndPressed, FullSizePressed, CameraPressed, MenuPressed;
+        internal event Action ClosePressed, TalkPressed, TypePressed, MicPressed, EndPressed, FullSizePressed, CameraPressed, MenuPressed;
 
         [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
 
@@ -150,6 +150,7 @@ namespace CapriDesktop
             byte alpha = FullSize && view.Motion && opening < 0.25 ? (byte)(255 * Math.Max(0, opening) / 0.25) : (byte)255;
             string key = pose + "|" + (introOn ? ((int)(opening * HoloArt.Fps)).ToString() : "-") + "|" + scene.Glitch + "|" + hover + "|" + (int)(chipShare * 20)
                 + "|" + view.Caption + "|" + view.Captions + "|" + view.Muted + "|" + view.CameraOn + "|" + view.CanMute + "|" + view.CanEnd + "|" + view.CanCamera
+                + "|" + view.Listening + "|" + view.CanTalk + "|" + view.TalkOn
                 + "|" + view.InCall + "|" + view.CallName + "|" + (int)view.Elapsed.TotalSeconds + "|" + view.Thinking + "|" + view.Speaking
                 + "|" + (int)(scene.Reveal * 30) + "|" + alpha + "|" + (sweep ? ((int)(now * 15)).ToString() : "");
             if (key != drawn)
@@ -175,7 +176,7 @@ namespace CapriDesktop
             drawn = null;
             if (action == HoloAction.None) { tip.Hide(this); return; }
             HoloView view = scene.View ?? new HoloView();
-            RectangleF box = HoloInk.ActionBox(action, scale, FullSize, ClientSize, FullSize ? null : view);
+            RectangleF box = HoloInk.ActionBox(action, scale, FullSize, ClientSize);
             tip.Show(HoloInk.ActionText(action, view, FullSize), this, (int)box.Left, (int)(box.Bottom + 6 * scale), 2000);
         }
 
@@ -186,10 +187,20 @@ namespace CapriDesktop
 
         private void Press(HoloAction action)
         {
-            HoloView view = scene.View ?? new HoloView();
+            HoloView view = read() ?? new HoloView();
             if (action == HoloAction.None || !HoloInk.ActionAvailable(action, view)) return;
-            Action handler = action == HoloAction.Exit ? ClosePressed : action == HoloAction.Mic ? MicPressed
-                : action == HoloAction.End ? EndPressed : action == HoloAction.Camera ? CameraPressed : FullSizePressed;
+            Action handler;
+            switch (action)
+            {
+                case HoloAction.Exit: handler = ClosePressed; break;
+                case HoloAction.Talk: handler = TalkPressed; break;
+                case HoloAction.Type: handler = TypePressed; break;
+                case HoloAction.Mic: handler = MicPressed; break;
+                case HoloAction.End: handler = EndPressed; break;
+                case HoloAction.Camera: handler = CameraPressed; break;
+                case HoloAction.FullSize: handler = FullSizePressed; break;
+                default: return;
+            }
             if (handler != null) handler();
         }
 

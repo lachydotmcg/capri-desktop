@@ -3326,7 +3326,7 @@ namespace CapriDesktop
             helpItem.DropDownItems.Add(checkItem);
             updateItem = Tip(new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); }), "Restart her now with the new version");
             menu.Items.Add(helpItem);
-            menu.ShowItemToolTips = true;
+            menu.ShowItemToolTips = false;
             foreach (ToolStripMenuItem parent in new[] { sizes, moves, things, helpItem })
             {
                 ToolStripDropDownMenu drop = (ToolStripDropDownMenu)parent.DropDown;
@@ -3336,7 +3336,7 @@ namespace CapriDesktop
                 drop.Font = menu.Font;
                 drop.ShowImageMargin = false;
                 drop.ShowCheckMargin = parent != helpItem && parent != things;
-                drop.ShowItemToolTips = true;
+                drop.ShowItemToolTips = false;
             }
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Tip(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }), "Close her until you start her again"));
@@ -3396,7 +3396,7 @@ namespace CapriDesktop
             Shown += delegate { StartRemote(); };
             playItem.DropDown = mainframe.MiniChoices();
             playItem.DropDown.Font = menu.Font;
-            playItem.DropDown.ShowItemToolTips = true;
+            playItem.DropDown.ShowItemToolTips = false;
             foreach (ToolStripItem game in playItem.DropDownItems) if (game.Text.Length > 0) game.ToolTipText = game.Text == "Music" ? "Play your music" : "Play " + game.Text.ToLowerInvariant() + " with her";
             PrepareHusk(data);
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -15054,7 +15054,13 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             if (!testing) brain.Preconnect();
             float s = TalkScale();
-            if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
+            if (HoloShowing)
+            {
+                Rectangle display = holoWindow.Bounds;
+                typer.Open(new Point(display.Right, display.Top), new Point(display.Right, display.Bottom),
+                    Screen.FromRectangle(display).WorkingArea, s, Rectangle.Empty);
+            }
+            else if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
             else typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
             pillUntil = clock.Elapsed.TotalSeconds + 1.5;
         }
@@ -41652,21 +41658,17 @@ namespace CapriDesktop
             string helpWanted = "Report a problem,Copy error details,Help page,Commands,Join the Discord,Privacy and safety," + (Packaged.Is ? "Mod rules," : "") + crashItem.Text + ",Check for updates";
             if (helps != helpWanted && helps != helpWanted + "," + updateItem.Text) throw new Exception("Help is not in its agreed order: " + helps);
             if (MenuRow("Her system settings (sys.md)") != null || MenuRow("Open Capri Mainframe") != null) throw new Exception("Her menu kept an old name.");
-            System.Collections.Generic.List<string> untipped = new System.Collections.Generic.List<string>();
             System.Collections.Generic.List<ToolStripDropDown> drops = new System.Collections.Generic.List<ToolStripDropDown> { menu };
             for (int at = 0; at < drops.Count; at++)
             {
-                if (!drops[at].ShowItemToolTips) untipped.Add("the " + (drops[at] == menu ? "menu" : ((ToolStripMenuItem)drops[at].OwnerItem).Text) + " list shows no tips");
+                if (drops[at].ShowItemToolTips) throw new Exception("Her right-click menu showed hover hints in " + (drops[at].OwnerItem == null ? "the main menu" : drops[at].OwnerItem.Text));
                 foreach (ToolStripItem item in drops[at].Items)
                 {
                     ToolStripMenuItem row = item as ToolStripMenuItem;
-                    if (row == null || row.Tag == Mainframe.MenuLook.Title || row.OwnerItem != null && row.OwnerItem.Text == "Mods") continue;
-                    if (string.IsNullOrEmpty(row.ToolTipText) || row.ToolTipText.Length > 70 || row.ToolTipText.IndexOf("choom", StringComparison.OrdinalIgnoreCase) >= 0) untipped.Add(row.Text + " (" + row.ToolTipText + ")");
-                    if (row.HasDropDownItems && row.Text != "Mods") drops.Add(row.DropDown);
+                    if (row != null && row.HasDropDownItems) drops.Add(row.DropDown);
                 }
             }
-            if (untipped.Count > 0) throw new Exception("Rows of her menu with no short tip: " + string.Join("; ", untipped.ToArray()));
-            checks.Add("PASS her right-click and tray menu: her job's rows, Open Mainframe, Play, Move, Size, Hide Capri, Hologram, Her things, Mods, Help with Report a problem first, and Quit Capri, every row with a short tip and the old names gone");
+            checks.Add("PASS her right-click and tray menu: the agreed rows and order, with no hover hints in the root or submenus");
 
             foreach (ToolStripMenuItem open in new[] { things, help })
             {

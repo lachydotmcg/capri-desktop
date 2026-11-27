@@ -118,7 +118,9 @@ namespace CapriDesktop
             next.HandleDestroyed += delegate { holoHandle = IntPtr.Zero; };
             next.ClosePressed += BackFromHolo;
             next.FullSizePressed += ToggleHoloFullSize;
-            next.MicPressed += delegate { if (holoCallSource == HoloCallSource.Windows) CallMic(); };
+            next.TalkPressed += ToggleVoiceChat;
+            next.TypePressed += OpenTyper;
+            next.MicPressed += ToggleMic;
             next.EndPressed += EndHoloCall;
             next.CameraPressed += ToggleHoloCamera;
             next.MenuPressed += delegate { menu.Show(Cursor.Position); };
@@ -161,26 +163,42 @@ namespace CapriDesktop
         private HoloView ReadHoloView()
         {
             HoloView view = new HoloView { Motion = preferences.Motion, CanCamera = CapriCamera.Bundled, CameraOn = holoCameraTurn != 0 };
+            bool showingReply = talkState == TalkState.Talking || talkState == TalkState.Online;
             if (holoCallSource == HoloCallSource.Windows && CallModeOn)
             {
                 CallView call = CallViewNow();
-                view.InCall = view.CanMute = view.CanEnd = true;
+                view.InCall = view.CanEnd = true;
                 view.CallName = call.App.Name;
                 view.Elapsed = call.Length;
-                view.Muted = !chatting || call.Muted;
                 view.Speaking = call.Talking;
                 view.Thinking = call.Thinking;
                 view.Captions = call.Captions;
                 if (call.Recent(DateTime.UtcNow)) view.Caption = call.Said;
+                else if (typer.Visible && showingReply) view.Caption = reply;
             }
             else if (holoCallSource == HoloCallSource.Discord && discordCompanion != null)
+            {
                 discordCompanion.ReadHoloVoice(holoDiscordSession, view);
+                // The type box keeps using desktop chat during a Discord call.
+                if (typer.Visible && showingReply && !view.Speaking)
+                {
+                    view.Captions = true;
+                    view.Caption = reply;
+                }
+                return view;
+            }
             else
             {
                 view.Speaking = TalkingNow || clock.Elapsed.TotalSeconds < voiceUntil;
                 view.Thinking = talkState == TalkState.Thinking;
-                if (talkState == TalkState.Talking) view.Caption = reply;
+                if (showingReply) view.Caption = reply;
             }
+            view.CanTalk = true;
+            view.TalkOn = VoiceChatOn;
+            view.CanMute = chatting;
+            view.Muted = chatting && ears.Muted;
+            view.Listening = (VoiceChatOn || AfterNameOpen) && !view.Muted && (hearingStatus == null || !hearingStatus.Problem)
+                && (local ? earsReady && !earsShut && (dictation != null || ears.Listening) : ears.Listening && (agent != null || resting));
             return view;
         }
 
@@ -341,6 +359,14 @@ namespace CapriDesktop
         private void SmokeHolo(System.Collections.Generic.List<string> checks, string output)
         {
             HoloInk.Family = HoloFamily;
+            HoloView idleView = new HoloView { CanTalk = true };
+            HoloView localVoice = new HoloView { CanTalk = true, TalkOn = true, CanMute = true, Listening = true };
+            if (HoloInk.StatusOf(idleView) != "IDLE" || HoloInk.StatusOf(localVoice) != "LISTENING" ||
+                HoloInk.StatusOf(new HoloView { InCall = true }) != "IN CALL")
+                throw new Exception("Holocall said it was listening without an active voice input.");
+            localVoice.Muted = true;
+            if (HoloInk.StatusOf(localVoice) != "MIC MUTED" || HoloInk.ActionText(HoloAction.Mic, localVoice, false) != "Unmute mic")
+                throw new Exception("Holocall did not reflect a muted microphone.");
             using (HoloArt art = new HoloArt(typeof(HoloWindow).Assembly))
             {
                 if (art.IntroFrames < 60 || art.Pose(HoloPose.Idle).Width != 1920 || art.Pose(HoloPose.Speaking).Height != 1080)
@@ -350,16 +376,27 @@ namespace CapriDesktop
                 using (Bitmap face = HoloInk.Scaled(art.Pose(HoloPose.Speaking), HoloInk.FaceSize(scale), true))
                 using (Bitmap layer = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
                 {
-                    HoloScene scene = new HoloScene { Face = face, Time = 1, View = new HoloView { InCall = true, CanMute = true, CanEnd = true, CanCamera = true, CallName = "Squad VC", Speaking = true, Caption = "you guys hear me?", Elapsed = TimeSpan.FromSeconds(267) } };
+                    HoloScene scene = new HoloScene { Face = face, Time = 1, View = new HoloView { InCall = true, CanTalk = true, TalkOn = true, CanMute = true, CanEnd = true, CanCamera = true, CallName = "Squad VC", Speaking = true, Caption = "you guys hear me?", Elapsed = TimeSpan.FromSeconds(267) } };
                     using (Graphics canvas = Graphics.FromImage(layer)) { canvas.Clear(Color.Transparent); HoloInk.DrawCompact(canvas, scale, scene); }
                     layer.Save(Path.Combine(output, "holocall-compact.png"), System.Drawing.Imaging.ImageFormat.Png);
-                    RectangleF end = HoloInk.ActionBox(HoloAction.FullSize, scale, false, size, scene.View);
-                    bool bracket = false, key = false;
+                    bool bracket = false;
                     for (int d = -2; d <= 2 && !bracket; d++) bracket = Rosy(layer.GetPixel((int)(6 * scale) + d, (int)(40 * scale)));
-                    for (int y = (int)end.Top; y < (int)end.Bottom && !key; y++)
-                        for (int x = (int)end.Left; x < (int)end.Right && !key; x++) { Color c = layer.GetPixel(x, y); key = c.A > 150 && c.R > 200 && c.G > 200 && c.B > 200; }
-                    if (!bracket || !key || layer.GetPixel(1, size.Height - 2).A != 0 || HoloInk.ActionAt(Point.Round(new PointF(end.X + end.Width / 2, end.Y + end.Height / 2)), scene.View, scale, false, size, 0) != HoloAction.FullSize || HoloInk.ActionBox(HoloAction.End, scale, false, size, scene.View) != RectangleF.Empty)
-                        throw new Exception("The Holocall frame didn't draw its corner brackets, its one expand key and see-through edge.");
+                    if (!bracket || layer.GetPixel(1, size.Height - 2).A != 0 || HoloInk.ActionBox(HoloAction.End, scale, false, size) != RectangleF.Empty)
+                        throw new Exception("The Holocall frame didn't draw its corner brackets and see-through edge.");
+                    RectangleF previous = RectangleF.Empty;
+                    foreach (HoloAction action in new[] { HoloAction.Talk, HoloAction.Type, HoloAction.Mic, HoloAction.FullSize })
+                    {
+                        RectangleF button = HoloInk.ActionBox(action, scale, false, size);
+                        Point point = Point.Round(new PointF(button.Left + 2, button.Top + 2));
+                        bool glyph = false;
+                        for (int y = (int)button.Top; y < (int)button.Bottom && !glyph; y++)
+                            for (int x = (int)button.Left; x < (int)button.Right && !glyph; x++) glyph = layer.GetPixel(x, y).A > 150;
+                        if (!glyph || previous.IntersectsWith(button) || HoloInk.ActionAt(point, scene.View, scale, false, size, 0) != action)
+                            throw new Exception("Holocall's " + action + " icon or its hit area did not draw correctly.");
+                        if (action == HoloAction.Mic && HoloInk.ActionAt(point, idleView, scale, false, size, 0) != HoloAction.None)
+                            throw new Exception("Holocall let you mute a microphone that hadn't started.");
+                        previous = button;
+                    }
                 }
                 byte[] camera = HoloInk.CameraFrame(art.Pose(HoloPose.Idle)), intro = art.IntroJpeg(0);
                 File.WriteAllBytes(Path.Combine(output, "holocall-camera.jpg"), camera);
@@ -367,7 +404,7 @@ namespace CapriDesktop
                 if (CapriCamera.Decode(camera, out w, out h) == null || w != 1280 || h != 720 || intro == null || CapriCamera.Decode(intro, out iw, out ih) == null || iw != 1280 || ih != 720)
                     throw new Exception("Capri Camera's Holocall frames aren't 1280x720 pictures.");
             }
-            checks.Add("PASS her Holocall art: the opening and three poses load, the lean frame draws its corner brackets, one expand key and see-through edge, and Capri Camera gets 1280x720 portrait and opening frames");
+            checks.Add("PASS Holocall's portrait and opening, truthful idle and mic status, four compact icon hit areas, and Capri Camera's 1280x720 frames");
 
             bool shownBefore = Visible;
             try
@@ -375,6 +412,12 @@ namespace CapriDesktop
                 ShowHolo(false, HoloCallSource.None, false);
                 if (holoWindow == null || !holoWindow.Visible || holoWindow.FullSize || Visible || ActiveHoloCall() != HoloCallSource.None && holoCallSource == HoloCallSource.None)
                     throw new Exception("Holocall didn't take her place on screen.");
+                System.Reflection.MethodInfo press = typeof(HoloWindow).GetMethod("Press", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                press.Invoke(holoWindow, new object[] { HoloAction.Type });
+                if (!typer.Visible || Screen.FromControl(typer).Bounds != Screen.FromControl(holoWindow).Bounds)
+                    throw new Exception("Holocall's type icon did not open Capri's type box on its screen.");
+                press.Invoke(holoWindow, new object[] { HoloAction.Type });
+                if (typer.Visible) throw new Exception("Holocall's type icon did not close the type box.");
                 Application.DoEvents();
                 System.Threading.Thread.Sleep(900);
                 Application.DoEvents();

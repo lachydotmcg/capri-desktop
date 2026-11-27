@@ -13,7 +13,7 @@ namespace CapriDesktop
 {
     internal sealed class HoloView
     {
-        internal bool InCall, Speaking, Thinking, Muted, CanMute, CanEnd;
+        internal bool InCall, Speaking, Thinking, Listening, TalkOn, CanTalk, Muted, CanMute, CanEnd;
         internal bool Motion = true, Captions = true;
         internal bool CanCamera, CameraOn;
         internal string Caption, CallName;
@@ -136,7 +136,7 @@ namespace CapriDesktop
         }
     }
 
-    internal enum HoloAction { None, Exit, Mic, FullSize, Camera, End }
+    internal enum HoloAction { None, Exit, Talk, Type, Mic, FullSize, Camera, End }
 
     internal sealed class HoloScene
     {
@@ -166,7 +166,7 @@ namespace CapriDesktop
 
         internal static Func<string, FontFamily> Family = delegate(string role) { return null; };
 
-        private static readonly HoloAction[] Keys = { HoloAction.FullSize };
+        private static readonly HoloAction[] Keys = { HoloAction.Talk, HoloAction.Type, HoloAction.Mic, HoloAction.FullSize };
 
         internal static HoloPose PoseOf(HoloView view, double time)
         {
@@ -269,15 +269,14 @@ namespace CapriDesktop
             using (Font title = MakeFont("title", 15 * scale, FontStyle.Regular))
             {
                 float rowY = 9 * scale, rowH = 18 * scale;
-                bool live = view.Speaking || view.InCall;
-                Color dot = view.Speaking ? Rose : Green;
+                Color dot = view.Speaking ? Rose : view.Listening ? Green : view.InCall ? Spoken : Quiet;
                 using (SolidBrush glow = new SolidBrush(Color.FromArgb(70, dot)))
                     graphics.FillEllipse(glow, 11 * scale, rowY + rowH / 2 - 6 * scale, 12 * scale, 12 * scale);
                 using (SolidBrush core = new SolidBrush(dot))
                     graphics.FillEllipse(core, 14 * scale, rowY + rowH / 2 - 3 * scale, 6 * scale, 6 * scale);
                 string name = Reveal("CAPRI", reveal * 1.6f);
                 SizeF named = Write(graphics, name, title, Chalk, new PointF(26 * scale, rowY), rowH);
-                string tag = Reveal(live && view.InCall ? "// HOLOCALL" : "// HOLO", reveal * 1.3f - 0.3f);
+                string tag = Reveal(view.InCall ? "// HOLOCALL" : "// HOLO", reveal * 1.3f - 0.3f);
                 Write(graphics, tag, mono, Quiet, new PointF(26 * scale + named.Width + 6 * scale, rowY), rowH);
 
                 float right = (Portrait.Right + 1) * scale;
@@ -289,30 +288,22 @@ namespace CapriDesktop
                 }
 
                 float baseY = (Portrait.Bottom + 12) * scale;
-                string status = view.Speaking ? "SPEAKING" : view.Thinking ? "THINKING" : view.InCall ? "IN CALL" : "LISTENING";
-                if (view.InCall && !string.IsNullOrEmpty(view.CallName)) status = view.CallName.ToUpperInvariant() + "  " + status;
-                float statusRight = Portrait.Right * scale;
-                foreach (HoloAction key in Keys)
-                    if (ActionAvailable(key, view)) { statusRight = ActionBox(key, scale, false, Size.Empty, view).Left - 10 * scale; break; }
+                string status = StatusOf(view);
+                if (view.InCall && !string.IsNullOrEmpty(view.CallName)) status += "  " + view.CallName.ToUpperInvariant();
+                float statusRight = ActionBox(Keys[0], scale, false, Size.Empty).Left - 10 * scale;
                 WriteClipped(graphics, status, mono, Quiet, new RectangleF(14 * scale, baseY, statusRight - 14 * scale, 30 * scale));
             }
 
             foreach (HoloAction key in Keys)
             {
-                if (!ActionAvailable(key, view)) continue;
-                RectangleF box = ActionBox(key, scale, false, Size.Empty, view);
-                bool hot = scene.Hover == key;
-                if (hot)
-                {
-                    using (SolidBrush fill = new SolidBrush(Color.FromArgb(150, 14, 16, 28))) graphics.FillRectangle(fill, box);
-                    using (Pen edge = new Pen(Color.FromArgb(90, 238, 241, 246), 1)) graphics.DrawRectangle(edge, box.X + 0.5f, box.Y + 0.5f, box.Width - 1, box.Height - 1);
-                }
-                else
-                {
-                    using (SolidBrush fill = new SolidBrush(Color.FromArgb(70, 8, 10, 18))) graphics.FillRectangle(fill, box);
-                }
-                Color ink = key == HoloAction.End ? Rose : key == HoloAction.Mic && view.Muted ? Rose : key == HoloAction.Camera && view.CameraOn ? Green : Chalk;
-                DrawGlyph(graphics, key, box, ink, scale, view, hot);
+                RectangleF box = ActionBox(key, scale, false, Size.Empty);
+                bool available = ActionAvailable(key, view);
+                // Keep the padded hit target solid to Windows while drawing only the glyph.
+                if (available)
+                    using (SolidBrush hit = new SolidBrush(Color.FromArgb(1, Color.Black))) graphics.FillRectangle(hit, box);
+                Color ink = !available ? Color.FromArgb(120, Quiet) : key == HoloAction.Mic && view.Muted ? Speaker
+                    : key == HoloAction.Talk && view.TalkOn ? Green : scene.Hover == key ? Spoken : Chalk;
+                DrawGlyph(graphics, key, box, ink, view);
             }
         }
 
@@ -544,7 +535,16 @@ namespace CapriDesktop
                 + ":" + Math.Max(0, elapsed.Seconds).ToString("D2", CultureInfo.InvariantCulture);
         }
 
-        internal static RectangleF ActionBox(HoloAction action, float scale, bool fullSize, Size bounds, HoloView view = null)
+        internal static string StatusOf(HoloView view)
+        {
+            if (view.Speaking) return "SPEAKING";
+            if (view.Thinking) return "THINKING";
+            if (view.Muted) return "MIC MUTED";
+            if (view.Listening) return "LISTENING";
+            return view.InCall ? "IN CALL" : "IDLE";
+        }
+
+        internal static RectangleF ActionBox(HoloAction action, float scale, bool fullSize, Size bounds)
         {
             if (fullSize)
             {
@@ -553,9 +553,8 @@ namespace CapriDesktop
             }
             if (action == HoloAction.Exit) return new RectangleF((Width - 12 - 20) * scale, 8 * scale, 20 * scale, 20 * scale);
             int index = Array.IndexOf(Keys, action);
-            if (index < 0 || view != null && !ActionAvailable(action, view)) return RectangleF.Empty;
-            int after = 0;
-            for (int i = index + 1; i < Keys.Length; i++) if (view == null || ActionAvailable(Keys[i], view)) after++;
+            if (index < 0) return RectangleF.Empty;
+            int after = Keys.Length - 1 - index;
             float size = 30, gap = 6;
             float right = Portrait.Right + 1;
             float x = right - (after + 1) * size - after * gap;
@@ -566,7 +565,7 @@ namespace CapriDesktop
         {
             if (fullSize) return chip > 0.05f && ActionBox(HoloAction.Exit, scale, true, bounds).Contains(point) ? HoloAction.Exit : HoloAction.None;
             foreach (HoloAction key in Keys)
-                if (ActionAvailable(key, view) && ActionBox(key, scale, false, bounds, view).Contains(point)) return key;
+                if (ActionAvailable(key, view) && ActionBox(key, scale, false, bounds).Contains(point)) return key;
             return HoloAction.None;
         }
 
@@ -575,6 +574,8 @@ namespace CapriDesktop
             switch (action)
             {
                 case HoloAction.Exit: return fullSize ? "Exit full size" : "Close Holocall";
+                case HoloAction.Talk: return view.TalkOn ? "Stop voice chat" : "Start voice chat";
+                case HoloAction.Type: return "Type to Capri";
                 case HoloAction.Mic: return view.Muted ? "Unmute mic" : "Mute mic";
                 case HoloAction.FullSize: return "Full size";
                 case HoloAction.Camera: return view.CameraOn ? "Turn off Capri Camera" : "Turn on Capri Camera";
@@ -585,13 +586,14 @@ namespace CapriDesktop
 
         internal static bool ActionAvailable(HoloAction action, HoloView view)
         {
+            if (action == HoloAction.Talk) return view.CanTalk;
             if (action == HoloAction.Mic) return view.CanMute;
             if (action == HoloAction.Camera) return view.CanCamera;
             if (action == HoloAction.End) return view.CanEnd;
             return action != HoloAction.None;
         }
 
-        private static void DrawGlyph(Graphics graphics, HoloAction action, RectangleF box, Color ink, float scale, HoloView view, bool hot)
+        private static void DrawGlyph(Graphics graphics, HoloAction action, RectangleF box, Color ink, HoloView view)
         {
             float s = Math.Min(box.Width, box.Height) / 24f;
             float cx = box.X + box.Width / 2, cy = box.Y + box.Height / 2;
@@ -605,6 +607,20 @@ namespace CapriDesktop
                     case HoloAction.Exit:
                         graphics.DrawLine(pen, p(6, 6), p(18, 18));
                         graphics.DrawLine(pen, p(18, 6), p(6, 18));
+                        break;
+                    case HoloAction.Talk:
+                        graphics.DrawLine(pen, p(4, 10), p(4, 14));
+                        graphics.DrawLine(pen, p(8, 7), p(8, 17));
+                        graphics.DrawLine(pen, p(12, 4), p(12, 20));
+                        graphics.DrawLine(pen, p(16, 7), p(16, 17));
+                        graphics.DrawLine(pen, p(20, 10), p(20, 14));
+                        break;
+                    case HoloAction.Type:
+                        graphics.DrawPolygon(pen, new[] { p(2, 6), p(22, 6), p(22, 18), p(2, 18) });
+                        graphics.DrawLine(pen, p(6, 10), p(7, 10));
+                        graphics.DrawLine(pen, p(11, 10), p(13, 10));
+                        graphics.DrawLine(pen, p(17, 10), p(18, 10));
+                        graphics.DrawLine(pen, p(7, 14), p(17, 14));
                         break;
                     case HoloAction.Mic:
                         path.AddArc(p(9, 3).X, p(9, 3).Y, 6 * s * 0.72f, 6 * s * 0.72f, 180, 180);
