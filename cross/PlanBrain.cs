@@ -40,6 +40,7 @@ namespace CapriDesktop
 
         public string Complete(string unusedModel, List<ChatMessage> messages, string tools, List<KeyValuePair<string, ToolArguments>> calls, int limit, Action<string> streamed, string purpose, string parts = null)
         {
+            if (Brain.Off) { Brain.TurnAway("ChatGPT plan"); throw new BrainException(Brain.OffLine, true); }
             int ticket = Generation;
             serial.Wait();
             try

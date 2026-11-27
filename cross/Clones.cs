@@ -204,6 +204,7 @@ namespace CapriDesktop
         private readonly Random random;
         private double held = -1;
         internal long Count { get { return Rooms.Sum(room => room.Pending + room.Bodies.Count); } }
+        internal int Shown { get { return Rooms.Sum(room => room.Bodies.Count); } }
 
         internal CloneStage(Func<double> clock, Func<PixelRect, int, CloneView> make, int seed)
         {
