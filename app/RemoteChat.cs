@@ -702,7 +702,7 @@ namespace CapriDesktop
         // her question while she asks, and the PC side it follows: her hands' Job, or SECURITY's hold when she asked first.
         private sealed class RemoteJob
         {
-            internal string Id, Task, State, Ask, Re, Last = "", Status;
+            internal string Id, Task, State, Ask, Re, Last = "", Status, Errand;
             internal Job Job;
             internal object Hold;
             internal int Thread, Steps;
@@ -1017,6 +1017,8 @@ namespace CapriDesktop
                 string type = message.Text("type"), id = message.Text("id");
                 if (type == "job.list") { RemoteJobSend(device, RemoteJobRecent()); return; }
                 if (type != "job.stop" && type != "job.answer") return;
+                RemoteJob errand = RemoteMessages.IdOk(id) ? remoteJobs.Find(one => one.Errand != null && one.Id == id && one.Ended == 0) : null;
+                if (errand != null) { RemoteErrandCommand(device, errand, type, message); return; }
                 RemoteJob run = remoteJob;
                 bool yes = message.Is("yes", true);
                 if (!RemoteMessages.IdOk(id) || !RemoteJobCurrent(run) || run.Id != id || type == "job.answer" && (run.State != "asking" || !yes && !message.Is("yes", false)))
@@ -1061,6 +1063,70 @@ namespace CapriDesktop
                     }
                 });
             }
+        }
+
+        private const string RemoteErrandTitle = "An errand on her computer";
+
+        private void RemoteErrand(HerJob job, string state)
+        {
+            if (job == null || !RemoteMessages.IdOk(job.Id) || state == "quiet") return;
+            RemoteLink link = remoteLink;
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJobs.Find(one => one.Errand == job.Id);
+                if (run == null && state != "asking") return;
+                if (run == null)
+                {
+                    run = new RemoteJob { Id = job.Id, Errand = job.Id, Task = RemoteErrandTitle, State = "running", Started = RemoteJobNow() };
+                    remoteJobs.Insert(0, run);
+                    if (remoteJobs.Count > 10) remoteJobs.RemoveAt(remoteJobs.Count - 1);
+                }
+                if (run.Ended != 0) return;
+                run.Ask = null;
+                if (state == "asking")
+                {
+                    run.State = "asking";
+                    run.Ask = RemoteMessages.CleanText(RemoteOut(job.Question), 200);
+                    if (run.Ask.Length == 0) run.Ask = "Can I keep going?";
+                }
+                else if (state == "done" || state == "failed" || state == "stopped")
+                {
+                    run.State = state;
+                    run.Ended = RemoteJobNow();
+                    run.Last = state == "done" ? "Done" : state == "failed" ? "Got stuck" : "Stopped";
+                }
+                else run.State = "running";
+                RemoteJobSend(null, RemoteJobState(run));
+                if (link != null && remoteJobTap == null && state == "asking" && RemotePcAway()) link.Notify("ask", RemoteErrandTitle, run.Ask, run.Id, null, null);
+            }
+        }
+
+        private void RemoteErrandCommand(string device, RemoteJob run, string type, RemoteJson.Map message)
+        {
+            HerComputerWindow window = herComputer;
+            bool yes = message.Is("yes", true);
+            if (window == null || window.IsDisposed || type == "job.answer" && (run.State != "asking" || !yes && !message.Is("yes", false)))
+            {
+                RemoteJobBad(device, run.Id);
+                return;
+            }
+            string id = run.Errand;
+            if (type == "job.stop")
+            {
+                if (!window.StopErrand(id)) RemoteJobBad(device, run.Id);
+                return;
+            }
+            if (!window.AnswerErrand(id, yes ? "yes" : "no")) RemoteJobBad(device, run.Id);
+        }
+
+        internal bool RemoteErrandNews(string kind, string body, string job)
+        {
+            RemoteLink link = remoteLink;
+            if (link == null || remoteJobTap != null || testing || !RemotePcAway()) return false;
+            string said = RemoteMessages.CleanText(RemoteOut(body), 200);
+            if (said.Length == 0) return false;
+            link.Notify(kind, kind == "done" ? "Errand done" : "Capri", said, kind == "done" && RemoteMessages.IdOk(job) ? job : null, null, null);
+            return true;
         }
 
         // Her reply to a yes or no tapped in JOBS goes where her reply to one they typed would: into her brain's history as

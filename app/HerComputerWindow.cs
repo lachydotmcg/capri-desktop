@@ -468,18 +468,69 @@ namespace CapriDesktop
         internal string Start(string job, string after)
         {
             if (string.IsNullOrWhiteSpace(job)) return "What should I do on my computer?";
-            string task;
-            string repeat = HerJobs.RepeatOf(job, out task);
+            HerWhen when = HerSchedule.Parse(job, DateTime.Now);
+            string task = (when.Task ?? "").Trim();
             if (task.Length == 0) return "What should I do on my computer?";
             bool wasBusy = Busy;
-            HerJob added = Computer.Jobs.Add(task, repeat, after);
-            if (added == null) return repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
+            HerJob added = Computer.Jobs.Plan(Wanted(when, after));
+            if (added == null) return when.Repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
             if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one under Mainframe > BRAIN."; }
             Pump();
-            if (inControl && repeat.Length == 0) return "It's in my Jobs app. I'll start it when you give my computer back.";
-            if (repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + (repeat == "daily" ? "every day" : "every week") + " on my computer, starting " + (wasBusy ? "after this job." : "now.");
+            string plan = HerErrand.Plan(added);
+            if (added.Watching) return "Ok, I'll keep an eye on that on my computer " + (plan.Length > 0 ? plan : "now and then") + (added.Until ? " and tell you as soon as it happens." : " and tell you when there's something new.");
+            if (added.Repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + plan + " on my computer, starting " + (added.NextRun > HerJobs.Stamp(DateTime.Now) ? HerJobs.Due(added.NextRun) + "." : wasBusy ? "after this job." : "now.");
+            if (added.At > 0) return "Ok, I'll do that on my computer " + HerJobs.Due(added.At) + "." + (string.IsNullOrWhiteSpace(after) ? "" : " Ask me to " + HerComputer.Short(after.Trim(), 60) + " then.");
+            if (inControl) return "It's in my Jobs app. I'll start it when you give my computer back.";
             if (wasBusy) return "I'm doing \"" + HerComputer.Short(runningTask, 60) + "\" right now. I'll do that next: it's number " + Math.Max(1, Computer.Jobs.Waiting - 1) + " in my Jobs app.";
             return null;
+        }
+
+        internal static HerJob Wanted(HerWhen when, string after)
+        {
+            return new HerJob
+            {
+                Task = when.Task, Repeat = when.Repeat, Every = when.Every, Minute = when.Minute, Day = when.Day, After = after ?? "",
+                Kind = when.Watch ? "watch" : "", Until = when.Until, At = when.At > DateTime.Now ? HerJobs.Stamp(when.At) : 0
+            };
+        }
+
+        internal void ShowNote(string note)
+        {
+            if (string.IsNullOrEmpty(note) || !File.Exists(note)) { OpenApp("notes"); return; }
+            lock (gate) { selectedNote = note; }
+            OpenApp("notes");
+        }
+
+        internal string Watch(string task)
+        {
+            task = HerComputer.Short((task ?? "").Trim(), 200);
+            if (task.Length == 0) return null;
+            HerWhen when = HerSchedule.Parse(task, DateTime.Now);
+            if (when.Task.Trim().Length == 0) when.Task = task;
+            when.Watch = true;
+            if (when.Repeat.Length == 0) { when.Repeat = "hourly"; when.Every = 4; when.At = DateTime.Now.AddHours(4); }
+            HerJob added = Computer.Jobs.Plan(Wanted(when, ""));
+            if (added == null) return "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first.";
+            return "Ok, I'll keep an eye on that " + HerErrand.Plan(added) + ".";
+        }
+
+        internal bool AnswerErrand(string id, string reply)
+        {
+            if (!Computer.Jobs.Answer(id, reply)) return false;
+            HerJob job = Computer.Jobs.Find(id);
+            if (job != null) Moved(job, "running");
+            ThreadPool.QueueUserWorkItem(delegate { Pump(); });
+            return true;
+        }
+
+        internal bool StopErrand(string id)
+        {
+            HerJob running = Computer.Jobs.Running();
+            if (running != null && running.Id == id) { StopTask(); return true; }
+            HerJob job = Computer.Jobs.Find(id);
+            if (job == null || !Computer.Jobs.Remove(id)) return false;
+            Moved(job, "stopped");
+            return true;
         }
 
         private void Pump()
@@ -500,42 +551,122 @@ namespace CapriDesktop
 
         internal void StopTask() { if (Busy) stopTask = true; }
 
+        internal Func<HerJob, string, bool> CheckedIn;
+        internal Action<HerJob> Asked;
+        internal Action<HerJob> Finished;
+        internal Action<HerJob, string> StateChanged;
+
+        private void Moved(HerJob job, string state)
+        {
+            Action<HerJob, string> moved = StateChanged;
+            if (moved == null || job == null) return;
+            try { moved(job, state); }
+            catch (Exception error) { Brain.Log("her computer", -1, "errand state hook failed: " + error.Message); }
+        }
+
+        private HerBrowser OpenBrowser()
+        {
+            lock (gate) return web != null && web.Running ? web : null;
+        }
+
+        private bool CheckIn(HerJob job, string line)
+        {
+            line = HerComputer.Short(line, 400);
+            if (line.Length == 0) return false;
+            Func<HerJob, string, bool> checkedIn = CheckedIn;
+            HerJob latest = Computer.Jobs.Find(job.Id) ?? job;
+            bool sent = checkedIn == null || checkedIn(latest, line);
+            if (!sent) return false;
+            Computer.Jobs.AddUpdate(job.Id, line);
+            Bubble(FirstLine(line));
+            Changed();
+            return true;
+        }
+
         private void RunTask(HerJob job)
         {
-            string answer = null, note = null, state = "done";
+            HerOutcome outcome = null;
+            string state = "done";
+            Moved(job, "running");
             HerRecorder recorder = Quiet ? null : HerRecorder.Begin(ReplayShot);
             try
             {
-                answer = Computer.Run(job.Task, this, Ask, Browser, delegate { return stopTask || closing; }, out note);
+                outcome = HerErrand.Work(Computer, job, this, Ask, Browser, OpenBrowser, delegate { return stopTask || closing; }, delegate(string line) { return CheckIn(job, line); }, delegate { return DateTime.Now; });
             }
             catch (Exception error)
             {
                 state = "failed";
-                answer = "My computer hit a snag: " + HerComputer.Short(error.Message, 160);
+                outcome = new HerOutcome { Kind = "done", Text = "My computer hit a snag: " + HerComputer.Short(error.Message, 160) };
             }
-            if (answer == null) state = "stopped";
             if (recorder != null) recorder.Stop();
-            Computer.Jobs.Finish(job.Id, state, answer, note);
-            KeepReplay(job, recorder);
-            runningTask = null;
-            if (state == "stopped") { Status("Stopped"); return; }
-            if (note != null) lock (gate) selectedNote = note;
-            Changed();
-            Status("Done: " + HerComputer.Short(job.Task, 50));
-            bool handing = state == "done" && !string.IsNullOrEmpty(job.After) && HandOff != null;
-            Bubble(FirstLine(answer));
-            Action<string> tell = Tell;
-            if (tell != null) tell(HerComputer.Short(answer, 600));
-            if (handing)
+            if (outcome == null)
             {
-                HerJob done = job.Copy();
-                done.State = state;
-                done.Answer = answer ?? "";
-                done.Note = note ?? "";
-                HandOff(done);
+                Computer.Jobs.Finish(job.Id, "stopped", null, null);
+                KeepReplay(job, recorder);
+                runningTask = null;
+                Status("Stopped");
+                Moved(job, "stopped");
+                return;
             }
+            HerJob after = null;
+            switch (outcome.Kind)
+            {
+                case "more":
+                    Computer.Jobs.Pause(job.Id, "queued", null, 0, outcome.Progress, job.Round + 1);
+                    Status("Still on: " + HerComputer.Short(job.Task, 50));
+                    break;
+                case "later":
+                    long back = HerJobs.Stamp(DateTime.Now.AddMinutes(outcome.Minutes));
+                    Computer.Jobs.Pause(job.Id, "queued", null, back, outcome.Progress, job.Round, job.Waits + 1);
+                    Status("Back on it " + HerJobs.Due(back));
+                    Moved(Computer.Jobs.Find(job.Id) ?? job, "waiting");
+                    break;
+                case "ask":
+                    Computer.Jobs.Pause(job.Id, "asking", outcome.Text, 0, outcome.Progress, job.Round);
+                    Status("Waiting for your answer");
+                    Bubble(FirstLine(outcome.Text));
+                    HerJob asking = Computer.Jobs.Find(job.Id);
+                    if (asking != null)
+                    {
+                        Moved(asking, "asking");
+                        Action<HerJob> asked = Asked;
+                        if (asked != null) asked(asking);
+                    }
+                    break;
+                case "nothing":
+                    Computer.Jobs.Finish(job.Id, "quiet", outcome.Text, null);
+                    Status("Nothing new: " + HerComputer.Short(job.Task, 50));
+                    Moved(job, "quiet");
+                    break;
+                default:
+                    Computer.Jobs.Finish(job.Id, state, outcome.Text, outcome.Note, outcome.Suggest);
+                    after = Computer.Jobs.Find(job.Id) ?? job;
+                    break;
+            }
+            if (after != null) KeepReplay(job, recorder);
+            else if (recorder != null) recorder.Dispose();
+            runningTask = null;
+            Changed();
+            if (after != null) Ended(after, state);
             if (!closing && !Quiet) Thread.Sleep(2500);
             Pump();
+        }
+
+        private void Ended(HerJob done, string state)
+        {
+            if (!string.IsNullOrEmpty(done.Note)) lock (gate) selectedNote = done.Note;
+            Status("Done: " + HerComputer.Short(done.Task, 50));
+            Moved(done, state);
+            Bubble(FirstLine(done.Answer));
+            bool handing = state == "done" && !string.IsNullOrEmpty(done.After) && HandOff != null;
+            Action<HerJob> finished = Finished;
+            if (finished != null && !handing) finished(done);
+            else
+            {
+                Action<string> tell = Tell;
+                if (tell != null) tell(HerComputer.Short(done.Answer, 600));
+            }
+            if (handing) HandOff(done);
         }
 
         private Bitmap ReplayShot()
@@ -1366,7 +1497,10 @@ namespace CapriDesktop
             int repeat;
             lock (gate) { text = (jobTyped ?? "").Trim(); repeat = jobRepeat; }
             if (text.Length == 0) return;
-            HerJob added = Computer.Jobs.Add(text, HerJobs.Repeats[repeat]);
+            HerWhen when = HerSchedule.Parse(text, DateTime.Now);
+            if (when.Task.Trim().Length == 0) when.Task = text;
+            if (repeat > 0) { when.Repeat = HerJobs.Repeats[repeat]; when.Every = 0; }
+            HerJob added = Computer.Jobs.Plan(Wanted(when, ""));
             lock (gate) { jobTyped = null; jobRepeat = 0; }
             if (added == null) { Status("Jobs list is full"); return; }
             if (Ask == null || !CanThink()) { Status("Needs a brain: pick one in Mainframe"); return; }
@@ -1426,15 +1560,31 @@ namespace CapriDesktop
                 g.DrawString("Up next", smallFont, soft, column, y);
                 y += 24;
                 if (queue.Count == 0) g.DrawString("Nothing queued", textFont, soft, column + 14, y + 6);
-                for (int i = 0; i < queue.Count && i < 5; i++)
+                long stampNow = HerJobs.Stamp(DateTime.Now);
+                for (int i = 0; i < queue.Count && y + 34 < CardBox.Bottom - 10; i++)
                 {
-                    Rectangle line = new Rectangle(column, y + i * 40, wide, 34);
+                    HerJob waiting = queue[i];
+                    bool asking = waiting.State == "asking", later = !asking && waiting.At > stampNow;
+                    Rectangle line = new Rectangle(column, y, wide, asking ? 84 : later || waiting.Round > 0 ? 46 : 34);
                     using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
-                    g.DrawString((i + 1) + ".  " + queue[i].Task, textFont, ink, new RectangleF(line.Left + 12, line.Top + 7, wide - 50, 22), trim);
-                    string id = queue[i].Id;
+                    g.DrawString((i + 1) + ".  " + waiting.Task, textFont, ink, new RectangleF(line.Left + 12, line.Top + 7, wide - 50, 22), trim);
+                    string id = waiting.Id;
+                    if (asking)
+                    {
+                        g.DrawString(waiting.Question, smallFont, ink, new RectangleF(line.Left + 12, line.Top + 30, wide - 24, 20), trim);
+                        Rectangle yes = new Rectangle(line.Left + 12, line.Top + 52, 70, 26), no = new Rectangle(yes.Right + 8, yes.Top, 70, 26);
+                        using (GraphicsPath shape = Round(yes, 13)) g.FillPath(hot, shape);
+                        using (GraphicsPath shape = Round(no, 13)) { g.FillPath(white, shape); g.DrawPath(rim, shape); }
+                        g.DrawString("Yes", smallFont, white, yes, centre);
+                        g.DrawString("No", smallFont, ink, no, centre);
+                        JobHit(yes, delegate { AnswerErrand(id, "yes"); });
+                        JobHit(no, delegate { AnswerErrand(id, "no"); });
+                    }
+                    else if (later || waiting.Round > 0) g.DrawString(later ? "Back on it " + HerJobs.Due(waiting.At) : "Carrying on next", smallFont, soft, new RectangleF(line.Left + 30, line.Top + 25, wide - 70, 18), trim);
                     RectangleF drop = new RectangleF(line.Right - 34, line.Top, 34, 34);
                     g.DrawString("×", textFont, soft, drop, centre);
-                    JobHit(drop, delegate { Computer.Jobs.Remove(id); });
+                    JobHit(drop, delegate { StopErrand(id); });
+                    y = line.Bottom + 6;
                 }
 
                 column = CardBox.Left + 24 + wide + 28;
@@ -1449,7 +1599,8 @@ namespace CapriDesktop
                     Rectangle line = new Rectangle(column, y, wide, 46);
                     using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
                     g.DrawString(repeats[i].Task, textFont, ink, new RectangleF(line.Left + 12, line.Top + 4, wide - 50, 22), trim);
-                    g.DrawString((repeats[i].Repeat == "daily" ? "Every day" : "Every week") + (repeats[i].NextRun <= HerJobs.Stamp(DateTime.Now) ? " · due now" : " · next " + HerJobs.Due(repeats[i].NextRun)), smallFont, soft, new RectangleF(line.Left + 12, line.Top + 25, wide - 50, 18), trim);
+                    string plan = HerErrand.Plan(repeats[i]);
+                    g.DrawString((repeats[i].Watching ? "Watching " + plan : char.ToUpperInvariant(plan[0]) + plan.Substring(1)) + (repeats[i].NextRun <= HerJobs.Stamp(DateTime.Now) ? " · due now" : " · next " + HerJobs.Due(repeats[i].NextRun)), smallFont, soft, new RectangleF(line.Left + 12, line.Top + 25, wide - 50, 18), trim);
                     string id = repeats[i].Id;
                     RectangleF drop = new RectangleF(line.Right - 34, line.Top + 6, 34, 34);
                     g.DrawString("×", textFont, soft, drop, centre);
