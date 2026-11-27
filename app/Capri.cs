@@ -25,6 +25,8 @@ namespace CapriDesktop
     {
         // Set when she closed while starting twice in a row, so this start moved settings.json aside and kept her keys.
         internal static bool StartedFresh;
+        // How many starts in a row before this one closed before settling: a crash loop, which sends her waiting reports sooner.
+        internal static int UnfinishedStarts;
         internal const string StartMarker = "starting.on";
         private static string lastCrash;
         private static int lastCrashAt;
@@ -174,6 +176,7 @@ namespace CapriDesktop
                     int earlier;
                     unfinished = 1 + (lines.Length > 1 && int.TryParse(lines[1], out earlier) && earlier > 0 ? earlier : 0);
                 }
+                UnfinishedStarts = unfinished;
                 if (unfinished >= 2 && File.Exists(settings))
                 {
                     string kept = Path.Combine(data, "settings.crashed.json");
@@ -195,7 +198,7 @@ namespace CapriDesktop
         // A fresh start keeps what can't crash her: her brain and voice keys with what each one is for (model, voice, agent,
         // server), and her own keys to talk, mute, type, hide and go quiet. The rest starts like a new install. Settings that
         // can't be read keep nothing.
-        private static void KeepKeys(string crashed, string settings)
+        internal static void KeepKeys(string crashed, string settings)
         {
             Preferences old;
             try { using (FileStream stream = File.OpenRead(crashed)) old = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream); }
@@ -215,6 +218,8 @@ namespace CapriDesktop
             // Their provider too, so a fresh start never sends their chats to a brain they moved away from.
             fresh.BrainProvider = old.BrainProvider; fresh.ProviderModel = old.ProviderModel; fresh.ProviderOn = old.ProviderOn;
             fresh.CloudVoice = old.CloudVoice;
+            // Their crash report choice is theirs, not a cause of crashes, and a start that keeps crashing is the one to hear about.
+            fresh.CrashReports = old.CrashReports; fresh.CrashesSentThrough = old.CrashesSentThrough;
             fresh.TalkMods = old.TalkMods; fresh.TalkVk = old.TalkVk; fresh.MuteMods = old.MuteMods; fresh.MuteVk = old.MuteVk;
             fresh.TypeMods = old.TypeMods; fresh.TypeVk = old.TypeVk; fresh.HideMods = old.HideMods; fresh.HideVk = old.HideVk;
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
@@ -47950,6 +47955,14 @@ namespace CapriDesktop
             Section(checks, "SmokeFileEditor", delegate { SmokeFileEditor(checks, output); });
             Section(checks, "SmokePopTimes", delegate { SmokePopTimes(checks); });
             Section(checks, "SmokeCalendarReminders", delegate { SmokeCalendarReminders(checks); });
+            Section(checks, "SmokeCrashLoop", delegate { SmokeCrashLoop(checks, output); });
+            Section(checks, "SmokeCrashReports", delegate
+            {
+                string crashOut = Path.Combine(output, "crash-reports-check");
+                string crashWaiting = CrashReports.CheckWaiting(crashOut);
+                if (crashWaiting != null) throw new Exception(crashWaiting);
+                checks.Add("PASS crash reports wait on disk until her server takes or refuses them: sent on the next start after the network was down, a lost reply resends the same id so she stores it once, two Capris at once send it once, 400 and 413 drop it, 429 or no answer keeps it without using a try, and it gives up after " + CrashReports.MostTries + " tries or " + CrashReports.Oldest.TotalDays + " days, keeps " + CrashReports.MostWaiting + " at most, and turning them off takes away what waits");
+            });
             Section(checks, "SmokeGameControls", delegate { SmokeGameControls(checks); });
             Section(checks, "SmokePausedExplore", delegate { SmokePausedExplore(checks); });
             Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });

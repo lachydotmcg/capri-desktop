@@ -105,7 +105,7 @@ namespace CapriDesktop
                 "SmokeOwnSettings", "SmokeSettingsTool", "SmokeOwnSliders", "SmokeEverydayAsks", "SmokeHelpForTools",
                 "SmokeClaims", "SmokeSighted", "SmokeActions", "SmokeActionEnds", "SmokeChoiceGates", "SmokeMixedAsks",
                 "SmokeFiles", "SmokeRequests", "SmokeCare", "SmokeReminders", "SmokeSavedLists",
-                "SmokeCalendarReminders", "SmokeNews", "SmokeSelfKnow", "SmokeToolKit", "SmokeUnreadableSettings",
+                "SmokeCalendarReminders", "SmokeCrashReports", "SmokeCrashLoop", "SmokeNews", "SmokeSelfKnow", "SmokeToolKit", "SmokeUnreadableSettings",
                 "SmokeFetch", "SmokeSaveLog", "SmokeFolderNotices", "SmokeBrainNotes", "SmokeToolCallErrors",
                 "SmokeBrainOnlyText", "SmokeShownToYou", "SmokeJobPanelFixes", "SmokeRateLimits", "SmokeThinking",
                 "SmokeSpecialLetters", "SmokeWordingFixes", "SmokeHelpQuotes", "SmokeSmallWording", "SmokePrivacy",
