@@ -6,7 +6,7 @@
 .jobs { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); background: var(--wine), var(--ground); outline: none; }
 .jobs-top { flex: none; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; height: calc(52px + env(safe-area-inset-top, 0px)); margin: 0 auto; padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--hot); }
 .jobs-title { flex: 1; min-width: 0; margin: 0; color: var(--rose); font: 600 19px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; }
-.jobs-top .nbtn.icon { width: 40px; min-height: 40px; }
+.jobs-top .nbtn.icon { width: max(40px, var(--target-size)); min-height: max(40px, var(--target-size)); }
 .jobs-scroll { flex: 1; min-height: 0; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 0 24px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; }
 .jobs-note { margin: 0 0 14px; color: var(--yellow); font: 15px/1.3 var(--ui); }
 .jobs-empty { margin: 4px 0 0; color: var(--faint); font: 15px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; }

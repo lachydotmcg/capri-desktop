@@ -9,10 +9,10 @@
   <link rel="icon" type="image/x-icon" href="assets/chip.ico">
   <link rel="preload" href="assets/fonts/BigShoulders-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/PublicSans.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/sprites/perch.webp" as="image">
-  <link rel="preload" href="assets/sprites/laydown.png" as="image">
-  <link rel="stylesheet" href="home.css?v=0.9.7">
-  <link rel="stylesheet" href="city/city.css?v=0.9.3.3">
+  <link rel="preload" href="assets/sprites/perch.webp" as="image" fetchpriority="low">
+  <link rel="preload" href="assets/sprites/laydown.png" as="image" fetchpriority="low">
+  <link rel="stylesheet" href="home.css?v=0.9.7.2">
+  <link rel="stylesheet" href="city/city.css?v=0.9.3.4">
   <script>
     // "pre" keeps the nav, the panel and her out of the first paint when her fly-out is going to play.
     (function () {
@@ -33,8 +33,8 @@
   </script>
   <script src="city/manifest.js?v=0.9.3.3" defer></script>
   <script src="city/ribbons.js?v=0.9.3.3" defer></script>
-  <script src="home.js?v=0.9.7.1" defer></script>
-  <script src="helper.js?v=0.9.7" defer></script>
+  <script src="home.js?v=0.9.7.2" defer></script>
+  <script src="helper.js?v=0.9.7.2" defer></script>
   <script src="city/city.js?v=0.9.3.3" defer></script>
 </head>
 <body>
@@ -86,7 +86,7 @@
     <div class="fo-stage">
       <picture>
         <source media="(max-aspect-ratio: 1/1)" srcset="city/city-tall.webp" width="1080" height="1920">
-        <img src="city/city-wide.webp" width="1920" height="1080" alt="A deep canyon of towers in teal haze, cables and bridges crossing it, with Capri on a tall screen above a lit bridge">
+        <img src="city/city-wide.webp" width="1920" height="1080" fetchpriority="high" alt="A deep canyon of towers in teal haze, cables and bridges crossing it, with Capri on a tall screen above a lit bridge">
       </picture>
       <canvas id="fo-city" aria-hidden="true"></canvas>
     </div>

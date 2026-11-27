@@ -4,7 +4,7 @@
 .memory { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); background: var(--wine), var(--ground); outline: none; }
 .mem-top { flex: none; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; height: calc(52px + env(safe-area-inset-top, 0px)); margin: 0 auto; padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--hot); }
 .mem-title { flex: 1; min-width: 0; margin: 0; color: var(--rose); font: 600 19px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; }
-.mem-top .nbtn.icon { width: 40px; min-height: 40px; }
+.mem-top .nbtn.icon { width: max(40px, var(--target-size)); min-height: max(40px, var(--target-size)); }
 .mem-scroll { flex: 1; min-height: 0; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 0 96px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; }
 .mem-scroll[hidden], .mem-note[hidden], .mem-toast[hidden] { display: none; }
 .mem-lead { margin: 0 0 14px; color: var(--white); font: 16px/1.3 var(--ui); }
@@ -28,18 +28,18 @@ ul.mem-list, ol.mem-lines { margin: 0; padding: 0; list-style: none; }
 .mem-text { flex: 1; min-width: 0; margin: 0; padding: 8px 0; border: 0; background: none; color: var(--white); font: 16px/1.35 var(--ui); text-align: left; overflow-wrap: anywhere; cursor: text; }
 .mem-text:disabled { color: var(--faint); }
 .mem-forget { margin-top: 2px; --ink: var(--rose); }
-.mem-forget { width: 40px; min-height: 40px; }
+.mem-forget { width: max(40px, var(--target-size)); min-height: max(40px, var(--target-size)); }
 .mem-edit { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 10px 12px; border: 1px solid var(--deep-edge); border-radius: 0; background: var(--well); color: var(--white); font: 16px/1.35 var(--ui); resize: vertical; outline: none; caret-color: var(--cyan); }
 .mem-keys { display: flex; gap: 8px; }
 .mem-keys .nbtn { flex: 1; min-height: 44px; }
-.mem-wipe-games { margin-top: 14px; min-height: 40px; padding: 0 14px; font-size: 14px; }
+.mem-wipe-games { margin-top: 14px; min-height: max(40px, var(--target-size)); padding: 0 14px; font-size: 14px; }
 .mem-wipe { margin-top: 8px; min-height: 50px; }
 .mem-log { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex: 1; min-width: 0; margin: 0; padding: 12px 0; border: 0; background: none; color: var(--white); font: 16px/1.2 var(--ui); text-align: left; cursor: pointer; }
 .mem-log:disabled { color: var(--faint); }
 .mem-log-count { color: var(--faint); font: 13px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
 
 .mem-daybar { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
-.mem-back { flex: none; min-height: 40px; padding: 0 16px; }
+.mem-back { flex: none; min-height: max(40px, var(--target-size)); padding: 0 16px; }
 .mem-daytitle { margin: 0; color: var(--white); font: 600 18px/1.2 var(--ui); font-stretch: 87.5%; }
 .mem-line { padding: 10px 0; border-bottom: 1px solid var(--dash); }
 .mem-line-meta { display: flex; gap: 10px; font: 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -52,4 +52,4 @@ ul.mem-list, ol.mem-lines { margin: 0; padding: 0; list-style: none; }
 
 .mem-toast { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); z-index: 2; display: flex; align-items: center; gap: 12px; width: auto; max-width: 688px; margin: 0 auto; padding: 10px 10px 10px 14px; border: 1px solid var(--rule); background: var(--field); box-shadow: 0 6px 24px #000a; }
 .mem-toast-text { flex: 1; min-width: 0; color: var(--white); font: 15px/1.3 var(--ui); overflow-wrap: anywhere; }
-.mem-undo { flex: none; min-height: 40px; padding: 0 16px; }
+.mem-undo { flex: none; min-height: max(40px, var(--target-size)); padding: 0 16px; }
