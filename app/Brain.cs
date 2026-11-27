@@ -6274,7 +6274,7 @@ namespace CapriDesktop
             }
         }
 
-        internal string Save(string text)
+        internal string Save(string text, Action beforeRetry = null)
         {
             lock (gate)
             {
@@ -6294,7 +6294,7 @@ namespace CapriDesktop
 #endif
                         if (!MatchesOriginal()) { changed = true; return; }
                         if (existed) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
-                    });
+                    }, beforeRetry);
                     if (changed) return "This note changed. Reload it before saving.";
                     if (failed != null) return "Couldn't save this note.";
                     Text = text ?? "";
