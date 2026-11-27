@@ -1089,17 +1089,21 @@ const crash = async (request, env, ctx, reply) => {
     || !crashPlatforms.includes(sent.platform)
     || typeof sent.os !== 'string' || sent.os.length > 60
     || typeof sent.store !== 'boolean'
-    || !Array.isArray(sent.lines) || sent.lines.length < 1 || sent.lines.length > 30 || sent.lines.some(line => typeof line !== 'string' || line.length > 400);
+    || !Array.isArray(sent.lines) || sent.lines.length < 1 || sent.lines.length > 30 || sent.lines.some(line => typeof line !== 'string' || line.length > 400)
+    || (sent.id !== undefined && (typeof sent.id !== 'string' || !/^[0-9a-f]{32}$/.test(sent.id)));
   if (bad) return reply({ error: 'Bad request' }, 400);
+  const rid = sent.id ?? null;
   const today = Math.floor(Date.now() / 86400000);
   const day = new Date(today * 86400000).toISOString().slice(0, 10);
   const visitor = request.headers.get('CF-Connecting-IP') || 'local';
   const key = await sha256('crash:' + visitor + ':' + today + ':' + env.SALT);
   try {
+    // A report Capri sends again because she never heard back is already here: OK, without using up today's five.
+    if (rid && await env.DB.prepare('SELECT 1 AS found FROM crashes WHERE rid = ?').bind(rid).first()) return reply({ ok: true });
     const tap = await env.DB.prepare('INSERT INTO crash_taps (key, day, count) VALUES (?, ?, 1) ON CONFLICT (key) DO UPDATE SET count = count + 1 WHERE crash_taps.count < 5').bind(key, today).run();
     if (tap.meta.changes !== 1) return reply({ error: 'Too many reports today.' }, 429);
     await env.DB.prepare('DELETE FROM crashes WHERE day < ?').bind(new Date((today - 90) * 86400000).toISOString().slice(0, 10)).run();
-    await env.DB.prepare('INSERT INTO crashes (day, version, platform, os, store, sig, lines) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(day, sent.version, sent.platform, sent.os, sent.store ? 1 : 0, crashSig(sent.lines), sent.lines.join('\n')).run();
+    await env.DB.prepare('INSERT INTO crashes (day, version, platform, os, store, sig, lines, rid) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (rid) DO NOTHING').bind(day, sent.version, sent.platform, sent.os, sent.store ? 1 : 0, crashSig(sent.lines), sent.lines.join('\n'), rid).run();
   } catch {
     return reply({ error: "Couldn't save that." }, 503);
   }

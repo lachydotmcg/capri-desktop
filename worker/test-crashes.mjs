@@ -20,10 +20,11 @@ process.on('exit', () => rmSync(room, { recursive: true, force: true }));
 const sqlite = new DatabaseSync(':memory:');
 for (const file of readdirSync(join(here, 'migrations')).filter(name => name.endsWith('.sql')).sort()) sqlite.exec(readFileSync(join(here, 'migrations', file), 'utf8'));
 let broken = false;
+let pause = null;
 const statement = (sql, values = []) => ({
   sql,
   bind: (...sent) => statement(sql, sent),
-  first: async () => sqlite.prepare(sql).get(...values) ?? null,
+  first: async () => { if (pause) await pause; return sqlite.prepare(sql).get(...values) ?? null; },
   all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
   run: async () => { if (broken) throw new Error('D1 is down'); return { meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }; }
 });
@@ -126,6 +127,37 @@ assert.deepEqual(answer.body, { error: "Couldn't save that." });
 assert.equal(answer.headers.get('Access-Control-Allow-Origin'), '*');
 broken = false;
 assert.equal(rows().length, 6);
+
+// A report with an id is stored once: Capri sending it again after a lost reply gets OK and no second row, even past today's
+// limit, and the same id at the same moment from two sends still leaves one row. Bad ids are refused; reports without one still go in.
+const once = { ...report, id: '0123456789abcdef0123456789abcdef' };
+const before = rows().length;
+const lastId = sqlite.prepare('SELECT MAX(id) AS id FROM crashes').get().id;
+assert.equal((await send(once, '203.0.113.20')).status, 200);
+assert.equal((await send(once, '203.0.113.20')).status, 200);
+assert.deepEqual((await send(once, '203.0.113.20')).body, { ok: true });
+assert.equal(rows().length, before + 1);
+assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM crashes WHERE rid = ?').get(once.id).n, 1);
+assert.equal(sqlite.prepare('SELECT count FROM crash_taps ORDER BY rowid DESC LIMIT 1').get().count, 1, 'a repeat id uses none of the day\'s five');
+for (let i = 0; i < 4; i++) assert.equal((await send({ ...report, id: String(i).repeat(32) }, '203.0.113.20')).status, 200);
+assert.equal((await send({ ...report, id: 'f'.repeat(32) }, '203.0.113.20')).status, 429);
+assert.equal((await send(once, '203.0.113.20')).status, 200, 'a repeat past the limit is still OK, so Capri stops sending it');
+const racing = { ...report, id: 'a'.repeat(32) };
+const taps = sqlite.prepare('SELECT SUM(count) AS n FROM crash_taps WHERE day = ?').get(crashNumber).n;
+let release;
+pause = new Promise(done => { release = done; });
+const race = Promise.all([send(racing, '203.0.113.21'), send(racing, '203.0.113.21')]);
+await new Promise(done => setTimeout(done, 20));
+pause = null;
+release();
+assert.deepEqual((await race).map(sent => sent.status), [200, 200]);
+assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM crashes WHERE rid = ?').get(racing.id).n, 1);
+assert.equal(sqlite.prepare('SELECT SUM(count) AS n FROM crash_taps WHERE day = ?').get(crashNumber).n - taps, 2, 'both racing sends got past the early check, so the unique index is what kept one row');
+for (const id of ['ABCDEF0123456789abcdef0123456789', 'abc', 'g'.repeat(32), 7, null, '0'.repeat(33)]) assert.equal((await send({ ...report, id }, '203.0.113.22')).status, 400, 'bad id: ' + id);
+assert.equal((await send(report, '203.0.113.22')).status, 200);
+assert.equal((await send(report, '203.0.113.22')).status, 200);
+assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM crashes WHERE rid IS NULL').get().n, before + 2, 'reports without an id still each go in');
+sqlite.exec(`DELETE FROM crashes WHERE id > ${lastId}`);
 
 // Stats with the stats key shows the crash blocks, and keeps the old fields.
 const shown = await stats('?days=30');
