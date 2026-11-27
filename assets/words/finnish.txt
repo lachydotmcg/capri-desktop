@@ -182,7 +182,7 @@ FREE KEY >	ILMAINEN AVAIN >
 Fast hands in games	Nopeat kädet peleissä
 File editor	Tiedostoeditori
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ja muut ovat Mainframen ÄÄNI-osiossa.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ja muut ovat Mainframen ÄÄNI-osiossa.
 Follow-up messages	Jatkoviestit
 Forget	Unohda
 Fork capri-mods	Haarauta capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Siirry seuraavalle näytölle
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ilmainen taso · käyttöä rajoitettu
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Onko sinulla Claude- tai ChatGPT-tilaus tai oma avain? Valitse se, niin liitän sen.
-Got it, just me. Right-click me any time for Capri Mainframe.	Selvä, vain minä. Napsauta minua hiiren oikealla milloin tahansa avataksesi Capri Mainframen.
+Got it, just me. Right-click me any time for the Mainframe.	Selvä, vain minä. Napsauta minua hiiren oikealla milloin tahansa avataksesi Capri Mainframen.
 Grey	Harmaa
 H.{0} video bitrate target; higher values make larger files	H.{0} videon bittinopeuden tavoite; suuremmat arvot tekevät suurempia tiedostoja
 HABITS >	TAVAT >
@@ -256,11 +256,11 @@ Her speaker:	Hänen kaiuttimensa:
 Her speaker: Default	Hänen kaiuttimensa: Oletus
 Her voice in your mic	Hänen äänensä mikissäsi
 Her voice in your mic: loudness	Hänen äänensä mikissäsi: voimakkuus
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Hänen oma äänensä. Sen sävelkorkeus on Asetukset > ÄÄNI > Sävelkorkeus, ja ne liikkuvat yhdessä.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Hänen oma äänensä. Sen sävelkorkeus on Asetukset > ÄÄNI > Sävelkorkeus, ja ne liikkuvat yhdessä.
 Her voice joins your mic only in call mode.	Hänen äänensä liittyy mikkiisi vain puhelutilassa.
 Her voice volume	Hänen äänensä voimakkuus
 Her voice's pitch	Hänen äänensä sävelkorkeus
-Her voice's pitch, the same as Settings > VOICE > Pitch	Hänen äänensä sävelkorkeus, sama kuin Asetukset > ÄÄNI > Sävelkorkeus
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Hänen äänensä sävelkorkeus, sama kuin Asetukset > ÄÄNI > Sävelkorkeus
 Her voice's speed	Hänen äänensä nopeus
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Hänen äänensä, ja kaksi kopiota siitä sekoitettuna taustalle, kullakin oma sävelkorkeus ja viive.
 Her voices · free	Hänen äänensä · ilmainen
@@ -583,7 +583,7 @@ Revoke	Peruuta
 Revoke also removes the phones its links added	Peruuta poistaa myös puhelimet, jotka sen linkit lisäsivät
 Ride cursor	Kursorikyyti
 Ride cursor / Hop off	Kursorikyyti / Hyppää pois
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Napsauta minua milloin tahansa hiiren oikealla avataksesi Capri Mainframen. Aivot kytkeytyvät päälle kohdassa AIVOT.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Napsauta minua milloin tahansa hiiren oikealla avataksesi Capri Mainframen. Aivot kytkeytyvät päälle kohdassa AIVOT.
 Right-click me any time for the Mainframe, Help and the Discord.	Napsauta minua milloin tahansa hiiren oikealla Mainframeen, Ohjeeseen ja Discordiin.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox tai mikä tahansa muu sovellus: valitse

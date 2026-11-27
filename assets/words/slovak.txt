@@ -182,7 +182,7 @@ FREE KEY >	BEZPLATNÝ KĽÚČ >
 Fast hands in games	Rýchle ruky v hrách
 File editor	Editor súborov
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs a ďalšie sú v HLAS v Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs a ďalšie sú v HLAS v Mainframe.
 Follow-up messages	Nadväzujúce správy
 Forget	Zabudnúť
 Fork capri-mods	Forknúť capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Prejsť na ďalšiu obrazovku
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · bezplatná úroveň · obmedzená rýchlosť
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Máš plán Claude alebo ChatGPT, alebo vlastný kľúč? Vyber ho a ja sa pripojím.
-Got it, just me. Right-click me any time for Capri Mainframe.	Dobre, len ja. Kedykoľvek ma pravým tlačidlom myši otvoríš Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Dobre, len ja. Kedykoľvek ma pravým tlačidlom myši otvoríš Capri Mainframe.
 Grey	Sivá
 H.{0} video bitrate target; higher values make larger files	Cieľová bitová rýchlosť videa H.{0}; vyššie hodnoty robia väčšie súbory
 HABITS >	ZVYKY >
@@ -256,11 +256,11 @@ Her speaker:	Jej reproduktor:
 Her speaker: Default	Jej reproduktor: Predvolený
 Her voice in your mic	Jej hlas v mikrofóne
 Her voice in your mic: loudness	Jej hlas v mikrofóne: hlasitosť
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Samotný jej hlas. Jeho výška je v Nastavenia > HLAS > Výška tónu a pohybujú sa spolu.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Samotný jej hlas. Jeho výška je v Nastavenia > HLAS > Výška tónu a pohybujú sa spolu.
 Her voice joins your mic only in call mode.	Jej hlas sa pridá do mikrofónu len v režime hovoru.
 Her voice volume	Hlasitosť jej hlasu
 Her voice's pitch	Výška jej hlasu
-Her voice's pitch, the same as Settings > VOICE > Pitch	Výška jej hlasu, rovnaká ako Nastavenia > HLAS > Výška tónu
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Výška jej hlasu, rovnaká ako Nastavenia > HLAS > Výška tónu
 Her voice's speed	Rýchlosť jej hlasu
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Jej hlas a dve kópie, zmiešané pod ňou, každá s vlastnou výškou a oneskorením.
 Her voices · free	Jej hlasy · zadarmo
@@ -583,7 +583,7 @@ Revoke	Odvolať
 Revoke also removes the phones its links added	Odvolanie odstráni aj telefóny, ktoré pridali jej odkazy
 Ride cursor	Jazdi na kurzore
 Ride cursor / Hop off	Jazdi na kurzore / Zoskočiť
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Pravým tlačidlom ma kedykoľvek klikni pre Capri Mainframe. Mozog sa zapne pod MOZOG.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Pravým tlačidlom ma kedykoľvek klikni pre Capri Mainframe. Mozog sa zapne pod MOZOG.
 Right-click me any time for the Mainframe, Help and the Discord.	Pravým tlačidlom ma kedykoľvek klikni pre Mainframe, Pomoc a Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox alebo iná aplikácia: vyber

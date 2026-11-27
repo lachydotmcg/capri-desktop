@@ -182,7 +182,7 @@ FREE KEY >	DARMOWY KLUCZ >
 Fast hands in games	Szybkie ręce w grach
 File editor	Edytor plików
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs i więcej są w sekcji GŁOS w Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs i więcej są w sekcji GŁOS w Mainframe.
 Follow-up messages	Wiadomości uzupełniające
 Forget	Zapomnij
 Fork capri-mods	Forkuj capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Przejdź do następnego ekranu
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · darmowy poziom · limit
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Masz abonament Claude lub ChatGPT albo własny klucz? Wybierz i się podłączę.
-Got it, just me. Right-click me any time for Capri Mainframe.	Jasne, tylko ja. Kliknij mnie prawym przyciskiem w dowolnym momencie, aby otworzyć Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Jasne, tylko ja. Kliknij mnie prawym przyciskiem w dowolnym momencie, aby otworzyć Capri Mainframe.
 Grey	Szary
 H.{0} video bitrate target; higher values make larger files	Docelowa przepływność wideo H.{0}; wyższe wartości dają większe pliki
 HABITS >	NAWYKI >
@@ -256,11 +256,11 @@ Her speaker:	Jej głośnik:
 Her speaker: Default	Jej głośnik: Domyślny
 Her voice in your mic	Jej głos w twoim mikrofonie
 Her voice in your mic: loudness	Jej głos w twoim mikrofonie: głośność
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Sam jej głos. Jego wysokość to Ustawienia > GŁOS > Wysokość, i poruszają się razem.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Sam jej głos. Jego wysokość to Ustawienia > GŁOS > Wysokość, i poruszają się razem.
 Her voice joins your mic only in call mode.	Jej głos dołącza do mikrofonu tylko w trybie rozmowy.
 Her voice volume	Głośność jej głosu
 Her voice's pitch	Wysokość głosu
-Her voice's pitch, the same as Settings > VOICE > Pitch	Wysokość głosu, taka sama jak Ustawienia > GŁOS > Wysokość
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Wysokość głosu, taka sama jak Ustawienia > GŁOS > Wysokość
 Her voice's speed	Szybkość głosu
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Jej głos i dwie kopie zmiksowane pod nim, każda z własną wysokością i opóźnieniem.
 Her voices · free	Jej głosy · za darmo
@@ -583,7 +583,7 @@ Revoke	Odwołaj
 Revoke also removes the phones its links added	Odwołanie usuwa też telefony, które dodały jej linki
 Ride cursor	Jedź kursorem
 Ride cursor / Hop off	Jedź kursorem / Zeskocz
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Kliknij mnie prawym przyciskiem w dowolnym momencie, aby otworzyć Capri Mainframe. Mózg włącza się w sekcji MÓZG.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Kliknij mnie prawym przyciskiem w dowolnym momencie, aby otworzyć Capri Mainframe. Mózg włącza się w sekcji MÓZG.
 Right-click me any time for the Mainframe, Help and the Discord.	Kliknij mnie prawym przyciskiem w dowolnym momencie, aby otworzyć Mainframe, Pomoc i Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox lub inna aplikacja: wybierz

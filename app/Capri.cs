@@ -2652,7 +2652,7 @@ namespace CapriDesktop
         private const string FreeOnLine = "ElevenLabs off. Free voice it is.";
         private const string VoiceOffLine = "Voice off. I'll type instead.";
         private const string VoiceOnLine = "Voice back on.";
-        private const string ElevenOffChat = "ElevenLabs isn't picked, so voice chat is off. Pick it under CLOUD VOICE in the Mainframe to talk to me.";
+        private const string ElevenOffChat = "ElevenLabs isn't picked, so voice chat is off. Pick it under Mainframe > VOICE > CLOUD VOICE to talk to me.";
         private static readonly RectangleF BodyRight = RectangleF.FromLTRB(0.25f, 0f, 0.76f, 1f);
         private static readonly RectangleF PerchedRight = RectangleF.FromLTRB(0.21f, 0.17f, 0.69f, 0.98f);
         private bool facingLeft;
@@ -6454,7 +6454,7 @@ namespace CapriDesktop
             if (!friendRow) throw new Exception("The SECURITY friend request row did not toggle and save.");
             if (!cursorRow) throw new Exception("The SECURITY Use her cursor row did not toggle and save in QuickHands, or Settings did not follow it.");
             if (crowded != null || at100 != null || at150 != null || at200 != null) throw new Exception("The SECURITY window's layout doesn't fit: " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
-            checks.Add("PASS SECURITY window: Settings > HABITS opens it on Trusted, with no Hey Capri row and Use her cursor under Use your mouse and keyboard for jobs, which saves where it always did and leaves the preset alone; a toggle click makes it Custom and saves, a click on the slider puts Trusted back, sliding to Lockdown or Blackwall sets every toggle and Settings follows; at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-100.png, security-150.png, security-200.png)");
+            checks.Add("PASS SECURITY window: Mainframe > Settings > HABITS opens it on Trusted, with no Hey Capri row and Use her cursor under Use your mouse and keyboard for jobs, which saves where it always did and leaves the preset alone; a toggle click makes it Custom and saves, a click on the slider puts Trusted back, sliding to Lockdown or Blackwall sets every toggle and Settings follows; at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-100.png, security-150.png, security-200.png)");
         }
 
         // SECURITY's 13th toggle, Keep personal details out of her memories (#88, Lachy, 5 Nov), in a section of its own so a
@@ -6882,7 +6882,7 @@ namespace CapriDesktop
                 || fromSettings != "On | -2 | +3, 40 ms | -4.5, 90 ms" || defaulted != "On | -2 | +2, 25 ms | -2.5, 25 ms" || closedOff != "Off | -2 | +2, 25 ms | -2.5, 25 ms / Layers / False" || said != "switch layer main")
                 throw new Exception("The VOICE LAYERS window went wrong: " + keyOff + " // " + opened + " // " + flipped + " // " + keyOn + " // " + slid + " // " + mainSlid + " // " + fromSettings + " // " + defaulted + " // " + closedOff + " // she spoke for: " + said);
             if (page != null || crowded != null || at100 != null || at150 != null || at200 != null) throw new Exception("The VOICE LAYERS window's layout doesn't fit: Settings " + page + " / open " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
-            checks.Add("PASS VOICE LAYERS window: the Layers button in Settings > VOICE's heading opens it; its switch turns them on and lights the button, each layer's pitch and delay slider sets and saves it, MAIN's pitch and Settings' Pitch move together both ways, Defaults puts both layers back, and the switch and letting go of a slider have her say a line; Settings still fits, with VOICE's note and Layers button fitting their text at 100%, 125%, 150%, 175% and 200% (mainframe-settings-layers.png), and at 100%, 150% and 200% nothing in the window overlaps, pokes out or gets cut off (layers-100.png, layers-150.png, layers-200.png)");
+            checks.Add("PASS VOICE LAYERS window: the Layers button in Mainframe > Settings > VOICE's heading opens it; its switch turns them on and lights the button, each layer's pitch and delay slider sets and saves it, MAIN's pitch and Settings' Pitch move together both ways, Defaults puts both layers back, and the switch and letting go of a slider have her say a line; Settings still fits, with VOICE's note and Layers button fitting their text at 100%, 125%, 150%, 175% and 200% (mainframe-settings-layers.png), and at 100%, 150% and 200% nothing in the window overlaps, pokes out or gets cut off (layers-100.png, layers-150.png, layers-200.png)");
         }
 
         // Her wake word listens for HeyCapriChanged, so whatever flips the setting starts or stops it.
@@ -7156,7 +7156,7 @@ namespace CapriDesktop
         {
             if (InvokeRequired) return (string)Invoke(new Func<string, string>(MainframeTool), page);
             if (page == "workspace") return WorkspaceTool(new ToolArguments());
-            return mainframe.OpenTool(page) ? "Opened Capri Mainframe." : "Couldn't find that Mainframe page.";
+            return mainframe.OpenTool(page) ? "Opened the Mainframe." : "Couldn't find that Mainframe page.";
         }
 
         private string ImportModTool(string path)
@@ -10979,7 +10979,7 @@ namespace CapriDesktop
         }
 
         internal static bool FreeChatOn = true;
-        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key. Make one with Restrict key turned off, then paste it under VOICE in Capri Mainframe. Type to me for now.";
+        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key. Make one with Restrict key turned off, then paste it under Mainframe > VOICE. Type to me for now.";
         internal const string NoVoiceCredits = "Out of ElevenLabs credits, so voice chat is off. Type to me for now.";
 
         private void CheckSlow(double now)
@@ -11002,7 +11002,7 @@ namespace CapriDesktop
             balloonPage = FreeKeyPage;
             balloonUpdate = false;
             balloonMainframe = false;
-            tray.ShowBalloonTip(15000, "Capri is replying slowly", "Her brain runs on your PC, and open games share that power. For fast replies, click here, make a free NVIDIA key, then paste it in Capri Mainframe under BRAIN and press Connect.", ToolTipIcon.Info);
+            tray.ShowBalloonTip(15000, "Capri is replying slowly", "Her brain runs on your PC, and open games share that power. For fast replies, click here, make a free NVIDIA key, then paste it under Mainframe > BRAIN and press Connect.", ToolTipIcon.Info);
         }
 
         internal int GlanceGap { get { return preferences.GlanceGap > 0 ? preferences.GlanceGap : 120; } }
@@ -11074,14 +11074,14 @@ namespace CapriDesktop
         {
             Cloud remote = brain.Remote;
             if (remote != null) return !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
-            if (brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain under BRAIN in Capri Mainframe.";
+            if (brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain under Mainframe > BRAIN.";
             // A provider sees through its own model, so there's no Ollama to ask, the way FileSight and Looker skip it.
             if (brain.Server != null) return null;
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
             if (local == null && !Brain.LocalSees(brain.Model) && Brain.LocalEyes() == null) return Brain.NoEyes;
             if (local == null || pick == null) return null;
-            if (pick.EyesFile == null) return "This brain can't see your screen. Pick a brain with eyes under BRAIN in Capri Mainframe, or press Free key and connect an NVIDIA vision model.";
+            if (pick.EyesFile == null) return "This brain can't see your screen. Pick a brain with eyes under Mainframe > BRAIN, or press Free key and connect an NVIDIA vision model.";
             if (local.HasEyes(pick)) return null;
             FetchEyes(local, pick);
             return "My eyes are still downloading. I'll be able to see your screen when they're ready.";
@@ -12458,7 +12458,7 @@ namespace CapriDesktop
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
                 case "jealous_of_other_ais": ToggleJealousAIs(); return null;
-                case "close_other_ais": if (!on) { ClearJealous(); return null; } return !JealousAIs ? "Turn on Jealous of other AIs first." : CloseAIs ? null : "Pick the apps she may close in Mainframe under CAPRI first, so she knows which AIs to ask about.";
+                case "close_other_ais": if (!on) { ClearJealous(); return null; } return !JealousAIs ? "Turn on Jealous of other AIs first." : CloseAIs ? null : "Pick the apps she may close under Mainframe > Settings > CAPRI first, so she knows which AIs to ask about.";
                 case "legacy_stand": ToggleLegacyStand(); return null;
                 case "sit_on_windows": ToggleSitting(); return null;
                 case "always_on_top": ToggleOnTop(); return null;
@@ -13645,7 +13645,7 @@ namespace CapriDesktop
                     if (problem != null)
                     {
                         mainframe.VoiceNote(problem, true);
-                        if (told && !cancelled) { balloonPage = null; balloonUpdate = false; balloonMainframe = true; tray.ShowBalloonTip(15000, "Capri's free voice didn't download", problem + " Click to try again from Capri Mainframe.", ToolTipIcon.Warning); }
+                        if (told && !cancelled) { balloonPage = null; balloonUpdate = false; balloonMainframe = true; tray.ShowBalloonTip(15000, "Capri's free voice didn't download", problem + " Click to try again from the Mainframe.", ToolTipIcon.Warning); }
                     }
                     else
                     {
@@ -15076,7 +15076,7 @@ namespace CapriDesktop
             {
                 heard = "(voice)";
                 box.Prompt = "> you: ";
-                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
+                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID. Right-click me, choose Open Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
                 mainframe.Restore();
                 return;
             }
@@ -15410,7 +15410,7 @@ namespace CapriDesktop
                 mainframe.VoiceNote(LocalListening + " Offline hearing. " + why, why != CallHearing);
                 return;
             }
-            EarsNote(earsLead + (ears.Muted ? "Free voice chat is ready with offline hearing; your mic is muted. " : "Free voice chat on, but I'm hearing offline, so I'll miss some words. ") + (why == Dictation.PrivacyOff ? "Turn on Online speech recognition in Windows Settings > Privacy & security > Speech." : "The reason is under VOICE in the Mainframe."), false);
+            EarsNote(earsLead + (ears.Muted ? "Free voice chat is ready with offline hearing; your mic is muted. " : "Free voice chat on, but I'm hearing offline, so I'll miss some words. ") + (why == Dictation.PrivacyOff ? "Turn on Online speech recognition in Windows Settings > Privacy & security > Speech." : "The reason is under Mainframe > VOICE."), false);
             mainframe.VoiceNote(why, why != CallHearing);
         }
 
@@ -16241,7 +16241,7 @@ namespace CapriDesktop
             }
             heard = "(voice)";
             box.Prompt = "> you: ";
-            Begin(++asking, "Can't open my voice link. Right-click me and open Capri Mainframe. The reason and the fix are under VOICE." + Brain.Stuck, TalkState.Dormant, null);
+            Begin(++asking, "Can't open my voice link. Right-click me and open the Mainframe. The reason and the fix are under VOICE." + Brain.Stuck, TalkState.Dormant, null);
         }
 
         private readonly object shortcutGate = new object();
@@ -16901,7 +16901,7 @@ namespace CapriDesktop
                 string problem = null;
                 bool stuck = false;
                 try { said = JoinSpeech(ticket, text, Computer.Mask(PhoneTurn(think, text, phoned))); }
-                catch (BrainException error) { said = error.Message == Brain.Offline ? Brain.Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Message; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
+                catch (BrainException error) { said = error.Message == Brain.Offline ? Brain.Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under Mainframe > BRAIN."; problem = error.Message; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 catch (Exception error) { if (plain && (error is OperationCanceledException || error is WebException && ((WebException)error).Status == WebExceptionStatus.RequestCanceled)) return; said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; state = TalkState.Dormant; }
                 try
@@ -17233,7 +17233,7 @@ namespace CapriDesktop
                 voiceRetry = false;
                 voiceBroke = true;
                 if (free == null && FreeChatOn && !testing) { Post(delegate { GetFreeVoice(); }); problem = "Out of ElevenLabs credits, so she's getting her free voice."; return null; }
-                if (free == null) { problem = "Out of ElevenLabs credits. Pick PREBUILT LOCAL in Capri Mainframe and get her free voice."; return null; }
+                if (free == null) { problem = "Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe and get her free voice."; return null; }
                 try
                 {
                     byte[] wav = free(words);
@@ -18033,10 +18033,10 @@ namespace CapriDesktop
             if (copying != null)
             {
                 Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
-                return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+                return "Her settings couldn't be read, so they were reset. Add your keys and choices again in the Mainframe.";
             }
             Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
-            return Packaged.Is ? "Her settings were reset. Add your keys again in Capri Mainframe. The old file is " + Path.Combine(Path.GetDirectoryName(path), UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
+            return Packaged.Is ? "Her settings were reset. Add your keys again in the Mainframe. The old file is " + Path.Combine(Path.GetDirectoryName(path), UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in the Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
         }
 
         // Copies a file she couldn't read to name beside it, before anything saves over it. Null when it worked.
@@ -22683,7 +22683,7 @@ namespace CapriDesktop
                 if (GameNotes.Request("in general, I like cats") != null || GameNotes.Request("what are the controls for this game?") != null || GameNotes.Request("remember that I like chess") != null) throw new Exception("The game-controls route stole ordinary conversation.");
                 string facts = SelfKnow.Matching("What are your saved controls?");
                 string settings = SelfKnow.Matching("How do game controls work in Capri?");
-                if (facts == null || !facts.Contains("GAMES > Controls") || settings == null || !settings.Contains("GAMES > Controls")) throw new Exception("She did not know how to teach or edit game controls.");
+                if (facts == null || !facts.Contains("Mainframe > Settings > GAMES > Controls") || settings == null || !settings.Contains("Mainframe > Settings > GAMES > Controls")) throw new Exception("She did not know how to teach or edit game controls.");
                 checks.Add("PASS taught game controls route without a brain, save separately from learned notes, reach the next game brief, survive editor changes, read back, use the open game's title, and keep names inside their folder");
             }
             finally { GameNotes.Folder = folderWas; Hands.GameOpen = openWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
@@ -25154,7 +25154,7 @@ namespace CapriDesktop
                 if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
             checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
             string selfGamingHelp = SelfKnow.Matching("how do I activate game mode?");
-            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "no switch of its own", "default key is Ctrl + Alt + G", "Off stays off", "asking her to turn game comments on brings them back", "MAX INTELLIGENCE", "weaker on other brains" })
+            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Mainframe > Settings > GAMES", "no switch of its own", "default key is Ctrl + Alt + G", "Off stays off", "asking her to turn game comments on brings them back", "MAX INTELLIGENCE", "weaker on other brains" })
                 if (selfGamingHelp == null || !selfGamingHelp.Contains(selfGamingFact)) throw new Exception("Gaming Mode help missed: " + selfGamingFact);
             checks.Add("PASS self knowledge: Gaming Mode explains asking her, that Comments in Settings is its only setting, the default key, that Comments Off stays off until Comments itself turns it back on, and the difference between MAX INTELLIGENCE and other brains");
 
@@ -25595,10 +25595,10 @@ namespace CapriDesktop
                 if (!mainframe.Visible || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open its main page.");
                 MainframeTool("clips");
                 if (!mainframe.SettingsShown || !mainframe.ClipsSectionShown) throw new Exception("The Mainframe tool did not open clips.");
-                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !mainframe.Visible || !mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open her Mods page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened the Mainframe." || !mainframe.Visible || !mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open her Mods page.");
                 MainframeTool("main");
                 if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over the main page.");
-                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !mainframe.ModsShown) throw new Exception("The Mainframe tool did not open her plug-ins on the Mods page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened the Mainframe." || !mainframe.ModsShown) throw new Exception("The Mainframe tool did not open her plug-ins on the Mods page.");
                 MainframeTool("brain");
                 if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over BRAIN.");
                 if (!Hands.Tools.Contains("\"mods\"") || !Hands.Tools.Contains("plug-ins like Email, Notion and Linear")) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
@@ -26130,10 +26130,10 @@ namespace CapriDesktop
                 Hands.Kit clipsOn = Hands.KitFor();
                 Hands.ClipsOn = delegate { return false; };
                 Hands.Kit clipsOff = Hands.KitFor();
-                const string offLine = "Off right now: game clips (turn on Clip my games in Settings > CLIPS to save; opening saved clips still works).";
+                const string offLine = "Off right now: game clips (turn on Clip my games in Mainframe > Settings > CLIPS to save; opening saved clips still works).";
                 if (ReferenceEquals(clipsOn, clipsOff) || !ReferenceEquals(clipsOff, Hands.KitFor()) || clipsOff.Missing.Count != 0 || clipsOn.Off.Count != 0 || !clipsOff.Off.ContainsKey("clip") || clipsOff.Tools != clipsOn.Tools
                     || clipsOff.Unable("clip", new ToolArguments()) != null || !clipsOff.Noted.Contains(offLine) || clipsOn.Noted.Contains("Off right now") || clipsOn.Brief.Contains("off right now")
-                    || !clipsOff.Brief.Contains("\n- clip: save game clips or open saved clips (off right now: turn on Clip my games in Settings > CLIPS to save; opening saved clips still works)") || !clipsOff.ChatOnly.Contains("(off right now: ")
+                    || !clipsOff.Brief.Contains("\n- clip: save game clips or open saved clips (off right now: turn on Clip my games in Mainframe > Settings > CLIPS to save; opening saved clips still works)") || !clipsOff.ChatOnly.Contains("(off right now: ")
                     || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
                     throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
             }
@@ -26691,16 +26691,16 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("only Comments itself or asking her to turn game comments on brings them back") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("she only talks when you talk to her"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("Mainframe > Settings > GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("only Comments itself or asking her to turn game comments on brings them back") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("she only talks when you talk to her"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
-                careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
-            careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
+                careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("Mainframe > Settings > CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("Mainframe > Settings > CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
             careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions") && SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("can turn Comments off, but never back on"), "Comments help didn't say Off stops everything and only Comments turns it back on.");
             foreach (string[,] rows in new[] { Hands.OwnSwitches, Hands.OwnLevels })
                 for (int row = 0; row < rows.GetLength(0); row++)
                     if (Array.IndexOf(Hands.CareSettings, rows[row, 0]) >= 0) careMust(rows[row, 2] == "Capri", "the settings tool kept a care control under Habits.");
-            checks.Add("PASS settings help: complaints, including statements and game-comment wording, name the four real switches; every care topic and Edit check-in lines points under CAPRI > Check in on me");
+            checks.Add("PASS settings help: complaints, including statements and game-comment wording, name the four real switches; every care topic and Edit check-in lines points under Mainframe > Settings > CAPRI > Check in on me");
 
             Preferences heldSettings = careOff();
             heldSettings.CareWater = heldSettings.CareStretch = heldSettings.CareEyes = true;
@@ -29393,7 +29393,7 @@ namespace CapriDesktop
             for (int popupAt = 44; popupAt + 1 < popupChime.Length; popupAt += 2) popupChimePeak = Math.Max(popupChimePeak, Math.Abs((int)BitConverter.ToInt16(popupChime, popupAt)));
             if (popupChimeLength < 0.15 || popupChimeLength > 0.4 || popupChimePeak > short.MaxValue / 2 || popupChimePeak < short.MaxValue / 8) throw new Exception("The clip chime runs " + popupChimeLength + " s at a peak of " + popupChimePeak + ".");
             string popupSpoken = ClipBuffer.Spoken("Saved 30 seconds of Call of Duty: Black Ops without sound: C:\\Users\\player\\Videos\\Capri Clips\\Call of Duty 2026-11-02 14-00-00-000 abc123.mp4 Merged your clip requests into this clip.");
-            if (popupSpoken != "Clipped 30 seconds of Call of Duty: Black Ops without sound. Merged your clip requests into this clip." || ClipBuffer.Spoken("Turn on Clip my games in Settings > CLIPS, then I can clip that.") != "Turn on Clip my games in Settings > CLIPS, then I can clip that.")
+            if (popupSpoken != "Clipped 30 seconds of Call of Duty: Black Ops without sound. Merged your clip requests into this clip." || ClipBuffer.Spoken("Turn on Clip my games in Mainframe > Settings > CLIPS, then I can clip that.") != "Turn on Clip my games in Mainframe > Settings > CLIPS, then I can clip that.")
                 throw new Exception("Her clip line still reads the path out: " + popupSpoken);
             if (ClipToast.Length(30) != "0:30" || ClipToast.Length(120) != "2:00" || ClipToast.Length(29.6) != "0:30") throw new Exception("The popup's clip length reads wrong.");
             bool popupHiddenWas = manualHidden, popupMotionWas = preferences.Motion;
@@ -29432,7 +29432,7 @@ namespace CapriDesktop
                 if (clipsOpened.Count != 2 || clipsOpened[1] != null || !mainframe.ClipsFolderShown) throw new Exception("Open clips folder is missing or didn't open the folder.");
             }
             finally { manualHidden = popupHiddenWas; preferences.Motion = popupMotionWas; if (clipToast != null) clipToast.Hide(); }
-            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > CLIPS, and she says how long a clip is instead of reading its path");
+            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Mainframe > Settings > CLIPS, and she says how long a clip is instead of reading its path");
         }
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
@@ -29576,7 +29576,7 @@ namespace CapriDesktop
                 {
                     Hands.SaveClip = off.Clip;
                     string offLine = Hands.Do("clip", new ToolArguments());
-                    if (!offLine.Contains("Settings > CLIPS") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
+                    if (!offLine.Contains("Mainframe > Settings > CLIPS") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
                     bool offSaved;
                     if (off.Clip(30, out offSaved) != offLine || offSaved) throw new Exception("An automatic clip reported success while clips were off.");
                 }
@@ -31761,7 +31761,7 @@ namespace CapriDesktop
                     string settings = Path.Combine(home, "settings.json"), notice;
                     File.WriteAllText(settings, "broken settings");
                     ReadPreferences(settings, out notice);
-                    string expected = store ? "Her settings were reset. Add your keys again in Capri Mainframe. The old file is " + Path.Combine(home, UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
+                    string expected = store ? "Her settings were reset. Add your keys again in the Mainframe. The old file is " + Path.Combine(home, UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in the Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
                     if (notice != expected || !File.Exists(Path.Combine(home, UnreadableName))) throw new Exception("The settings reset notice named the wrong folder: " + notice);
                     File.WriteAllText(Path.Combine(home, "reminders.json"), "broken reminders");
                     string told = new Reminders(home, new DateTime(2026, 11, 14)).Remind(new ToolArguments { Action = "list" });
@@ -35722,7 +35722,7 @@ namespace CapriDesktop
             if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
                 || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
                 || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
-                || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Capri Mainframe > Settings."
+                || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Mainframe > Settings."
                 || Hands.Claimed("Started your stopwatch!", ran("stopwatch")) != null || Hands.Claimed("Your stopwatch has been stopped.", ran("remind")) != "stopwatch" || Hands.NotYet("stopwatch", null) != "Your stopwatch hasn't changed yet. Say start or stop the stopwatch."
                 || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
                 throw new Exception("Her claims weren't checked against the tools that ran.");
@@ -36459,7 +36459,7 @@ namespace CapriDesktop
                 oldOn = !((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(old)).NoReactions && !new Preferences().NoReactions && !Preferences.Fresh().NoReactions;
             ReactMust(offPace && offHidden && offNap && offPlaying && shownOn && savedOff && savedOn && oldOn,
                 "Live reactions ran when they shouldn't, or the switch wasn't saved: comments off " + offPace + ", hidden " + offHidden + ", nap " + offNap + ", her game " + offPlaying + ", shown " + shownOn + ", off " + savedOff + ", on " + savedOn + ", old settings " + oldOn);
-            checks.Add("PASS Live reactions switch: on by default in new and old settings, saved both ways from Settings > GAMES, and no reactions with Comments off, the switch off, a hide they asked for, a nap or a game she's playing herself");
+            checks.Add("PASS Live reactions switch: on by default in new and old settings, saved both ways from Mainframe > Settings > GAMES, and no reactions with Comments off, the switch off, a hide they asked for, a nap or a game she's playing herself");
         }
 
         // GAMES > Game sounds (#234): on by default and saved both ways. Off, a burst of the game's sound gets no reaction and no
@@ -38275,7 +38275,7 @@ namespace CapriDesktop
                         && GamingMode("off") == "Gaming Mode's already off." && CommentPace == Commentary.Off && mainframe.CommentsShown == "Off" && !mainframe.GamingShown;
                     if (!toolHeld || !phraseHeld || settingAsked != Hands.GamingNeedsComments || !jobHeld || !comboHeld || !offHeld)
                         throw new Exception("Something turned Gaming Mode or game comments back on while Comments was Off: tool " + toolHeld + " (" + toolLine + "), phrase " + phraseHeld + ", settings tool " + settingAsked + ", job " + jobHeld + ", with more after it " + comboHeld + " (" + comboReached + "), stayed off " + offHeld + ", comments " + Commentary.PaceNames[CommentPace] + ", said " + string.Join(" / ", said.ToArray()));
-                    checks.Add("PASS Off stays off: with Comments Off, her key, her gaming_mode tool, \"activate gaming mode\" and her settings tool's Gaming Mode switch leave Gaming Mode and game comments off and get one plain line that game comments are off and turn back on under GAMES > Comments, which her timeline keeps as not done; a game job stays out of Gaming Mode, \"activate gaming mode and ...\" still does the rest, a game opening and closing gets nothing said, and Comments stays Off, saved and shown");
+                    checks.Add("PASS Off stays off: with Comments Off, her key, her gaming_mode tool, \"activate gaming mode\" and her settings tool's Gaming Mode switch leave Gaming Mode and game comments off and get one plain line that game comments are off and turn back on under Mainframe > Settings > GAMES > Comments, which her timeline keeps as not done; a game job stays out of Gaming Mode, \"activate gaming mode and ...\" still does the rest, a game opening and closing gets nothing said, and Comments stays Off, saved and shown");
                     string commentsOn = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "game_comments" });
                     bool askedBack = commentsOn == "Turned Game comments on." && CommentPace == Commentary.Events && LoadPreferences().CommentPace == Commentary.Events && GamingWanted && !GamingOn;
                     Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "game_comments", Level = "Chatty" });
@@ -40169,7 +40169,7 @@ namespace CapriDesktop
                         if (vramGpu != vramSent[vramAt]) throw new Exception("Brain VRAM " + vramLimits[vramAt] + " sent Ollama num_gpu " + (vramGpu ?? "none"));
                     }
                     string vramWords = SelfKnow.Matching("how do I limit your vram");
-                    if (vramWords == null || !vramWords.Contains("Mainframe > Resources > Brain VRAM") || !vramWords.Contains("RAM only")) throw new Exception("Her help didn't find Brain VRAM: " + vramWords);
+                    if (vramWords == null || !vramWords.Contains("Mainframe > CAPRI > Resources > Brain VRAM") || !vramWords.Contains("RAM only")) throw new Exception("Her help didn't find Brain VRAM: " + vramWords);
                 }
                 finally { Brain.OllamaShape = vramShapeWas; Brain.GpuLimit = vramLimitWas; Brain.MemorySize = 0; Brain.Vram = 0; }
                 checks.Add("PASS Brain VRAM: a limit gives llama-server a free-memory target that keeps her brain and eyes under it, RAM only runs on the CPU, and Ollama gets the layers that fit, none, or its own fit on Auto");
@@ -40423,15 +40423,15 @@ namespace CapriDesktop
                     string beyond = null;
                     try { overflowing.Aside("Talk", "Hello", 90); }
                     catch (BrainException error) { beyond = error.Message; }
-                    if (beyond != "That was too long for my brain's 32K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || windows.Count != 5 || roomAsked.Count != beyondFrom + 1) throw new Exception("An ask longer than 32K kept growing Auto memory: " + beyond);
+                    if (beyond != "That was too long for my brain's 32K memory. Pick a bigger Memory size under Mainframe > BRAIN." || windows.Count != 5 || roomAsked.Count != beyondFrom + 1) throw new Exception("An ask longer than 32K kept growing Auto memory: " + beyond);
                     checks.Add("PASS roomy PC long asks: Auto restarts once from 16K to 32K and answers; an ask past 32K says her too-long line once without a restart or resend");
                     int[] pickedSizes = { 8192, 4096, 65536, 16384 };
                     string[] pickedLines =
                     {
-                        "That was too long for my brain's 8K memory. Pick 16K or Auto for Memory size under BRAIN in Capri Mainframe.",
-                        "That was too long for my brain's 4K memory. Pick 8K or Auto for Memory size under BRAIN in Capri Mainframe.",
-                        "That was too long for my brain's 64K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe.",
-                        "That was too long for my brain's 16K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe."
+                        "That was too long for my brain's 8K memory. Pick 16K or Auto for Memory size under Mainframe > BRAIN.",
+                        "That was too long for my brain's 4K memory. Pick 8K or Auto for Memory size under Mainframe > BRAIN.",
+                        "That was too long for my brain's 64K memory. Pick a bigger Memory size under Mainframe > BRAIN.",
+                        "That was too long for my brain's 16K memory. Pick a bigger Memory size under Mainframe > BRAIN."
                     };
                     for (int pickedAt = 0; pickedAt < pickedSizes.Length; pickedAt++)
                     {
@@ -40442,9 +40442,9 @@ namespace CapriDesktop
                         if (picked != pickedLines[pickedAt] || windows.Count != pickedAt + 6 || Brain.Room(tooLong, Brain.Window, 90) != 0) throw new Exception("An ask longer than a picked memory size gave the wrong line or restarted: " + picked);
                     }
                     Brain.MemorySize = 4096;
-                    if (Brain.TooLong(4096, "request (6145 tokens) exceeds the available context size (4096 tokens)", 8192) != "That was too long for my brain's 4K memory. Pick 16K or Auto for Memory size under BRAIN in Capri Mainframe.") throw new Exception("Her suggested memory size lost the reply allowance.");
+                    if (Brain.TooLong(4096, "request (6145 tokens) exceeds the available context size (4096 tokens)", 8192) != "That was too long for my brain's 4K memory. Pick 16K or Auto for Memory size under Mainframe > BRAIN.") throw new Exception("Her suggested memory size lost the reply allowance.");
                     Brain.MemorySize = 32768;
-                    if (Brain.TooLong(32768, "request (40000 tokens) exceeds the available context size (32768 tokens)", 90) != "That was too long for my brain's 32K memory. Pick 64K for Memory size under BRAIN in Capri Mainframe.") throw new Exception("Her suggested memory size offered Auto past 32K.");
+                    if (Brain.TooLong(32768, "request (40000 tokens) exceeds the available context size (32768 tokens)", 90) != "That was too long for my brain's 32K memory. Pick 64K for Memory size under Mainframe > BRAIN.") throw new Exception("Her suggested memory size offered Auto past 32K.");
                     checks.Add("PASS picked memory asks: 10000 tokens on 8K names 16K, 6073 on 4K names 8K, reply room counts, 64K and unknown counts keep the old words, and Auto is offered only when it fits");
                     // An ask that lands while her brain is still loading, like during another ask's restart, waits for it (Lean, 3 Nov).
                     Brain.MemorySize = 8192;
@@ -52445,7 +52445,7 @@ namespace CapriDesktop
                 serve(new[] { tools(tool("mainframe", "{\"name\":\"security\"}") + "," + tool("capri_settings", "{\"name\":\"quiet\",\"action\":\"off\"}") + "," + tool("call_errand", "{\"action\":\"open_app\"}") + "," + tool("quit", "{\"action\":\"quit\"}") + "," + tool("read_file", "{\"path\":\"C:\\\\private.txt\"}")), LocalReply("Just chatting.") });
                 HearCall("change SECURITY and settings, arm an errand, read a file and quit", false, true); wait("Just chatting.");
                 if (callSession.Friend != null || callSession.Waiting != null || opened.Count != 5 || jobs.Count != 1 || !preferences.Quiet || !Security.On(Security.Friends)) throw new Exception("An unadvertised forbidden friend tool escaped the filter.");
-                foreach (string task in new[] { "Open Capri Mainframe and change SECURITY", "Read the me.md file", "quit Capri", "call_errand open_app" })
+                foreach (string task in new[] { "Open the Mainframe and change SECURITY", "Read the me.md file", "quit Capri", "call_errand open_app" })
                     if (Hands.CallAllowed("use_computer", new ToolArguments { Task = task })) throw new Exception("A friend setup or file request reached computer hands: " + task);
                 checks.Add("PASS friend tools exclude SECURITY, settings, file reading, quitting, errands and setup changes, and returned forbidden calls are discarded before holding");
             }
@@ -59322,7 +59322,7 @@ namespace CapriDesktop
                                     BrainException ramOld = new BrainException("model requires more system memory (8.8 GiB) than is available (4.8 GiB)");
                                     BrainException diskFull = new BrainException("write C:" + (char)92 + "Users" + (char)92 + "x" + (char)92 + ".ollama" + (char)92 + "models" + (char)92 + "blobs" + (char)92 + "sha256-1-partial-0: There is not enough space on the disk.");
                                     BrainException otherError = new BrainException("model 'gemma' not found");
-                                    if (!ramShort.Told || ramShort.Message != "Your PC doesn't have enough free RAM for this brain: it needs 8.8 GB and only 4.8 GB is free right now. Close some apps, browser tabs or games and try again, or pick a smaller brain under BRAIN in Capri Mainframe." || !ramOld.Told || ramOld.Message.IndexOf("needs 8.8 GB and only 4.8 GB is free", StringComparison.Ordinal) < 0 || !diskFull.Told || diskFull.Message != "Your storage is full, so my brain doesn't fit on your PC. Delete big files you don't need or empty the Recycle Bin, then try again." || otherError.Told || otherError.Message != "model 'gemma' not found" || !new BrainException("CUDA error: out of memory").Told || !new BrainException("no space left on device").Message.StartsWith("Your storage is full", StringComparison.Ordinal)) throw new Exception("Memory and storage errors weren't spelled out: " + ramShort.Message + " / " + diskFull.Message);
+                                    if (!ramShort.Told || ramShort.Message != "Your PC doesn't have enough free RAM for this brain: it needs 8.8 GB and only 4.8 GB is free right now. Close some apps, browser tabs or games and try again, or pick a smaller brain under Mainframe > BRAIN." || !ramOld.Told || ramOld.Message.IndexOf("needs 8.8 GB and only 4.8 GB is free", StringComparison.Ordinal) < 0 || !diskFull.Told || diskFull.Message != "Your storage is full, so my brain doesn't fit on your PC. Delete big files you don't need or empty the Recycle Bin, then try again." || otherError.Told || otherError.Message != "model 'gemma' not found" || !new BrainException("CUDA error: out of memory").Told || !new BrainException("no space left on device").Message.StartsWith("Your storage is full", StringComparison.Ordinal)) throw new Exception("Memory and storage errors weren't spelled out: " + ramShort.Message + " / " + diskFull.Message);
                                     string ramLine = Brain.Brief(ramShort.Message), diskLine = Brain.Brief(diskFull.Message);
                                     if (ramLine != "Not enough free RAM: it needs 8.8 GB, only 4.8 GB is free." || diskLine != "Your storage is full. Free up space, then try again." || Brain.Brief("There is not enough space on the disk.") != diskLine || Brain.Brief("model 'gemma' not found") != null || ramLine.Length > 60 || diskLine.Length > 60) throw new Exception("The short Mainframe lines for memory and storage went wrong: " + ramLine + " / " + diskLine);
                                     checks.Add("PASS plain errors: not enough RAM says how much the brain needs and how much is free and to close apps or pick a smaller brain, a full drive says your storage is full and to free up space, both have short Mainframe lines, and other errors pass through");
@@ -59331,8 +59331,8 @@ namespace CapriDesktop
                                     if (Brain.Meaning(429, "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API.\",\"type\":\"insufficient_quota\"}}") != broke || Brain.Meaning(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") != broke
                                         || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, then try again."
                                         || Brain.Meaning(401, "{\"error\":\"bad key\"}") != Brain.Rejected(null) || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
-                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}", false, false, "NVIDIA") != "NVIDIA rejected the key for my brain. Press Forget under BRAIN in Capri Mainframe, then paste it again."
-                                        || Brain.Meaning(403, "{\"error\":\"bad key\"}", false, false, Cloud.CompanyOf("custom")) != "The key for my brain was rejected. Press Forget under BRAIN in Capri Mainframe, then paste it again."
+                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}", false, false, "NVIDIA") != "NVIDIA rejected the key for my brain. Press Forget under Mainframe > BRAIN, then paste it again."
+                                        || Brain.Meaning(403, "{\"error\":\"bad key\"}", false, false, Cloud.CompanyOf("custom")) != "The key for my brain was rejected. Press Forget under Mainframe > BRAIN, then paste it again."
                                         || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
                                         || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
                                         || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null
@@ -59824,7 +59824,7 @@ namespace CapriDesktop
                                     try { eyes.See(picture, "Plain.", "What is this?", 160); }
                                     catch (BrainException error) { boltSaw = error.Message; }
                                     finally { textOnly.Stop(); Brain.Nvidia = seeUrl; }
-                                    if (boltSaw != "nvidia/nemotron-3.5-bolt-e4b can't see screens. In Capri Mainframe, pick a model that can, like nvidia/nemotron-3.5-super-vl-120b-a12b." || eyes.Unsighted != bolt.Model) throw new Exception("A text-only model's image error was not explained: " + boltSaw);
+                                    if (boltSaw != "nvidia/nemotron-3.5-bolt-e4b can't see screens. In the Mainframe, pick a model that can, like nvidia/nemotron-3.5-super-vl-120b-a12b." || eyes.Unsighted != bolt.Model) throw new Exception("A text-only model's image error was not explained: " + boltSaw);
                                     brain.Remote = bolt;
                                     brain.Model = bolt.Model;
                                     brain.Unsighted = bolt.Model;
@@ -60301,8 +60301,8 @@ namespace CapriDesktop
                             bool balloonOpened = mainframe.Visible;
                             balloonMainframe = false;
                             if (!mainframeShown) mainframe.Hide();
-                            if (!balloonOpened) throw new Exception("Clicking the download popup didn't open Capri Mainframe.");
-                            checks.Add("PASS voice installs: her free voice and ears get one dotted bar under VOICE that pushes the rest down without overlaps and closes when done, and the download popup opens Capri Mainframe");
+                            if (!balloonOpened) throw new Exception("Clicking the download popup didn't open the Mainframe.");
+                            checks.Add("PASS voice installs: her free voice and ears get one dotted bar under VOICE that pushes the rest down without overlaps and closes when done, and the download popup opens the Mainframe");
                             SmokeLocalPicker(checks);
                             SmokeBrainSettings(checks);
                             int mainTall = mainframe.ClientSize.Height, mainWide = mainframe.ClientSize.Width;
@@ -60333,10 +60333,10 @@ namespace CapriDesktop
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
                             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
                             // Her default personality and safety lines are in code, her reply rules come last, and her chat and voice-chat prompts start with all three.
-                            const string todaysPersona = "4b1cfbe4b90790d85200f8c04b3f85dafa6ccb44885f69a66c0060fa57ad929c";
+                            const string todaysPersona = "b56fae956173c6f3005d9c20252dc6a140f03dd7833341bb141836d75dcab1f0";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
                             bool personaEditable = mainframe.PersonalityShown != "Her personality";
-                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 7153 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
+                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 7146 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
                                 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal) && Agent.Prompt.StartsWith(Brain.Persona + Hands.Note, StringComparison.Ordinal)
                                 && Brain.Machinery.IndexOf("call people only by names you've actually seen or heard", StringComparison.Ordinal) > 0 && Brain.Machinery.IndexOf("never apologise for the same thing twice", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("never invent a name, a message or something nobody said", StringComparison.Ordinal) > 0
@@ -60826,7 +60826,7 @@ namespace CapriDesktop
                                     || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || !vbAdvice || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
                                     || rowsOwn != "Input: Headset Microphone (stand-in) | Output: " + MicMix.CableEnd || !inputSaved || !earsLeft || rowsBack != "Input: Microphone (stand-in) | Output: " + MicMix.CableEnd || !outputSaved || !outputBack
                                     || steamDiscord != "on | Microphone (stand-in) | " + steamName + " | On: your mic and her voice are going in. | " + steamName + " | Discord hears it now."
-                                    || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened Capri Mainframe." || toolShown != steamDiscord)
+                                    || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened the Mainframe." || toolShown != steamDiscord)
                                     throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamAdvice.ToString(), steamFarOff, vbOn, vbAdvice.ToString(), vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
                                 checks.Add("PASS her voice in your mic's setup window: with only Steam's mic it says VB-CABLE usually sounds better and to pick Output to get it, and leaves that advice behind with VB-CABLE installed; it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
                             });
@@ -61792,7 +61792,7 @@ namespace CapriDesktop
                             if (voice.VoiceId != null || preferences.VoiceId != null || voice.Model != null || mainframe.VoiceStatus != "Needs your Voice ID. |  | Default model | Forget") throw new Exception("Blank voice was not cleared: " + mainframe.VoiceStatus);
                             CloseTalk();
                             pill.Press(2);
-                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
+                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID. Right-click me, choose Open Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
                             CloseTalk();
                             preferences.VoiceKey = sealedKey;
                             ForgetVoice();
@@ -64002,7 +64002,7 @@ namespace CapriDesktop
                         }
                         else if (step == 4)
                         {
-                            if ((talkState != TalkState.Talking && talkState != TalkState.Online) || reply != "Still here." || mouths != null || pace != LettersPerSecond || mainframe.VoiceStatus.IndexOf("Out of ElevenLabs credits. Pick PREBUILT LOCAL in Capri Mainframe and get her free voice.", StringComparison.Ordinal) != 0 || !voiceBroke) throw new Exception("Voice failure did not fall back to text: " + mainframe.VoiceStatus);
+                            if ((talkState != TalkState.Talking && talkState != TalkState.Online) || reply != "Still here." || mouths != null || pace != LettersPerSecond || mainframe.VoiceStatus.IndexOf("Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe and get her free voice.", StringComparison.Ordinal) != 0 || !voiceBroke) throw new Exception("Voice failure did not fall back to text: " + mainframe.VoiceStatus);
                             Func<string, byte[]> broke = delegate(string words) { throw new VoiceException("Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe."); };
                             string freeHeard = null;
                             Func<string, byte[]> freeVoice = delegate(string words) { freeHeard = words; return tone; };
@@ -64637,7 +64637,7 @@ namespace CapriDesktop
                                     FreeStyle styleWas = wakeSpeaker.Style;
                                     string[] wakeSays = { "Hey Capri.", "Hey Capri, what's the weather like?" };
                                     string[] talkSays = { "Hey, can you pass me the remote?", "Hey Siri, set a timer for five minutes.", "We sailed to the island of Capri last summer.", "Hey Kerry, are you coming tonight?", "That cappuccino was really good.", "Hey, carry this box for me, would you?", "A caprese salad, please.", "Capricorn is my star sign." };
-                                    string[] herSays = { "I'm back, choom.", "Hey choom! Net's been quiet, too quiet. Time to stir up some trouble.", "Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE.", "Hey, it's me, Capri.", WakeLines[0], WakeLines[1] };
+                                    string[] herSays = { "I'm back, choom.", "Hey choom! Net's been quiet, too quiet. Time to stir up some trouble.", "Right-click me, choose Open Mainframe and pick a voice in the Voice ID box under VOICE.", "Hey, it's me, Capri.", WakeLines[0], WakeLines[1] };
                                     System.Collections.Generic.List<string> wakeMissed = new System.Collections.Generic.List<string>(), wakeWrong = new System.Collections.Generic.List<string>();
                                     int wakeTold = 0, wakeCaught = 0, wakeFired = 0;
                                     short[] heldLine = null;
@@ -65741,12 +65741,12 @@ namespace CapriDesktop
                             errorRemote = brain.Remote;
                             brain.Remote = new Cloud("nvapi-test", "google/gemma-4-31b-it");
                             Speak = delegate { Interlocked.Increment(ref errorVoice); return tone; };
-                            Think = delegate { throw new BrainException("That model sent thoughts without an answer. Pick another model in Capri Mainframe.", true); };
+                            Think = delegate { throw new BrainException("That model sent thoughts without an answer. Pick another model in the Mainframe.", true); };
                             Hear("hey");
                         }
                         else if (step == 18)
                         {
-                            if (talkState != TalkState.Dormant || reply != "That model sent thoughts without an answer. Pick another model in Capri Mainframe." || errorVoice != 0 || !double.IsNaN(thinkingSince)) throw new Exception("An explained cloud error stayed blank or waited for voice: " + talkState + " | " + reply + " | " + errorVoice + " | " + thinkingSince);
+                            if (talkState != TalkState.Dormant || reply != "That model sent thoughts without an answer. Pick another model in the Mainframe." || errorVoice != 0 || !double.IsNaN(thinkingSince)) throw new Exception("An explained cloud error stayed blank or waited for voice: " + talkState + " | " + reply + " | " + errorVoice + " | " + thinkingSince);
                             Think = delegate { throw new WebException("late", WebExceptionStatus.Timeout); };
                             cloudModels = null;
                             stalled.Clear();
@@ -65759,7 +65759,7 @@ namespace CapriDesktop
                             if (preferences.NvidiaModel != "nvidia/nemotron-3.5-super-vl-120b-a12b" || Brain.NvidiaDefault != "nvidia/nemotron-3.5-super-vl-120b-a12b" || !Brain.Stalled(new BrainException(Brain.Busy, true))) throw new Exception("A stuck NVIDIA model's stand-in was saved over Nemotron: " + preferences.NvidiaModel);
                             if (Brain.Next("nvidia/nemotron-3.5-super-vl-120b-a12b", new System.Collections.Generic.List<string> { "nvidia/nemotron-3.5-super-vl-120b-a12b", "openai/gpt-oss-20b", "moonshotai/kimi-k2.6" }, new System.Collections.Generic.HashSet<string>()) != "openai/gpt-oss-20b" || !Brain.Stalled(new BrainException(Brain.Gone)) || !Brain.Stalled(new BrainException(Brain.Down)) || Brain.Stalled(new BrainException(Brain.Rejected("NVIDIA")))) throw new Exception("NVIDIA fallbacks were picked wrong.");
                             checks.Add("PASS stuck NVIDIA model: a timeout, a rate limit, a gone model or a server failure switches to the next working NVIDIA model and asks again, at most twice per message");
-                            if (talkState != TalkState.Dormant || reply != "NVIDIA didn't answer in time. Try again or pick another model under BRAIN in Capri Mainframe." || errorVoice != 0) throw new Exception("A cloud timeout did not reach the bubble without voice.");
+                            if (talkState != TalkState.Dormant || reply != "NVIDIA didn't answer in time. Try again or pick another model under Mainframe > BRAIN." || errorVoice != 0) throw new Exception("A cloud timeout did not reach the bubble without voice.");
                             // Stay on my model: on, a stuck model keeps its error and she stays; off, a stand-in carries on the same chat.
                             string[] stalledBefore = new string[stalled.Count];
                             stalled.CopyTo(stalledBefore);

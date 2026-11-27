@@ -30,7 +30,7 @@ namespace CapriDesktop
         internal const string ExtrasMeetLine = "These cost a little or use your mic, so they're your pick. Then give me my first job.";
         internal const string WaitLine = "Almost there. I'll say hi the second my brain's in.";
         internal const string BackLine = "Welcome back, choom. Let's finish setting me up.";
-        internal const string AloneLine = "Got it, just me. Right-click me any time for Capri Mainframe.";
+        internal const string AloneLine = "Got it, just me. Right-click me any time for the Mainframe.";
         internal static readonly string[] Lines = { Hello, GoogleLine, KeyLine, PlanLine, WhileLine, VoiceLine, NoVoiceLine, ExtrasLine, ExtrasMeetLine, WaitLine, BackLine, AloneLine, Onboarding.MeLine, Onboarding.JobLine, Onboarding.JobWaitLine, Onboarding.JobQueuedLine };
 
         // The free key pages, Google AI Studio first: any Google account works and it doesn't ask for a phone.
@@ -623,7 +623,7 @@ namespace CapriDesktop
                     styles[i].StateValue = true;
                     styles[i].Picked = !silent && capri.FreeStyleName == name;
                 }
-                Caption("Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.", 58, 260, Wide - 58 - 18, 24, Body(17), Faint);
+                Caption("Fish Audio, ElevenLabs and more are under Mainframe > VOICE.", 58, 260, Wide - 58 - 18, 24, Body(17), Faint);
                 Caption("YOUR MIC", 28, 302, 200, 20, Mono(15), Faint);
                 micPick = MakeKey("Mic: " + capri.FirstRunMicName, 28, 326, Wide - 56 - 112, 40, Body(18, true), Rose, delegate { owner.FirstRunMics(micPick); });
                 micPick.Chevron = true;
@@ -856,7 +856,7 @@ namespace CapriDesktop
             private int BuildAlone()
             {
                 Caption("I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.", 28, 74, Wide - 56, 76, Body(19), Faint);
-                Caption("Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.", 28, 160, Wide - 56, 50, Body(19), White);
+                Caption("Right-click me any time for the Mainframe. A brain switches on under BRAIN.", 28, 160, Wide - 56, 50, Body(19), White);
                 return 210;
             }
 

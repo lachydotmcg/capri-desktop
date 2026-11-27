@@ -182,7 +182,7 @@ FREE KEY >	คีย์ฟรี >
 Fast hands in games	มือไวในเกม
 File editor	ตัวแก้ไขไฟล์
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs และอื่น ๆ อยู่ใต้เสียงใน Mainframe
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs และอื่น ๆ อยู่ใต้เสียงใน Mainframe
 Follow-up messages	ข้อความติดตาม
 Forget	ลืม
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	ไปหน้าจอถัดไป
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · แพ็กเกจฟรี · จำกัดอัตรา
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	มีแพ็กเกจ Claude หรือ ChatGPT หรือคีย์ของตัวเองไหม เลือกเลย แล้วฉันจะเชื่อมต่อให้
-Got it, just me. Right-click me any time for Capri Mainframe.	เข้าใจแล้ว แค่ฉันคนเดียว คลิกขวาที่ฉันได้ตลอดเวลาเพื่อเปิด Capri Mainframe
+Got it, just me. Right-click me any time for the Mainframe.	เข้าใจแล้ว แค่ฉันคนเดียว คลิกขวาที่ฉันได้ตลอดเวลาเพื่อเปิด Capri Mainframe
 Grey	เทา
 H.{0} video bitrate target; higher values make larger files	เป้าหมายบิตเรตวิดีโอ H.{0}; ค่ายิ่งสูงไฟล์ยิ่งใหญ่
 HABITS >	นิสัย >
@@ -256,11 +256,11 @@ Her speaker:	ลำโพงของเธอ:
 Her speaker: Default	ลำโพงของเธอ: ค่าเริ่มต้น
 Her voice in your mic	เสียงของเธอในไมค์ของคุณ
 Her voice in your mic: loudness	เสียงของเธอในไมค์ของคุณ: ความดัง
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ตัวเสียงของเธอเอง ระดับเสียงคือ การตั้งค่า > เสียง > ระดับเสียง และทั้งสองจะเปลี่ยนไปพร้อมกัน
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	ตัวเสียงของเธอเอง ระดับเสียงคือ การตั้งค่า > เสียง > ระดับเสียง และทั้งสองจะเปลี่ยนไปพร้อมกัน
 Her voice joins your mic only in call mode.	เสียงของเธอจะเข้าไมค์ของคุณเฉพาะในโหมดโทรศัพท์
 Her voice volume	ระดับเสียงของเธอ
 Her voice's pitch	ระดับเสียงของเธอ
-Her voice's pitch, the same as Settings > VOICE > Pitch	ระดับเสียงของเธอ เหมือนกับ การตั้งค่า > เสียง > ระดับเสียง
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	ระดับเสียงของเธอ เหมือนกับ การตั้งค่า > เสียง > ระดับเสียง
 Her voice's speed	ความเร็วเสียงของเธอ
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	เสียงของเธอ และสำเนาสองชุดที่ผสมอยู่ข้างใต้ แต่ละชุดมีระดับเสียงและการหน่วงของตัวเอง
 Her voices · free	เสียงของเธอ · ฟรี
@@ -583,7 +583,7 @@ Revoke	เพิกถอน
 Revoke also removes the phones its links added	การเพิกถอนจะลบโทรศัพท์ที่ลิงก์ของมันเพิ่มไว้ด้วย
 Ride cursor	ขี่เคอร์เซอร์
 Ride cursor / Hop off	ขี่เคอร์เซอร์ / กระโดดลง
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	คลิกขวาที่ฉันได้ทุกเวลาเพื่อเปิด Capri Mainframe สมองจะเปิดขึ้นภายใต้สมอง
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	คลิกขวาที่ฉันได้ทุกเวลาเพื่อเปิด Capri Mainframe สมองจะเปิดขึ้นภายใต้สมอง
 Right-click me any time for the Mainframe, Help and the Discord.	คลิกขวาที่ฉันได้ทุกเวลาเพื่อเปิด Mainframe ความช่วยเหลือ และ Discord
 Roblox	Roblox
 Roblox or any other app: pick	Roblox หรือแอปอื่นใด: เลือก

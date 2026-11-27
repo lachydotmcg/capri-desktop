@@ -182,7 +182,7 @@ FREE KEY >	CLAU GRATUÏTA >
 Fast hands in games	Mans ràpides als jocs
 File editor	Editor de fitxers
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs i més són a VEU del Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs i més són a VEU del Mainframe.
 Follow-up messages	Missatges de seguiment
 Forget	Oblida
 Fork capri-mods	Fes un fork de capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Ves a la pantalla següent
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratuït · amb límit de peticions
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tens un pla de Claude o ChatGPT, o una clau pròpia? Tria'l i jo me'l connecto.
-Got it, just me. Right-click me any time for Capri Mainframe.	D'acord, només jo. Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	D'acord, només jo. Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe.
 Grey	Gris
 H.{0} video bitrate target; higher values make larger files	Objectiu de bitrate de vídeo H.{0}; valors més alts fan fitxers més grans
 HABITS >	HÀBITS >
@@ -256,11 +256,11 @@ Her speaker:	El seu altaveu:
 Her speaker: Default	El seu altaveu: Per defecte
 Her voice in your mic	La seva veu al micro
 Her voice in your mic: loudness	La seva veu al micro: volum
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	La seva veu pròpia. El to és Configuració > VEU > To, i tots dos es mouen junts.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	La seva veu pròpia. El to és Configuració > VEU > To, i tots dos es mouen junts.
 Her voice joins your mic only in call mode.	La seva veu només s'uneix al micro en el mode trucada.
 Her voice volume	Volum de la seva veu
 Her voice's pitch	To de la seva veu
-Her voice's pitch, the same as Settings > VOICE > Pitch	To de la seva veu, igual que Configuració > VEU > To
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	To de la seva veu, igual que Configuració > VEU > To
 Her voice's speed	Velocitat de la seva veu
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	La seva veu, i dues còpies barrejades per sota, cadascuna amb el seu to i retard.
 Her voices · free	Les seves veus · gratuït
@@ -583,7 +583,7 @@ Revoke	Revoca
 Revoke also removes the phones its links added	Revocar també elimina els telèfons que hi havien enllaçat
 Ride cursor	Munta el cursor
 Ride cursor / Hop off	Munta el cursor / Baixa
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe. Un cervell s'activa a CERVELL.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe. Un cervell s'activa a CERVELL.
 Right-click me any time for the Mainframe, Help and the Discord.	Fes clic dret sobre mi en qualsevol moment per al Mainframe, Ajuda i Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox o qualsevol altra aplicació: tria

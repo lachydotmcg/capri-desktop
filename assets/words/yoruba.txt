@@ -182,7 +182,7 @@ FREE KEY >	KỌ́KỌ́RỌ́ ỌFẸ́ >
 Fast hands in games	Ọwọ́ yára nínú àwọn eré
 File editor	Olóòtú fáìlì
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs àti díẹ̀ sí i wà lábẹ́ OHÙN nínú Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs àti díẹ̀ sí i wà lábẹ́ OHÙN nínú Mainframe.
 Follow-up messages	Àwọn ifiranṣẹ atẹ̀lé
 Forget	Gbàgbé
 Fork capri-mods	Fọọ́kì capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Lọ sí ìbòjú tó tẹ̀lé
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ìpele ọ̀fẹ́ · ààlà ìyára
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ṣé o ní ètò Claude tàbí ChatGPT, tàbí kọ́kọ́rọ́ tìrẹ? Yàn án, màá sì so mọ́ ọ.
-Got it, just me. Right-click me any time for Capri Mainframe.	Ó yé mi, èmi nìkan. Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Ó yé mi, èmi nìkan. Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe.
 Grey	Grẹy
 H.{0} video bitrate target; higher values make larger files	Ìfojúsùn bitrate fídíò H.{0}; àwọn iye gíga ń mú fáìlì tóbi
 HABITS >	ÌWÀ >
@@ -256,11 +256,11 @@ Her speaker:	Agbọ̀rọ̀sọ:
 Her speaker: Default	Agbọ̀rọ̀sọ: Àìyípadà
 Her voice in your mic	Ohùn rẹ̀ nínú maikirofónù rẹ
 Her voice in your mic: loudness	Ohùn rẹ̀ nínú maikirofónù rẹ: ìró
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ohùn rẹ̀ fúnra rẹ̀. Ohùn orin rẹ̀ jẹ́ Ètò > OHÙN > Ohùn orin, wọ́n sì ń lọ pọ̀.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Ohùn rẹ̀ fúnra rẹ̀. Ohùn orin rẹ̀ jẹ́ Ètò > OHÙN > Ohùn orin, wọ́n sì ń lọ pọ̀.
 Her voice joins your mic only in call mode.	Ohùn rẹ̀ dara pọ̀ mọ́ maikirofónù rẹ nìkan ní ipò ìpè.
 Her voice volume	Ìró ohùn rẹ̀
 Her voice's pitch	Ohùn orin ohùn rẹ̀
-Her voice's pitch, the same as Settings > VOICE > Pitch	Ohùn orin ohùn rẹ̀, bákan náà pẹ̀lú Ètò > OHÙN > Ohùn orin
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Ohùn orin ohùn rẹ̀, bákan náà pẹ̀lú Ètò > OHÙN > Ohùn orin
 Her voice's speed	Iyára ohùn rẹ̀
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ohùn rẹ̀, àti ẹ̀dà méjì tí a dàpọ̀ lábẹ́ rẹ̀, ọ̀kọ̀ọ̀kan pẹ̀lú ohùn orin àti ìdádúró tirẹ̀.
 Her voices · free	Àwọn ohùn rẹ̀ · ọ̀fẹ́
@@ -583,7 +583,7 @@ Revoke	Yọ̀ǹda kúrò
 Revoke also removes the phones its links added	Yíyọ̀ǹda kúrò tún yọ àwọn fóònù tí àwọn ìsopọ̀ rẹ̀ fi kun
 Ride cursor	Gun kọ̀sọ̀ọ̀ bí ẹṣin
 Ride cursor / Hop off	Gun kọ̀sọ̀ọ̀ / Sọ̀kalẹ̀
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe. Ọpọlọ kan ń tàn lábẹ́ ỌPỌLỌ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe. Ọpọlọ kan ń tàn lábẹ́ ỌPỌLỌ.
 Right-click me any time for the Mainframe, Help and the Discord.	Tẹ ọ̀tún lórí mi nígbàkigbà fún Mainframe, Ìrànlọ́wọ́ àti Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox tàbí ohun èlò mìíràn: yan

@@ -182,7 +182,7 @@ FREE KEY >	무료 키 >
 Fast hands in games	게임에서 빠른 손
 File editor	파일 편집기
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs 등은 Mainframe의 음성 항목에 있어.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs 등은 Mainframe의 음성 항목에 있어.
 Follow-up messages	후속 메시지
 Forget	잊기
 Fork capri-mods	capri-mods 포크
@@ -222,7 +222,7 @@ Go to the next screen	다음 화면으로 이동
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 무료 등급 · 속도 제한
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude 또는 ChatGPT 요금제나 직접 가진 키 있어? 골라주면 연결할게.
-Got it, just me. Right-click me any time for Capri Mainframe.	알았어, 나만. 언제든 나를 우클릭하면 Capri Mainframe이 나와.
+Got it, just me. Right-click me any time for the Mainframe.	알았어, 나만. 언제든 나를 우클릭하면 Capri Mainframe이 나와.
 Grey	회색
 H.{0} video bitrate target; higher values make larger files	H.{0} 비디오 비트레이트 목표; 값이 높을수록 파일이 커짐
 HABITS >	습관 >
@@ -256,11 +256,11 @@ Her speaker:	그녀의 스피커:
 Her speaker: Default	그녀의 스피커: 기본
 Her voice in your mic	마이크의 그녀 목소리
 Her voice in your mic: loudness	마이크의 그녀 목소리: 음량
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	그녀의 목소리 자체. 피치는 설정 > 음성 > 피치이며 함께 움직임.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	그녀의 목소리 자체. 피치는 설정 > 음성 > 피치이며 함께 움직임.
 Her voice joins your mic only in call mode.	그녀의 목소리는 통화 모드에서만 마이크에 들어감.
 Her voice volume	그녀 목소리 볼륨
 Her voice's pitch	그녀 목소리의 피치
-Her voice's pitch, the same as Settings > VOICE > Pitch	그녀 목소리의 피치, 설정 > 음성 > 피치와 같음
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	그녀 목소리의 피치, 설정 > 음성 > 피치와 같음
 Her voice's speed	그녀 목소리의 속도
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	그녀의 목소리와 그 아래 섞인 두 개의 복사본, 각각 자체 피치와 지연을 가짐.
 Her voices · free	그녀의 음성 · 무료
@@ -583,7 +583,7 @@ Revoke	해지
 Revoke also removes the phones its links added	해지하면 링크로 추가된 휴대폰도 제거됨
 Ride cursor	커서 타기
 Ride cursor / Hop off	커서 타기 / 내리기
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	언제든 나를 우클릭하면 Capri Mainframe이 나와. 뇌는 뇌 아래에서 켜져.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	언제든 나를 우클릭하면 Capri Mainframe이 나와. 뇌는 뇌 아래에서 켜져.
 Right-click me any time for the Mainframe, Help and the Discord.	언제든 나를 우클릭하면 Mainframe, 도움말, Discord가 나와.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox 또는 다른 앱: 고르기

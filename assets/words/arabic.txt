@@ -182,7 +182,7 @@ FREE KEY >	مفتاح مجاني >
 Fast hands in games	أيدٍ سريعة في الألعاب
 File editor	محرر الملفات
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio وElevenLabs وغيرها موجودة تحت الصوت في Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio وElevenLabs وغيرها موجودة تحت الصوت في Mainframe.
 Follow-up messages	رسائل المتابعة
 Forget	نسيان
 Fork capri-mods	تفريع capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	انتقل إلى الشاشة التالية
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · مستوى مجاني · محدود الطلبات
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	لديك خطة Claude أو ChatGPT، أو مفتاح خاص بك؟ اختره وسأتصل.
-Got it, just me. Right-click me any time for Capri Mainframe.	حسناً، أنا فقط. انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	حسناً، أنا فقط. انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe.
 Grey	رمادي
 H.{0} video bitrate target; higher values make larger files	هدف معدل بت الفيديو H.{0}؛ القيم الأعلى تنتج ملفات أكبر
 HABITS >	العادات >
@@ -256,11 +256,11 @@ Her speaker:	مكبرها:
 Her speaker: Default	مكبرها: افتراضي
 Her voice in your mic	صوتها في ميكروفونك
 Her voice in your mic: loudness	صوتها في ميكروفونك: الصوت
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	صوتها نفسه. طبقة الصوت هي الإعدادات > الصوت > Pitch، وتتحركان معاً.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	صوتها نفسه. طبقة الصوت هي الإعدادات > الصوت > Pitch، وتتحركان معاً.
 Her voice joins your mic only in call mode.	يدخل صوتها ميكروفونك فقط في وضع المكالمة.
 Her voice volume	مستوى صوتها
 Her voice's pitch	طبقة صوتها
-Her voice's pitch, the same as Settings > VOICE > Pitch	طبقة صوتها، نفسها الإعدادات > الصوت > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	طبقة صوتها، نفسها الإعدادات > الصوت > Pitch
 Her voice's speed	سرعة صوتها
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	صوتها، ونسختان منه ممزوجتان تحته، لكل منهما طبقتها وتأخيرها.
 Her voices · free	أصواتها · مجاني
@@ -583,7 +583,7 @@ Revoke	إلغاء
 Revoke also removes the phones its links added	الإلغاء يزيل أيضاً الهواتف التي أضافتها روابطه
 Ride cursor	امتطِ المؤشر
 Ride cursor / Hop off	امتطِ المؤشر / انزل
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe. يُشغَّل دماغ تحت الدماغ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Capri Mainframe. يُشغَّل دماغ تحت الدماغ.
 Right-click me any time for the Mainframe, Help and the Discord.	انقر بالزر الأيمن عليّ في أي وقت للوصول إلى Mainframe وHelp وDiscord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox أو أي تطبيق آخر: اختر

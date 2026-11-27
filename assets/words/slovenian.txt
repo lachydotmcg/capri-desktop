@@ -182,7 +182,7 @@ FREE KEY >	BREZPLAČEN KLJUČ >
 Fast hands in games	Hitre roke v igrah
 File editor	Urejevalnik datotek
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs in še več so v Mainframe pod GLAS.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs in še več so v Mainframe pod GLAS.
 Follow-up messages	Nadaljnja sporočila
 Forget	Pozabi
 Fork capri-mods	Forkaj capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Pojdi na naslednji zaslon
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · brezplačna raven · omejeno
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Imaš naročnino Claude ali ChatGPT ali lasten ključ? Izberi ga, pa se priključim.
-Got it, just me. Right-click me any time for Capri Mainframe.	Razumem, samo jaz. Z desnim klikom name kadar koli odpreš Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Razumem, samo jaz. Z desnim klikom name kadar koli odpreš Capri Mainframe.
 Grey	Siva
 H.{0} video bitrate target; higher values make larger files	Ciljna video bitna hitrost H.{0}; višje vrednosti pomenijo večje datoteke
 HABITS >	NAVADE >
@@ -256,11 +256,11 @@ Her speaker:	Njen zvočnik:
 Her speaker: Default	Njen zvočnik: Privzeto
 Her voice in your mic	Njen glas v tvojem mikrofonu
 Her voice in your mic: loudness	Njen glas v tvojem mikrofonu: glasnost
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Njen glas sam. Njegova višina je Nastavitve > GLAS > Višina, in se premikata skupaj.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Njen glas sam. Njegova višina je Nastavitve > GLAS > Višina, in se premikata skupaj.
 Her voice joins your mic only in call mode.	Njen glas se v tvoj mikrofon pridruži samo v načinu klica.
 Her voice volume	Glasnost njenega glasu
 Her voice's pitch	Višina njenega glasu
-Her voice's pitch, the same as Settings > VOICE > Pitch	Višina njenega glasu, enaka kot Nastavitve > GLAS > Višina
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Višina njenega glasu, enaka kot Nastavitve > GLAS > Višina
 Her voice's speed	Hitrost njenega glasu
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Njen glas in dve kopiji, zmešani pod njim, vsaka z lastno višino in zakasnitvijo.
 Her voices · free	Njeni glasovi · brezplačno
@@ -583,7 +583,7 @@ Revoke	Prekliči
 Revoke also removes the phones its links added	Preklic odstrani tudi telefone, ki so jih dodale njene povezave
 Ride cursor	Jaha kazalec
 Ride cursor / Hop off	Jaha kazalec / Skoči dol
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Z desnim klikom name kadar koli odpreš Capri Mainframe. Možgani se vklopijo pod MOŽGANI.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Z desnim klikom name kadar koli odpreš Capri Mainframe. Možgani se vklopijo pod MOŽGANI.
 Right-click me any time for the Mainframe, Help and the Discord.	Z desnim klikom name kadar koli odpreš Mainframe, Pomoč in Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ali katera druga aplikacija: izberi

@@ -182,7 +182,7 @@ FREE KEY >	ΔΩΡΕΑΝ ΚΛΕΙΔΙ >
 Fast hands in games	Γρήγορα χέρια στα παιχνίδια
 File editor	Επεξεργαστής αρχείων
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Το Fish Audio, το ElevenLabs και άλλα βρίσκονται στο ΦΩΝΗ στο Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Το Fish Audio, το ElevenLabs και άλλα βρίσκονται στο ΦΩΝΗ στο Mainframe.
 Follow-up messages	Μηνύματα συνέχειας
 Forget	Ξέχασε
 Fork capri-mods	Fork του capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Πήγαινε στην επόμενη οθόνη
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · δωρεάν επίπεδο · με όριο ρυθμού
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Έχεις πλάνο Claude ή ChatGPT, ή δικό σου κλειδί; Διάλεξε και θα συνδεθώ.
-Got it, just me. Right-click me any time for Capri Mainframe.	Εντάξει, μόνο εγώ. Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Εντάξει, μόνο εγώ. Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe.
 Grey	Γκρι
 H.{0} video bitrate target; higher values make larger files	Στόχος ρυθμού bit βίντεο H.{0}· μεγαλύτερες τιμές δίνουν μεγαλύτερα αρχεία
 HABITS >	ΣΥΝΗΘΕΙΕΣ >
@@ -256,11 +256,11 @@ Her speaker:	Το ηχείο της:
 Her speaker: Default	Το ηχείο της: Προεπιλογή
 Her voice in your mic	Η φωνή της στο μικρόφωνό σου
 Her voice in your mic: loudness	Η φωνή της στο μικρόφωνό σου: ένταση
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Η ίδια η φωνή της. Το ύψος της είναι Ρυθμίσεις > ΦΩΝΗ > Ύψος, και κινούνται μαζί.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Η ίδια η φωνή της. Το ύψος της είναι Ρυθμίσεις > ΦΩΝΗ > Ύψος, και κινούνται μαζί.
 Her voice joins your mic only in call mode.	Η φωνή της μπαίνει στο μικρόφωνό σου μόνο σε λειτουργία κλήσης.
 Her voice volume	Ένταση της φωνής της
 Her voice's pitch	Ύψος της φωνής της
-Her voice's pitch, the same as Settings > VOICE > Pitch	Ύψος της φωνής της, το ίδιο με Ρυθμίσεις > ΦΩΝΗ > Ύψος
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Ύψος της φωνής της, το ίδιο με Ρυθμίσεις > ΦΩΝΗ > Ύψος
 Her voice's speed	Ταχύτητα της φωνής της
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Η φωνή της, και δύο αντίγραφά της αναμεμιγμένα από κάτω, το καθένα με δικό του ύψος και καθυστέρηση.
 Her voices · free	Οι φωνές της · δωρεάν
@@ -583,7 +583,7 @@ Revoke	Ανάκληση
 Revoke also removes the phones its links added	Η ανάκληση αφαιρεί και τα τηλέφωνα που πρόσθεσαν οι σύνδεσμοί της
 Ride cursor	Ιππασία στον δρομέα
 Ride cursor / Hop off	Ιππασία στον δρομέα / Κατέβα
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe. Ένας εγκέφαλος ανοίγει κάτω από το ΕΓΚΕΦΑΛΟΣ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe. Ένας εγκέφαλος ανοίγει κάτω από το ΕΓΚΕΦΑΛΟΣ.
 Right-click me any time for the Mainframe, Help and the Discord.	Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Mainframe, τη Βοήθεια και το Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ή οποιαδήποτε άλλη εφαρμογή: διάλεξε

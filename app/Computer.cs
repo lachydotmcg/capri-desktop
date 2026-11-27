@@ -141,7 +141,7 @@ namespace CapriDesktop
         // A Claude job folds what it's done so far once its talk is this long (two entries a turn), so it can run for hours.
         internal const int LongTalk = 160;
         internal const string Folding = "You're partway through a long job on the user's PC and your earlier turns are about to be cleared. Write yourself a note to carry on from: what the job is, what you've done so far, what you've found out, where things are, what you've tried that didn't work, and exactly what you were about to do. Plain short lines, no more than 200 words. Only what you actually saw and did.";
-        internal const string Bigger = "Bigger brain models handle jobs like this better. Pick one under BRAIN in Capri Mainframe.";
+        internal const string Bigger = "Bigger brain models handle jobs like this better. Pick one under Mainframe > BRAIN.";
         internal const string Confused = "Got lost before I could start that job. " + Bigger;
         internal const string Stalled = "Got stuck on that one. " + Bigger;
         internal const string OffScreen = "That isn't on the screenshot";

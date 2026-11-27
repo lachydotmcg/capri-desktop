@@ -182,7 +182,7 @@ FREE KEY >	PULSUZ AÇAR >
 Fast hands in games	Oyunlarda sürətli əllər
 File editor	Fayl redaktoru
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs və digərləri Mainframe-də SƏS bölməsindədir.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs və digərləri Mainframe-də SƏS bölməsindədir.
 Follow-up messages	Davam mesajları
 Forget	Unut
 Fork capri-mods	capri-mods-u fork et
@@ -222,7 +222,7 @@ Go to the next screen	Növbəti ekrana keç
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · pulsuz səviyyə · limitli
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude və ya ChatGPT planın var, ya da öz açarın? Seç, mən qoşulum.
-Got it, just me. Right-click me any time for Capri Mainframe.	Başa düşdüm, yalnız mən. Capri Mainframe üçün istənilən vaxt məni sağ klikləyin.
+Got it, just me. Right-click me any time for the Mainframe.	Başa düşdüm, yalnız mən. Capri Mainframe üçün istənilən vaxt məni sağ klikləyin.
 Grey	Boz
 H.{0} video bitrate target; higher values make larger files	H.{0} video bit sürəti hədəfi; yüksək dəyərlər böyük fayllar yaradır
 HABITS >	ADƏTLƏR >
@@ -256,11 +256,11 @@ Her speaker:	Onun dinamiki:
 Her speaker: Default	Onun dinamiki: Standart
 Her voice in your mic	Onun səsi mikrofonunda
 Her voice in your mic: loudness	Onun səsi mikrofonunda: yüksəklik
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Onun səsinin özü. Tonu Parametrlər > SƏS > Ton-dur və onlar birlikdə hərəkət edir.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Onun səsinin özü. Tonu Parametrlər > SƏS > Ton-dur və onlar birlikdə hərəkət edir.
 Her voice joins your mic only in call mode.	Onun səsi yalnız zəng rejimində mikrofonuna qoşulur.
 Her voice volume	Onun səsinin həcmi
 Her voice's pitch	Onun səsinin tonu
-Her voice's pitch, the same as Settings > VOICE > Pitch	Onun səsinin tonu, Parametrlər > SƏS > Ton ilə eynidir
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Onun səsinin tonu, Parametrlər > SƏS > Ton ilə eynidir
 Her voice's speed	Onun səsinin sürəti
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Onun səsi və altında qarışdırılmış iki surəti, hər birinin öz tonu və gecikməsi ilə.
 Her voices · free	Onun səsləri · pulsuz
@@ -583,7 +583,7 @@ Revoke	Ləğv et
 Revoke also removes the phones its links added	Ləğv etmə həm də onun linklərinin əlavə etdiyi telefonları silir
 Ride cursor	Kursora min
 Ride cursor / Hop off	Kursora min / Düş
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe üçün istənilən vaxt məni sağ klikləyin. BEYİN altında bir beyin yanır.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframe üçün istənilən vaxt məni sağ klikləyin. BEYİN altında bir beyin yanır.
 Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Kömək və Discord üçün istənilən vaxt məni sağ klikləyin.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox və ya başqa tətbiq: seç

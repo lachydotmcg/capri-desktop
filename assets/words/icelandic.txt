@@ -182,7 +182,7 @@ FREE KEY >	ÓKEYPIS LYKILL >
 Fast hands in games	Hröð hönd í leikjum
 File editor	Skráaritill
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs og fleira er undir RÖDD í Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs og fleira er undir RÖDD í Mainframe.
 Follow-up messages	Eftirfylgjandi skilaboð
 Forget	Gleyma
 Fork capri-mods	Forka capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Fara á næsta skjá
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · frjáls flokkur · takmarkað
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ertu með Claude- eða ChatGPT-áskrift, eða þinn eigin lykil? Veldu hann og ég tengist.
-Got it, just me. Right-click me any time for Capri Mainframe.	Fínt, bara ég. Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Fínt, bara ég. Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe.
 Grey	Grátt
 H.{0} video bitrate target; higher values make larger files	H.{0} markbitahraði myndbands; hærri gildi gera stærri skrár
 HABITS >	VENJUR >
@@ -256,11 +256,11 @@ Her speaker:	Hátalarinn hennar:
 Her speaker: Default	Hátalarinn hennar: Sjálfgefið
 Her voice in your mic	Rödd hennar í hljóðnemanum þínum
 Her voice in your mic: loudness	Rödd hennar í hljóðnemanum þínum: hljóðstyrkur
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Rödd hennar sjálf. Tónhæðin er Stillingar > RÖDD > Tónhæð og þær hreyfast saman.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Rödd hennar sjálf. Tónhæðin er Stillingar > RÖDD > Tónhæð og þær hreyfast saman.
 Her voice joins your mic only in call mode.	Rödd hennar fer í hljóðnemann þinn aðeins í símtalsstillingu.
 Her voice volume	Hljóðstyrkur raddar hennar
 Her voice's pitch	Tónhæð raddar hennar
-Her voice's pitch, the same as Settings > VOICE > Pitch	Tónhæð raddar hennar, sú sama og Stillingar > RÖDD > Tónhæð
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Tónhæð raddar hennar, sú sama og Stillingar > RÖDD > Tónhæð
 Her voice's speed	Hraði raddar hennar
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Rödd hennar, og tvö afrit af henni blönduð undir, hvort með sína tónhæð og seinkun.
 Her voices · free	Raddir hennar · frítt
@@ -583,7 +583,7 @@ Revoke	Afturkalla
 Revoke also removes the phones its links added	Afturköllun fjarlægir líka símana sem tenglar hennar bættu við
 Ride cursor	Ríða bendlinum
 Ride cursor / Hop off	Ríða bendlinum / Stíga af
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe. Heili kveikir undir HEILI.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe. Heili kveikir undir HEILI.
 Right-click me any time for the Mainframe, Help and the Discord.	Hægrismelltu á mig hvenær sem er fyrir Mainframe, Hjálp og Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox eða annað forrit: veldu

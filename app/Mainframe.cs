@@ -830,7 +830,7 @@ namespace CapriDesktop
             pushKeys = Make("Push to talk: not set", 28, 815, 328, 22, delegate { PickKeys(Companion.PushSlot); });
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
-            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off. Only GAMES > Comments turns them back on. Click, press new keys, then Confirm";
+            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off. Only Mainframe > Settings > GAMES > Comments turns them back on. Click, press new keys, then Confirm";
             frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
             frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
             // The first key pressed while picking is always taken, so Enter, Esc and Tab can be her keys too. After that Enter
@@ -7621,7 +7621,7 @@ namespace CapriDesktop
                 Make("Defaults", Wide - 128, 76, 100, 22, delegate { Defaults(); }).AccessibleName = "Defaults: Layer 1 " + VoiceFx.Layering.PitchName(VoiceFx.Layering.HigherPitch) + " and Layer 2 " + VoiceFx.Layering.PitchName(VoiceFx.Layering.LowerPitch) + " semitones, both " + VoiceFx.Layering.DelayName(VoiceFx.Layering.Behind) + " behind her";
                 Heading(this, "MAIN >", new Point(Z(28), Z(136)), head, White, Wide - 28);
                 Caption("Pitch", 28, 166, Font, Rose);
-                mainPitch = Bar(PitchNames, 120, 163, 300, "Her voice's pitch, the same as Settings > VOICE > Pitch");
+                mainPitch = Bar(PitchNames, 120, 163, 300, "Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch");
                 mainName = new Readout(mainPitch);
                 mainPitch.Changed += delegate
                 {
@@ -7631,7 +7631,7 @@ namespace CapriDesktop
                     owner.Sync();
                 };
                 mainPitch.Released += delegate { if (!syncing) owner.capri.HearVoiceStyle(); };
-                Caption("Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.", 28, 192, small, Faint);
+                Caption("Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.", 28, 192, small, Faint);
                 for (int layer = 1; layer <= 2; layer++)
                 {
                     int x = layer == 1 ? 28 : 28 + Column, at = layer - 1, which = layer;

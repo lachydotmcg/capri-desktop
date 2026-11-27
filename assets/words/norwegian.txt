@@ -182,7 +182,7 @@ FREE KEY >	GRATIS NØKKEL >
 Fast hands in games	Raske hender i spill
 File editor	Filredigerer
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs og mer finner du under STEMME i Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs og mer finner du under STEMME i Mainframe.
 Follow-up messages	Oppfølgingsmeldinger
 Forget	Glem
 Fork capri-mods	Forker capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Gå til neste skjerm
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratis nivå · begrenset
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Har du et Claude- eller ChatGPT-abonnement, eller en egen nøkkel? Velg den, så kobler jeg meg til.
-Got it, just me. Right-click me any time for Capri Mainframe.	Skjønt, bare meg. Høyreklikk på meg når som helst for Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Skjønt, bare meg. Høyreklikk på meg når som helst for Capri Mainframe.
 Grey	Grå
 H.{0} video bitrate target; higher values make larger files	Mål for H.{0}-videobitrate; høyere verdier gir større filer
 HABITS >	VANER >
@@ -256,11 +256,11 @@ Her speaker:	Hennes høyttaler:
 Her speaker: Default	Hennes høyttaler: Standard
 Her voice in your mic	Hennes stemme i mikrofonen din
 Her voice in your mic: loudness	Hennes stemme i mikrofonen din: lydstyrke
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Selve stemmen hennes. Tonehøyden er Innstillinger > STEMME > Tonehøyde, og de flyttes sammen.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Selve stemmen hennes. Tonehøyden er Innstillinger > STEMME > Tonehøyde, og de flyttes sammen.
 Her voice joins your mic only in call mode.	Stemmen hennes går bare inn i mikrofonen din i anropsmodus.
 Her voice volume	Stemmevolum
 Her voice's pitch	Stemmens tonehøyde
-Her voice's pitch, the same as Settings > VOICE > Pitch	Stemmens tonehøyde, samme som Innstillinger > STEMME > Tonehøyde
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Stemmens tonehøyde, samme som Innstillinger > STEMME > Tonehøyde
 Her voice's speed	Stemmens hastighet
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Stemmen hennes, og to kopier av den blandet under henne, hver med sin egen tonehøyde og forsinkelse.
 Her voices · free	Stemmene hennes · gratis
@@ -583,7 +583,7 @@ Revoke	Trekk tilbake
 Revoke also removes the phones its links added	Tilbakekalling fjerner også telefonene lenkene la til
 Ride cursor	Ri markøren
 Ride cursor / Hop off	Ri markøren / Hopp av
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Høyreklikk på meg når som helst for Capri Mainframe. En hjerne slås på under HJERNE.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Høyreklikk på meg når som helst for Capri Mainframe. En hjerne slås på under HJERNE.
 Right-click me any time for the Mainframe, Help and the Discord.	Høyreklikk på meg når som helst for Mainframe, Hjelp og Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox eller en annen app: velg

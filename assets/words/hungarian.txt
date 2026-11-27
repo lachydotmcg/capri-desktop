@@ -182,7 +182,7 @@ FREE KEY >	INGYENES KULCS >
 Fast hands in games	Gyors kezek játékokban
 File editor	Fájlszerkesztő
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	A Fish Audio, az ElevenLabs és más szolgáltatások a Mainframe HANG menüpontjában vannak.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	A Fish Audio, az ElevenLabs és más szolgáltatások a Mainframe HANG menüpontjában vannak.
 Follow-up messages	Követő üzenetek
 Forget	Elfelejtés
 Fork capri-mods	capri-mods forkolása
@@ -222,7 +222,7 @@ Go to the next screen	Ugrás a következő képernyőre
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ingyenes csomag · sebességkorlátozott
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Van Claude- vagy ChatGPT-csomagod, vagy saját kulcsod? Válaszd ki, és bekötöm.
-Got it, just me. Right-click me any time for Capri Mainframe.	Értem, csak én. Bármikor jobb klikk rám a Capri Mainframe-hez.
+Got it, just me. Right-click me any time for the Mainframe.	Értem, csak én. Bármikor jobb klikk rám a Capri Mainframe-hez.
 Grey	Szürke
 H.{0} video bitrate target; higher values make larger files	H.{0} cél videó-bitráta; a magasabb értékek nagyobb fájlokat adnak
 HABITS >	SZOKÁSOK >
@@ -256,11 +256,11 @@ Her speaker:	Hangszóró:
 Her speaker: Default	Hangszóró: alapértelmezett
 Her voice in your mic	Hangja a mikrofonodban
 Her voice in your mic: loudness	Hangja a mikrofonodban: hangerő
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Maga a hangja. Hangmagassága Beállítások > HANG > Hangmagasság, és együtt mozognak.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Maga a hangja. Hangmagassága Beállítások > HANG > Hangmagasság, és együtt mozognak.
 Her voice joins your mic only in call mode.	Hangja csak hívásmódban kerül a mikrofonodba.
 Her voice volume	Hangjának hangereje
 Her voice's pitch	Hangja hangmagassága
-Her voice's pitch, the same as Settings > VOICE > Pitch	Hangja hangmagassága, ugyanaz mint Beállítások > HANG > Hangmagasság
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Hangja hangmagassága, ugyanaz mint Beállítások > HANG > Hangmagasság
 Her voice's speed	Hangja sebessége
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Hangja, és két másolata alatta keverve, mindegyiknek saját hangmagassággal és késleltetéssel.
 Her voices · free	Hangjai · ingyenes
@@ -583,7 +583,7 @@ Revoke	Visszavonás
 Revoke also removes the phones its links added	A visszavonás a hivatkozásai által hozzáadott telefonokat is eltávolítja
 Ride cursor	Kurzor lovaglása
 Ride cursor / Hop off	Kurzor lovaglása / Leszállás
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Jobb klikk rám bármikor a Capri Mainframe-hez. Az AGY alatt bekapcsol egy agy.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Jobb klikk rám bármikor a Capri Mainframe-hez. Az AGY alatt bekapcsol egy agy.
 Right-click me any time for the Mainframe, Help and the Discord.	Jobb klikk rám bármikor a Mainframe-hez, a Súgóhoz és a Discordhoz.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox vagy más alkalmazás: válassz

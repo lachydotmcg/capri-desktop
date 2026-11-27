@@ -474,7 +474,7 @@ namespace CapriDesktop
             bool wasBusy = Busy;
             HerJob added = Computer.Jobs.Add(task, repeat, after);
             if (added == null) return repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
-            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
+            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one under Mainframe > BRAIN."; }
             Pump();
             if (inControl && repeat.Length == 0) return "It's in my Jobs app. I'll start it when you give my computer back.";
             if (repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + (repeat == "daily" ? "every day" : "every week") + " on my computer, starting " + (wasBusy ? "after this job." : "now.");

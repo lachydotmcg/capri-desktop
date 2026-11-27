@@ -182,7 +182,7 @@ FREE KEY >	ISITSHIXO SIMAHALA >
 Fast hands in games	Izandla ezikhawulezayo kwimidlalo
 File editor	Umhleli wefayile
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	I-Fish Audio, i-ElevenLabs nezinye zikwi-ZEZWI kwi-Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	I-Fish Audio, i-ElevenLabs nezinye zikwi-ZEZWI kwi-Mainframe.
 Follow-up messages	Imiyalezo elandelayo
 Forget	Libala
 Fork capri-mods	Yenza i-fork ye-capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Yiya kwisikrini esilandelayo
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · icandelo elimahala · liyathintelwa ngobungakanani bokufikelela
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Une-Claude okanye isicwangciso se-ChatGPT, okanye isitshixo sakho? Khetha kwaye ndiza kudibanisa.
-Got it, just me. Right-click me any time for Capri Mainframe.	Kulungile, ndim kuphela. Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Kulungile, ndim kuphela. Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe.
 Grey	Mdaka
 H.{0} video bitrate target; higher values make larger files	Injongo ye-bitrate yevidiyo ye-H.{0}; amaxabiso aphezulu adala iifayile ezikhulu
 HABITS >	IZINTLOBO >
@@ -256,11 +256,11 @@ Her speaker:	Isipika sakhe:
 Her speaker: Default	Isipika sakhe: Ezizenzekelayo
 Her voice in your mic	Izwi lakhe kwi-mic yakho
 Her voice in your mic: loudness	Izwi lakhe kwi-mic yakho: ukuphakama kwesandi
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Izwi lakhe ngokwalo. Umgangatho wesandi ngu-Izicwangciso > IZWI > Umgangatho, kwaye ziyahamba kunye.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Izwi lakhe ngokwalo. Umgangatho wesandi ngu-Izicwangciso > IZWI > Umgangatho, kwaye ziyahamba kunye.
 Her voice joins your mic only in call mode.	Izwi lakhe lingena kwi-mic yakho kuphela kwimodi yekholi.
 Her voice volume	Ivolyum yezwi lakhe
 Her voice's pitch	Umgangatho wezwi lakhe
-Her voice's pitch, the same as Settings > VOICE > Pitch	Umgangatho wezwi lakhe, ofana noIzicwangciso > IZWI > Umgangatho
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Umgangatho wezwi lakhe, ofana noIzicwangciso > IZWI > Umgangatho
 Her voice's speed	Isantya sezwi lakhe
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Izwi lakhe, kunye neekopi ezimbini zalo ezixutywe phantsi kwalo, ngalinye linomgangatho walo nokulibaziseka kwalo.
 Her voices · free	Amazwi akhe · simahla
@@ -583,7 +583,7 @@ Revoke	Rhoxisa
 Revoke also removes the phones its links added	Ukurhoxisa kususa namafowuni ongezwe ngokhonongo lwawo
 Ride cursor	Ukuqhuba umlethi
 Ride cursor / Hop off	Ukuqhuba umlethi / Yehla
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe. Ingqondo iyavula phantsi kwe-INGQONDO.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe. Ingqondo iyavula phantsi kwe-INGQONDO.
 Right-click me any time for the Mainframe, Help and the Discord.	Cofa ngasekunene kum nanini na ukuze ufumane i-Mainframe, uncedo kunye ne-Discord.
 Roblox	Roblox
 Roblox or any other app: pick	I-Roblox okanye nasiphi na esinye isicelo: khetha
