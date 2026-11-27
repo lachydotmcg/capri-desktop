@@ -182,7 +182,7 @@ FREE KEY >	គន្លឹះឥតគិតថ្លៃ >
 Fast hands in games	ដៃលឿននៅក្នុងហ្គេម
 File editor	កម្មវិធីកែសម្រួលឯកសារ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs និងផ្សេងៗទៀតនៅក្រោម សំឡេង ក្នុង Mainframe។
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs និងផ្សេងៗទៀតនៅក្រោម សំឡេង ក្នុង Mainframe។
 Follow-up messages	សារបន្តបន្ទាប់
 Forget	បំភ្លេច
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	ទៅអេក្រង់បន្ទាប់
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · កម្រិតឥតគិតថ្លៃ · មានកម្រិតល្បឿន
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	អ្នកមានគម្រោង Claude ឬ ChatGPT ឬគន្លឹះផ្ទាល់ខ្លួនទេ? ជ្រើសរើសវា ហើយខ្ញុំនឹងភ្ជាប់។
-Got it, just me. Right-click me any time for Capri Mainframe.	បាន មានតែខ្ញុំ។ ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលដើម្បីចូល Capri Mainframe។
+Got it, just me. Right-click me any time for the Mainframe.	បាន មានតែខ្ញុំ។ ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលដើម្បីចូល Capri Mainframe។
 Grey	ប្រផេះ
 H.{0} video bitrate target; higher values make larger files	គោលដៅអត្រាប៊ីតវីដេអូ H.{0}; តម្លៃខ្ពស់ធ្វើឲ្យឯកសារធំជាង
 HABITS >	និស្ស័យ >
@@ -256,11 +256,11 @@ Her speaker:	ឧបករណ៍បំពងសំឡេងរបស់នាង�
 Her speaker: Default	ឧបករណ៍បំពងសំឡេងរបស់នាង៖ លំនាំដើម
 Her voice in your mic	សំឡេងរបស់នាងក្នុងមីក្រូហ្វូនរបស់អ្នក
 Her voice in your mic: loudness	សំឡេងរបស់នាងក្នុងមីក្រូហ្វូនរបស់អ្នក៖ កម្រិតសំឡេង
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	សំឡេងរបស់នាងផ្ទាល់។ កម្រិតសូររបស់វាគឺ ការកំណត់ > សំឡេង > កម្រិតសូរ ហើយពួកវាផ្លាស់ទីជាមួយគ្នា។
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	សំឡេងរបស់នាងផ្ទាល់។ កម្រិតសូររបស់វាគឺ ការកំណត់ > សំឡេង > កម្រិតសូរ ហើយពួកវាផ្លាស់ទីជាមួយគ្នា។
 Her voice joins your mic only in call mode.	សំឡេងរបស់នាងចូលមីក្រូហ្វូនរបស់អ្នកតែក្នុងរបៀបហៅទូរស័ព្ទប៉ុណ្ណោះ។
 Her voice volume	កម្រិតសំឡេងរបស់នាង
 Her voice's pitch	កម្រិតសូរសំឡេងរបស់នាង
-Her voice's pitch, the same as Settings > VOICE > Pitch	កម្រិតសូរសំឡេងរបស់នាង ដូចគ្នានឹង ការកំណត់ > សំឡេង > កម្រិតសូរ
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	កម្រិតសូរសំឡេងរបស់នាង ដូចគ្នានឹង ការកំណត់ > សំឡេង > កម្រិតសូរ
 Her voice's speed	ល្បឿនសំឡេងរបស់នាង
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	សំឡេងរបស់នាង និងច្បាប់ចម្លងពីរនៃវាលាយនៅខាងក្រោម ម្យ៉ាងៗមានកម្រិតសូរ និងការពន្យារពេលរៀងៗខ្លួន។
 Her voices · free	សំឡេងរបស់នាង · ឥតគិតថ្លៃ
@@ -583,7 +583,7 @@ Revoke	ដកហូត
 Revoke also removes the phones its links added	ការដកហូតក៏លុបទូរស័ព្ទដែលតំណភ្ជាប់របស់វាបានបន្ថែមផងដែរ
 Ride cursor	ជិះទស្សន៍ទ្រនិច
 Ride cursor / Hop off	ជិះទស្សន៍ទ្រនិច / ចុះ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលសម្រាប់ Capri Mainframe។ ខួរក្បាលបើកនៅក្រោម ខួរក្បាល។
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលសម្រាប់ Capri Mainframe។ ខួរក្បាលបើកនៅក្រោម ខួរក្បាល។
 Right-click me any time for the Mainframe, Help and the Discord.	ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលសម្រាប់ Mainframe, ជំនួយ និង Discord។
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ឬកម្មវិធីផ្សេងទៀត៖ ជ្រើសរើស

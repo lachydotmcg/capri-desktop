@@ -42,8 +42,8 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsMacOS()) return MacFingers.Problem();
                 if (!OperatingSystem.IsLinux()) return "Using the mouse and keyboard isn't ready on this PC yet.";
-                if (!Present()) return "There's no " + Device + " yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
-                if (!Writable()) return "I can't write to " + Device + " yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+                if (!Present()) return "There's no " + Device + " yet; use Set up mouse and keyboard in Mainframe > Settings > KEYS, then run its command and ask again.";
+                if (!Writable()) return "I can't write to " + Device + " yet; use Set up mouse and keyboard in Mainframe > Settings > KEYS, then run its command and ask again.";
                 return null;
             }
         }

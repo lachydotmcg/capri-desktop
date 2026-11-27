@@ -525,7 +525,7 @@ namespace CapriDesktop
         internal string Clip(int seconds, out bool saved)
         {
             saved = false;
-            if (!Enabled) return "Turn on Clip my games in Settings > CLIPS, then I can clip that.";
+            if (!Enabled) return "Turn on Clip my games in Mainframe > Settings > CLIPS, then I can clip that.";
             ClipSettings recording = Settings;
             if (seconds <= 0) seconds = recording.Seconds;
             string open = Computer.GameOpen();

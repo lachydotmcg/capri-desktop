@@ -322,7 +322,7 @@ namespace CapriDesktop
             }
             OpenMainframe();
             mainframe.OpenPage(page);
-            return "Opened Capri Mainframe.";
+            return "Opened the Mainframe.";
         }
         private string ImportModTool(string path)
         {
@@ -343,7 +343,7 @@ namespace CapriDesktop
             var area = all[at].WorkingArea;
             double scale = all[at].Scaling;
             mainframe.Position = new PixelPoint(area.X + Math.Max(0, (area.Width - (int)(mainframe.Width * scale)) / 2), area.Y + Math.Max(0, (area.Height - (int)(mainframe.Height * scale)) / 2));
-            return "Moved Capri Mainframe.";
+            return "Moved the Mainframe.";
         }
         internal void MainframeRefresh()
         {

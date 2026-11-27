@@ -182,7 +182,7 @@ FREE KEY >	EOCHAIR SAOR IN AISCE >
 Fast hands in games	Lámha tapa sna cluichí
 File editor	Eagarthóir comhad
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Tá Fish Audio, ElevenLabs agus níos mó faoi GUTH sa Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Tá Fish Audio, ElevenLabs agus níos mó faoi GUTH sa Mainframe.
 Follow-up messages	Teachtaireachtaí leantacha
 Forget	Dearmad
 Fork capri-mods	Forc capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Téigh chuig an chéad scáileán eile
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tier saor · teoranta ag rátaí
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tá plean Claude nó ChatGPT agat, nó eochair dhílis? Roghnaigh é agus plugálfaidh mé isteach.
-Got it, just me. Right-click me any time for Capri Mainframe.	Tuigthe, mise amháin. Cliceáil dheas orm am ar bith le haghaidh Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Tuigthe, mise amháin. Cliceáil dheas orm am ar bith le haghaidh Capri Mainframe.
 Grey	Liath
 H.{0} video bitrate target; higher values make larger files	Sprioc ráta bit físe H.{0}; cruthaíonn luachanna níos airde comhaid níos mó
 HABITS >	NÓSANNA >
@@ -256,11 +256,11 @@ Her speaker:	A cainteoir:
 Her speaker: Default	A cainteoir: Réamhshocrú
 Her voice in your mic	A guth i do mhicreafón
 Her voice in your mic: loudness	A guth i do mhicreafón: airde
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	A guth féin. Is é a airde Socruithe > GUTH > Airde, agus bogann siad le chéile.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	A guth féin. Is é a airde Socruithe > GUTH > Airde, agus bogann siad le chéile.
 Her voice joins your mic only in call mode.	Ní thagann a guth isteach i do mhicreafón ach i mód glaoch.
 Her voice volume	Toirt a guth
 Her voice's pitch	Airde a guth
-Her voice's pitch, the same as Settings > VOICE > Pitch	Airde a guth, mar atá Socruithe > GUTH > Airde
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Airde a guth, mar atá Socruithe > GUTH > Airde
 Her voice's speed	Luas a guth
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	A guth, agus dhá chóip de measctha faoi, gach ceann lena airde agus moill féin.
 Her voices · free	A guthanna · saor
@@ -583,7 +583,7 @@ Revoke	Cúlghair
 Revoke also removes the phones its links added	Baintear na fóin a chuir a naisc leis freisin nuair a chúlghairtear
 Ride cursor	Marcaigh an cúrsóir
 Ride cursor / Hop off	Marcaigh an cúrsóir / Léim as
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cliceáil orm go deas am ar bith le haghaidh Capri Mainframe. Casann intinn ar faoi INTINN.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Cliceáil orm go deas am ar bith le haghaidh Capri Mainframe. Casann intinn ar faoi INTINN.
 Right-click me any time for the Mainframe, Help and the Discord.	Cliceáil orm go deas am ar bith le haghaidh an Mainframe, Cabhair agus an Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox nó aon aip eile: roghnaigh

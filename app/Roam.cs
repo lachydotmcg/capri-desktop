@@ -241,7 +241,7 @@ namespace CapriDesktop
             int[] stayed = RoamHits(watch, watch.Spots(watchLedges, watchSeat, size, room), size, tries, dice, null);
             if (picked[2] != tries || pickedFull[1] != tries || pickedGone[0] == 0 || pickedGone[1] == 0 || pickedGone[2] == 0 || stayed[1] != tries)
                 throw new Exception("The Screens pick went wrong: watched " + RoamCounts(picked) + ", watched one full " + RoamCounts(pickedFull) + ", pick missing " + RoamCounts(pickedGone) + ", in a call " + RoamCounts(stayed));
-            checks.Add("PASS the monitor picked under WATCH > Screens keeps her wandering there, she keeps to her own screen while that one has something full screen in front, a pick that's missing lets her wander every monitor, and held to her own screen, as in a call, she keeps to it whatever's picked");
+            checks.Add("PASS the monitor picked under Mainframe > Settings > WATCH > Screens keeps her wandering there, she keeps to her own screen while that one has something full screen in front, a pick that's missing lets her wander every monitor, and held to her own screen, as in a call, she keeps to it whatever's picked");
 
             Roam before = RoamLayout(new[] { main, right }, new[] { 48, 48 }, 1);
             List<Ledge> beforeLedges = RoamLedges(before, new Rectangle(2200, 200, 900, 600), new Rectangle(300, 300, 900, 500));
@@ -262,7 +262,7 @@ namespace CapriDesktop
             checks.Add("PASS a monitor unplugged while she's on it: her spot there maps to the nearest monitor left, nothing still listed on the gone one is offered, a taskbar she was heading for on it becomes the nearest screen's taskbar, a call keeps her on that one, and with no screens at all there's nowhere to go");
 
             string roamHelp = SelfKnow.Matching("can you wander across both my monitors?") ?? "";
-            if (!roamHelp.StartsWith("Wander:", StringComparison.Ordinal) || roamHelp.IndexOf("full-screen", StringComparison.Ordinal) < 0 || roamHelp.IndexOf("WATCH > Screens", StringComparison.Ordinal) < 0)
+            if (!roamHelp.StartsWith("Wander:", StringComparison.Ordinal) || roamHelp.IndexOf("full-screen", StringComparison.Ordinal) < 0 || roamHelp.IndexOf("Mainframe > Settings > WATCH > Screens", StringComparison.Ordinal) < 0)
                 throw new Exception("Her self knowledge didn't explain wandering across monitors: " + roamHelp);
             checks.Add("PASS asked whether she wanders across both monitors, her self knowledge says she does, never onto a full-screen one, and how the Screens pick keeps her to one");
 
@@ -271,7 +271,7 @@ namespace CapriDesktop
             List<Ledge> pictureLedges = RoamLedges(picture, windows);
             Ledge pictureSeat = pictureLedges.Find(ledge => ledge.Floor && ledge.Left == 0);
             string[] labels = { "screen 2: 2560 x 1440 at 150%, left of the main one at x -2560", "main screen: 1920 x 1080 at 100%" };
-            string[] titles = { "Both clear: she can pick spots on either monitor", "A full-screen game on the left monitor: she keeps off it", "Watching the left monitor under WATCH > Screens: she keeps to it" };
+            string[] titles = { "Both clear: she can pick spots on either monitor", "A full-screen game on the left monitor: she keeps off it", "Watching the left monitor under Mainframe > Settings > WATCH > Screens: she keeps to it" };
             string sheetPath = Path.Combine(output, "roam-two-monitors.png");
             using (Bitmap sheet = new Bitmap(1400, 1380, PixelFormat.Format32bppArgb))
             using (Graphics graphics = Graphics.FromImage(sheet))
@@ -380,7 +380,7 @@ namespace CapriDesktop
                         Computer.Glimpse = delegate { return new Sight { Window = shelves[other].Handle, Title = "Full screen", Bounds = real[other].Bounds }; };
                         int[] avoided = hop(12);
                         if (avoided[other] != 0) throw new Exception("With something full screen on screen " + (other + 1) + " she still wandered onto it: " + RoamCounts(avoided) + ".");
-                        list.Add("PASS her own wanders on this PC's " + real.Length + " screens reach every one (" + RoamCounts(everywhere) + "), keep to her own screen on a job, go to and stay on the one picked under WATCH > Screens, and leave and keep off one with something full screen in front");
+                        list.Add("PASS her own wanders on this PC's " + real.Length + " screens reach every one (" + RoamCounts(everywhere) + "), keep to her own screen on a job, go to and stay on the one picked under Mainframe > Settings > WATCH > Screens, and leave and keep off one with something full screen in front");
                     }
                     else
                     {

@@ -182,7 +182,7 @@ FREE KEY >	ԱՆՎՃԱՐ ԲԱՆԱԼԻ >
 Fast hands in games	Արագ ձեռքեր խաղերում
 File editor	Ֆայլերի խմբագիր
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio-ն, ElevenLabs-ը և այլը Mainframe-ում գտնվում են ՁԱՅՆ բաժնում։
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio-ն, ElevenLabs-ը և այլը Mainframe-ում գտնվում են ՁԱՅՆ բաժնում։
 Follow-up messages	Հետագա հաղորդագրություններ
 Forget	Մոռանալ
 Fork capri-mods	Պատճենել capri-mods-ը (fork)
@@ -222,7 +222,7 @@ Go to the next screen	Անցնել հաջորդ էկրան
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · անվճար շերտ · սահմանափակ
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ունե՞ք Claude կամ ChatGPT պլան, կամ սեփական բանալի։ Ընտրեք այն, և ես կմիանամ։
-Got it, just me. Right-click me any time for Capri Mainframe.	Հասկացա, միայն ես։ Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։
+Got it, just me. Right-click me any time for the Mainframe.	Հասկացա, միայն ես։ Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։
 Grey	Մոխրագույն
 H.{0} video bitrate target; higher values make larger files	H.{0} վիդեոյի բիթրեյթի նպատակ․ ավելի բարձր արժեքները ավելի մեծ ֆայլեր են ստեղծում
 HABITS >	ՍՈՎՈՐՈՒԹՅՈՒՆՆԵՐ >
@@ -256,11 +256,11 @@ Her speaker:	Նրա բարձրախոսը՝
 Her speaker: Default	Նրա բարձրախոսը՝ Լռելյայն
 Her voice in your mic	Նրա ձայնը ձեր խոսափողում
 Her voice in your mic: loudness	Նրա ձայնը ձեր խոսափողում՝ ծավալ
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Նրա սեփական ձայնը։ Նրա տոնայնությունը Կարգավորումներ > ՁԱՅՆ > Տոնայնություն է, և դրանք միասին են շարժվում։
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Նրա սեփական ձայնը։ Նրա տոնայնությունը Կարգավորումներ > ՁԱՅՆ > Տոնայնություն է, և դրանք միասին են շարժվում։
 Her voice joins your mic only in call mode.	Նրա ձայնը խոսափողին միանում է միայն զանգի ռեժիմում։
 Her voice volume	Նրա ձայնի ծավալը
 Her voice's pitch	Նրա ձայնի տոնայնությունը
-Her voice's pitch, the same as Settings > VOICE > Pitch	Նրա ձայնի տոնայնությունը, նույնը ինչ Կարգավորումներ > ՁԱՅՆ > Տոնայնություն
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Նրա ձայնի տոնայնությունը, նույնը ինչ Կարգավորումներ > ՁԱՅՆ > Տոնայնություն
 Her voice's speed	Նրա ձայնի արագությունը
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Նրա ձայնը և դրա երկու պատճենը ներքևում խառնված, յուրաքանչյուրն իր տոնայնությամբ և ուշացմամբ։
 Her voices · free	Նրա ձայները · անվճար
@@ -583,7 +583,7 @@ Revoke	Չեղարկել
 Revoke also removes the phones its links added	Չեղարկումը հեռացնում է նաև այն հեռախոսները, որոնք ավելացրել են նրա հղումները
 Ride cursor	Կուրսորի վերելք
 Ride cursor / Hop off	Կուրսորի վերելք / Իջնել
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։ Ուղեղը միանում է ՈՒՂԵՂ-ի տակ։
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։ Ուղեղը միանում է ՈՒՂԵՂ-ի տակ։
 Right-click me any time for the Mainframe, Help and the Discord.	Աջ սեղմեք ինձ ցանկացած պահի՝ Mainframe-ի, Օգնության և Discord-ի համար։
 Roblox	Roblox
 Roblox or any other app: pick	Roblox կամ որևէ այլ հավելված՝ ընտրեք

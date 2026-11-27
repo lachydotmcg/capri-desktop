@@ -182,7 +182,7 @@ FREE KEY >	സൗജന്യ കീ >
 Fast hands in games	ഗെയിമുകളിൽ വേഗമേറിയ കൈകൾ
 File editor	ഫയൽ എഡിറ്റർ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs എന്നിവയും മറ്റും Mainframe-ൽ ശബ്ദം വിഭാഗത്തിലുണ്ട്.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs എന്നിവയും മറ്റും Mainframe-ൽ ശബ്ദം വിഭാഗത്തിലുണ്ട്.
 Follow-up messages	തുടർ സന്ദേശങ്ങൾ
 Forget	മറക്കുക
 Fork capri-mods	capri-mods ഫോർക്ക് ചെയ്യുക
@@ -222,7 +222,7 @@ Go to the next screen	അടുത്ത സ്ക്രീനിലേക്ക
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · സൗജന്യ ടിയർ · നിരക്ക് പരിധി
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude അല്ലെങ്കിൽ ChatGPT പ്ലാൻ, അല്ലെങ്കിൽ സ്വന്തം കീ ഉണ്ടോ? തിരഞ്ഞെടുക്കൂ, ഞാൻ ബന്ധിപ്പിക്കാം.
-Got it, just me. Right-click me any time for Capri Mainframe.	ശരി, ഞാൻ മാത്രം. Capri Mainframe-നായി എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക.
+Got it, just me. Right-click me any time for the Mainframe.	ശരി, ഞാൻ മാത്രം. Capri Mainframe-നായി എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക.
 Grey	ചാരനിറം
 H.{0} video bitrate target; higher values make larger files	H.{0} വീഡിയോ ബിറ്റ്റേറ്റ് ലക്ഷ്യം; ഉയർന്ന മൂല്യങ്ങൾ വലിയ ഫയലുകൾ ഉണ്ടാക്കുന്നു
 HABITS >	ശീലങ്ങൾ >
@@ -256,11 +256,11 @@ Her speaker:	അവളുടെ സ്പീക്കർ:
 Her speaker: Default	അവളുടെ സ്പീക്കർ: ഡിഫോൾട്ട്
 Her voice in your mic	നിങ്ങളുടെ മൈക്കിൽ അവളുടെ ശബ്ദം
 Her voice in your mic: loudness	നിങ്ങളുടെ മൈക്കിൽ അവളുടെ ശബ്ദം: ഉച്ചത്വം
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	അവളുടെ ശബ്ദം തന്നെ. അതിന്റെ പിച്ച് Settings > VOICE > Pitch ആണ്, അവ ഒരുമിച്ച് നീങ്ങുന്നു.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	അവളുടെ ശബ്ദം തന്നെ. അതിന്റെ പിച്ച് Settings > VOICE > Pitch ആണ്, അവ ഒരുമിച്ച് നീങ്ങുന്നു.
 Her voice joins your mic only in call mode.	അവളുടെ ശബ്ദം കോൾ മോഡിൽ മാത്രമേ നിങ്ങളുടെ മൈക്കിൽ ചേരുന്നുള്ളൂ.
 Her voice volume	അവളുടെ ശബ്ദത്തിന്റെ വോളിയം
 Her voice's pitch	അവളുടെ ശബ്ദത്തിന്റെ പിച്ച്
-Her voice's pitch, the same as Settings > VOICE > Pitch	അവളുടെ ശബ്ദത്തിന്റെ പിച്ച്, Settings > VOICE > Pitch-നു തുല്യം
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	അവളുടെ ശബ്ദത്തിന്റെ പിച്ച്, Settings > VOICE > Pitch-നു തുല്യം
 Her voice's speed	അവളുടെ ശബ്ദത്തിന്റെ വേഗത
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	അവളുടെ ശബ്ദവും അതിന് താഴെ കലർന്ന രണ്ട് പകർപ്പുകളും, ഓരോന്നിനും സ്വന്തം പിച്ചും കാലതാമസവും.
 Her voices · free	അവളുടെ ശബ്ദങ്ങൾ · സൗജന്യം
@@ -583,7 +583,7 @@ Revoke	റദ്ദാക്കുക
 Revoke also removes the phones its links added	റദ്ദാക്കുന്നത് അതിന്റെ ലിങ്കുകൾ ചേർത്ത ഫോണുകളും നീക്കം ചെയ്യുന്നു
 Ride cursor	കഴ്സർ റൈഡ്
 Ride cursor / Hop off	കഴ്സർ റൈഡ് / ഇറങ്ങുക
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക, Capri Mainframe കിട്ടും. BRAIN-ന് കീഴിൽ ഒരു തലച്ചോർ ഓണാകും.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക, Capri Mainframe കിട്ടും. BRAIN-ന് കീഴിൽ ഒരു തലച്ചോർ ഓണാകും.
 Right-click me any time for the Mainframe, Help and the Discord.	എപ്പോൾ വേണമെങ്കിലും എന്നെ വലത് ക്ലിക്ക് ചെയ്യുക, Mainframe, Help, Discord എന്നിവയ്ക്കായി.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox അല്ലെങ്കിൽ മറ്റേതെങ്കിലും ആപ്പ്: തിരഞ്ഞെടുക്കുക

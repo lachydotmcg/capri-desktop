@@ -508,7 +508,7 @@ namespace CapriDesktop
                 bool volumeFloor = pet.VolumePicked == "10%" && Voice.Louder(new short[] { 1000 })[0] == 100 && Pet.VolumeNames[0] == "10%";
                 pet.SetVolume(loudnessWas);
                 if (!volumeHalf || !volumeLoud || !volumeFloor) throw new Exception("Volume went wrong: 50% " + volumeHalf + ", 150% " + volumeLoud + ", floor " + volumeFloor);
-                checks.Add("PASS volume: Settings > Volume sets her voice from 10% to 150% and has no Mute step, like Windows; VOICE > OFF is her mute");
+                checks.Add("PASS volume: Settings > Volume sets her voice from 10% to 150% and has no Mute step, like Windows; Mainframe > VOICE > OFF is her mute");
                 short[] tonePcm = new short[12000];
                 for (int i = 0; i < tonePcm.Length; i++) tonePcm[i] = (short)(Math.Sin(2 * Math.PI * 220 * i / 24000.0) * 8000);
                 byte[] toneWav = Voice.Wave(tonePcm, 24000);
@@ -1711,7 +1711,7 @@ namespace CapriDesktop
                 lock (spoken) voiced = spoken.Count;
                 bool shut = OperatingSystem.IsWindows() || File.GetUnixFileMode(keyPath) == (UnixFileMode.UserRead | UnixFileMode.UserWrite);
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
-                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under VOICE in Capri Mainframe." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
+                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under Mainframe > VOICE." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
                 string voiceMenu = pet.VoiceMenu;
                 if (voiceMenu != "Provider: ElevenLabs | - | *Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
                 checks.Add("PASS voice key: VOICE asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
@@ -2130,7 +2130,7 @@ namespace CapriDesktop
             File.WriteAllBytes(path, broken);
             Settings reset = Pet.ReadSettings(path, out notice);
             if (reset == null || reset.Nickname != null || !File.Exists(kept) || Convert.ToBase64String(File.ReadAllBytes(kept)) != Convert.ToBase64String(broken)) throw new Exception("Unreadable cross settings were not kept as they were before the reset.");
-            if (notice != "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + Pet.UnreadableName + " in " + Pet.Tilde(Path.GetFullPath(home)) + ".") throw new Exception("Unreadable cross settings did not name their real folder.");
+            if (notice != "Her settings couldn't be read, so they were reset. Add your keys again in the Mainframe. The old file is kept as " + Pet.UnreadableName + " in " + Pet.Tilde(Path.GetFullPath(home)) + ".") throw new Exception("Unreadable cross settings did not name their real folder.");
             string[] errors = File.ReadAllLines(log);
             if (errors.Length != 1 || !errors[0].Contains("SerializationException") || errors[0].Contains("private-settings") || errors[0].Contains("Nickname") || errors[0].Contains("Size")) throw new Exception("Unreadable cross settings logged their text or missed the error type.");
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -2351,8 +2351,8 @@ namespace CapriDesktop
 
         private void OfflineChecks()
         {
-            if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open Capri Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
-            checks.Add("PASS offline help: she names Set up her brain and Free key in Capri Mainframe without a model name");
+            if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open the Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
+            checks.Add("PASS offline help: she names Set up her brain and Free key in the Mainframe without a model name");
         }
 
         // Her own lines in their language, like Windows: her fixed lines and labels are registered, English stays exactly as it was,
@@ -2472,7 +2472,7 @@ namespace CapriDesktop
             {
                 pet.Saved = new Settings { Silent = true };
                 string raw = "private-provider-response: unexpected response payload";
-                string safe = "My brain couldn't answer. The error is under BRAIN in Capri Mainframe.";
+                string safe = "My brain couldn't answer. The error is under Mainframe > BRAIN.";
                 BrainException[] errors = { new BrainException(raw), new BrainException("The provider is resting. Try again.", true), new BrainException(Brain.Offline, true) };
                 string[] replies = { safe, errors[1].Message, Pet.Offline };
                 for (int i = 0; i < errors.Length; i++)
@@ -3308,7 +3308,7 @@ namespace CapriDesktop
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 if (News.Facts.Contains("Plasma:") != OperatingSystem.IsLinux()) throw new Exception("Cross update help put the Plasma fix on the wrong platform.");
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
-                foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
+                foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "Mainframe > Settings > GAMES > Play", "Mainframe > Settings > GAMES > Controls" })
                     if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
                 foreach (string ordinary in new[] { "what changed in my game?", "what's new in Cyberpunk?", "I bought new shoes" })
                     if (News.Matching(ordinary) != null) throw new Exception("Cross update help matched ordinary chat.");
@@ -3404,7 +3404,7 @@ namespace CapriDesktop
                     if (pet.Frame == null || pet.Frame == frame) throw new Exception("Mainframe did not create a fresh instance.");
                     frame = pet.Frame;
                 }
-                if (opened != "Opened Capri Mainframe." || pet.Frame != frame || !frame.SettingsShown || frame.WindowState != WindowState.Normal || !Hands.KitFor().Tools.Contains("\"name\":\"mainframe\"")) throw new Exception("Her Mainframe tool did not restore the window and open Settings: " + opened);
+                if (opened != "Opened the Mainframe." || pet.Frame != frame || !frame.SettingsShown || frame.WindowState != WindowState.Normal || !Hands.KitFor().Tools.Contains("\"name\":\"mainframe\"")) throw new Exception("Her Mainframe tool did not restore the window and open Settings: " + opened);
                 frame.Close(); pet.Hear("Open your Mainframe");
                 if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) frame = pet.Frame ?? throw new Exception("Direct Mainframe request did not reopen it.");
                 if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
@@ -3420,10 +3420,10 @@ namespace CapriDesktop
                     if (earsRow.IsVisible || !frame.Row("Volume").IsVisible) throw new Exception("Simple Settings didn't fold her ears with the rest of VOICE.");
                     pet.SetAdvancedSettings(true);
                 }
-                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool did not open her Mods page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened the Mainframe." || !frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool did not open her Mods page.");
                 Hands.Do("mainframe", new ToolArguments { Name = "main" });
                 if (frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool left her Mods page over the main page.");
-                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !frame.ModsShown) throw new Exception("Her Mainframe tool did not open her plug-ins on the Mods page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened the Mainframe." || !frame.ModsShown) throw new Exception("Her Mainframe tool did not open her plug-ins on the Mods page.");
                 if (!Hands.KitFor().Tools.Contains("\"mods\"") || !Hands.KitFor().Tools.Contains("plug-ins like Email, Notion and Linear") || !Hands.Valid("mainframe", new ToolArguments { Name = "mods" })) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
                 string pluginHelp = SelfKnow.Matching("what are plug-ins?") ?? "";
                 if (!pluginHelp.StartsWith("Plug-ins:", StringComparison.Ordinal) || !pluginHelp.Contains(MailAccount.OutlookNote) || !pluginHelp.Contains("Turn it off and on to sign in") || !pluginHelp.Contains("Mainframe > Mods > PLUG-INS") || SelfKnow.Matching("can you open Outlook?") != null || SelfKnow.Matching("can you check my email?") != null)
@@ -4081,13 +4081,13 @@ namespace CapriDesktop
                 string[] wanted = {
                     "I checked your PC and nothing is slowing me down right now.",
                     "My brain is set to run on your processor, so it's slower than on a graphics card. Turn on Lite mode to stop my brain on your PC, or press Free key under BRAIN for a free cloud brain.",
-                    "My brain on your PC rests after 15 minutes unused, so my next reply waits while it loads again. Only that first reply is slow. Press Free key under BRAIN in Capri Mainframe for a free cloud brain.",
-                    "Your processor, Intel Core i3-2100, has only 4 threads, which is small for running a brain. Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.",
+                    "My brain on your PC rests after 15 minutes unused, so my next reply waits while it loads again. Only that first reply is slow. Press Free key under Mainframe > BRAIN for a free cloud brain.",
+                    "Your processor, Intel Core i3-2100, has only 4 threads, which is small for running a brain. Press Free key under Mainframe > BRAIN for a free cloud brain. Lite mode helps too.",
                     "Your processor has only 2 threads, which is small for everything I do. Close apps you're not using to give me room.",
                     "Only 900 MB of your 8.0 GB of RAM is free. Close apps or browser tabs you're not using, or turn on Lite mode.",
                     "Your processor is 96% busy. Close what you're not using to give me room.",
                     "Watch my screen is on, and it keeps working in the background. Turn on Lite mode to pause it, or turn it off under WATCH.",
-                    "Lite mode is on, so my brain on your PC is switched off. Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off.",
+                    "Lite mode is on, so my brain on your PC is switched off. Press Free key under Mainframe > BRAIN for a free cloud brain, or turn Lite mode off.",
                     "Lite mode is on, and my brain on your PC is still winding down, so it's using your PC's power for a moment. It stops as soon as it finishes what it's doing.",
                     "Lite mode is on, but my brain on your PC is still busy, so it's using your PC's power. Turn Lite mode off and on once it's free to stop it.",
                     "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.",
@@ -4101,14 +4101,14 @@ namespace CapriDesktop
                 }
                 if (Pet.SlowLine(new SlowSigns { Kind = "off" }) != "Nothing on your PC is slowing me down right now. No AI is on, so I'm not thinking at all."
                     || Pet.SlowLine(new SlowSigns { Kind = "server" }) != "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server."
-                    || Pet.SlowLine(new SlowSigns { Kind = "none" }) != "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.")
+                    || Pet.SlowLine(new SlowSigns { Kind = "none" }) != "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under Mainframe > BRAIN.")
                     throw new Exception("Why slow lost its off, server or no-brain words.");
                 SlowSigns macFew = new SlowSigns { Kind = "ollama", Read = false, Threads = 3, Processor = null, RamFree = -1, Busy = -1 };
                 SlowSigns macUnread = new SlowSigns { Kind = "ollama", Read = false, Threads = 8, Processor = null, RamFree = -1, Busy = -1 };
                 if (Pet.SlowLine(macFew) != MacSlowLine(3) || Pet.SlowFound(macFew) != MacSlowFound(3) || Pet.SlowLine(macUnread) != MacSlowLine(8) || Pet.SlowFound(macUnread) != MacSlowFound(8))
                     throw new Exception("Why slow's Mac-shaped words are wrong: " + Pet.SlowLine(macFew) + " / " + Pet.SlowFound(macFew) + " / " + Pet.SlowLine(macUnread) + " / " + Pet.SlowFound(macUnread));
                 string foundOff = "From a check of your PC just now: Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help. Lite mode is off.";
-                string foundOn = "From a check of your PC just now: Lite mode is on, so my brain on your PC is switched off. What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off. Lite mode is on.";
+                string foundOn = "From a check of your PC just now: Lite mode is on, so my brain on your PC is switched off. What helps: Press Free key under Mainframe > BRAIN for a free cloud brain, or turn Lite mode off. Lite mode is on.";
                 if (Pet.SlowFound(cloud) != foundOff || Pet.SlowFound(liteOn) != foundOn)
                     throw new Exception("Why slow's found line lost its Lite mode note: " + Pet.SlowFound(cloud) + " / " + Pet.SlowFound(liteOn));
                 if (OperatingSystem.IsMacOS())
@@ -4193,14 +4193,14 @@ namespace CapriDesktop
 
         private static string MacSlowLine(int threads)
         {
-            if (threads > 0 && threads <= 4) return MacSlowFew(threads) + " Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.";
+            if (threads > 0 && threads <= 4) return MacSlowFew(threads) + " Press Free key under Mainframe > BRAIN for a free cloud brain. Lite mode helps too.";
             return "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now.";
         }
 
         private static string MacSlowFound(int threads)
         {
             if (threads > 0 && threads <= 4)
-                return "From a check of your PC just now: " + MacSlowFew(threads) + " What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too. Lite mode is off.";
+                return "From a check of your PC just now: " + MacSlowFew(threads) + " What helps: Press Free key under Mainframe > BRAIN for a free cloud brain. Lite mode helps too. Lite mode is off.";
             return "From a check of your PC just now: " + MacSlowLine(threads) + " Lite mode is off.";
         }
 
@@ -9249,8 +9249,8 @@ namespace CapriDesktop
             Func<PixelPoint?> mouse = pet.MouseAt;
             string display = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
             Mainframe frame = null;
-            const string missing = "There's no /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
-            const string denied = "I can't write to /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string missing = "There's no /dev/uinput yet; use Set up mouse and keyboard in Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string denied = "I can't write to /dev/uinput yet; use Set up mouse and keyboard in Mainframe > Settings > KEYS, then run its command and ask again.";
             const string run = " Run this in a terminal and type your password:\n\n";
             try
             {
@@ -9880,7 +9880,7 @@ namespace CapriDesktop
                 Self("move_yourself", "stand_up");
                 bool letGo = !pet.Hanging;
                 string frameMoved = Self("move_yourself", "move_mainframe", "other");
-                if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved Capri Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
+                if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved the Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
                 pet.CloseMainframe();
                 Self("animate", "glitch");
                 bool glitched = pet.Playing == "glitch";

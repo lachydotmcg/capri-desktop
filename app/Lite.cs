@@ -51,9 +51,9 @@ namespace CapriDesktop
         private const double BusyCpu = 85;
         private const double BusiestCpu = 10;
         internal const string LiteOffer = "Lite mode's on, so my brain on your PC is off and its memory is yours again. A free key lets me think in the cloud instead. Want me to open the free key page?";
-        internal const string LiteLater = "Okay. Free key is under BRAIN in Capri Mainframe whenever you want it, or turn Lite mode off to wake my brain on your PC.";
+        internal const string LiteLater = "Okay. Free key is under Mainframe > BRAIN whenever you want it, or turn Lite mode off to wake my brain on your PC.";
         internal const string SlowUnread = "I couldn't check your PC just now. Try again in a moment.";
-        private const string FreeKeyFix = "Press Free key under BRAIN in Capri Mainframe for a free cloud brain.";
+        private const string FreeKeyFix = "Press Free key under Mainframe > BRAIN for a free cloud brain.";
         private const string FreeKeyOr = "press Free key under BRAIN for a free cloud brain.";
         internal static Func<long> FakedIdle;
         private static readonly string[] LiteWatchers = { "watch_my_screen", "game_comments", "clip_my_games", "save_big_moments" };
@@ -132,7 +132,7 @@ namespace CapriDesktop
         internal static string LiteToolNote(bool on, bool onPc, List<string> changed)
         {
             if (!on) return changed.Count == 0 ? null : "Back on as before: " + Joined(changed) + ".";
-            string brainNote = onPc ? "Your brain on their PC is off now, so you can't think until Lite mode goes off or they connect a free key under BRAIN in Capri Mainframe." : "";
+            string brainNote = onPc ? "Your brain on their PC is off now, so you can't think until Lite mode goes off or they connect a free key under Mainframe > BRAIN." : "";
             if (changed.Count == 0) return brainNote;
             return brainNote + (brainNote.Length == 0 ? "" : " ") + "Off until Lite mode goes off: " + Joined(changed) + ".";
         }
@@ -325,11 +325,11 @@ namespace CapriDesktop
         {
             List<string[]> found = new List<string[]>();
             bool pc = s.OnPc && !s.Lite;
-            if (s.OnPc && s.Lite) found.Add(new[] { "Lite mode is on, so my brain on your PC is switched off.", "Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off." });
+            if (s.OnPc && s.Lite) found.Add(new[] { "Lite mode is on, so my brain on your PC is switched off.", "Press Free key under Mainframe > BRAIN for a free cloud brain, or turn Lite mode off." });
             if (pc)
             {
                 bool spilling = false;
-                if (s.Kind == "built-in" && s.RamOnly) found.Add(new[] { "Brain VRAM is set to RAM only, so my brain runs on your processor.", "Set Brain VRAM to Auto under Resources in Capri Mainframe." });
+                if (s.Kind == "built-in" && s.RamOnly) found.Add(new[] { "Brain VRAM is set to RAM only, so my brain runs on your processor.", "Set Brain VRAM to Auto under Mainframe > CAPRI > Resources." });
                 else if (s.Kind == "built-in" && s.CardFailed) found.Add(new[] { "My brain runs on your processor since your graphics card couldn't load it before.", FreeKeyFix + " I'll try the card again after my next update." });
                 else if (s.Kind == "built-in" && s.CardTotal > 0 && s.CardTotal < SmallCard) found.Add(new[] { "Your graphics card has only " + UseView.Bytes(s.CardTotal) + " of its own memory, so my brain runs on your processor.", FreeKeyFix });
                 else if (s.Running && s.Model > 0 && s.InVram >= 0 && s.InVram * 100 < s.Model * 85)
@@ -339,7 +339,7 @@ namespace CapriDesktop
                     found.Add(new[]
                     {
                         share < 5 ? "Almost none of my brain fits in your graphics card's memory, so it runs slowly on your processor." : "Only about " + share + "% of my brain fits in your graphics card's memory, so the rest runs slowly on your processor.",
-                        s.RamOnly ? "Set Brain VRAM to Auto under Resources in Capri Mainframe." : s.Limited ? "Raise Brain VRAM under Resources in Capri Mainframe, or pick a smaller brain." : "Close games or apps using your graphics card, or pick a smaller brain under BRAIN."
+                        s.RamOnly ? "Set Brain VRAM to Auto under Mainframe > CAPRI > Resources." : s.Limited ? "Raise Brain VRAM under Mainframe > CAPRI > Resources, or pick a smaller brain." : "Close games or apps using your graphics card, or pick a smaller brain under BRAIN."
                     });
                 }
                 if (!spilling && s.CardTotal > 0 && s.CardUsed >= 0 && s.CardUsed * 100 >= s.CardTotal * 92)
@@ -365,7 +365,7 @@ namespace CapriDesktop
             if (s.Kind == "off") return "Nothing on your PC is slowing me down right now. No AI is on, so I'm not thinking at all.";
             if (s.Kind == "cloud") return "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.";
             if (s.Kind == "server") return "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server.";
-            if (s.Kind == "none") return "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.";
+            if (s.Kind == "none") return "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under Mainframe > BRAIN.";
             return "I checked your PC and nothing is slowing me down right now.";
         }
 

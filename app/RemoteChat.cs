@@ -219,7 +219,7 @@ namespace CapriDesktop
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = true;
-            tray.ShowBalloonTip(8000, "Capri Remote", words + ". Not you? Revoke it under REMOTE in her Mainframe.", System.Windows.Forms.ToolTipIcon.Info);
+            tray.ShowBalloonTip(8000, "Capri Remote", words + ". Not you? Revoke it under Mainframe > CAPRI > Remote.", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         // ---------- What the REMOTE sheet asks for ----------

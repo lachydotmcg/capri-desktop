@@ -182,7 +182,7 @@ FREE KEY >	უფასო გასაღები >
 Fast hands in games	სწრაფი ხელები თამაშებში
 File editor	ფაილების რედაქტორი
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs და სხვები Mainframe-ში ხმის ქვეშაა.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs და სხვები Mainframe-ში ხმის ქვეშაა.
 Follow-up messages	შემდგომი შეტყობინებები
 Forget	დავიწყება
 Fork capri-mods	capri-mods-ის fork
@@ -222,7 +222,7 @@ Go to the next screen	შემდეგ ეკრანზე გადას�
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · უფასო გეგმა · სიხშირის შეზღუდვით
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	გაქვს Claude ან ChatGPT გეგმა, ან შენი გასაღები? აირჩიე და ჩავრთავ.
-Got it, just me. Right-click me any time for Capri Mainframe.	კარგი, მხოლოდ მე. ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის.
+Got it, just me. Right-click me any time for the Mainframe.	კარგი, მხოლოდ მე. ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის.
 Grey	ნაცრისფერი
 H.{0} video bitrate target; higher values make larger files	H.{0} ვიდეოს ბიტრეიტის სამიზნე; მაღალი მნიშვნელობები დიდ ფაილებს ქმნის
 HABITS >	ჩვევები >
@@ -256,11 +256,11 @@ Her speaker:	მისი დინამიკი:
 Her speaker: Default	მისი დინამიკი: ნაგულისხმევი
 Her voice in your mic	მისი ხმა შენს მიკროფონში
 Her voice in your mic: loudness	მისი ხმა შენს მიკროფონში: ხმაური
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	თავად მისი ხმა. მისი სიმაღლე არის პარამეტრები > ხმა > სიმაღლე, და ისინი ერთად მოძრაობენ.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	თავად მისი ხმა. მისი სიმაღლე არის პარამეტრები > ხმა > სიმაღლე, და ისინი ერთად მოძრაობენ.
 Her voice joins your mic only in call mode.	მისი ხმა შენს მიკროფონში მხოლოდ ზარის რეჟიმში ერთვება.
 Her voice volume	მისი ხმის ხმაური
 Her voice's pitch	მისი ხმის სიმაღლე
-Her voice's pitch, the same as Settings > VOICE > Pitch	მისი ხმის სიმაღლე, იგივე რაც პარამეტრები > ხმა > სიმაღლე
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	მისი ხმის სიმაღლე, იგივე რაც პარამეტრები > ხმა > სიმაღლე
 Her voice's speed	მისი ხმის სიჩქარე
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	მისი ხმა და მის ქვეშ შერეული ორი ასლი, თითოეული საკუთარი სიმაღლითა და დაგვიანებით.
 Her voices · free	მისი ხმები · უფასო
@@ -583,7 +583,7 @@ Revoke	გაუქმება
 Revoke also removes the phones its links added	გაუქმება ასევე შლის ტელეფონებს, რომლებიც მისმა ბმულებმა დაამატა
 Ride cursor	კურსორზე ჯდომა
 Ride cursor / Hop off	კურსორზე ჯდომა / ჩამოხტომა
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის. ტვინი ჩაირთვება BRAIN-ის ქვეშ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Capri Mainframe-ისთვის. ტვინი ჩაირთვება BRAIN-ის ქვეშ.
 Right-click me any time for the Mainframe, Help and the Discord.	ნებისმიერ დროს დამაწკაპუნე მარჯვენა ღილაკით Mainframe-ისთვის, დახმარებისა და Discord-ისთვის.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ან ნებისმიერი სხვა აპი: აირჩიე

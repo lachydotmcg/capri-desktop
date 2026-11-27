@@ -182,7 +182,7 @@ FREE KEY >	UFUNGUO WA BURE >
 Fast hands in games	Mikono ya haraka kwenye michezo
 File editor	Kihariri cha faili
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs na zaidi ziko chini ya SAUTI kwenye Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs na zaidi ziko chini ya SAUTI kwenye Mainframe.
 Follow-up messages	Ujumbe wa kufuatilia
 Forget	Sahau
 Fork capri-mods	Gawanya capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Nenda skrini inayofuata
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · kiwango cha bure · kikomo cha kasi
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Una mpango wa Claude au ChatGPT, au ufunguo wako mwenyewe? Uchague nami nitaungana.
-Got it, just me. Right-click me any time for Capri Mainframe.	Sawa, ni mimi tu. Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Sawa, ni mimi tu. Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe.
 Grey	Kijivu
 H.{0} video bitrate target; higher values make larger files	Lengo la kasi ya biti ya video H.{0}; thamani kubwa hutengeneza faili kubwa zaidi
 HABITS >	TABIA >
@@ -256,11 +256,11 @@ Her speaker:	Spika yake:
 Her speaker: Default	Spika yake: Chaguo-msingi
 Her voice in your mic	Sauti yake kwenye maikrofoni yako
 Her voice in your mic: loudness	Sauti yake kwenye maikrofoni yako: sauti kubwa
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Sauti yake yenyewe. Mwinuko wake ni Mipangilio > SAUTI > Mwinuko, na vinasogea pamoja.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Sauti yake yenyewe. Mwinuko wake ni Mipangilio > SAUTI > Mwinuko, na vinasogea pamoja.
 Her voice joins your mic only in call mode.	Sauti yake hujiunga na maikrofoni yako katika hali ya simu pekee.
 Her voice volume	Kiwango cha sauti yake
 Her voice's pitch	Mwinuko wa sauti yake
-Her voice's pitch, the same as Settings > VOICE > Pitch	Mwinuko wa sauti yake, sawa na Mipangilio > SAUTI > Mwinuko
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Mwinuko wa sauti yake, sawa na Mipangilio > SAUTI > Mwinuko
 Her voice's speed	Kasi ya sauti yake
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Sauti yake, na nakala mbili zake zikichanganywa chini yake, kila moja ikiwa na mwinuko na kuchelewa kwake.
 Her voices · free	Sauti zake · bure
@@ -583,7 +583,7 @@ Revoke	Batilisha
 Revoke also removes the phones its links added	Kubatilisha pia kunaondoa simu ambazo viungo vyake viliongeza
 Ride cursor	Panda kiashiria
 Ride cursor / Hop off	Panda kiashiria / Shuka
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe. Ubongo huwashwa chini ya UBONGO.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe. Ubongo huwashwa chini ya UBONGO.
 Right-click me any time for the Mainframe, Help and the Discord.	Bonyeza kulia kwangu wakati wowote kwa Mainframe, Msaada na Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox au programu nyingine yoyote: chagua

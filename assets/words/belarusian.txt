@@ -182,7 +182,7 @@ FREE KEY >	БЯСПЛАТНЫ КЛЮЧ >
 Fast hands in games	Спрытныя рукі ў гульнях
 File editor	Рэдактар файлаў
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs і іншыя знаходзяцца ў ГОЛАС у Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs і іншыя знаходзяцца ў ГОЛАС у Mainframe.
 Follow-up messages	Паведамленні пасля
 Forget	Забыць
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Перайсці да наступнага экрана
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · бясплатны ўзровень · абмежавана па хуткасці
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ёсць падпіска Claude або ChatGPT ці ўласны ключ? Выберыце, і я падключуся.
-Got it, just me. Right-click me any time for Capri Mainframe.	Добра, толькі я. Пстрыкніце мяне правай кнопкай у любы час, каб адкрыць Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Добра, толькі я. Пстрыкніце мяне правай кнопкай у любы час, каб адкрыць Capri Mainframe.
 Grey	Шэры
 H.{0} video bitrate target; higher values make larger files	Мэтавы бітрэйт відэа H.{0}; большыя значэнні робяць файлы большымі
 HABITS >	ЗВЫЧКІ >
@@ -256,11 +256,11 @@ Her speaker:	Яе дынамік:
 Her speaker: Default	Яе дынамік: Стандартны
 Her voice in your mic	Яе голас у вашым мікрафоне
 Her voice in your mic: loudness	Яе голас у вашым мікрафоне: гучнасць
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Уласна яе голас. Яго вышыня — Налады > ГОЛАС > Вышыня, і яны рухаюцца разам.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Уласна яе голас. Яго вышыня — Налады > ГОЛАС > Вышыня, і яны рухаюцца разам.
 Her voice joins your mic only in call mode.	Яе голас трапляе ў ваш мікрафон толькі ў рэжыме выкліку.
 Her voice volume	Гучнасць яе голасу
 Her voice's pitch	Вышыня яе голасу
-Her voice's pitch, the same as Settings > VOICE > Pitch	Вышыня яе голасу, такая ж, як Налады > ГОЛАС > Вышыня
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Вышыня яе голасу, такая ж, як Налады > ГОЛАС > Вышыня
 Her voice's speed	Хуткасць яе голасу
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Яе голас і дзве копіі яго пад ім, кожная са сваёй вышынёй і затрымкай.
 Her voices · free	Яе галасы · бясплатна
@@ -583,7 +583,7 @@ Revoke	Адклікаць
 Revoke also removes the phones its links added	Адклік таксама выдаляе тэлефоны, дададзеныя яе спасылкамі
 Ride cursor	Ехаць на курсоры
 Ride cursor / Hop off	Ехаць на курсоры / Злезці
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Пстрыкніце мяне правай кнопкай у любы час, каб адкрыць Capri Mainframe. Мозг уключаецца ў раздзеле МОЗГ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Пстрыкніце мяне правай кнопкай у любы час, каб адкрыць Capri Mainframe. Мозг уключаецца ў раздзеле МОЗГ.
 Right-click me any time for the Mainframe, Help and the Discord.	Пстрыкніце мяне правай кнопкай у любы час, каб адкрыць Mainframe, Даведку і Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox або любая іншая праграма: выберыце

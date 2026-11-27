@@ -22,7 +22,7 @@ Open Capri Remote's menu, find **Notifications** and turn it on. **Send a test**
 
 Your PC sends web notifications straight to your phone's push service (Apple, Google, Mozilla or Microsoft), encrypted so only your phone can read them. The push service sees when one is sent and how big it is, never the words. Capri's relay isn't involved. The Android app gets them over the same encrypted Remote connection as chat.
 
-Removing a phone from Capri's Mainframe, or unpairing on the phone, stops its notifications.
+Removing a phone from the Mainframe, or unpairing on the phone, stops its notifications.
 
 ## Limits
 

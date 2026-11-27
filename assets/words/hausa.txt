@@ -182,7 +182,7 @@ FREE KEY >	MAƁALLIN KYAUTA >
 Fast hands in games	Hannaye masu sauri a wasanni
 File editor	Editan fayil
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs da ƙari suna ƙarƙashin MURYA a cikin Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs da ƙari suna ƙarƙashin MURYA a cikin Mainframe.
 Follow-up messages	Saƙonnin biyo baya
 Forget	Manta
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Je zuwa allo na gaba
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · matakin kyauta · iyakar gudu
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Kana da tsarin Claude ko ChatGPT, ko maɓallin kanka? Zaɓi shi ni kuma zan haɗa.
-Got it, just me. Right-click me any time for Capri Mainframe.	Lafiya, ni kaɗai. Danna dama a kaina kowane lokaci don Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Lafiya, ni kaɗai. Danna dama a kaina kowane lokaci don Capri Mainframe.
 Grey	Launin toka
 H.{0} video bitrate target; higher values make larger files	Makasudin bitrate na bidiyo na H.{0}; ƙima mafi girma tana yin manyan fayiloli
 HABITS >	HALAYE >
@@ -256,11 +256,11 @@ Her speaker:	Mai magana da ita:
 Her speaker: Default	Mai magana da ita: Tsoho
 Her voice in your mic	Muryarta a makirifon ka
 Her voice in your mic: loudness	Muryarta a makirifon ka: ƙara
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Muryarta da kanta. Pitch ɗinta yana a Saituna > MURYA > Pitch, kuma suna tafiya tare.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Muryarta da kanta. Pitch ɗinta yana a Saituna > MURYA > Pitch, kuma suna tafiya tare.
 Her voice joins your mic only in call mode.	Muryarta tana shiga makirifon ka kawai a yanayin kira.
 Her voice volume	Ƙarar muryarta
 Her voice's pitch	Pitch ɗin muryarta
-Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch ɗin muryarta, iri ɗaya da Saituna > MURYA > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Pitch ɗin muryarta, iri ɗaya da Saituna > MURYA > Pitch
 Her voice's speed	Gudun muryarta
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Muryarta, da kwafi biyu nata da aka haɗa ƙasa, kowane da pitch da jinkirinsa.
 Her voices · free	Muryoyinta · kyauta
@@ -583,7 +583,7 @@ Revoke	Soke
 Revoke also removes the phones its links added	Soke kuma yana cire wayoyin da hanyoyin haɗinta suka ƙara
 Ride cursor	Hau kan siginan
 Ride cursor / Hop off	Hau kan siginan / Sauka
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Danna dama a kaina kowane lokaci don Capri Mainframe. Kwakwalwa tana kunnawa a ƙarƙashin KWAKWALWA.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Danna dama a kaina kowane lokaci don Capri Mainframe. Kwakwalwa tana kunnawa a ƙarƙashin KWAKWALWA.
 Right-click me any time for the Mainframe, Help and the Discord.	Danna dama a kaina kowane lokaci don Mainframe, Taimako da Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ko kowace app: zaɓi

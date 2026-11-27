@@ -182,7 +182,7 @@ FREE KEY >	IGODO EFU >
 Fast hands in games	Aka ngwa n'egwuregwu
 File editor	Onye dezie faịlụ
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs na ndị ọzọ dị n'okpuru OLU na Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs na ndị ọzọ dị n'okpuru OLU na Mainframe.
 Follow-up messages	Ozi na-esote
 Forget	Chefuo
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Gaa ihuenyo ọzọ
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ọkwa efu · ọnụọgụ akara
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ị nwere atụmatụ Claude ma ọ bụ ChatGPT, ma ọ bụ igodo nke gị? Họrọ ya, m ga-ejikọ.
-Got it, just me. Right-click me any time for Capri Mainframe.	Aghọtara m, naanị m. Pịa m aka nri mgbe ọ bụla maka Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Aghọtara m, naanị m. Pịa m aka nri mgbe ọ bụla maka Capri Mainframe.
 Grey	Agba mmiri ozuzu
 H.{0} video bitrate target; higher values make larger files	Ebumnuche bitrate vidiyo H.{0}; ọnụ ọgụgụ dị elu na-eme faịlụ ka ukwuu
 HABITS >	ỤZỤ >
@@ -256,11 +256,11 @@ Her speaker:	Ihe nkwupụta ya:
 Her speaker: Default	Ihe nkwupụta ya: Ndabere
 Her voice in your mic	Olu ya n'ime mic gị
 Her voice in your mic: loudness	Olu ya n'ime mic gị: ịdị elu
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Olu ya n'onwe ya. Ụda ya bụ Ntọala > OLU > Ụda, ha na-aga ọnụ.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Olu ya n'onwe ya. Ụda ya bụ Ntọala > OLU > Ụda, ha na-aga ọnụ.
 Her voice joins your mic only in call mode.	Olu ya na-abanye n'ime mic gị naanị n'ọnọdụ oku.
 Her voice volume	Ịdị elu olu ya
 Her voice's pitch	Ụda olu ya
-Her voice's pitch, the same as Settings > VOICE > Pitch	Ụda olu ya, otu ihe ahụ dị ka Ntọala > OLU > Ụda
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Ụda olu ya, otu ihe ahụ dị ka Ntọala > OLU > Ụda
 Her voice's speed	Ọsọ olu ya
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Olu ya, na ọdịdị abụọ nke ya agwakọtara n'okpuru ya, ọ bụla nwere ụda na ọgbọ nke ya.
 Her voices · free	Olu ya · efu
@@ -583,7 +583,7 @@ Revoke	Kagbuo
 Revoke also removes the phones its links added	Ikagbu nke a na-ewepụkwa ekwentị njikọ ya tinyere
 Ride cursor	Gbaa cursor
 Ride cursor / Hop off	Gbaa cursor / Pụọ
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Pịa m aka nri mgbe ọ bụla maka Capri Mainframe. Ụbụrụ na-emeghe n'okpuru ỤBỤRỤ.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Pịa m aka nri mgbe ọ bụla maka Capri Mainframe. Ụbụrụ na-emeghe n'okpuru ỤBỤRỤ.
 Right-click me any time for the Mainframe, Help and the Discord.	Pịa m aka nri mgbe ọ bụla maka Mainframe, Enyemaka na Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ma ọ bụ ngwa ọ bụla ọzọ: họrọ

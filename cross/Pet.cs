@@ -574,7 +574,7 @@ namespace CapriDesktop
         internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
         // What to press, as on Windows: a model's name like gemma4:e4b means nothing to most people.
-        internal const string Offline = "My brain's offline. Right-click me, open Capri Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key.";
+        internal const string Offline = "My brain's offline. Right-click me, open the Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key.";
         // The brain she downloads for herself through Ollama when it has none yet, so no terminal is needed.
         internal const string Starter = "gemma4:e4b";
         internal const string PullChoice = "Download " + Starter + ", her brain (a few GB)";
@@ -582,7 +582,7 @@ namespace CapriDesktop
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         internal const string KeyChoice = "Use an API key...";
         internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek or xAI.";
-        internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
+        internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under Mainframe > BRAIN.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
         private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
@@ -946,8 +946,8 @@ namespace CapriDesktop
                 X11Desk.Errors.Report();
             }
             StartMods();
-            Brain.BrainMenu = "under BRAIN in Capri Mainframe";
-            Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
+            Brain.BrainMenu = "under Mainframe > BRAIN";
+            Brain.FreeKeyHow = "Mainframe > BRAIN > Free key";
             Brain.Bin = OperatingSystem.IsMacOS() ? "Trash" : "trash";
             Brain.MemoryPath = Path.Combine(Program.Smoke ?? folder, "me.md");
             Favourites.Kept = Path.Combine(Program.Smoke ?? folder, Favourites.FileName);
@@ -3716,7 +3716,7 @@ namespace CapriDesktop
                 case "show_advanced": SetAdvancedSettings(on); break;
             }
             Sync();
-            return name == "voice" && on && !Speaks ? "Set up a voice under VOICE in Capri Mainframe first." : null;
+            return name == "voice" && on && !Speaks ? "Set up a voice under Mainframe > VOICE first." : null;
         }
 
         // The step nearest a value, for sliders whose value can sit between their steps.
@@ -3825,7 +3825,7 @@ namespace CapriDesktop
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SettingAction(action); }).GetAwaiter().GetResult();
             if (action == "edit_check_in_lines") return EditCheckInLines();
             if (action != "preview_voice") return "That action is only on Windows for now.";
-            if (!Speaks) return "My voice isn't ready. Set it up under VOICE in Capri Mainframe first.";
+            if (!Speaks) return "My voice isn't ready. Set it up under Mainframe > VOICE first.";
             styleCheckDue = true;
             styleAsked = asking;
             return "I'll play my current voice after this reply.";
@@ -4670,7 +4670,7 @@ namespace CapriDesktop
             pulling = true;
             pulled = -1;
             pullingName = tag;
-            Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB. BRAIN in Capri Mainframe shows its progress.");
+            Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB. Mainframe > BRAIN shows its progress.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
@@ -6678,7 +6678,7 @@ namespace CapriDesktop
                             }
                             else said = think == null ? Brain.Ask(text, follows, out after, typed: phone == null ? null : phone.Typed) : think(text);
                         }
-                        catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
+                        catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under Mainframe > BRAIN."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
                         catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
                     }, delegate
                     {
@@ -6755,11 +6755,11 @@ namespace CapriDesktop
             {
                 string picked = Speakers.Known(Saved.VoiceProvider);
                 if (picked == Speakers.Owned) return ownedVoice.Ready ? "My retained local voice is muted." : "Configure the retained local voice runtime and profile.";
-                if (picked == Speakers.Off) return "My voice is off. Pick a voice under VOICE in Capri Mainframe.";
-                if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off. Pick CUSTOM LOCAL under VOICE in Capri Mainframe." : "Set up CUSTOM LOCAL under VOICE in Capri Mainframe.";
+                if (picked == Speakers.Off) return "My voice is off. Pick a voice under Mainframe > VOICE.";
+                if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off. Pick CUSTOM LOCAL under Mainframe > VOICE." : "Set up CUSTOM LOCAL under Mainframe > VOICE.";
                 if (picked == Speakers.Fish) return fishVoice.Ready ? "My voice is off. Turn my Fish Audio voice back on in my right-click menu under VOICE." : "Add your Fish Audio key in my right-click menu under VOICE.";
                 if (picked == Speakers.OpenAi) return openAiVoice.Ready ? "My voice is off. Turn my OpenAI voice back on in my right-click menu under VOICE." : "Add your OpenAI key in my right-click menu under VOICE.";
-                return voice.Ready ? "My voice is off. Pick CLOUD VOICE under VOICE in Capri Mainframe." : "Add your ElevenLabs key under VOICE in Capri Mainframe.";
+                return voice.Ready ? "My voice is off. Pick CLOUD VOICE under Mainframe > VOICE." : "Add your ElevenLabs key under Mainframe > VOICE.";
             }
         }
 
@@ -6818,7 +6818,7 @@ namespace CapriDesktop
             finally { if (!following) RemoteEnd(phone); }
         }
 
-        private static string Mac(string problem) { return problem == Voice.Rejected ? "ElevenLabs rejected the key. Paste a new one under VOICE in Capri Mainframe." : problem; }
+        private static string Mac(string problem) { return problem == Voice.Rejected ? "ElevenLabs rejected the key. Paste a new one under Mainframe > VOICE." : problem; }
 
         private string KeyFile { get { return Path.Combine(Program.Smoke ?? folder, "voice-key"); } }
 
@@ -6963,7 +6963,7 @@ namespace CapriDesktop
                             if (phone != null) { phoneKey = null; if (remoteBrainTimer != null) remoteBrainTimer.Stop(); }
                             UseCloud(key, model, found, pickedTier);
                             WriteSecret(BrainKeyFile, key, "brain key");
-                            if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
+                            if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under Mainframe > BRAIN.");
                             if (phone != null)
                             {
                                 BrainKeyNote(phone.Device, phone.Current, phone.Id, "saved", RemoteBrainKeys.Saved, phone.Key);
@@ -7083,7 +7083,7 @@ namespace CapriDesktop
                     if (ticket != asking) return;
                     if (problem != null) Talk.Answer(KeyHeard, "Key saved, but " + voiceProblem);
                     else if (voice.VoiceId == null) Talk.Answer(KeyHeard, "Key saved, but your ElevenLabs account has no voices yet. Add one at elevenlabs.io.");
-                    else Reply(ticket, KeyHeard, "Key saved. I'll talk as " + VoiceName() + ". Change it under VOICE in Capri Mainframe.");
+                    else Reply(ticket, KeyHeard, "Key saved. I'll talk as " + VoiceName() + ". Change it under Mainframe > VOICE.");
                 });
             });
         }
@@ -7144,7 +7144,7 @@ namespace CapriDesktop
                 : "Type the voice your server should use, like af_heart, and press Enter. A dash leaves it to the server.";
             Talk.AskFor(heard, ask, delegate(string typed)
             {
-                if (SetLocalVoice(part, typed)) Talk.Answer(heard, "Saved. Press Test voice in Capri Mainframe to hear it.");
+                if (SetLocalVoice(part, typed)) Talk.Answer(heard, "Saved. Press Test voice in the Mainframe to hear it.");
             });
         }
 
@@ -8237,7 +8237,7 @@ namespace CapriDesktop
                 }
             }
             Brain.LogAt(log, "startup", -1, "Her cross.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
-            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in " + Tilde(home) + ".";
+            return "Her settings couldn't be read, so they were reset. Add your keys again in the Mainframe. The old file is kept as " + UnreadableName + " in " + Tilde(home) + ".";
         }
 
         // A folder in their home as ~/..., so a screenshot of the notice doesn't show their user name.

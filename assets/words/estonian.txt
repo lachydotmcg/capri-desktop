@@ -182,7 +182,7 @@ FREE KEY >	TASUTA VÕTI >
 Fast hands in games	Kiired käed mängudes
 File editor	Failiredaktor
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ja muud on Mainframe'is jaotises HÄÄL.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ja muud on Mainframe'is jaotises HÄÄL.
 Follow-up messages	Järelsõnumid
 Forget	Unusta
 Fork capri-mods	Forki capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Mine järgmisele ekraanile
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tasuta tase · päringupiiranguga
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Sul on Claude'i või ChatGPT plaan või oma võti? Vali see ja ma ühendan end.
-Got it, just me. Right-click me any time for Capri Mainframe.	Selge, ainult mina. Parema hiireklõpsuga saad mind igal ajal Capri Mainframe'i juurde.
+Got it, just me. Right-click me any time for the Mainframe.	Selge, ainult mina. Parema hiireklõpsuga saad mind igal ajal Capri Mainframe'i juurde.
 Grey	Hall
 H.{0} video bitrate target; higher values make larger files	H.{0} video bitikiiruse sihtmärk; suuremad väärtused teevad suuremad failid
 HABITS >	HARJUMUSED >
@@ -256,11 +256,11 @@ Her speaker:	Tema kõlar:
 Her speaker: Default	Tema kõlar: Vaikimisi
 Her voice in your mic	Tema hääl sinu mikrofonis
 Her voice in your mic: loudness	Tema hääl sinu mikrofonis: valjus
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Tema hääl ise. Selle kõrgus on Seaded > HÄÄL > Kõrgus ja need liiguvad koos.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Tema hääl ise. Selle kõrgus on Seaded > HÄÄL > Kõrgus ja need liiguvad koos.
 Her voice joins your mic only in call mode.	Tema hääl liitub sinu mikrofoniga ainult kõnerežiimis.
 Her voice volume	Tema hääle valjus
 Her voice's pitch	Tema hääle kõrgus
-Her voice's pitch, the same as Settings > VOICE > Pitch	Tema hääle kõrgus, sama mis Seaded > HÄÄL > Kõrgus
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Tema hääle kõrgus, sama mis Seaded > HÄÄL > Kõrgus
 Her voice's speed	Tema hääle kiirus
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Tema hääl ja kaks selle koopiat segatuna tema alla, igaüks oma kõrguse ja viivitusega.
 Her voices · free	Tema hääled · tasuta
@@ -583,7 +583,7 @@ Revoke	Tühista
 Revoke also removes the phones its links added	Tühistamine eemaldab ka telefonid, mille lingid lisasid
 Ride cursor	Sõida kursoril
 Ride cursor / Hop off	Sõida kursoril / Astu maha
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Parem klõps mul igal ajal Capri Mainframe'i jaoks. Aju lülitub sisse jaotises AJU.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Parem klõps mul igal ajal Capri Mainframe'i jaoks. Aju lülitub sisse jaotises AJU.
 Right-click me any time for the Mainframe, Help and the Discord.	Parem klõps mul igal ajal Mainframe'i, Abi ja Discordi jaoks.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox või mõni muu rakendus: vali
