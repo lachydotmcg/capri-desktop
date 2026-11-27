@@ -23522,7 +23522,13 @@ namespace CapriDesktop
                         if (saveLock != null) saveLock.Dispose();
                         if (saveDirectory) Directory.Delete(savePath);
                     }
-                    CheckNextLine(true);
+                    // Her timer ticks every 250 ms, and after failing saves she tries once a tick, so a save a scan holds on the
+                    // first tick after the lock goes lands on a later one.
+                    for (int recoverTick = 0; recoverTick < 8 && reply != "Reminder: " + saveText; recoverTick++)
+                    {
+                        CheckNextLine(true);
+                        if (reply != "Reminder: " + saveText) Thread.Sleep(250);
+                    }
                     WaitVoice(delegate { return reply == "Reminder: " + saveText && voiceUntil > 0; }, "A reminder did not recover after its save became possible.");
                     if (new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("A recovered reminder was not saved as said.");
                     CloseTalk();
@@ -23664,6 +23670,14 @@ namespace CapriDesktop
                     manualHidden = manualWas;
                     if (hidden != hiddenWas) ApplyHidden(hiddenWas);
                 }
+
+                reminders.Remind(new ToolArguments { Text = "held file first", When = "in an hour" });
+                bool heldSaved;
+                try { heldSaved = SavesThroughHeld(Path.Combine(reminderFolder, "reminders.json"), delegate { return reminders.Remind(new ToolArguments { Text = "held file second", When = "in an hour" }).StartsWith("I'll remind you", StringComparison.Ordinal); }); }
+                catch (IOException) { heldSaved = false; }
+                if (!heldSaved || !new Reminders(reminderFolder, reminderNow).Remind(new ToolArguments { Action = "list" }).Contains("held file second"))
+                    throw new Exception("A reminder was lost while an antivirus scan or the search indexer held reminders.json for a moment.");
+                checks.Add("PASS a reminder still saves while an antivirus scan or the search indexer holds reminders.json for a moment");
             }
             catch (IOException reminderIo) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderIo.Message); }
             catch (UnauthorizedAccessException reminderAccess) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderAccess.Message); }
