@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
 using System.Threading;
@@ -1299,6 +1300,57 @@ namespace CapriDesktop
                     }
                     if (leaks.Count > 0) throw new Exception("A key from the card was written down in: " + string.Join(", ", leaks.ToArray()));
                     passed("PASS no key typed or pasted on the card is written to her log, her chat files or the checks, and the key box shows dots in every picture");
+                });
+                part("SmokeFirstRunKeys", delegate
+                {
+                    MethodInfo dialogKey = typeof(Form).GetMethod("ProcessDialogKey", BindingFlags.Instance | BindingFlags.NonPublic);
+                    Func<Mainframe.FirstRunCard, bool> escape = delegate(Mainframe.FirstRunCard shown) { bool took = (bool)dialogKey.Invoke(shown, new object[] { Keys.Escape }); pump(); return took; };
+                    Func<Mainframe.FirstRunCard, string, Control> row = delegate(Mainframe.FirstRunCard shown, string text)
+                    {
+                        foreach (Control control in shown.Controls) if (control.Visible && control.Text == text) return control;
+                        return null;
+                    };
+                    reset();
+                    card = open(FirstRun.Pick, FirstRun.Local);
+                    Control skipAll = row(card, "Skip all");
+                    if (skipAll == null || skipAll.GetType().Name != "Key" || skipAll.Height < (int)(40 * card.Unit)) throw new Exception("Skip all isn't an outlined button: " + (skipAll == null ? "missing" : skipAll.GetType().Name + " " + skipAll.Size));
+                    if (!escape(card) || card.Screen != FirstRun.Me || !card.BrainSkipped) throw new Exception("Esc on WAKE ME UP wasn't Skip for now: screen " + card.Screen + ", skipped " + card.BrainSkipped);
+                    if (row(card, "Back") != null) throw new Exception("MAKE ME YOURS offers a Back past her brain.");
+                    escape(card);
+                    if (card.Screen != FirstRun.Voice || row(card, "Back") == null) throw new Exception("Esc on MAKE ME YOURS didn't skip to HOW I SOUND with a Back: " + card.Screen);
+                    Control hint = row(card, "Nothing? Windows Settings > Privacy & security > Microphone.");
+                    if (hint == null || hint.Font.Unit != GraphicsUnit.Pixel || Math.Abs(hint.Font.Size - 15f * card.Unit) > 0.1f) throw new Exception("Her mic hint isn't 15 px: " + (hint == null ? "missing" : hint.Font.Size + " " + hint.Font.Unit));
+                    card.Back();
+                    pump();
+                    if (card.Screen != FirstRun.Me) throw new Exception("Back on HOW I SOUND didn't go to MAKE ME YOURS: " + card.Screen);
+                    card.Go(FirstRun.Extras);
+                    card.Back();
+                    pump();
+                    if (card.Screen != FirstRun.Voice) throw new Exception("Back on EXTRAS didn't go to HOW I SOUND: " + card.Screen);
+                    card.SkipAll();
+                    putBack();
+
+                    reset();
+                    card = open(FirstRun.Key, FirstRun.Free);
+                    card.Brain = FirstRun.Connecting;
+                    escape(card);
+                    if (card.Finished || card.Screen != FirstRun.Key || card.Brain != FirstRun.Connecting) throw new Exception("Esc while a key was being checked left FREE KEY: " + card.Screen + " / " + card.Brain);
+                    card.Brain = FirstRun.NoBrain;
+                    card.SkipAll();
+                    putBack();
+
+                    reset();
+                    mainframe.ShowProgress(1, "Downloading " + fit.Name, fit.Size / 3, fit.Size);
+                    card = OpenFirstRun(FirstRun.Pick, FirstRun.Local, false);
+                    setups = 0;
+                    card.Brain = FirstRun.Coming;
+                    SettingUp = true;
+                    card.Go(FirstRun.Wait);
+                    pump();
+                    escape(card);
+                    if (FirstRunShowing) throw new Exception("Esc while her brain comes down didn't hide the card.");
+                    putBack();
+                    passed("PASS Esc on the card is Skip for now on each screen and Hide this while her brain comes down, and waits while a key is being checked; Back steps back from HOW I SOUND and EXTRAS but not past her brain; Skip all is an outlined button; her hints are 15 px");
                 });
             }
             // A slip in the checks themselves says where, since the section only keeps the message.
