@@ -767,8 +767,8 @@ namespace CapriDesktop
         private const string Parts = "@capri-image@";
         private const string Turned = "@capri-turn@";
         internal const string Declined = "[SIGNAL CORRUPTED] Lost that one in the static. Ask me something else?";
-        internal const string Stuck = " If you're stuck, just join the Discord, choom. It's under Help in my right-click menu.";
-        internal const string Offline = "My brain's offline. Right-click me, open the Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key." + Stuck;
+        internal const string Stuck = " If you're stuck, just join the Discord. It's under Help in my right-click menu.";
+        internal const string Offline = "My brain's offline. Right-click me, choose Open Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key." + Stuck;
         private static readonly string[] Favourites = { "gemma4:e4b", "gemma4:e2b", "qwen3:4b-instruct-2507", "qwen3.5:4b", "qwen3:4b", "llama3.2:3b", "qwen3:1.7b", "llama3.2:1b", "gemma3:1b" };
         private readonly List<ChatMessage> history = new List<ChatMessage>();
         private readonly object gate = new object();
@@ -4966,8 +4966,8 @@ namespace CapriDesktop
             if (web != null && web.Status == WebExceptionStatus.RequestCanceled) return null;
             if (web != null && remote != null && remote.Kind == "local") return "Can't reach " + remote.Name + ". Check that your local server is running at " + remote.Host + ", then try me again.";
             if (web != null && remote != null && web.Status == WebExceptionStatus.Timeout) return remote.Company + " didn't answer in time. Try again or pick another model " + BrainMenu + ".";
-            if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ", choom. Check your internet, then try me again.";
-            if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think, choom. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
+            if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ". Check your internet, then try me again.";
+            if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
             if (web != null && web.Response == null) return Offline;
             return "[SIGNAL CORRUPTED] Something in my head just sparked. Try me again?";
         }

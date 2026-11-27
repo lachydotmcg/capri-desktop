@@ -109,7 +109,7 @@ namespace CapriDesktop
             try { File.GetAttributes(file); }
             catch (FileNotFoundException) { return; }
             catch (DirectoryNotFoundException) { return; }
-            throw new IOException("The uninstaller is still open. Close it and try removing Capri again.");
+            throw new CapriSetup.SetupProblem("The uninstaller is still open. Close it and try removing Capri again.");
         }
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);

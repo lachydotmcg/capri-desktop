@@ -944,7 +944,7 @@ namespace CapriDesktop
             foreach (string off in new[] { SilentNote, previewLine, StyleSilent })
                 if (off.IndexOf("voice is off", StringComparison.Ordinal) < 0 || off.IndexOf("Pick a voice under VOICE to hear ", StringComparison.Ordinal) < 0 || off.Contains("OFF"))
                     throw new Exception("A voice-off line reads another way: " + off);
-            if (previewLine != PreviewSilent || !StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
+            if (previewLine != PreviewSilent || StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
             checks.Add("PASS her voice being off reads one way with one fix, \"Pick a voice under VOICE\", in the VOICE note, a preview she's asked for and the style sliders, like on Mac and Linux");
 
             // A1: brain setup shows a stalled download in the BRAIN note, which cut it at "Check your connection a...".

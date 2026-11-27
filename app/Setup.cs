@@ -15,6 +15,13 @@ using Microsoft.Win32;
 
 namespace CapriSetup
 {
+    // A reason setup wrote itself, plain enough to show as it is. Anything else that's thrown is Windows' or .NET's own
+    // words, which go only in Copy error details.
+    internal sealed class SetupProblem : IOException
+    {
+        internal SetupProblem(string message) : base(message) { }
+    }
+
     internal static class Program
     {
         internal static string InstallPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"); } }
@@ -83,13 +90,34 @@ namespace CapriSetup
 
         [DllImport("user32.dll")] private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
 
-        private static int Update(string[] args)
+        internal const string UpdateCaption = "Capri couldn't update";
+        internal const string RemoveCaption = "Capri could not be removed";
+        internal const string UpdateNext = "Open Capri from the Start menu. If she won't open, run Capri's installer again.";
+        internal const string RemoveNext = "Restart your PC, then remove Capri again in Settings > Apps > Installed apps.";
+        internal const string InstallCaption = "Capri couldn't install";
+        internal const string InstallNext = "Your files are still here. Restart your PC, then run Capri's installer again.";
+
+        // What an update or removal that failed says: her own reason as it is, or a plain line and what to try for one from
+        // Windows, then where to send the details. With `keys` it points at Copy error details; Windows' plain box has only OK.
+        internal static string Problem(Exception error, string doing, string next, bool keys)
+        {
+            string said = error is SetupProblem ? error.Message : "Something went wrong while " + doing + " Capri.\n\n" + next;
+            return said + "\n\n" + (keys ? ProblemKeys.Next + ProblemKeys.Then(false) : "If it keeps happening, the help page at capriai.app/help says what to do.");
+        }
+
+        internal static void Failed(Exception error, string caption, string doing, string next, IWin32Window owner = null)
+        {
+            try { Notice.Tell(owner, Problem(error, doing, next, true), caption, true, Problem(error, doing, next, false), ProblemKeys.For(caption.Substring(6), error, false)); }
+            catch (Exception) { Notice.Tell(owner, Problem(error, doing, next, false), caption, true); }
+        }
+
+        internal static int Update(string[] args)
         {
             try
             {
                 int parent;
                 long started;
-                if (args.Length != 3 || !int.TryParse(args[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out parent) || parent <= 0 || !long.TryParse(args[2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out started) || started <= 0) throw new IOException("The update command is invalid.");
+                if (args.Length != 3 || !int.TryParse(args[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out parent) || parent <= 0 || !long.TryParse(args[2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out started) || started <= 0) throw new SetupProblem("The update command is invalid.");
                 Process process = null;
                 try { process = Process.GetProcessById(parent); } catch (ArgumentException) { }
                 if (process != null)
@@ -97,14 +125,14 @@ namespace CapriSetup
                     {
                         bool same = false;
                         try { same = process.StartTime.ToUniversalTime().Ticks == started; } catch (InvalidOperationException) { }
-                        if (same && !process.WaitForExit(60000)) throw new IOException("Capri is still closing. Try the update again.");
+                        if (same && !process.WaitForExit(60000)) throw new SetupProblem("Capri is still closing. Try the update again.");
                     }
                 Install(false);
                 using (Process launched = Process.Start(new ProcessStartInfo(Path.Combine(InstallPath, "Capri.exe")) { UseShellExecute = true, WorkingDirectory = InstallPath }))
-                    if (launched == null) throw new IOException("Capri updated but couldn't restart. Open her from the Start menu.");
+                    if (launched == null) throw new SetupProblem("Capri updated but couldn't restart. Open her from the Start menu.");
                 return 0;
             }
-            catch (Exception error) { Notice.Tell(null, error.Message, "Capri couldn't update", true); return 1; }
+            catch (Exception error) { Failed(error, UpdateCaption, "updating", UpdateNext); return 1; }
         }
 
         internal static byte[] Payload() { return File.ReadAllBytes(Application.ExecutablePath); }
@@ -190,7 +218,7 @@ namespace CapriSetup
             string destination = InstallPath;
             string marker = Path.Combine(destination, ".capri-install");
             string existing = Path.Combine(destination, "Capri.exe");
-            if (Directory.Exists(destination) && !File.Exists(marker) && File.Exists(existing) && !Ours(existing)) throw new IOException("There's a Capri.exe in " + destination + " that isn't this Capri. Move it out of that folder, then install again.");
+            if (Directory.Exists(destination) && !File.Exists(marker) && File.Exists(existing) && !Ours(existing)) throw new SetupProblem("There's a Capri.exe in " + destination + " that isn't this Capri. Move it out of that folder, then install again.");
             // Her input helper lives a moment after she closes, so a copy on its way out gets a few seconds. A copy started as
             // administrator can't be closed from here, so Windows is asked to close it as administrator (Splinter, 6 Nov).
             foreach (Process process in Process.GetProcessesByName("Capri"))
@@ -200,10 +228,10 @@ namespace CapriSetup
                     bool held;
                     if (!string.Equals(SetupFiles.FileOf(process, out held), existing, StringComparison.OrdinalIgnoreCase)) continue;
                     if (Gone(process, 3000)) continue;
-                    if (!held) throw new IOException("Quit Capri from her tray menu, then install again.");
-                    if (quiet) throw new IOException(AdminCopy);
+                    if (!held) throw new SetupProblem("Quit Capri from her tray menu, then install again.");
+                    if (quiet) throw new SetupProblem(AdminCopy);
                     CloseAsAdmin(destination);
-                    if (!Gone(process, 5000)) throw new IOException(AdminCopy);
+                    if (!Gone(process, 5000)) throw new SetupProblem(AdminCopy);
                 }
             }
             Directory.CreateDirectory(destination);
@@ -271,7 +299,7 @@ namespace CapriSetup
                 data = Path.GetFullPath(data);
                 Directory.CreateDirectory(data);
                 FetchVoice(data, delegate { }, delegate { return false; });
-                if (!VoicePack.Complete(VoicePack.Folder(data))) throw new IOException("The local speech model is missing files after installing.");
+                if (!VoicePack.Complete(VoicePack.Folder(data))) throw new SetupProblem("The local speech model is missing files after installing.");
                 File.WriteAllText(Path.Combine(data, "voice-test.txt"), "PASS the local speech model downloaded, matched its SHA-256 and unpacked where Capri looks for it\n");
                 return 0;
             }
@@ -290,7 +318,7 @@ namespace CapriSetup
             Directory.CreateDirectory(root);
             long needed = VoicePack.Size * 3 + (64L << 20);
             string drive = Path.GetPathRoot(root);
-            if (new DriveInfo(drive).AvailableFreeSpace < needed) throw new IOException("The local speech model needs " + Megabytes(needed) + " free on " + drive.TrimEnd('\\') + ".");
+            if (new DriveInfo(drive).AvailableFreeSpace < needed) throw new SetupProblem("The local speech model needs " + Megabytes(needed) + " free on " + drive.TrimEnd('\\') + ".");
             string zip = folder + ".zip";
             string part = zip + ".part";
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
@@ -331,7 +359,7 @@ namespace CapriSetup
                 if (have < VoicePack.Size)
                 {
                     stalls = have > before ? 0 : stalls + 1;
-                    if (stalls >= 4) throw new IOException("The download keeps stopping. Check your connection.");
+                    if (stalls >= 4) throw new SetupProblem("The download keeps stopping. Check your connection.");
                     Thread.Sleep(1500 * stalls);
                 }
             }
@@ -339,7 +367,7 @@ namespace CapriSetup
             string sum;
             using (SHA256 sha = SHA256.Create())
             using (FileStream file = File.OpenRead(part)) sum = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "").ToLowerInvariant();
-            if (have != VoicePack.Size || sum != VoicePack.Sha) { File.Delete(part); throw new IOException("The download came down damaged. Try again from the Mainframe."); }
+            if (have != VoicePack.Size || sum != VoicePack.Sha) { File.Delete(part); throw new SetupProblem("The download came down damaged. Try again from the Mainframe."); }
             if (File.Exists(zip)) File.Delete(zip);
             File.Move(part, zip);
             progress("Unpacking", VoicePack.Size, VoicePack.Size);
@@ -347,7 +375,7 @@ namespace CapriSetup
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
             VoicePack.Seal(staging);
-            if (!VoicePack.Complete(staging)) throw new IOException("The download is missing files.");
+            if (!VoicePack.Complete(staging)) throw new SetupProblem("The download is missing files.");
             if (Directory.Exists(folder)) Directory.Delete(folder, true);
             Directory.Move(staging, folder);
             File.Delete(zip);
@@ -447,16 +475,16 @@ namespace CapriSetup
             return left == 0 ? "Capri has been removed, along with everything she knew on this PC." : "Capri has been removed, but a few of her files were still in use. Restart your PC, then delete " + folder + ".";
         }
 
-        private static int RemoveCopy(Removal plan)
+        internal static int RemoveCopy(Removal plan)
         {
             try
             {
                 string data = Path.Combine(Local, "Capri");
-                if (plan.Forget && File.Exists(Path.Combine(data, ".capri-install"))) throw new IOException("Capri is also installed on this PC, so her memories were kept. Remove her in Settings > Apps > Installed apps and tick Also delete everything she knows.");
+                if (plan.Forget && File.Exists(Path.Combine(data, ".capri-install"))) throw new SetupProblem("Capri is also installed on this PC, so her memories were kept. Remove her in Settings > Apps > Installed apps and tick Also delete everything she knows.");
                 if (plan.App != null)
                 {
                     string app = Path.GetFullPath(plan.App);
-                    if (!Ours(app) || Installed(app) || app.IndexOf("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase) >= 0) throw new IOException("That isn't a copy of Capri this can remove.");
+                    if (!Ours(app) || Installed(app) || app.IndexOf("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase) >= 0) throw new SetupProblem("That isn't a copy of Capri this can remove.");
                     CloseCopy(app);
                     SetupFiles.RemoveApp(app);
                 }
@@ -469,7 +497,7 @@ namespace CapriSetup
                 Notice.Tell(null, plan.Forget ? Forgotten(left, data) : "This copy of Capri has been removed.\n\nHer memories, chats and settings were kept in " + data + ".", "Capri", left > 0);
                 return 0;
             }
-            catch (Exception error) { Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
+            catch (Exception error) { Failed(error, RemoveCaption, "removing", RemoveNext); return 1; }
         }
 
         private static void CloseCopy(string app)
@@ -496,12 +524,12 @@ namespace CapriSetup
             {
                 string destination = Path.GetFullPath(InstallPath);
                 string expected = Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"));
-                if (!string.Equals(destination, expected, StringComparison.OrdinalIgnoreCase) || !File.Exists(Path.Combine(destination, ".capri-install"))) throw new IOException("The Capri install marker could not be verified.");
+                if (!string.Equals(destination, expected, StringComparison.OrdinalIgnoreCase) || !File.Exists(Path.Combine(destination, ".capri-install"))) throw new SetupProblem("The Capri install marker could not be verified.");
                 if (CloseEverything(destination))
                 {
-                    if (silent) throw new IOException(AdminCopy);
+                    if (silent) throw new SetupProblem(AdminCopy);
                     CloseAsAdmin(destination);
-                    if (CloseEverything(destination)) throw new IOException(AdminCopy);
+                    if (CloseEverything(destination)) throw new SetupProblem(AdminCopy);
                 }
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
                 bool self = string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase);
@@ -540,7 +568,7 @@ namespace CapriSetup
                 if (!silent) Notice.Tell(null, forget ? Forgotten(left, destination) : "Capri has been removed.\n\nHer memories, chats and settings were kept in " + destination + ", in case you come back.", "Capri", left > 0);
                 return 0;
             }
-            catch (Exception error) { if (silent) Console.Error.WriteLine(error.Message); else Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
+            catch (Exception error) { if (silent) Console.Error.WriteLine(error.Message); else Failed(error, RemoveCaption, "removing", RemoveNext); return 1; }
         }
 
         // Capri and anything running from her folder, like her brain's engine, hold its files, so they're closed first.
@@ -579,9 +607,9 @@ namespace CapriSetup
             try
             {
                 using (Process helper = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--close \"" + folder.TrimEnd('\\') + "\"") { UseShellExecute = true, Verb = "runas" }))
-                    if (helper == null || !helper.WaitForExit(30000)) throw new IOException(AdminCopy);
+                    if (helper == null || !helper.WaitForExit(30000)) throw new SetupProblem(AdminCopy);
             }
-            catch (System.ComponentModel.Win32Exception) { throw new IOException(AdminCopy); }
+            catch (System.ComponentModel.Win32Exception) { throw new SetupProblem(AdminCopy); }
         }
 
         private static bool Gone(Process process, int wait)
@@ -905,9 +933,14 @@ namespace CapriSetup
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
                 try { SetupFiles.Mark(Program.InstallPath, "manual"); }
-                catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete " + SetupFiles.Marker + " in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
+                catch (Exception error)
+                {
+                    string marker = "Capri is installed, but the package marker couldn't be cleared. Delete " + SetupFiles.Marker + " in " + Program.InstallPath + " to let her update herself.";
+                    try { Notice.Tell(this, marker, "Capri", true, ProblemKeys.For("couldn't clear the package marker", error, false)); }
+                    catch (Exception) { Notice.Tell(this, marker, "Capri", true); }
+                }
             }
-            catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
+            catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Program.Failed(error, Program.InstallCaption, "installing", Program.InstallNext, this); return; }
             // She opens straight away and fetches her free voice herself while she shows them around, like the Store copy.
             Finish();
         }

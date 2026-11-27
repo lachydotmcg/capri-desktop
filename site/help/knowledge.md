@@ -630,7 +630,7 @@ To make one: a .capri-skill file starts with a header between two --- lines (cap
 ### Email: new mail and phishing (0.9.7)
 Connect Email under Mods > PLUG-INS and set it up with your address and an app password. Once it's connected, Email settings in Email's window opens Set up Email on who it's connected as, with two switches, both off until you turn them on:
 - Watch for new mail: she watches your inbox in the background and speaks up when something lands, like "Oop, something just came through." Mail that was already there isn't announced. Nothing gets marked read, and she never opens links or attachments. Gmail usually tells her about new mail within seconds; servers without IMAP IDLE are checked about once a minute. You can also ask her to start or stop watching.
-- Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, choom, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, choom, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
+- Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
 
 Ask "is this email legit?" or "check that email for phishing" and she checks it with check_mail, using her own rules rather than a brain's guess. She compares who it says it's from with where it really came from, in its sender name and in its subject and words, like "Microsoft Account Team" or a "Thanks, Microsoft" sign-off on mail that asks you for something. She looks for an email that asks you to send, reply with or type in your password or card details, since real companies never ask for those by email. She also looks for replies that go somewhere else, look-alike addresses (letters from another alphabet, rn for m, 0 for o, 1 for l, vv for w, extra words around a brand's name, endings like .zip or .top), links that show one address but go to another, bare number addresses, link shorteners and @ tricks, pushy asks (a suspended account, a 24 hour deadline, your password, gift cards, a wire transfer, crypto, an overdue invoice), risky attachments (.exe, .scr, .js, .vbs, .lnk, .iso, .img, .hta, .html, two endings, macro documents, a zip with its password in the email) and failed sender checks (SPF, DKIM and DMARC). She answers fine, suspicious or phishing with plain reasons.
 
@@ -935,13 +935,13 @@ Mainframe > Settings > VOICE has four sliders. They change every voice she has: 
 
 Her HD voice keeps its own Robot and Glitch. Both start Off, so she sounds dry, just like the clip her HD voice copies. While HD is the voice she's using, those sliders show its values with HD after them ("40% · HD"), and moving them only changes HD. Her other voices share one Robot and one Glitch, which both start at Off.
 
-When you let go of a slider, she says "How do I sound now, choom?" in the voice she's using, so you can hear it. With ELEVENLABS she makes that line once (about 25 credits), then restyles the same audio on your PC, so moving the sliders again uses no more credits. If her HD voice is asleep (it rests after 10 quiet minutes), she says "One sec, waking my HD voice." first, then the line in HD. With her voice OFF she says "My voice is OFF, choom. Pick FREE VOICE to hear that." (0.7.6: "Pick PREBUILT LOCAL to hear that.") With no voice set up she says "Get my free voice under VOICE to hear that, choom."
+When you let go of a slider, she says "How do I sound now, choom?" in the voice she's using, so you can hear it. With ELEVENLABS she makes that line once (about 25 credits), then restyles the same audio on your PC, so moving the sliders again uses no more credits. If her HD voice is asleep (it rests after 10 quiet minutes), she says "One sec, waking my HD voice." first, then the line in HD. With her voice OFF she says "My voice is OFF. Pick FREE VOICE to hear that." (0.7.6: "Pick PREBUILT LOCAL to hear that.") With no voice set up she says "Get my free voice under VOICE to hear that."
 
 In ElevenLabs voice chat the sliders change her as she talks. A slower Speed makes her replies take a little longer to finish.
 
 They're saved, so they stay after a restart or update. From 0.7.7 her usual voice is pitch +3, 1.2x, Robot and Glitch Off (HD too), with her voice layers on.
 
-On Mac and Linux they're under right-click her > Settings > Voice style (Pitch, Speed, Robot, Glitch), with the same steps, and they change her ElevenLabs voice. Each pick says "How do I sound now, choom?" in the new style. ElevenLabs makes that line once per voice, then it's restyled on your computer, so trying more settings uses no more credits. With her voice off she says "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." With no key: "Add an ElevenLabs key under Settings > Voice to hear that, choom."
+On Mac and Linux they're under right-click her > Settings > Voice style (Pitch, Speed, Robot, Glitch), with the same steps, and they change her ElevenLabs voice. Each pick says "How do I sound now, choom?" in the new style. ElevenLabs makes that line once per voice, then it's restyled on your computer, so trying more settings uses no more credits. With her voice off she says "My voice is off. Settings > Voice > Use ElevenLabs turns it back on." With no key: "Add an ElevenLabs key under Settings > Voice to hear that."
 
 ### Voice layers (0.7.6 and newer)
 Voice layers make her sound doubled, with an AI shimmer: two copies of her voice mixed in quietly under her own. From 0.7.7 they're on out of the box, and for anyone updating who never moved a voice slider. In 0.7.6 they were off out of the box. With them off her voice is exactly the same as before.
@@ -2065,7 +2065,7 @@ On Windows, %LOCALAPPDATA%\Capri also contains reminders.json, routines.json and
 
 ### Copy error details
 1. Right-click her > Help > Copy error details.
-2. She says "Copied my error log. Paste it in the Discord so they can fix me, choom."
+2. She says "Copied my error log. Paste it in the Discord so they can fix me."
 3. Paste it (Ctrl + V) in the Discord.
 
 It copies your Capri version, which brain and voice you use, and the last 25 lines of her error log. It's made to leave out your keys. It can include a few words from a voice chat that went wrong, so read it before you post it.
@@ -2328,7 +2328,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "Too many requests. Wait a minute, or set Watch my screen to glance less often." (Watch my screen on): wait, or set Glance every under Watch my screen to longer.
 - "Your Gemini key has used up today's requests. They reset tomorrow, or add another key under Mainframe > BRAIN.": Gemini's daily limit is used up. Wait until tomorrow, paste another Gemini key, or press Free key for a free NVIDIA key.
 - "The service failed on its end. Pick another model or retry.": the brain's service had a problem. Pick another model, or try again in a minute.
-- "Can't reach NVIDIA, choom. Check your internet, then try me again." (or another company): check your internet.
+- "Can't reach NVIDIA. Check your internet, then try me again." (or another company): check your internet.
 - "My brain sent gibberish." or replies full of <unused49>: she moves her brain to your processor (CPU) by herself and asks again. If it keeps happening, use the free NVIDIA key. To let the built-in brain try your graphics card again later, delete the file cpu-only.txt in %LOCALAPPDATA%\Capri\brain\engine-b11669.
 - "My brain sent an empty reply." or "That model ran out of room before answering": try again, or pick another model.
 - "[SIGNAL CORRUPTED] ...": a one-off hiccup. Try again, or ask something else.
