@@ -77,9 +77,9 @@ namespace CapriDesktop
             {
                 "SmokeBrainLayout", "HologramChecks", "SmokeVault", "SmokeResources", "SmokeSpend", "SmokeSheetScale",
                 "SmokeFirstRun", "SmokePersonal", "SmokeTreeEyes", "SmokeMainframeWheel", "SmokeMainframeFit",
-                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeLongMenus", "SmokeMenuScreens", "SmokeSettingsSearch",
-                "SmokeMainframeColours", "SmokeTips", "SmokeOverlayDraw", "SmokePanelTeleport", "SmokeNoteEditor",
-                "SmokeFileEditor", "SmokeMinis", "SmokeIcons", "SmokeChaosScreen", "SmokeMemoryWindow", "SmokeGifs",
+                "SmokeMainframeSlide", "SmokeMainframeKeyboard", "SmokeMainframeKey", "SmokeStartFailure", "SmokeInstallerErrors", "SmokeLongMenus", "SmokeMenuScreens", "SmokeMenuDismiss", "SmokeSettingsSearch",
+                "SmokeMainframeColours", "SmokeCursorScale", "SmokeTips", "SmokeOverlayDraw", "SmokePanelTeleport", "SmokeNoteEditor",
+                "SmokeFileEditor", "SmokeMenuTidy", "SmokeMinis", "SmokeIcons", "SmokeChaosScreen", "SmokeMemoryWindow", "SmokeGifs",
                 "SmokeWorkspaceTool", "SmokeWorkspace", "SmokeWorkspaceLiveModes", "SmokeWorkspaceStream",
                 "SmokeWorkspaceFolders", "SmokeWorkspaceWindow", "SmokeWorkspaceLook", "SmokeWorkspacePickers",
                 "SmokeWorkspaceWords", "SmokeSetupFiles", "SmokeSetupWindow", "SmokePackageMarker", "SmokePackaged",
@@ -125,7 +125,7 @@ namespace CapriDesktop
             }),
             new KeyValuePair<string, string[]>("Mods", new[]
             {
-                "SmokeMods", "SmokeModAsk", "SmokeModDrop", "SmokeCapriCodes"
+                "SmokeMods", "SmokeModsFit", "SmokeModAsk", "SmokeModDrop", "SmokeCapriCodes"
             }),
             new KeyValuePair<string, string[]>("Games", new[]
             {

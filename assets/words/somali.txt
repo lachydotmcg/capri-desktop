@@ -182,7 +182,7 @@ FREE KEY >	FURAHA BILAASHKA AH >
 Fast hands in games	Gacmo degdeg ah ciyaaraha
 File editor	Tafatiraha faylasha
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs iyo wax kale waxay ku jiraan CODKA Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs iyo wax kale waxay ku jiraan CODKA Mainframe.
 Follow-up messages	Farriimaha raacida
 Forget	Ilow
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Tag shaashadda xigta
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · heer bilaash · xaddidan
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ma haysaa qorshaha Claude ama ChatGPT, ama furahaaga? Dooro oo waan ku xirmi doonaa.
-Got it, just me. Right-click me any time for Capri Mainframe.	Waa hagaagsan, aniga oo keliya. Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Waa hagaagsan, aniga oo keliya. Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe.
 Grey	Cawl
 H.{0} video bitrate target; higher values make larger files	Bitrate-ka fiidiyaha ee H.{0} ujeedka; qiyamka sare waxay sameeyaan faylal weyn
 HABITS >	DABEECADAHA >
@@ -256,11 +256,11 @@ Her speaker:	Hadaladeeda:
 Her speaker: Default	Hadaladeeda: Caadi
 Her voice in your mic	Codkeeda makarafoonkaaga
 Her voice in your mic: loudness	Codkeeda makarafoonkaaga: sare-dhaw
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Codkeedu naftiisa. Pitch-kiisa waa Dejinta > CODKA > Pitch, waxayna wada dhaqaaqaan.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Codkeedu naftiisa. Pitch-kiisa waa Dejinta > CODKA > Pitch, waxayna wada dhaqaaqaan.
 Her voice joins your mic only in call mode.	Codkeedu makarafoonkaaga kuma biirto ilaa habka wicitaanka oo keliya.
 Her voice volume	Sare-dhawaanta codkeeda
 Her voice's pitch	Pitch-ka codkeeda
-Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch-ka codkeeda, isku mid la mid ah Dejinta > CODKA > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Pitch-ka codkeeda, isku mid la mid ah Dejinta > CODKA > Pitch
 Her voice's speed	Xawaaraha codkeeda
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Codkeeda, iyo laba nuqul oo isku qasan hoostiisa, mid kasta oo leh pitch iyo dib u dhacdiisa.
 Her voices · free	Codadkeeda · bilaash
@@ -583,7 +583,7 @@ Revoke	Ka noqo
 Revoke also removes the phones its links added	Ka noqoshadu waxay sidoo kale ka saartaa telefoonada ay xidhiidhadooda ku daraan
 Ride cursor	Kursiga cursor-ka saar
 Ride cursor / Hop off	Kursiga cursor-ka saar / Ka degso
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe. Maskax ayaa ku shidmi doonta hoosta MASKAX.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe. Maskax ayaa ku shidmi doonta hoosta MASKAX.
 Right-click me any time for the Mainframe, Help and the Discord.	Midig-guji aniga wakhti kasta si aad u hesho Mainframe, Caawimaad iyo Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox ama app kale: dooro

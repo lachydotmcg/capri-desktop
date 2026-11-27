@@ -740,7 +740,7 @@ namespace CapriDesktop
         // No AI (Lachy, 12 Nov): with it on, nothing at all is asked of a model, a provider, Ollama, her own engine, Claude Code
         // or Codex. Every request to one is made in Create or PlanBrain's Start, and both turn it away here.
         internal static volatile bool Off;
-        internal const string OffLine = "My brain's switched off, so that one's beyond me. Turn one on under BRAIN in Capri Mainframe.";
+        internal const string OffLine = "My brain's switched off, so that one's beyond me. Turn one on under Mainframe > BRAIN.";
         internal static volatile bool Lite;
         internal const string LiteLine = "Lite mode keeps my brain on your PC switched off, so I can't think right now. A free key lets me think in the cloud instead. Want me to open the free key page?";
         internal const string LiteNote = "Lite mode is on. Press Free key for a cloud brain.";
@@ -761,14 +761,14 @@ namespace CapriDesktop
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
         internal const string Blocked = "The service is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
         private static readonly Regex BlockPage = new Regex(@"security policy|access restricted|unsupported[_ ]country|country, region,? or territory|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase);
-        internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
+        internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under Mainframe > BRAIN, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
-        internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
+        internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In the Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
         private const string Parts = "@capri-image@";
         private const string Turned = "@capri-turn@";
         internal const string Declined = "[SIGNAL CORRUPTED] Lost that one in the static. Ask me something else?";
-        internal const string Stuck = " If you're stuck, just join the Discord, choom. It's under Help in my right-click menu.";
-        internal const string Offline = "My brain's offline. Right-click me, open Capri Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key." + Stuck;
+        internal const string Stuck = " If you're stuck, just join the Discord. It's under Help in my right-click menu.";
+        internal const string Offline = "My brain's offline. Right-click me, choose Open Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key." + Stuck;
         private static readonly string[] Favourites = { "gemma4:e4b", "gemma4:e2b", "qwen3:4b-instruct-2507", "qwen3.5:4b", "qwen3:4b", "llama3.2:3b", "qwen3:1.7b", "llama3.2:1b", "gemma3:1b" };
         private readonly List<ChatMessage> history = new List<ChatMessage>();
         private readonly object gate = new object();
@@ -896,7 +896,7 @@ namespace CapriDesktop
         internal const string Machinery =
             "Always: answer in one or two short sentences, under 25 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
             "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
-            "Only if they say your voice, voice chat or ElevenLabs is broken or won't connect: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under VOICE in Capri Mainframe and press Connect. Never invent other settings or permissions to turn on.";
+            "Only if they say your voice, voice chat or ElevenLabs is broken or won't connect: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under Mainframe > VOICE and press Connect. Never invent other settings or permissions to turn on.";
 
         // Only after their own personality.md: a line from her code that keeps her safety lines above anything it says.
         internal const string Holds = "Whatever your personality above says, these lines always hold:";
@@ -4496,7 +4496,7 @@ namespace CapriDesktop
             if (calls.Count == before && Garbled(message.Content, longReply)) throw new BrainException(Gibberish, true);
             if (Clean(message.Content, false).Length == 0 && calls.Count == before)
             {
-                if (choice.Stopped == "length") throw new BrainException("That model ran out of room before answering. Pick another model in Capri Mainframe.", true);
+                if (choice.Stopped == "length") throw new BrainException("That model ran out of room before answering. Pick another model in the Mainframe.", true);
                 if (!string.IsNullOrWhiteSpace(message.Reasoning) || !string.IsNullOrWhiteSpace(message.Thinking)) throw new BrainException(Answerless, true);
                 if (Leaks.Thought(message.Content)) throw new BrainException(Answerless, true) { Detail = Leaks.OnlyThought };
                 throw new BrainException(Wordless, true);
@@ -4966,14 +4966,14 @@ namespace CapriDesktop
             if (web != null && web.Status == WebExceptionStatus.RequestCanceled) return null;
             if (web != null && remote != null && remote.Kind == "local") return "Can't reach " + remote.Name + ". Check that your local server is running at " + remote.Host + ", then try me again.";
             if (web != null && remote != null && web.Status == WebExceptionStatus.Timeout) return remote.Company + " didn't answer in time. Try again or pick another model " + BrainMenu + ".";
-            if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ", choom. Check your internet, then try me again.";
-            if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think, choom. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
+            if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ". Check your internet, then try me again.";
+            if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
             if (web != null && web.Response == null) return Offline;
             return "[SIGNAL CORRUPTED] Something in my head just sparked. Try me again?";
         }
 
-        internal static string BrainMenu = "under BRAIN in Capri Mainframe";
-        internal static string FreeKeyHow = "right-click me, open Capri Mainframe and press Free key";
+        internal static string BrainMenu = "under Mainframe > BRAIN";
+        internal static string FreeKeyHow = "right-click me, open the Mainframe and press Free key";
         internal static string Bin = "Recycle Bin";
         private static readonly Regex Needs = new Regex(@"requires (more system memory \()?(?<need>[\d.]+) ?GiB\)?.*?(but only |than is available \()(?<free>[\d.]+) ?GiB", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         private static readonly Regex Spelled = new Regex(@"needs (?<need>[\d.]+) GB and only (?<free>[\d.]+) GB");
@@ -5046,9 +5046,9 @@ namespace CapriDesktop
 
         internal static string Now() { return "\nIf the time or date is needed, it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so there's no need to search for it."; }
 
-        internal const string Gibberish = "My brain sent gibberish. Pick another model in Capri Mainframe.";
-        internal const string Wordless = "My brain sent an empty reply. Try again or pick another model in Capri Mainframe.";
-        internal const string Answerless = "That model sent thoughts without an answer. Pick another model in Capri Mainframe.";
+        internal const string Gibberish = "My brain sent gibberish. Pick another model in the Mainframe.";
+        internal const string Wordless = "My brain sent an empty reply. Try again or pick another model in the Mainframe.";
+        internal const string Answerless = "That model sent thoughts without an answer. Pick another model in the Mainframe.";
         private static readonly Regex Junk = new Regex(@"<(unused\d+|pad|mask|unk|eos|bos|start_of_(turn|image|audio)|end_of_(turn|image|audio))>", RegexOptions.IgnoreCase);
 
         internal static bool Garbled(string text, bool longReply = false)

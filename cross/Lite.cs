@@ -32,7 +32,7 @@ namespace CapriDesktop
         private const int LiteRestTries = 12;
         private const double LiteRestGap = 5;
         internal const string SlowUnread = "I couldn't check your PC just now. Try again in a moment.";
-        private const string FreeKeyFix = "Press Free key under BRAIN in Capri Mainframe for a free cloud brain.";
+        private const string FreeKeyFix = "Press Free key under Mainframe > BRAIN for a free cloud brain.";
         internal static Func<SlowSigns> FakedSigns;
         private bool slowChecking;
         private readonly object liteRestGate = new object();
@@ -252,7 +252,7 @@ namespace CapriDesktop
             if (s.OnPc && s.Lite)
             {
                 if (s.Kind != "built-in" || !s.Running)
-                    found.Add(new[] { "Lite mode is on, so my brain on your PC is switched off.", "Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off." });
+                    found.Add(new[] { "Lite mode is on, so my brain on your PC is switched off.", "Press Free key under Mainframe > BRAIN for a free cloud brain, or turn Lite mode off." });
                 else if (s.Winding)
                     found.Add(new[] { "Lite mode is on, and my brain on your PC is still winding down, so it's using your PC's power for a moment.", "It stops as soon as it finishes what it's doing." });
                 else
@@ -278,7 +278,7 @@ namespace CapriDesktop
             if (s.Kind == "off") return "Nothing on your PC is slowing me down right now. No AI is on, so I'm not thinking at all.";
             if (s.Kind == "cloud") return "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.";
             if (s.Kind == "server") return "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server.";
-            if (s.Kind == "none") return "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.";
+            if (s.Kind == "none") return "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under Mainframe > BRAIN.";
             if (!s.Read) return "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now.";
             return "I checked your PC and nothing is slowing me down right now.";
         }

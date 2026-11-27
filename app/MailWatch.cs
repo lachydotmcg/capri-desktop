@@ -186,15 +186,15 @@ namespace CapriDesktop
             }
         }
 
-        internal const string GmailBinned = "That's phishing, choom, I reported it as spam and binned it.";
-        internal const string JunkMoved = "That's phishing, choom, I moved it to your junk folder.";
-        internal const string AlreadyOut = "That's phishing, choom, and it's already out of your inbox.";
+        internal const string GmailBinned = "That's phishing, I reported it as spam and binned it.";
+        internal const string JunkMoved = "That's phishing, I moved it to your junk folder.";
+        internal const string AlreadyOut = "That's phishing, and it's already out of your inbox.";
         private static readonly string[] OneLines = { "Oop, something just came through.", "Ooh, new mail just landed.", "Psst. You've got a new email.", "New mail just came in, choom." };
         private static readonly string[] ManyLines = { "Oop, {0} new emails just came through.", "Ooh, {0} new emails just landed." };
         private static readonly string[] OddLines = { " Something about it looks a bit off, so go easy on the links. Want me to check it?", " It looks a bit off to me. Want me to check it before you click anything?" };
-        private static readonly string[] PhishLines = { " And that one's phishing, choom. Don't click anything in it.", " Careful, that one's phishing. Don't click anything in it." };
+        private static readonly string[] PhishLines = { " And that one's phishing. Don't click anything in it.", " Careful, that one's phishing. Don't click anything in it." };
         private static readonly string[] OddAsks = { " It wants your {0}, so don't send {1}. Want me to check it?", " It's asking for your {0}, so hold off on sending {1}. Want me to check it?" };
-        private static readonly string[] PhishAsks = { " And that one's phishing, choom. It wants your {0}, so don't reply or click anything in it.", " Careful, that one's phishing. It's after your {0}, so don't reply or click anything in it." };
+        private static readonly string[] PhishAsks = { " And that one's phishing. It wants your {0}, so don't reply or click anything in it.", " Careful, that one's phishing. It's after your {0}, so don't reply or click anything in it." };
 
         internal static string Line(List<MailNews> news)
         {
@@ -207,12 +207,12 @@ namespace CapriDesktop
             string start = late ? (news.Count == 1 ? "Some mail came in while you were busy." : news.Count + " emails came in while you were busy.") : news.Count == 1 ? Lines.Pick(OneLines) : string.Format(Lines.Pick(ManyLines), news.Count);
             if (moved != null)
             {
-                string done = moved.Already ? AlreadyOut : moved.Spam && moved.Gmail ? GmailBinned : moved.Spam ? JunkMoved : "That's phishing, choom, I moved it to " + moved.Moved + ".";
-                if (news.Count > 1) done = "One of them was phishing, choom, " + (moved.Already ? "and it's already out of your inbox." : "so I " + (moved.Spam && moved.Gmail ? "reported it as spam and binned it." : moved.Spam ? "moved it to your junk folder." : "moved it to " + moved.Moved + "."));
+                string done = moved.Already ? AlreadyOut : moved.Spam && moved.Gmail ? GmailBinned : moved.Spam ? JunkMoved : "That's phishing, I moved it to " + moved.Moved + ".";
+                if (news.Count > 1) done = "One of them was phishing, " + (moved.Already ? "and it's already out of your inbox." : "so I " + (moved.Spam && moved.Gmail ? "reported it as spam and binned it." : moved.Spam ? "moved it to your junk folder." : "moved it to " + moved.Moved + "."));
                 return start + " " + done + (phish != null && phish != moved ? " Another looks like phishing too, so don't click anything in it." : "");
             }
-            if (failed != null) return start + (news.Count > 1 ? " One of them is phishing, choom." : " That's phishing, choom.") + " I tried to move it to junk, but " + Lower(failed.Trouble) + " Don't click anything in it.";
-            if (phish != null) return start + (news.Count > 1 ? " One of them is phishing, choom. Don't click anything in it." : Wanted(phish, PhishLines, PhishAsks));
+            if (failed != null) return start + (news.Count > 1 ? " One of them is phishing." : " That's phishing.") + " I tried to move it to junk, but " + Lower(failed.Trouble) + " Don't click anything in it.";
+            if (phish != null) return start + (news.Count > 1 ? " One of them is phishing. Don't click anything in it." : Wanted(phish, PhishLines, PhishAsks));
             if (odd != null) return start + (news.Count > 1 ? " One of them looks a bit off. Want me to check it?" : Wanted(odd, OddLines, OddAsks));
             return start;
         }

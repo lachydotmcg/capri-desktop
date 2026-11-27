@@ -182,7 +182,7 @@ FREE KEY >	ТЕГІН КІЛТ >
 Fast hands in games	Ойындағы жылдам қолдар
 File editor	Файл редакторы
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs және басқалары Mainframe-дегі ДАУЫС астында.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs және басқалары Mainframe-дегі ДАУЫС астында.
 Follow-up messages	Жалғастыру хабарлары
 Forget	Ұмыту
 Fork capri-mods	capri-mods-ті форк жасау
@@ -222,7 +222,7 @@ Go to the next screen	Келесі экранға өту
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · тегін деңгей · жылдамдық шегі бар
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude немесе ChatGPT жоспарыңыз бар ма, немесе өз кілтіңіз бар ма? Таңдаңыз, мен қосылайын.
-Got it, just me. Right-click me any time for Capri Mainframe.	Түсіндім, тек мен. Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз.
+Got it, just me. Right-click me any time for the Mainframe.	Түсіндім, тек мен. Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз.
 Grey	Сұр
 H.{0} video bitrate target; higher values make larger files	H.{0} бейне bitrate мақсаты; жоғары мәндер үлкенірек файлдар жасайды
 HABITS >	ӘДЕТТЕР >
@@ -256,11 +256,11 @@ Her speaker:	Динамик:
 Her speaker: Default	Динамик: Әдепкі
 Her voice in your mic	Оның дауысы сіздің микрофоныңызда
 Her voice in your mic: loudness	Сіздің микрофоныңыздағы оның дауысы: қаттылық
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Оның дауысы өзі. Оның биіктігі Параметрлер > ДАУЫС > Биіктік, және олар бірге қозғалады.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Оның дауысы өзі. Оның биіктігі Параметрлер > ДАУЫС > Биіктік, және олар бірге қозғалады.
 Her voice joins your mic only in call mode.	Оның дауысы тек қоңырау режимінде сіздің микрофоныңызға қосылады.
 Her voice volume	Оның дауыс қаттылығы
 Her voice's pitch	Оның дауысының биіктігі
-Her voice's pitch, the same as Settings > VOICE > Pitch	Оның дауысының биіктігі, Параметрлер > ДАУЫС > Биіктік сияқты
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Оның дауысының биіктігі, Параметрлер > ДАУЫС > Биіктік сияқты
 Her voice's speed	Оның дауысының жылдамдығы
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Оның дауысы және астында араластырылған екі көшірмесі, әрқайсысы өз биіктігі мен кідірісімен.
 Her voices · free	Оның дауыстары · тегін
@@ -583,7 +583,7 @@ Revoke	Кері қайтарып алу
 Revoke also removes the phones its links added	Кері қайтарып алу оның сілтемелері қосқан телефондарды да жояды
 Ride cursor	Курсорды мінгізу
 Ride cursor / Hop off	Курсорды мінгізу / Түсу
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз. МИ астында ми қосылады.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframe үшін кез келген уақытта маған оң жақ батырмамен басыңыз. МИ астында ми қосылады.
 Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Анықтама және Discord үшін кез келген уақытта маған оң жақ батырмамен басыңыз.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox немесе басқа қолданба: таңдаңыз

@@ -11,6 +11,9 @@
 @font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/BarlowSemiCondensed-SemiBold.ttf") format("truetype"); }
 @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/BarlowCondensed-SemiBold.ttf") format("truetype"); }
 
+/* The least a control takes up: 24px for a mouse, 44px for a finger (WCAG 2.5.8 and 2.5.5). */
+:root { --target-size: 24px; }
+@media (pointer: coarse) { :root { --target-size: 44px; } }
 :root {
   color-scheme: dark;
   /* Night City (Neon.cs, look 0) */
@@ -163,7 +166,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .banner-words { display: grid; gap: 3px; flex: 1; min-width: 0; margin: 0; }
 .banner-words strong { color: var(--white); font: 600 14px/1.1 var(--ui); font-stretch: 87.5%; letter-spacing: .07em; text-transform: uppercase; }
 .banner-words span { color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
-.banner .nbtn { flex: none; min-height: 42px; padding: 0 14px; }
+.banner .nbtn { flex: none; min-height: max(42px, var(--target-size)); padding: 0 14px; }
 
 /* ---------- The chat ---------- */
 .log {
@@ -188,7 +191,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 
 .chat-head { padding: 0 0 4px; color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-align: center; text-transform: uppercase; font-variant-numeric: tabular-nums; }
 .starters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 6px 0 0; }
-.starters .nbtn { min-height: 42px; padding: 0 14px; font: 600 15px/1.1 var(--ui); font-stretch: 87.5%; }
+.starters .nbtn { min-height: max(42px, var(--target-size)); padding: 0 14px; font: 600 15px/1.1 var(--ui); font-stretch: 87.5%; }
 
 /* Texting, after Lachy's reference: hers on the left in her red (a deep red plate, a Hot edge, light words), his on the
    right in cyan. A thin border and one cut corner each; the fill's cut sits 1 px inside the border's, so the corner
@@ -336,7 +339,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .wake-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .wake-label { color: var(--faint); font: 13px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
 .wake-value { min-width: 0; overflow-wrap: anywhere; color: var(--cyan); font: 15px/1.2 var(--mono); user-select: all; -webkit-user-select: all; }
-.wake-row .nbtn { min-height: 34px; padding: 0 10px; }
+.wake-row .nbtn { min-height: max(34px, var(--target-size)); padding: 0 10px; }
 #wake-note.good { color: var(--cyan); }
 #wake-note.good::before { background: var(--cyan); }
 
@@ -370,7 +373,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .chat-date { color: var(--faint); font: 13px/1 var(--ui); font-stretch: 87.5%; white-space: nowrap; }
 .chats-empty { margin: 0; padding: 4px 2px; color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
 .demo-states { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.demo-states .nbtn { min-height: 42px; padding: 0 10px; font-size: 14px; }
+.demo-states .nbtn { min-height: max(42px, var(--target-size)); padding: 0 10px; font-size: 14px; }
 .demo-states .nbtn[aria-current="true"] { --rim: var(--cyan); }
 .drawer-foot { margin: 4px 0 0; color: var(--faint); font: 12px/1.2 var(--ui); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; }
 

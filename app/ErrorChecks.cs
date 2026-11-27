@@ -399,7 +399,7 @@ namespace CapriDesktop
             foreach (List<string> each in new[] { snag, lost, plain, endless }) foreach (string row in each) if (Look.Cells(row) > (each == lost ? TaskPanel.Columns : room)) fits = false;
             string snagText = string.Join(" ", snag.ToArray()), lostText = string.Join(" ", lost.ToArray());
             if (!fits || snag.Count > TaskPanel.SnagRows || !snagText.EndsWith(Computer.AsAdmin, StringComparison.Ordinal) || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
-                || lost.Count > TaskPanel.EndingRows || !lost[0].StartsWith("CAPRI: Got lost", StringComparison.Ordinal) || !lostText.EndsWith("Pick one under BRAIN in Capri Mainframe.", StringComparison.Ordinal)
+                || lost.Count > TaskPanel.EndingRows || !lost[0].StartsWith("CAPRI: Got lost", StringComparison.Ordinal) || !lostText.EndsWith("Pick one under Mainframe > BRAIN.", StringComparison.Ordinal)
                 || plain.Count != 1 || plain[0] != "Couldn't find the Send button" || endless.Count != TaskPanel.SnagRows || !endless[TaskPanel.SnagRows - 1].EndsWith("...", StringComparison.Ordinal))
                 throw new Exception("The task panel cut a fix off: " + snagText + " / " + lostText + " / " + string.Join(" ", plain.ToArray()) + " / " + string.Join(" ", endless.ToArray()));
             List<JobStep> shortSnag = new List<JobStep> { new JobStep { Tool = "click", Label = "Opened Task Manager", Finished = true }, new JobStep { Tool = "click", Label = "Couldn't click there", Finished = true, Failed = true } };
@@ -413,7 +413,7 @@ namespace CapriDesktop
             using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "done", "", false, 1, 1)) doneHigh = frame.Height;
             if (longHigh - shortHigh != 19 * (snag.Count - 1) || olderHigh != shortHigh || endHigh - doneHigh != 19 * (lost.Count - 1))
                 throw new Exception("The task panel didn't make room for a fix: " + shortHigh + " / " + longHigh + " / " + olderHigh + " / " + endHigh + " / " + doneHigh);
-            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show how to run her as administrator, through \"pick Run as administrator\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
+            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under Mainframe > BRAIN.\", the newest failed step wraps to show how to run her as administrator, through \"pick Run as administrator\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
         }
 
         // Call mode hearing offline is its own choice, so the hearing line and VOICE show it as a grey note, while Windows speech
@@ -934,7 +934,7 @@ namespace CapriDesktop
                     throw new Exception("Blank words from her brain said \"" + reply + "\" and showed \"" + mainframe.Status + "\".");
             }
             finally { Think = thinkWas; asking++; CloseTalk(); mainframe.ShowProblem(noteWas); }
-            checks.Add("PASS an empty reply says one line with its fix, \"Try again or pick another model in Capri Mainframe\", whether her brain threw it or sent blank words, and the BRAIN note keeps the fix");
+            checks.Add("PASS an empty reply says one line with its fix, \"Try again or pick another model in the Mainframe\", whether her brain threw it or sent blank words, and the BRAIN note keeps the fix");
 
             // A11: her voice being off reads one way with one fix, in the VOICE note, a preview she's asked for and the style sliders.
             bool silentWas = preferences.Silent;
@@ -944,7 +944,7 @@ namespace CapriDesktop
             foreach (string off in new[] { SilentNote, previewLine, StyleSilent })
                 if (off.IndexOf("voice is off", StringComparison.Ordinal) < 0 || off.IndexOf("Pick a voice under VOICE to hear ", StringComparison.Ordinal) < 0 || off.Contains("OFF"))
                     throw new Exception("A voice-off line reads another way: " + off);
-            if (previewLine != PreviewSilent || !StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
+            if (previewLine != PreviewSilent || StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
             checks.Add("PASS her voice being off reads one way with one fix, \"Pick a voice under VOICE\", in the VOICE note, a preview she's asked for and the style sliders, like on Mac and Linux");
 
             // A1: brain setup shows a stalled download in the BRAIN note, which cut it at "Check your connection a...".

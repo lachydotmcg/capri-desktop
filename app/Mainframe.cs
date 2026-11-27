@@ -534,7 +534,7 @@ namespace CapriDesktop
             shortcut.AutoSize = false;
             shortcut.TextAlign = ContentAlignment.MiddleRight;
             shortcut.Bounds = new Rectangle(156, 181, 200, 20);
-            shortcut.Cursor = Cursors.Hand;
+            shortcut.Cursor = Look.Hand;
             // Keys are picked in Settings, where Confirm and Cancel sit beside them.
             shortcut.Click += delegate { ShowSettings(true); PickKeys(0); };
             Lower(shortcut);
@@ -626,7 +626,7 @@ namespace CapriDesktop
                 hearingFixes[i].Visible = false;
             }
             muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 509, small, Faint));
-            muteShortcut.Cursor = Cursors.Hand;
+            muteShortcut.Cursor = Look.Hand;
             muteShortcut.Click += delegate { ShowSettings(true); PickKeys(1); };
             Deactivate += delegate { CancelKeys(); };
             voiceNote = Lower(Caption("", 28, InstallAt, Font, Faint));
@@ -830,7 +830,7 @@ namespace CapriDesktop
             pushKeys = Make("Push to talk: not set", 28, 815, 328, 22, delegate { PickKeys(Companion.PushSlot); });
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
-            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off. Only GAMES > Comments turns them back on. Click, press new keys, then Confirm";
+            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off. Only Mainframe > Settings > GAMES > Comments turns them back on. Click, press new keys, then Confirm";
             frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
             frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
             // The first key pressed while picking is always taken, so Enter, Esc and Tab can be her keys too. After that Enter
@@ -1824,7 +1824,7 @@ namespace CapriDesktop
             micLoudness.Value = (capri.MicLoudness - 50) / 10;
             syncing = was;
             voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
-            voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
+            voiceInMicNote.Cursor = cable ? Cursors.Default : Look.Hand;
             voiceInMicState.Text = setup != null ? setup : problem != null ? problem : !cable ? MicMix.Missing : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
             // Visible reads false while Settings isn't on screen, so the width goes by what it was set to.
@@ -2601,14 +2601,15 @@ namespace CapriDesktop
         // Her main page as Arrange lays it out, so its window, its scroll and her zoom all read the same rows.
         private int MainTall { get { return Tall + DiscordBotRow + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0) - Fold - (hearingActions.Length == 0 ? HearingFixRow : 0); } }
 
-        private int ScrollTall { get { return paged ? PageNow : MainTall; } }
+        private int ScrollTall { get { return paged ? PageNow : modded ? modsTall : MainTall; } }
 
-        // How much of her main page the screen has room for, before scaling. Mods shares its window but not its rows, so it
-        // never scrolls them.
+        // How much of her main page, or of Mods while it shows, the screen has room for, before scaling. Mods is as tall as its
+        // own rows and scrolls them like the main page when the screen is shorter.
         private int MainView()
         {
-            if (!FitsScreen || modded) return MainTall;
-            return Math.Max(4 * ScrollRow, Math.Min(MainTall, (int)(Area().Height / Unit())));
+            int tall = modded ? modsTall : MainTall;
+            if (!FitsScreen) return tall;
+            return Math.Max(4 * ScrollRow, Math.Min(tall, (int)(Area().Height / Unit())));
         }
 
         private void ShowFrameSize()
@@ -3183,6 +3184,7 @@ namespace CapriDesktop
             }
             int keep = paged ? 0 : ShownScroll;
             if (!paged && pageScroll != 0) { glide.Stop(); EndSlide(); MoveControls(0); }
+            PlaceMods();
             expanded = setupShown;
             int top = setupShown ? SetupHeight : 0, shift = top + KeyRow;
             int off = NoAiRowShown ? 24 : 0;
@@ -5353,11 +5355,11 @@ namespace CapriDesktop
             speechFix = text != null && text != hearingNote.Text && text.IndexOf("Online speech recognition", StringComparison.Ordinal) >= 0;
             voiceNote.Text = speechFix ? text + OpenSpeech : text;
             voiceNote.ForeColor = problem ? Hot : Faint;
-            voiceNote.Cursor = speechFix ? Cursors.Hand : Cursors.Default;
+            voiceNote.Cursor = speechFix ? Look.Hand : Cursors.Default;
         }
 
         internal const string OpenSpeech = " Click to open it.";
-        internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Cursors.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
+        internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Look.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
 
         internal string VoiceNoteText { get { return voiceNote.Text; } }
         internal bool VoiceNoteWarning { get { return voiceNote.ForeColor == Hot; } }
@@ -5642,7 +5644,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             internal void Pick(bool on) { Picked = on; AccessibilityNotifyClients(AccessibleEvents.StateChange, -1); Invalidate(); }
@@ -5842,7 +5844,7 @@ namespace CapriDesktop
             protected override void OnMouseMove(MouseEventArgs e)
             {
                 bool over = OnChevron(e.X);
-                Cursor = over ? Cursors.Hand : Cursors.IBeam;
+                Cursor = over ? Look.Hand : Cursors.IBeam;
                 if (over != hot) { hot = over; Invalidate(); }
                 base.OnMouseMove(e);
             }
@@ -7619,7 +7621,7 @@ namespace CapriDesktop
                 Make("Defaults", Wide - 128, 76, 100, 22, delegate { Defaults(); }).AccessibleName = "Defaults: Layer 1 " + VoiceFx.Layering.PitchName(VoiceFx.Layering.HigherPitch) + " and Layer 2 " + VoiceFx.Layering.PitchName(VoiceFx.Layering.LowerPitch) + " semitones, both " + VoiceFx.Layering.DelayName(VoiceFx.Layering.Behind) + " behind her";
                 Heading(this, "MAIN >", new Point(Z(28), Z(136)), head, White, Wide - 28);
                 Caption("Pitch", 28, 166, Font, Rose);
-                mainPitch = Bar(PitchNames, 120, 163, 300, "Her voice's pitch, the same as Settings > VOICE > Pitch");
+                mainPitch = Bar(PitchNames, 120, 163, 300, "Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch");
                 mainName = new Readout(mainPitch);
                 mainPitch.Changed += delegate
                 {
@@ -7629,7 +7631,7 @@ namespace CapriDesktop
                     owner.Sync();
                 };
                 mainPitch.Released += delegate { if (!syncing) owner.capri.HearVoiceStyle(); };
-                Caption("Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.", 28, 192, small, Faint);
+                Caption("Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.", 28, 192, small, Faint);
                 for (int layer = 1; layer <= 2; layer++)
                 {
                     int x = layer == 1 ? 28 : 28 + Column, at = layer - 1, which = layer;
@@ -8217,7 +8219,7 @@ namespace CapriDesktop
                 this.labels = labels;
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable | ControlStyles.ResizeRedraw, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 TabStop = true;
                 AccessibleRole = AccessibleRole.Slider;
             }
@@ -8437,7 +8439,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
@@ -8508,7 +8510,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 AutoCheck = false;
             }
 

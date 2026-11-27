@@ -182,7 +182,7 @@ FREE KEY >	CHEIE GRATUITĂ >
 Fast hands in games	Mâini rapide în jocuri
 File editor	Editor de fișiere
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs și altele sunt sub VOCE în Mainframe.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs și altele sunt sub VOCE în Mainframe.
 Follow-up messages	Mesaje de continuare
 Forget	Uită
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Mergi la ecranul următor
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · plan gratuit · limitat ca rată
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ai un plan Claude sau ChatGPT, sau o cheie proprie? Alege-l și mă conectez.
-Got it, just me. Right-click me any time for Capri Mainframe.	Am înțeles, doar eu. Dă clic dreapta pe mine oricând pentru Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Am înțeles, doar eu. Dă clic dreapta pe mine oricând pentru Capri Mainframe.
 Grey	Gri
 H.{0} video bitrate target; higher values make larger files	Ținta bitrate-ului video H.{0}; valorile mai mari fac fișiere mai mari
 HABITS >	OBICEIURI >
@@ -256,11 +256,11 @@ Her speaker:	Boxa ei:
 Her speaker: Default	Boxa ei: Implicit
 Her voice in your mic	Vocea ei în microfonul tău
 Her voice in your mic: loudness	Vocea ei în microfonul tău: volum
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Vocea ei în sine. Tonalitatea ei este Setări > VOCE > Ton, și se mișcă împreună.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Vocea ei în sine. Tonalitatea ei este Setări > VOCE > Ton, și se mișcă împreună.
 Her voice joins your mic only in call mode.	Vocea ei intră în microfonul tău doar în modul apel.
 Her voice volume	Volumul vocii ei
 Her voice's pitch	Tonul vocii ei
-Her voice's pitch, the same as Settings > VOICE > Pitch	Tonul vocii ei, același cu Setări > VOCE > Ton
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Tonul vocii ei, același cu Setări > VOCE > Ton
 Her voice's speed	Viteza vocii ei
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Vocea ei și două copii ale ei amestecate dedesubt, fiecare cu tonul și întârzierea proprie.
 Her voices · free	Vocile ei · gratuite
@@ -583,7 +583,7 @@ Revoke	Revocă
 Revoke also removes the phones its links added	Revocarea elimină și telefoanele adăugate prin linkurile sale
 Ride cursor	Călărește cursorul
 Ride cursor / Hop off	Călărește cursorul / Coboară
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Dă clic dreapta pe mine oricând pentru Capri Mainframe. Un creier se pornește sub CREIER.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Dă clic dreapta pe mine oricând pentru Capri Mainframe. Un creier se pornește sub CREIER.
 Right-click me any time for the Mainframe, Help and the Discord.	Dă clic dreapta pe mine oricând pentru Mainframe, Ajutor și Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox sau orice altă aplicație: alege

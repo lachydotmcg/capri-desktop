@@ -2,6 +2,9 @@ import { createInterface } from 'node:readline';
 import { once } from 'node:events';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { isAbsolute, join as pathJoin } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   ActionRowBuilder, ApplicationIntegrationType, ButtonBuilder, ButtonStyle, ChannelType, Client, Events,
   GatewayIntentBits, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder,
@@ -31,6 +34,8 @@ const command = new SlashCommandBuilder()
   .setContexts(InteractionContextType.Guild)
   .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .addSubcommand(option => option.setName('join').setDescription('Bring Capri into your current voice channel'))
+  .addSubcommand(option => option.setName('summon-role').setDescription('Choose who else can invite Capri to voice here, or clear the role')
+    .addRoleOption(role => role.setName('role').setDescription('Role allowed to use /capri join in this server (omit to clear)')))
   .addSubcommand(option => option.setName('leave').setDescription('End Capri’s voice session'))
   .addSubcommand(option => option.setName('ask').setDescription('Ask Capri a question in private')
     .addStringOption(words => words.setName('message').setDescription('What to say to Capri').setRequired(true).setMaxLength(1000)));
@@ -49,13 +54,59 @@ function listeningNotice(room, privacy) {
   );
   if (privacy) buttons.addComponents(new ButtonBuilder().setLabel('Privacy policy').setStyle(ButtonStyle.Link).setURL(privacy));
   return {
-    content: 'Capri is here and can chime in as you talk. The host PC transcribes voice locally, and the host’s selected AI provider may process those transcripts and recent call context. Choose Disable my voice to stop Capri from listening to you for the rest of this call. Capri leaves when her owner leaves or runs /capri leave.',
+    content: 'Capri is here and can chime in as you talk. The host PC transcribes voice locally, and the host’s selected AI provider may process those transcripts and recent call context. Choose Disable my voice to stop Capri from listening to you for the rest of this call. Capri leaves when the person who invited her leaves, or when her bot owner runs /capri leave.',
     allowedMentions: noMentions,
     components: [buttons],
   };
 }
 
-if (process.argv.includes('--check')) {
+const snowflake = value => typeof value === 'string' && /^[1-9][0-9]{16,19}$/.test(value);
+
+function summonRoles(home, applicationId) {
+  const folder = typeof home === 'string' && isAbsolute(home) && snowflake(applicationId)
+    ? pathJoin(home, 'summon-roles') : null;
+  function file(guildId) {
+    return folder && snowflake(guildId) ? pathJoin(folder, applicationId + '-' + guildId + '.json') : null;
+  }
+  return {
+    get(guildId) {
+      const target = file(guildId);
+      if (!target) return null;
+      try {
+        const { roleId } = JSON.parse(readFileSync(target, 'utf8'));
+        return snowflake(roleId) && roleId !== guildId ? roleId : null;
+      } catch { return null; }
+    },
+    set(guildId, roleId) {
+      const target = file(guildId);
+      if (!target || (roleId !== null && (!snowflake(roleId) || roleId === guildId))) return false;
+      const temporary = target + '.' + randomUUID() + '.tmp';
+      try {
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(temporary, JSON.stringify({ roleId }), { flag: 'wx', mode: 0o600 });
+        renameSync(temporary, target);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        try { rmSync(temporary, { force: true }); } catch {}
+      }
+    },
+  };
+}
+
+function hasRole(member, roleId) {
+  const roles = member?.roles;
+  return Array.isArray(roles) ? roles.includes(roleId) : roles?.cache?.has(roleId) === true;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (process.argv.includes('--check')) check();
+  else run();
+}
+
+function check() {
+  command.toJSON();
   const encoder = new Opus(48_000, 2, Opus.Application.VOIP);
   const decoder = new Opus(speechRate, 1, Opus.Application.VOIP);
   try {
@@ -65,19 +116,18 @@ if (process.argv.includes('--check')) {
     decoder.delete();
     encoder.delete();
   }
-} else {
-  run();
 }
 
-function run() {
-  const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
-    allowedMentions: noMentions,
-    rest: { timeout: 12_000, retries: 1 },
-  });
-  const input = createInterface({ input: process.stdin, terminal: false });
+export function run(client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+  allowedMentions: noMentions,
+  rest: { timeout: 12_000, retries: 1 },
+}), input = createInterface({ input: process.stdin, terminal: false }),
+voiceApi = { joinVoiceChannel, createAudioPlayer, entersState }) {
   let ownerId;
   let privacy;
+  let home;
+  let roles;
   let call;
   let pending;
   let starting = false;
@@ -137,13 +187,39 @@ function run() {
     ownerId = application.owner?.ownerId ?? application.owner?.id;
     if (!ownerId) throw new Error('Discord application has no owner');
     if (closed) return;
+    roles = summonRoles(home, application.id);
     await application.commands.create(command);
     tell({ type: 'ready', clientId: application.id, name: client.user.username, avatar: client.user.displayAvatarURL(avatarImage) });
     available = true;
   }
 
-  async function answer(interaction) {
-    const action = interaction.options.getSubcommand();
+  async function setSummonRole(interaction) {
+    const role = interaction.options.getRole('role');
+    const guildId = interaction.guildId;
+    let content;
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      content = 'You need Manage Server to set Capri’s summon role here.';
+    } else if (role?.id === guildId) {
+      content = 'Choose a role other than @everyone.';
+    } else {
+      const roleId = role?.id ?? null;
+      if (!roles.set(guildId, roleId)) {
+        content = 'Capri couldn’t save the summon role on her host PC.';
+      } else {
+        const room = call;
+        if (room?.voice.guild.id === guildId && room.roleId && room.roleId !== roleId) leave(room);
+        content = roleId ? 'Members with <@&' + roleId + '> can now use /capri join here.'
+          : 'Only the bot owner can now use /capri join here.';
+      }
+    }
+    await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: noMentions });
+  }
+
+  async function answer(interaction, action, roleId) {
+    if (action === 'summon-role') {
+      await setSummonRole(interaction);
+      return;
+    }
     if (action === 'leave') {
       if (call?.voice.guild.id !== interaction.guildId) {
         await interaction.reply({ content: 'Capri has no active voice session here.', flags: MessageFlags.Ephemeral });
@@ -155,7 +231,8 @@ function run() {
     }
     if (action === 'join') {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const result = await join(interaction.guild?.voiceStates.cache.get(ownerId)?.channel);
+      const summoner = interaction.user.id;
+      const result = await join(interaction.guild?.voiceStates.cache.get(summoner)?.channel, summoner, roleId);
       await interaction.editReply(result.text);
       return;
     }
@@ -232,9 +309,17 @@ function run() {
     await interaction.reply({ content, flags: MessageFlags.Ephemeral });
   }
 
-  async function join(voice) {
+  function canSummon(voice, summoner, roleId) {
+    return voice.guild.voiceStates.cache.get(summoner)?.channelId === voice.id
+      && (summoner === ownerId || (roleId && roles.get(voice.guild.id) === roleId));
+  }
+
+  async function join(voice, summoner, roleId = null) {
     if (voice?.type !== ChannelType.GuildVoice) {
       return { ok: false, text: 'Join a server voice channel where your bot is installed, then ask me again.' };
+    }
+    if (!canSummon(voice, summoner, roleId)) {
+      return { ok: false, text: 'The voice channel or summon role changed. Ask me again from the call.' };
     }
     if (call) {
       if (call.connected && call.voice.id === voice.id) return { ok: true, text: 'I’m already in ' + voice.name + '.' };
@@ -245,13 +330,13 @@ function run() {
       return { ok: false, text: 'Give the bot View Channel, Connect, Speak and Send Messages in this voice channel.' };
     }
 
-    const connection = joinVoiceChannel({
+    const connection = voiceApi.joinVoiceChannel({
       guildId: voice.guild.id, channelId: voice.id, adapterCreator: voice.guild.voiceAdapterCreator,
       selfDeaf: false, selfMute: false,
     });
-    const player = createAudioPlayer();
+    const player = voiceApi.createAudioPlayer();
     const room = {
-      id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
+      id: randomUUID(), voice, summoner, roleId, connection, player, streams: new Map(), speakers: new Map(),
       participation: new Map(), disabledVoices: new Set(),
       turns: [], nextAudio: null, draining: false, connected: false, greet: false, speaking: new Set(), visible: new Set(),
     };
@@ -269,14 +354,14 @@ function run() {
     });
     connection.subscribe(player);
     try {
-      await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-      if (call !== room || voice.guild.voiceStates.cache.get(ownerId)?.channel?.id !== voice.id) {
+      await voiceApi.entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      if (call !== room || !canSummon(voice, summoner, roleId)) {
         leave(room);
         return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
       }
       await voice.send(listeningNotice(room, privacy));
       if (call !== room) return { ok: false, text: 'The Discord call ended while I was joining.' };
-      if (voice.guild.voiceStates.cache.get(ownerId)?.channelId !== voice.id) {
+      if (!canSummon(voice, summoner, roleId)) {
         leave(room);
         return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
       }
@@ -303,7 +388,7 @@ function run() {
         }
         result = rooms.length > 1
           ? { ok: false, text: 'I can see more than one call. Run /capri join in the server you want me in.' }
-          : await join(rooms[0]);
+          : await join(rooms[0], ownerId);
       }
     } catch {
       result = { ok: false, text: 'I couldn’t open the Discord voice connection.' };
@@ -464,11 +549,16 @@ function run() {
     if (!room || before.guild.id !== room.voice.guild.id) return;
     const moved = before.channelId !== after.channelId;
     if (moved && before.channelId === room.voice.id) {
-      if (before.id === ownerId || before.id === client.user.id) { leave(room); return; }
+      if (before.id === room.summoner || before.id === client.user.id) { leave(room); return; }
       revoke(room, before.id);
     }
     if (room.connected && (moved || before.mute !== after.mute) && (before.channelId === room.voice.id || after.channelId === room.voice.id))
       tell({ type: 'participants', ...roomInfo(room) });
+  });
+
+  client.on(Events.GuildRoleDelete, role => {
+    const room = call;
+    if (room?.roleId === role.id && room.voice.guild.id === role.guild.id) leave(room);
   });
 
   client.on(Events.InteractionCreate, async interaction => {
@@ -476,11 +566,22 @@ function run() {
     if (!control && (!interaction.isChatInputCommand() || interaction.commandName !== 'capri')) return;
     try {
       if (control) { await disableVoice(interaction, control[1]); return; }
-      if (!available || !interaction.inGuild() || interaction.user.id !== ownerId) {
-        await interaction.reply({ content: 'The bot’s owner can use these commands.', flags: MessageFlags.Ephemeral });
+      if (!available || !interaction.inGuild()) {
+        await interaction.reply({ content: 'Capri is not ready in this server.', flags: MessageFlags.Ephemeral });
         return;
       }
-      await answer(interaction);
+      const action = interaction.options.getSubcommand();
+      let roleId;
+      if (interaction.user.id !== ownerId) {
+        roleId = action === 'join' && !interaction.user.bot ? roles.get(interaction.guildId) : null;
+        if (!roleId || !hasRole(interaction.member, roleId)) {
+          const content = action === 'join' ? 'The bot owner or a member with this server’s summon role can invite Capri.'
+            : 'Only the bot owner can use this command.';
+          await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+          return;
+        }
+      }
+      await answer(interaction, action, roleId);
     } catch {
       const content = 'Capri could not finish that Discord command.';
       if (interaction.deferred) await interaction.editReply(content).catch(() => {});
@@ -508,6 +609,7 @@ function run() {
     if (message?.type !== 'start' || starting) return;
     starting = true;
     privacy = privacyLink(message.privacy);
+    home = message.home;
     const readiness = new AbortController();
     const timeout = setTimeout(() => {
       tell({ type: 'error', text: 'Discord did not finish connecting. Check your connection and try again.' });

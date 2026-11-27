@@ -1168,7 +1168,7 @@ namespace CapriDesktop
             Button("Defaults", 632, 76, 100, 22, () => pet.SetLayers(new VoiceFx.Layering(VoiceFx.Layers.On, VoiceFx.Layering.HigherPitch, VoiceFx.Layering.Behind, VoiceFx.Layering.LowerPitch, VoiceFx.Layering.Behind)));
             Put(Page, new NeonHead { Text = "MAIN" }, 14, 131, 732, 24);
             LayerBar("Main pitch", "Pitch", Pet.PitchNames, 28, 163, 120, 300, () => VoiceFx.Pitch + VoiceFx.MostPitch, i => pet.SetPitch(i - VoiceFx.MostPitch));
-            Caption("Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.", 28, 192, 704, 18, MainframeTheme.Faint, 34.0 / 3);
+            Caption("Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.", 28, 192, 704, 18, MainframeTheme.Faint, 34.0 / 3);
             var pitches = new string[(int)(VoiceFx.Layering.MostPitch * 4) + 1]; var delays = new string[VoiceFx.Layering.MostDelay / 5 + 1];
             for (int i = 0; i < pitches.Length; i++) pitches[i] = VoiceFx.Layering.PitchName(i / 2.0 - VoiceFx.Layering.MostPitch);
             for (int i = 0; i < delays.Length; i++) delays[i] = VoiceFx.Layering.DelayName(i * 5);

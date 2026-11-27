@@ -182,7 +182,7 @@ FREE KEY >	ÜCRETSİZ ANAHTAR >
 Fast hands in games	Oyunlarda hızlı eller
 File editor	Dosya düzenleyici
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ve daha fazlası Mainframe'de SES altında.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs ve daha fazlası Mainframe'de SES altında.
 Follow-up messages	Takip mesajları
 Forget	Unut
 Fork capri-mods	capri-mods'u çatalla
@@ -222,7 +222,7 @@ Go to the next screen	Sonraki ekrana geç
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ücretsiz katman · hız sınırlı
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude veya ChatGPT planın ya da kendi anahtarın var mı? Birini seç, ben bağlanayım.
-Got it, just me. Right-click me any time for Capri Mainframe.	Anlaşıldı, sadece ben. Capri Mainframe için herhangi bir zaman bana sağ tıkla.
+Got it, just me. Right-click me any time for the Mainframe.	Anlaşıldı, sadece ben. Capri Mainframe için herhangi bir zaman bana sağ tıkla.
 Grey	Gri
 H.{0} video bitrate target; higher values make larger files	H.{0} video bit hızı hedefi; yüksek değerler daha büyük dosyalar oluşturur
 HABITS >	ALIŞKANLIKLAR >
@@ -256,11 +256,11 @@ Her speaker:	Hoparlör:
 Her speaker: Default	Hoparlör: Varsayılan
 Her voice in your mic	Sesi mikrofonunda
 Her voice in your mic: loudness	Mikrofonundaki ses: ses seviyesi
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Sesin kendisi. Perdesi Ayarlar > SES > Perde, ikisi birlikte hareket eder.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Sesin kendisi. Perdesi Ayarlar > SES > Perde, ikisi birlikte hareket eder.
 Her voice joins your mic only in call mode.	Sesi yalnızca arama modunda mikrofonuna girer.
 Her voice volume	Ses seviyesi
 Her voice's pitch	Sesinin perdesi
-Her voice's pitch, the same as Settings > VOICE > Pitch	Sesinin perdesi, Ayarlar > SES > Perde ile aynı
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Sesinin perdesi, Ayarlar > SES > Perde ile aynı
 Her voice's speed	Sesinin hızı
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Sesi ve altında karıştırılmış iki kopyası, her birinin kendi perdesi ve gecikmesi ile.
 Her voices · free	Sesleri · ücretsiz
@@ -583,7 +583,7 @@ Revoke	İptal et
 Revoke also removes the phones its links added	İptal etmek, bağlantılarının eklediği telefonları da kaldırır
 Ride cursor	İmleç ile gezin
 Ride cursor / Hop off	İmleçle gezin / İn
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe için her zaman bana sağ tıkla. BEYİN altında bir beyin açılır.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframe için her zaman bana sağ tıkla. BEYİN altında bir beyin açılır.
 Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Yardım ve Discord için her zaman bana sağ tıkla.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox veya başka bir uygulama: seç

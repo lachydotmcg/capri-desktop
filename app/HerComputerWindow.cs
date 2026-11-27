@@ -474,7 +474,7 @@ namespace CapriDesktop
             bool wasBusy = Busy;
             HerJob added = Computer.Jobs.Plan(Wanted(when, after));
             if (added == null) return when.Repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
-            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
+            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one under Mainframe > BRAIN."; }
             Pump();
             string plan = HerErrand.Plan(added);
             if (added.Watching) return "Ok, I'll keep an eye on that on my computer " + (plan.Length > 0 ? plan : "now and then") + (added.Until ? " and tell you as soon as it happens." : " and tell you when there's something new.");

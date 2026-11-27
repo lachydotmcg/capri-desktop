@@ -182,7 +182,7 @@ FREE KEY >	免费密钥 >
 Fast hands in games	游戏中的快手
 File editor	文件编辑器
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio、ElevenLabs 等位于 Mainframe 的语音下。
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio、ElevenLabs 等位于 Mainframe 的语音下。
 Follow-up messages	后续消息
 Forget	忘记
 Fork capri-mods	复刻 capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	切换到下一个屏幕
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 免费层 · 有速率限制
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	有 Claude 或 ChatGPT 套餐，或者自己的密钥吗？选一个，我来接入。
-Got it, just me. Right-click me any time for Capri Mainframe.	明白了，只有我。随时右键点我即可打开 Capri Mainframe。
+Got it, just me. Right-click me any time for the Mainframe.	明白了，只有我。随时右键点我即可打开 Capri Mainframe。
 Grey	灰
 H.{0} video bitrate target; higher values make larger files	H.{0} 视频码率目标；数值越高文件越大
 HABITS >	习惯 >
@@ -256,11 +256,11 @@ Her speaker:	她的扬声器：
 Her speaker: Default	她的扬声器：默认
 Her voice in your mic	她的声音进入你的麦克风
 Her voice in your mic: loudness	她的声音进入你的麦克风：音量
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	她的声音本身。其音调在 设置 > 语音 > 音调，两者同步变化。
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	她的声音本身。其音调在 设置 > 语音 > 音调，两者同步变化。
 Her voice joins your mic only in call mode.	她的声音只在通话模式下才会进入你的麦克风。
 Her voice volume	她的声音音量
 Her voice's pitch	她的声音音调
-Her voice's pitch, the same as Settings > VOICE > Pitch	她的声音音调，与 设置 > 语音 > 音调 相同
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	她的声音音调，与 设置 > 语音 > 音调 相同
 Her voice's speed	她的声音语速
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	她的声音，以及叠加在下面的两份副本，各自带有独立的音调和延迟。
 Her voices · free	她的语音 · 免费
@@ -583,7 +583,7 @@ Revoke	撤销
 Revoke also removes the phones its links added	撤销也会移除其链接添加的手机
 Ride cursor	骑乘光标
 Ride cursor / Hop off	骑乘光标 / 下来
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	随时右键点我即可打开 Capri Mainframe。大脑会在大脑下方启用。
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	随时右键点我即可打开 Capri Mainframe。大脑会在大脑下方启用。
 Right-click me any time for the Mainframe, Help and the Discord.	随时右键点我即可打开 Mainframe、帮助和 Discord。
 Roblox	Roblox
 Roblox or any other app: pick	Roblox 或其他应用：选择

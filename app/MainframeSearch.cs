@@ -431,7 +431,7 @@ namespace CapriDesktop
             Bitmap picture = SearchPicture(searchFound, searchPicked, Unit(), layoutFallback, out searchRows, out margin, out crowded);
             if (searchList == null || searchList.IsDisposed)
             {
-                searchList = new Overlay("Search settings") { Above = false, Cursor = Cursors.Hand };
+                searchList = new Overlay("Search settings") { Above = false, Cursor = Look.Hand };
                 searchList.Owner = this;
                 searchList.MouseMove += delegate(object sender, MouseEventArgs e)
                 {
@@ -516,7 +516,7 @@ namespace CapriDesktop
 
         private void ScrollToFound(Control target)
         {
-            if (modded || pageView >= ScrollTall) return;
+            if (pageView >= ScrollTall) return;
             int edge = Scaled(12);
             if (target.Top >= edge && target.Bottom <= ClientSize.Height - edge) return;
             ScrollPage(Math.Max(0, pageScroll + (int)Math.Floor((target.Top - ClientSize.Height / 3f) / Unit())));

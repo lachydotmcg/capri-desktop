@@ -788,7 +788,7 @@
     const pcState = make('p', 'card-note');
     pcState.setAttribute('role', 'status');
     pcState.hidden = true;
-    pcBrainsPart.append(make('p', 'native-note', 'Her brain on your PC. Tap one to switch, like BRAIN in her Mainframe.'), ...rungs, pcNow, pcKeyPart, pcState,
+    pcBrainsPart.append(make('p', 'native-note', 'Her brain on your PC. Tap one to switch, like Mainframe > BRAIN.'), ...rungs, pcNow, pcKeyPart, pcState,
       make('p', 'native-note', 'Keys go to your PC end-to-end encrypted. It saves them like her Mainframe does and never sends them back.'));
     const pcOld = make('p', 'native-note', 'Update Capri on your PC to pick her brain from here.');
     pcOld.hidden = true;

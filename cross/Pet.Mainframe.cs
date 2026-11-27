@@ -322,7 +322,7 @@ namespace CapriDesktop
             }
             OpenMainframe();
             mainframe.OpenPage(page);
-            return "Opened Capri Mainframe.";
+            return "Opened the Mainframe.";
         }
         private string ImportModTool(string path)
         {
@@ -343,7 +343,7 @@ namespace CapriDesktop
             var area = all[at].WorkingArea;
             double scale = all[at].Scaling;
             mainframe.Position = new PixelPoint(area.X + Math.Max(0, (area.Width - (int)(mainframe.Width * scale)) / 2), area.Y + Math.Max(0, (area.Height - (int)(mainframe.Height * scale)) / 2));
-            return "Moved Capri Mainframe.";
+            return "Moved the Mainframe.";
         }
         internal void MainframeRefresh()
         {
@@ -408,7 +408,8 @@ namespace CapriDesktop
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
                 var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
-                    ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
+                    ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None,
+                    ToolTip = ToolTip.GetTip(row) is string tip ? Lingo.Of(tip) : null };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 menu.Items.Add(item);

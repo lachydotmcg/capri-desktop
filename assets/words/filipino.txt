@@ -182,7 +182,7 @@ FREE KEY >	LIBRENG KEY >
 Fast hands in games	Mabilis na kamay sa mga laro
 File editor	File editor
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Nasa VOICE sa Mainframe ang Fish Audio, ElevenLabs at iba pa.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Nasa VOICE sa Mainframe ang Fish Audio, ElevenLabs at iba pa.
 Follow-up messages	Follow-up messages
 Forget	Kalimutan
 Fork capri-mods	Fork capri-mods
@@ -222,7 +222,7 @@ Go to the next screen	Pumunta sa susunod na screen
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · free tier · may rate limit
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	May Claude o ChatGPT plan ka, o sarili mong key? Piliin mo at ikakabit ko ito.
-Got it, just me. Right-click me any time for Capri Mainframe.	Sige, ako lang. I-right-click ako anumang oras para sa Capri Mainframe.
+Got it, just me. Right-click me any time for the Mainframe.	Sige, ako lang. I-right-click ako anumang oras para sa Capri Mainframe.
 Grey	Kulay abo
 H.{0} video bitrate target; higher values make larger files	Target na video bitrate ng H.{0}; mas malalaki ang file kapag mas mataas ang halaga
 HABITS >	HABITS >
@@ -256,11 +256,11 @@ Her speaker:	Speaker niya:
 Her speaker: Default	Speaker niya: Default
 Her voice in your mic	Boses niya sa mic mo
 Her voice in your mic: loudness	Boses niya sa mic mo: loudness
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ang mismong boses niya. Ang pitch nito ay Settings > VOICE > Pitch, at magkasabay silang gumagalaw.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Ang mismong boses niya. Ang pitch nito ay Settings > VOICE > Pitch, at magkasabay silang gumagalaw.
 Her voice joins your mic only in call mode.	Papasok lang sa mic mo ang boses niya sa call mode.
 Her voice volume	Volume ng boses niya
 Her voice's pitch	Pitch ng boses niya
-Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch ng boses niya, kapareho ng Settings > VOICE > Pitch
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Pitch ng boses niya, kapareho ng Settings > VOICE > Pitch
 Her voice's speed	Bilis ng boses niya
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ang boses niya, at dalawang kopya nito na nakahalo sa ilalim, bawat isa may sariling pitch at delay.
 Her voices · free	Mga boses niya · libre
@@ -583,7 +583,7 @@ Revoke	Bawiin
 Revoke also removes the phones its links added	Kasama sa pagbawi ang pag-alis ng mga phone na idinagdag ng mga link niya
 Ride cursor	Ride cursor
 Ride cursor / Hop off	Ride cursor / Hop off
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	I-right-click ako anumang oras para sa Capri Mainframe. Bumubukas ang brain sa ilalim ng BRAIN.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	I-right-click ako anumang oras para sa Capri Mainframe. Bumubukas ang brain sa ilalim ng BRAIN.
 Right-click me any time for the Mainframe, Help and the Discord.	I-right-click ako anumang oras para sa Mainframe, Help at sa Discord.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox o ibang app: pumili

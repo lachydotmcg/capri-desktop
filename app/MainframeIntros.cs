@@ -57,7 +57,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable | ControlStyles.ResizeRedraw, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 TabStop = true;
                 AccessibleRole = AccessibleRole.RadioButton;
                 AccessibleDefaultActionDescription = "Pick";

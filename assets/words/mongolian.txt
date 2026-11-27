@@ -182,7 +182,7 @@ FREE KEY >	ҮНЭГҮЙ ТҮЛХҮҮР >
 Fast hands in games	Тоглоомд хурдан гар
 File editor	Файл засагч
 Fish Audio	Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs болон бусад нь Mainframe дээр ДУУ-ны доор байна.
+Fish Audio, ElevenLabs and more are under Mainframe > VOICE.	Fish Audio, ElevenLabs болон бусад нь Mainframe дээр ДУУ-ны доор байна.
 Follow-up messages	Дараагийн мессежүүд
 Forget	Мартах
 Fork capri-mods	capri-mods-ийг fork хийх
@@ -222,7 +222,7 @@ Go to the next screen	Дараагийн дэлгэц рүү шилжих
 Google AI Studio	Google AI Studio
 Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · үнэгүй түвшин · хязгаартай
 Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude эсвэл ChatGPT төлөвлөгөө, эсвэл өөрийн түлхүүр байна уу? Сонгоод өг, би холбогдоно.
-Got it, just me. Right-click me any time for Capri Mainframe.	Ойлголоо, зөвхөн би. Capri Mainframe-ийг хүссэн үедээ намайг хулганы баруун товчоор дарж нээ.
+Got it, just me. Right-click me any time for the Mainframe.	Ойлголоо, зөвхөн би. Capri Mainframe-ийг хүссэн үедээ намайг хулганы баруун товчоор дарж нээ.
 Grey	Саарал
 H.{0} video bitrate target; higher values make larger files	H.{0} видеоны битрейтийн зорилт; өндөр утга том файл үүсгэнэ
 HABITS >	ЗАН ТААЛАЛ >
@@ -256,11 +256,11 @@ Her speaker:	Түүний чанга яригч:
 Her speaker: Default	Түүний чанга яригч: Үндсэн
 Her voice in your mic	Түүний дуу таны микрофонд
 Her voice in your mic: loudness	Түүний дуу таны микрофонд: чанга байдал
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Түүний дуу өөрөө. Түүний өндөр нь Тохиргоо > ДУУ > Өндөр, тэд хамт хөдөлнө.
+Her voice itself. Its pitch is Mainframe > Settings > VOICE > Pitch, and they move together.	Түүний дуу өөрөө. Түүний өндөр нь Тохиргоо > ДУУ > Өндөр, тэд хамт хөдөлнө.
 Her voice joins your mic only in call mode.	Түүний дуу зөвхөн дуудлагын горимд таны микрофонд орно.
 Her voice volume	Түүний дууны чанга байдал
 Her voice's pitch	Түүний дууны өндөр
-Her voice's pitch, the same as Settings > VOICE > Pitch	Түүний дууны өндөр, Тохиргоо > ДУУ > Өндөртэй адил
+Her voice's pitch, the same as Mainframe > Settings > VOICE > Pitch	Түүний дууны өндөр, Тохиргоо > ДУУ > Өндөртэй адил
 Her voice's speed	Түүний дууны хурд
 Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Түүний дуу, доор нь хольсон хоёр хуулбар, тус бүр өөрийн өндөр ба саатал бүхий.
 Her voices · free	Түүний дуунууд · үнэгүй
@@ -583,7 +583,7 @@ Revoke	Хүчингүй болгох
 Revoke also removes the phones its links added	Хүчингүй болгох нь мөн түүний холбоосууд нэмсэн утсыг устгана
 Ride cursor	Курсороор унах
 Ride cursor / Hop off	Курсороор унах / Бууж ир
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe-д хүссэн үедээ намайг хулганы баруун товчоор дар. ТАРХИ доор тархи асна.
+Right-click me any time for the Mainframe. A brain switches on under BRAIN.	Capri Mainframe-д хүссэн үедээ намайг хулганы баруун товчоор дар. ТАРХИ доор тархи асна.
 Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Тусламж ба Discord-д хүссэн үедээ намайг хулганы баруун товчоор дар.
 Roblox	Roblox
 Roblox or any other app: pick	Roblox эсвэл бусад апп: сонго

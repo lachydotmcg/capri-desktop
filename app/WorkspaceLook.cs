@@ -1660,7 +1660,7 @@ namespace CapriDesktop
                     if (groups.Count != 2 || groups[0] != wanted[0] || groups[1] != wanted[1] || sum(groups[0]) != 5 || sum(groups[1]) != 3) failures.Add(scale + "%: the photo's groups read " + string.Join(" / ", groups.ToArray()));
                     Point tipAt;
                     string tip = window.TipOn(0, out tipAt);
-                    if (window.PointerOn(0) != Cursors.Hand || tip == null || tip != "5 steps: 2 commands ran, 1 file read, 2 searches") failures.Add(scale + "%: a fold line's pointer or tooltip is wrong: " + tip);
+                    if (window.PointerOn(0) != Look.Hand || tip == null || tip != "5 steps: 2 commands ran, 1 file read, 2 searches") failures.Add(scale + "%: a fold line's pointer or tooltip is wrong: " + tip);
                     TipPicture(window, tip, tipAt, Path.Combine(pictures, "t-tip-fold-" + scale + ".png"), false);
                     tip = window.TipOn(-1, out tipAt);
                     if (tip != "Mode and model changes apply to your next message.") failures.Add(scale + "%: the MODE key's tooltip is " + tip);
@@ -2048,7 +2048,7 @@ namespace CapriDesktop
                 shoot(window, "i-copy-rest-" + scale, null);
                 Point middle = new Point(key.Left + key.Width / 2, key.Top + key.Height / 2);
                 window.MoveOver(middle);
-                if (window.TranscriptPointer != Cursors.Hand) failures.Add(scale + "%: the copy key's pointer isn't a hand.");
+                if (window.TranscriptPointer != Look.Hand) failures.Add(scale + "%: the copy key's pointer isn't a hand.");
                 shoot(window, "i-copy-hover-" + scale, null);
                 Stopwatch tick = Stopwatch.StartNew();
                 window.PressCopyKey();
@@ -2239,7 +2239,7 @@ namespace CapriDesktop
                 else
                 {
                     window.MoveOver(links[0].Key);
-                    if (window.TranscriptPointer != Cursors.Hand || window.TipNow != "https://capriai.app") failures.Add(scale + "%: over the link the pointer is " + window.TranscriptPointer + " and the tip " + window.TipNow);
+                    if (window.TranscriptPointer != Look.Hand || window.TipNow != "https://capriai.app") failures.Add(scale + "%: over the link the pointer is " + window.TranscriptPointer + " and the tip " + window.TipNow);
                     window.PressAtText(links[0].Key);
                     if (opened.Count != 1 || opened[0] != "https://capriai.app/") failures.Add(scale + "%: clicking the link opened " + string.Join(", ", opened.ToArray()));
                     window.MoveOver(new Point(-1, -1));

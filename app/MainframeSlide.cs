@@ -268,7 +268,7 @@ namespace CapriDesktop
         // Settings always slides; her main page slides only while it runs past the screen, so one that fits holds no picture.
         private bool PageSlides { get { return paged || pageView < ScrollTall; } }
 
-        private List<Control> PageControls { get { return paged ? scrolled : mainScrolled; } }
+        private List<Control> PageControls { get { return paged ? scrolled : modded ? modScrolled : mainScrolled; } }
 
         private void SlideSizeChanged()
         {
