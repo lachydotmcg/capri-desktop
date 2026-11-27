@@ -47,7 +47,7 @@ internal static class ToolLifecycleChecks
                     // -1 is the established unchecked ticket used by older call paths.
                     // Exercise that sentinel for legacy tools and a live ticket for request-scoped tools.
                     typeof(Brain).GetMethod("WorkOut", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(brain,
-                        new object[] { "fixture", new List<ChatMessage>(), "fixture request", new List<KeyValuePair<string, ToolArguments>>(), new List<string>(), new List<string>(), 200, requested ? 0 : -1, Hands.KitFor(), false });
+                        new object[] { "fixture", new List<ChatMessage>(), "fixture request", new List<KeyValuePair<string, ToolArguments>>(), new List<string>(), new List<string>(), 200, requested ? 0 : -1, Hands.KitFor(), false, null });
                 }
                 else brain.Ask("fixture request");
                 string label = (planned ? "planned" : "direct") + " " + tool + " " + (ownedGuard ? "owned guard" : "no guard");
