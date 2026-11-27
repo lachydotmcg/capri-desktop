@@ -388,7 +388,7 @@ namespace CapriDesktop
         private Point shownAt;
         private float shownScale;
 
-        internal GifCard() : base("Capri's GIF") { Cursor = Look.Pointer; }
+        internal GifCard() : base("Capri's GIF") { Look.UsePointer(this); }
 
         internal bool Showing { get { return gif != null; } }
         internal string Called { get { return called; } }

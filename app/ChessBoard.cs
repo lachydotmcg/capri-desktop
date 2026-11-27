@@ -170,7 +170,7 @@ namespace CapriDesktop
         {
             Game = game;
             AccessibleName = Text;
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             legal = Game.Board.Legal();
             ticks.Interval = 40;
             ticks.Tick += delegate { FinishWork(); };

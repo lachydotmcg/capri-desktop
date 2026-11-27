@@ -374,7 +374,7 @@ namespace CapriDesktop
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
             BackColor = Neon.Ground;
-            Cursor = Cursors.Hand;
+            Cursor = Look.Hand;
             UseMnemonic = false;
         }
 
