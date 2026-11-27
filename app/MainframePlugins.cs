@@ -399,7 +399,7 @@ namespace CapriDesktop
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             internal bool Marked { get { return !Still && Focused && ShowFocusCues; } }

@@ -1070,7 +1070,7 @@ namespace CapriSetup
             internal Tick()
             {
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
                 UseMnemonic = false;
             }
 

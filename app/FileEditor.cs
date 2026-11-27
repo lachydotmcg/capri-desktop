@@ -2338,7 +2338,7 @@ namespace CapriDesktop
 
             private static Button Pressable(string words, bool filled, Rectangle place)
             {
-                Button button = new Button { Text = words, Bounds = place, FlatStyle = FlatStyle.Flat, BackColor = filled ? Salmon : Red, ForeColor = filled ? Dark : Salmon, UseMnemonic = false, Cursor = Cursors.Hand };
+                Button button = new Button { Text = words, Bounds = place, FlatStyle = FlatStyle.Flat, BackColor = filled ? Salmon : Red, ForeColor = filled ? Dark : Salmon, UseMnemonic = false, Cursor = Look.Hand };
                 button.FlatAppearance.BorderColor = Salmon;
                 return button;
             }
@@ -2370,7 +2370,7 @@ namespace CapriDesktop
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Red;
                 UseMnemonic = false;
-                Cursor = Cursors.Hand;
+                Cursor = Look.Hand;
             }
 
             protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }

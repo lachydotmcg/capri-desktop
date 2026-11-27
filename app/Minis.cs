@@ -395,7 +395,7 @@ namespace CapriDesktop
             Game = game;
             AccessibleName = Text;
             KeyPreview = true;
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             ticks.Interval = 100;
             ticks.Tick += delegate { pulse = (pulse + 1) % 20; Redraw(); };
         }

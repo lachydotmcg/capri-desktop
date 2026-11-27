@@ -1521,7 +1521,7 @@ namespace CapriDesktop
 
         internal ClipToast() : base("Clip saved")
         {
-            Cursor = Look.Pointer;
+            Look.UsePointer(this);
             ticks.Interval = Step;
             ticks.Tick += delegate { Age(Step); };
         }
