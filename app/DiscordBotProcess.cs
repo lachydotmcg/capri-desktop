@@ -200,7 +200,7 @@ namespace CapriDesktop
                             string token;
                             lock (gate) token = run.Token;
                             if (token != null) Send(run, "{\"type\":\"start\",\"token\":" + PluginJson.Quote(token)
-                                + ",\"privacy\":" + PluginJson.Quote(PrivacyPage) + "}");
+                                + ",\"privacy\":" + PluginJson.Quote(PrivacyPage) + ",\"home\":" + PluginJson.Quote(home) + "}");
                             else End(run);
                             child.WaitForExit();
                         }
