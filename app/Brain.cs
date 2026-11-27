@@ -6281,21 +6281,21 @@ namespace CapriDesktop
                 string temporary = Path + "." + Guid.NewGuid().ToString("N") + ".new";
                 try
                 {
-                    bool found = File.Exists(Path);
-                    if (found != existed || found && !string.Equals(File.ReadAllText(Path), Text, StringComparison.Ordinal)) return "This note changed. Reload it before saving.";
                     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
+                    bool changed = false;
                     Exception failed = Files.Retried(4, 200, delegate
                     {
                         if (File.Exists(temporary)) File.Delete(temporary);
-                        // A failed File.Replace can leave the note already removed, so the next try moves the new text in.
-                        bool present = found && File.Exists(Path);
+                        if (!MatchesOriginal()) { changed = true; return; }
 #if CROSS
-                        WriteReplacement(temporary, Path, present, text ?? "");
+                        WriteReplacement(temporary, Path, existed, text ?? "");
 #else
                         File.WriteAllText(temporary, text ?? "");
 #endif
-                        if (present) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
+                        if (!MatchesOriginal()) { changed = true; return; }
+                        if (existed) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
                     });
+                    if (changed) return "This note changed. Reload it before saving.";
                     if (failed != null) return "Couldn't save this note.";
                     Text = text ?? "";
                     existed = true;
@@ -6310,6 +6310,12 @@ namespace CapriDesktop
                     catch (UnauthorizedAccessException) { }
                 }
             }
+        }
+
+        private bool MatchesOriginal()
+        {
+            bool found = File.Exists(Path);
+            return found == existed && (!found || string.Equals(File.ReadAllText(Path), Text, StringComparison.Ordinal));
         }
 
 #if CROSS
