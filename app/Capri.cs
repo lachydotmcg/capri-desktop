@@ -44731,19 +44731,32 @@ namespace CapriDesktop
                         input.Stop(); input.Chosen = "picked"; input.Start(); current = "default-three";
                         if (input.DeviceChanged || opened[2] != "picked" || changes != 3) throw new Exception("A fixed mic followed the Windows default or missed an open notification.");
                         input.Muted = true;
+                        if (input.Capturing || inputs[2].Stops != 1 || !input.Listening) throw new Exception("Muting left her mic open, so Windows still shows her using it (issue #420).");
                         short[] muted = null;
-                        input.Heard += delegate(short[] chunk) { muted = chunk; };
+                        int mutedChunks = 0;
+                        input.Heard += delegate(short[] chunk)
+                        {
+                            if (Interlocked.Increment(ref mutedChunks) == 1) throw new InvalidOperationException("Test hearing callback");
+                            muted = chunk;
+                        };
+                        WaitSound(delegate { return muted != null; }, "A muted mic stopped sending quiet chunks.");
                         short[] loud = new short[Ears.Chunk];
                         for (int i = 0; i < loud.Length; i++) loud[i] = 12000;
                         input.Feed(loud);
-                        if (muted == null || muted[0] != 0 || level != 0) throw new Exception("Fallback mic bypassed mute.");
-                        inputs[2].Failure = unchecked((int)0x88890004); inputs[2].Fail = "packet size";
+                        if (muted[0] != 0 || level != 0 || input.Stalled) throw new Exception("Fallback mic bypassed mute or looked stalled while muted.");
+                        input.Stop(); input.Start();
+                        if (input.Capturing || inputs.Count != 3) throw new Exception("Reopening a muted mic opened it.");
+                        input.Chosen = null;
+                        current = "default-four";
+                        input.Muted = false;
+                        if (!input.Capturing || inputs.Count != 4 || opened[3] != "default-four") throw new Exception("Unmuting didn't open her current mic.");
+                        inputs[3].Failure = unchecked((int)0x88890004); inputs[3].Fail = "packet size";
                         WaitSound(delegate { return input.Stalled; }, "A failed WASAPI input stayed healthy.");
                     }
                     foreach (MicCheck input in inputs) if (input.Stops != 1) throw new Exception("Stopping a fake mic didn't release its stream.");
                 }
                 finally { foreach (MicCheck input in inputs) input.Dispose(); }
-                checks.Add("PASS fake WASAPI mic: unavailable saved device falls back to default, a running default change reopens, a fixed pick stays fixed, mute is preserved, capture failure is detected and every stream stops");
+                checks.Add("PASS fake WASAPI mic: unavailable saved device falls back to default, a running default change reopens, a fixed pick stays fixed, mute closes the mic and feeds silence until unmute reopens it, capture failure is detected and every stream stops");
                 foreach (int failure in new[] { unchecked((int)0x80070005), unchecked((int)0x8889000A) })
                 {
                     using (MicCheck capture = new MicCheck { Failure = failure, Fail = "initialize" })
