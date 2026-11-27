@@ -44132,7 +44132,12 @@ namespace CapriDesktop
                         input.Muted = true;
                         if (input.Capturing || inputs[2].Stops != 1 || !input.Listening) throw new Exception("Muting left her mic open, so Windows still shows her using it (issue #420).");
                         short[] muted = null;
-                        input.Heard += delegate(short[] chunk) { muted = chunk; };
+                        int mutedChunks = 0;
+                        input.Heard += delegate(short[] chunk)
+                        {
+                            if (Interlocked.Increment(ref mutedChunks) == 1) throw new InvalidOperationException("Test hearing callback");
+                            muted = chunk;
+                        };
                         WaitSound(delegate { return muted != null; }, "A muted mic stopped sending quiet chunks.");
                         short[] loud = new short[Ears.Chunk];
                         for (int i = 0; i < loud.Length; i++) loud[i] = 12000;
@@ -44140,8 +44145,10 @@ namespace CapriDesktop
                         if (muted[0] != 0 || level != 0 || input.Stalled) throw new Exception("Fallback mic bypassed mute or looked stalled while muted.");
                         input.Stop(); input.Start();
                         if (input.Capturing || inputs.Count != 3) throw new Exception("Reopening a muted mic opened it.");
+                        input.Chosen = null;
+                        current = "default-four";
                         input.Muted = false;
-                        if (!input.Capturing || inputs.Count != 4 || opened[3] != "picked") throw new Exception("Unmuting didn't open her mic again.");
+                        if (!input.Capturing || inputs.Count != 4 || opened[3] != "default-four") throw new Exception("Unmuting didn't open her current mic.");
                         inputs[3].Failure = unchecked((int)0x88890004); inputs[3].Fail = "packet size";
                         WaitSound(delegate { return input.Stalled; }, "A failed WASAPI input stayed healthy.");
                     }

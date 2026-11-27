@@ -71,12 +71,11 @@ namespace CapriDesktop
                     if (!running) return;
                     if (value) { Release(); StartSilence(); return; }
                     StopSilence();
-                    lastChunk = Environment.TickCount;
-                    // A mic that's blocked, gone to the cable or won't open again is left to look stalled, so her hearing check
-                    // reopens it through Start's own checks and says why.
-                    if (blocked() || !fake && MicMix.IsCableOut(openedId == null ? DefaultName() : FullName(openedId))) { lastChunk = Environment.TickCount - 6000; return; }
-                    try { Capture(FullName(openedId) ?? openedId ?? "Windows default"); }
-                    catch (Exception) { lastChunk = Environment.TickCount - 6000; }
+                    // The device or its permissions may have changed while it was closed. Try the normal start path
+                    // and let the hearing check recover if it cannot open anything.
+                    running = false;
+                    try { Open(); }
+                    catch (Exception) { lastChunk = Environment.TickCount - 6000; running = true; }
                 }
             }
         }
@@ -149,7 +148,8 @@ namespace CapriDesktop
             get
             {
                 if (!running) return false;
-                if (Environment.TickCount - lastChunk > 5000 || (modern != null && !modern.Alive)) return true;
+                SoundIn input = modern;
+                if (Environment.TickCount - lastChunk > 5000 || (input != null && !input.Alive)) return true;
                 if (Environment.TickCount - routeAt < 0) return false;
                 routeAt = Environment.TickCount + RouteMs;
                 return DeviceChanged;
@@ -535,7 +535,9 @@ namespace CapriDesktop
                 while (!done.WaitOne(1000 * Chunk / Rate))
                 {
                     lastChunk = Environment.TickCount;
-                    Feed(new short[Chunk]);
+                    // A hearing callback can fail just as it can on a real capture chunk. Keep the worker alive.
+                    try { Feed(new short[Chunk]); }
+                    catch (Exception) { }
                 }
             }) { IsBackground = true, Name = "Capri muted ears" };
             silence.Start();
@@ -580,7 +582,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            catch (Exception error) { if (capturing) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + VoiceException.Logged(error)); } }
+            catch (Exception error) { if (capturing && worker == Thread.CurrentThread) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + VoiceException.Logged(error)); } }
         }
 
         private void Receive(short[] chunk)
