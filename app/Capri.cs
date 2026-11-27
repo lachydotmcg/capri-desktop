@@ -13062,7 +13062,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (Cloud.IsCode(key)) key = key.ToUpperInvariant();
             string kind = Cloud.KindOf(key);
-            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : Brain.NotAKey, true); return; }
+            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : BetterModels.OpenCodeLegacyKey(key) ? Brain.OldGoKey : Brain.NotAKey, true); return; }
             if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
             if (targetTier == 0) targetTier = kind == "nvidia" ? 1 : 2;
             ListCloud(key, true, targetTier);
@@ -25120,6 +25120,15 @@ namespace CapriDesktop
             foreach (string provider in new[] { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter", "free models", "rate limited" })
                 if (selfFreeKeyHelp == null || !selfFreeKeyHelp.Contains(provider)) throw new Exception("Free key help missed: " + provider);
             checks.Add("PASS self knowledge: asking for a free key explains all three providers, OpenRouter's free models and rate limits");
+
+            string selfOpenCodeHelp = SelfKnow.Matching("how do I use OpenCode Go?");
+            if (selfOpenCodeHelp == null || !selfOpenCodeHelp.StartsWith("Cloud brain keys:", StringComparison.Ordinal) || !selfOpenCodeHelp.Contains("OpenCode Go") || !selfOpenCodeHelp.Contains("opencode.ai/console/go"))
+                throw new Exception("Self knowledge missed OpenCode Go: " + (selfOpenCodeHelp ?? "nothing"));
+            checks.Add("PASS self knowledge: asking how to use OpenCode Go explains its Go subscription and where to get it");
+            string selfHuskOpenCode = SelfKnow.Matching("what is OpenCode doing?");
+            if (selfHuskOpenCode == null || !selfHuskOpenCode.StartsWith("Code/Husk Mode:", StringComparison.Ordinal))
+                throw new Exception("OpenCode's coding assistant stopped finding Code/Husk Mode: " + (selfHuskOpenCode ?? "nothing"));
+            checks.Add("PASS self knowledge: OpenCode's coding assistant still finds Code/Husk Mode, apart from OpenCode Go's brain key");
 
             string selfMaxReplyHelp = SelfKnow.Matching("What does No limit do for replies?");
             string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
@@ -39317,8 +39326,8 @@ namespace CapriDesktop
 
         private static void SmokeCloudBrains(System.Collections.Generic.List<string> checks)
         {
-            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("AQ.Ab8-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai") throw new Exception("New brain keys reached the wrong provider.");
-            if (Brain.Address("google", "/models") != "https://generativelanguage.googleapis.com/v1beta/openai/models" || Brain.Address("openrouter", "/chat/completions") != "https://openrouter.ai/api/v1/chat/completions") throw new Exception("A new brain has the wrong address.");
+            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("AQ.Ab8-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai" || Cloud.KindOf("oc_sk_fixture_0123456789") != "opencode" || Cloud.KindOf("sk-" + new string('a', 64)) != null || !BetterModels.OpenCodeLegacyKey("sk-" + new string('a', 64))) throw new Exception("New brain keys reached the wrong provider.");
+            if (Brain.Address("google", "/models") != "https://generativelanguage.googleapis.com/v1beta/openai/models" || Brain.Address("openrouter", "/chat/completions") != "https://openrouter.ai/api/v1/chat/completions" || Brain.Address("opencode", "/models") != "https://opencode.ai/inference/go/v1/models" || Brain.Address("opencode", "/chat/completions") != "https://opencode.ai/inference/go/openai/v1/chat/completions") throw new Exception("A new brain has the wrong address.");
             bool unknownAddress = false;
             try { Brain.Address(null, "/models"); } catch (BrainException) { unknownAddress = true; }
             if (!unknownAddress) throw new Exception("An unknown brain key fell through to OpenAI.");
@@ -41965,6 +41974,47 @@ namespace CapriDesktop
                 || !Brain.ModelFits("codex", "fixture-model") || !Brain.ModelFits("claudecode", "sonnet[1m]"))
                 throw new Exception("Her plan picker didn't keep the visible and safe CLI model names.");
             checks.Add("PASS MAX models: xAI keys, language and image-capable models, and visible Codex and Claude plan models");
+            string goKey = "oc_sk_fixture_0123456789abcdef", goLongKey = "sk-" + new string('a', 64);
+            if (Cloud.KindOf(goKey) != "opencode" || Cloud.KindOf(goLongKey) != null || !BetterModels.OpenCodeLegacyKey(goLongKey) || Cloud.KindOf("oc_sk_short") != null
+                || Cloud.MediumKind("opencode") || new Cloud(goKey, "deepseek-v4.1-flash").Name != "OpenCode Go"
+                || Brain.Redacted(goKey) != "[redacted]")
+                throw new Exception("An OpenCode Go key didn't route to MAX, or an older sk- key was guessed instead of offered Provider.");
+            if (Brain.Address("opencode", "/models") != "https://opencode.ai/inference/go/v1/models"
+                || Brain.Address("opencode", "/chat/completions") != "https://opencode.ai/inference/go/openai/v1/chat/completions")
+                throw new Exception("An OpenCode Go key went to the wrong address.");
+            string goCatalog = "{\"object\":\"list\",\"data\":[" +
+                "{\"id\":\"deepseek-v4.1-flash\",\"object\":\"model\",\"created\":1795460598,\"type\":\"chat\",\"modalities\":{\"input\":[\"text\",\"image/jpeg\",\"image/png\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+                "{\"id\":\"glm-5.3\",\"object\":\"model\",\"created\":1795460597,\"type\":\"chat\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+                "{\"id\":\"jev-1.14\",\"object\":\"model\",\"created\":1795460596,\"type\":\"decision\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":false}}}," +
+                "{\"id\":\"text-embedding-3-small\",\"object\":\"model\",\"created\":1795460595,\"type\":\"embedding\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":false}}}]}";
+            string goWas = Brain.OpenCode;
+            var goAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener goFake = null;
+            try
+            {
+                Brain.OpenCode = FakeServer(new[] { goCatalog, LocalReply("OpenCode says hi."), LocalReply("OpenCode says hi again.") }, goAsked, out goFake);
+                var goModels = Brain.CloudModels(goKey);
+                var go = new Brain { Remote = new Cloud(goKey, goModels[0]), Model = goModels[0] };
+                if (goModels.Count != 2 || goModels[0] != "deepseek-v4.1-flash" || Brain.DefaultCloudModel("opencode", goModels) != "deepseek-v4.1-flash"
+                    || !go.Sighted(new Cloud(goKey, "deepseek-v4.1-flash")) || go.Sighted(new Cloud(goKey, "glm-5.3")))
+                    throw new Exception("Her OpenCode Go model picker took a non-chat model or gave a model the wrong eyes.");
+                string goSaid = go.Think(goModels[0], new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "hi") }, false, new System.Collections.Generic.List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                var goAgainBrain = new Brain { Remote = go.Remote, Model = go.Model };
+                string goAgain = goAgainBrain.Think(goModels[0], new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "again") }, false, new System.Collections.Generic.List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                Match goFirst = Regex.Match(goAsked.Count > 1 ? goAsked[1] : "", @"(?im)^x-opencode-session:\s*(?<id>\S+)");
+                Match goSecond = Regex.Match(goAsked.Count > 2 ? goAsked[2] : "", @"(?im)^x-opencode-session:\s*(?<id>\S+)");
+                if (goSaid != "OpenCode says hi." || goAgain != "OpenCode says hi again." || goAsked.Count != 3
+                    || !goAsked[0].StartsWith("GET /v1/models ", StringComparison.Ordinal) || !Regex.IsMatch(goAsked[0], @"(?im)^x-opencode-session:\s*ses_")
+                    || !goAsked[1].StartsWith("POST /openai/v1/chat/completions ", StringComparison.Ordinal)
+                    || !goFirst.Success || !goSecond.Success || goFirst.Groups["id"].Value == goSecond.Groups["id"].Value)
+                    throw new Exception("OpenCode Go didn't get its model list, chat, or a separate session for each chat and one-shot brain.");
+            }
+            finally
+            {
+                Brain.OpenCode = goWas;
+                if (goFake != null) goFake.Stop();
+            }
+            checks.Add("PASS OpenCode Go: oc_sk_ keys go under MAX while older sk- keys ask for Provider, its chat models keep their image and tool abilities in the listed order, the Go model list is read at /inference/go/v1/models, chats use the OpenAI-compatible path, and her chat and a one-shot brain send distinct session IDs");
             Cloud plan = new Cloud(Plans.CodexKey, "default");
             try
             {
@@ -48138,7 +48188,8 @@ namespace CapriDesktop
                     new[] { "Gemini", "AIza" + body + "x", "shaped" }, new[] { "Groq", "gsk_" + body + body.Substring(0, 18), "shaped" },
                     new[] { "xAI", "xai-" + body + body, "shaped" }, new[] { "ElevenLabs", "sk_" + hexBody, "shaped" }, new[] { "DeepSeek", "sk-" + hexBody.Substring(0, 32), "shaped" },
                     new[] { "Capri code", "CAPRI-7Q4M-ZK2P-9VXA-3HRT", "shaped" }, new[] { "named Capri code", "CAPRI-TOMMAS-7Q4M-ZK2P-9VXA-3HRT", "shaped" },
-                    new[] { "Fish Audio", hexBody.Substring(0, 32), "saved" }, new[] { "Mistral", "Hq3Zp8Wn2Kt7Lm4R" + "v9Xc1Bs6Dj5Fg0Ty", "saved" } };
+                    new[] { "Fish Audio", hexBody.Substring(0, 32), "saved" }, new[] { "Mistral", "Hq3Zp8Wn2Kt7Lm4R" + "v9Xc1Bs6Dj5Fg0Ty", "saved" },
+                    new[] { "OpenCode Go", "oc_sk_" + body + body.Substring(0, 24), "shaped" } };
                 foreach (string name in new[] { "hu-HU", "tr-TR" })
                 {
                     System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo(name);

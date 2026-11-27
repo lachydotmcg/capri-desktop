@@ -18,6 +18,7 @@ namespace CapriDesktop
             internal readonly TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
             internal readonly ManualResetEventSlim Received = new ManualResetEventSlim(), Release = new ManualResetEventSlim();
             internal readonly List<string> Requests = new List<string>();
+            internal readonly List<string> UserAgents = new List<string>();
             internal readonly string Address;
             internal volatile bool Hold, Error, Redirect, StreamError, Retry;
             internal string Destination, Model = "alpha";
@@ -51,7 +52,7 @@ namespace CapriDesktop
                 string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
                 string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
                 string[] first = lines[0].Split(' ');
-                string url = first.Length > 1 ? first[1] : "/", authorization = null;
+                string url = first.Length > 1 ? first[1] : "/", authorization = null, session = null, userAgent = null;
                 int length = 0;
                 bool chunked = false;
                 foreach (string line in lines)
@@ -60,6 +61,8 @@ namespace CapriDesktop
                     if (colon <= 0) continue;
                     string name = line.Substring(0, colon).Trim(), value = line.Substring(colon + 1).Trim();
                     if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) authorization = value;
+                    else if (name.Equals("x-opencode-session", StringComparison.OrdinalIgnoreCase)) session = value;
+                    else if (name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) userAgent = value;
                     else if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) int.TryParse(value, out length);
                     else if (name.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) chunked = value.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;
                 }
@@ -69,11 +72,17 @@ namespace CapriDesktop
                     if (got <= 0) break;
                     for (int i = 0; i < got; i++) read.Add(chunk[i]);
                 }
-                lock (Requests) Requests.Add(url + " | " + (authorization ?? "<none>"));
+                lock (Requests)
+                {
+                    Requests.Add(url + " | " + (authorization ?? "<none>") + " | " + (session ?? "<none>"));
+                    UserAgents.Add(userAgent);
+                }
                 Received.Set(); if (Hold) Release.Wait(TimeSpan.FromSeconds(8));
                 bool chat = url.EndsWith("/chat/completions");
+                bool openCode = authorization != null && authorization.StartsWith("Bearer oc_sk_", StringComparison.Ordinal);
                 string body = Error && chat ? "{\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}"
                     : chat ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}"
+                    : openCode ? "{\"data\":[{\"id\":\"alpha\",\"created\":1,\"type\":\"chat\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}]}"
                     : EmptyModels ? "{\"data\":[]}" : "{\"data\":[{\"id\":\"" + Model + "\"}]}";
                 if (chat && Retry) body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
                 string type = "application/json";
@@ -100,6 +109,62 @@ namespace CapriDesktop
             while (!ready() && DateTime.UtcNow < until) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(10); }
             return ready();
         }
+        internal static void OpenCodeGo(List<string> failures)
+        {
+        string goWas = Brain.OpenCode;
+        try
+        {
+            using (Server go = new Server())
+            {
+                Brain.OpenCode = go.Address;
+                string goKey = "oc_sk_fixture_0123456789abcdef";
+                List<string> goModels = Brain.CloudModels(goKey);
+                Brain goBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
+                string Chat(Brain brain) => brain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "hello test") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                if (Chat(goBrain) != "OK" || Chat(goBrain) != "OK") failures.Add("OpenCode Go chat replies");
+                Brain another = new Brain { Model = "alpha", Remote = goBrain.Remote };
+                Chat(another);
+                goBrain.Forget();
+                Chat(goBrain);
+                string nextKey = "oc_sk_second_0123456789abcdef";
+                goBrain.Remote = new Cloud(nextKey, "alpha");
+                Chat(goBrain);
+                goBrain.Remote = new Cloud(goKey, "alpha");
+                Chat(goBrain);
+
+                string legacyKey = "sk-" + new string('a', 64);
+                string[] legacyModels = Brain.ServerModels(go.Address + "/openai", legacyKey);
+                goBrain.Remote = null;
+                goBrain.SetServer(go.Address, legacyKey);
+                Chat(goBrain);
+                Chat(goBrain);
+                goBrain.SetServer(go.Address, nextKey);
+                Chat(goBrain);
+                goBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "one-shot job") }, false, new List<KeyValuePair<string, ToolArguments>>(), job: true);
+                Chat(goBrain);
+                string[] requests;
+                lock (go.Requests) requests = go.Requests.ToArray();
+                var sessions = new List<string>();
+                foreach (string request in requests)
+                    sessions.Add(request.Substring(request.LastIndexOf(" | ", StringComparison.Ordinal) + 3));
+                if (goModels.Count != 1 || goModels[0] != "alpha" || legacyModels.Length != 1 || legacyModels[0] != "alpha"
+                    || requests.Length != 13
+                    || go.UserAgents.Count != requests.Length || go.UserAgents.Exists(value => value != "Capri-Desktop")
+                    || !requests[0].StartsWith("/v1/models | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[1].StartsWith("/openai/v1/chat/completions | Bearer " + goKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[5].StartsWith("/openai/v1/chat/completions | Bearer " + nextKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[7].StartsWith("/v1/models | Bearer " + legacyKey + " | ses_", StringComparison.Ordinal)
+                    || !requests[8].StartsWith("/openai/v1/chat/completions | Bearer " + legacyKey + " | ses_", StringComparison.Ordinal)
+                    || sessions[1] != sessions[2] || sessions[8] != sessions[9]
+                    || sessions[10] != sessions[12]
+                    || sessions.Exists(id => !System.Text.RegularExpressions.Regex.IsMatch(id, @"\Ases_[0-9a-f]{32}\z"))
+                    || new HashSet<string>(sessions).Count != 10)
+                    failures.Add("OpenCode Go catalog, chat routing or conversation and credential session isolation");
+            }
+        }
+        finally { Brain.OpenCode = goWas; }
+        }
+
         internal static void Run(Pet pet, string folder)
         {
             const string key = "opaque-provider-key-42";
@@ -129,6 +194,7 @@ namespace CapriDesktop
                 });
                 writer.Start(); reader.Start(); writer.Join(); reader.Join();
                 if (mismatch != null) failures.Add("S3 server/key pair not atomic: " + mismatch);
+                OpenCodeGo(failures);
                 using (Server older = new Server()) using (Server newer = new Server())
                 {
                     Brain live = new Brain { Model = "alpha" };

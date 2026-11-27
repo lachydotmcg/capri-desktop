@@ -61,9 +61,9 @@ Your PC and phone's browser connect out to a Cloudflare Worker, with one Durable
 
 ## Your brain and voice providers
 
-What you send to OpenAI, Claude, DeepSeek, NVIDIA, Google AI (Gemini), OpenRouter, Fish Audio or ElevenLabs goes straight from your PC to them with your own key, including NVIDIA's free key. A custom OpenAI-compatible provider or server gets what you send it at the address you entered. Those provider requests do not pass through anything of ours.
+What you send to OpenAI, Claude, DeepSeek, NVIDIA, Google AI (Gemini), OpenRouter, OpenCode Go, Fish Audio or ElevenLabs goes straight from your PC to them with your own key, including NVIDIA's free key. A custom OpenAI-compatible provider or server gets what you send it at the address you entered. Those provider requests do not pass through anything of ours.
 
-Google AI requests go to `generativelanguage.googleapis.com/v1beta/openai/`; OpenRouter requests go to `openrouter.ai/api/v1`. A brain key goes only to its provider, and authenticated brain requests do not follow redirects. A custom provider key goes only to the address you entered, and authenticated requests there do not follow redirects. OpenRouter gets `X-Title: Capri`, with no `HTTP-Referer` or user identifier added by Capri. OpenRouter routes the request to the provider serving the selected model, whose privacy policy also applies.
+Google AI requests go to `generativelanguage.googleapis.com/v1beta/openai/`; OpenRouter requests go to `openrouter.ai/api/v1`; OpenCode Go requests go to `opencode.ai/inference/go`. A brain key goes only to its provider, and authenticated brain requests do not follow redirects. A custom provider key goes only to the address you entered, and authenticated requests there do not follow redirects. OpenRouter gets `X-Title: Capri`, with no `HTTP-Referer` or user identifier added by Capri. OpenRouter routes the request to the provider serving the selected model, whose privacy policy also applies. OpenCode Go gets a random `x-opencode-session` ID scoped to the conversation and credential so it can route requests and reuse its prompt cache. Capri sends that ID only to OpenCode.
 
 What a provider logs or keeps is up to them, under their own privacy policy.
 

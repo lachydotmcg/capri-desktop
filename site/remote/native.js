@@ -77,6 +77,7 @@
   const kindOf = key => {
     if (!key) return null;
     if (/^(AIza|AQ\.)/.test(key)) return 'google';
+    if (key.startsWith('oc_sk_') || /^sk-[A-Za-z0-9]{64}$/.test(key)) return 'opencode';
     if (key.startsWith('sk-or-')) return 'openrouter';
     if (key.startsWith('sk-nous-')) return 'nous';
     if (key.startsWith('sk-ant-')) return 'anthropic';
@@ -85,7 +86,9 @@
     if (/^sk-[0-9a-f]{32}$/.test(key)) return 'deepseek';
     return key.startsWith('sk-') ? 'openai' : null;
   };
+  // OpenCode Go is PC-only: recognize its keys so the phone says to use Capri on the PC, never send them to another provider.
   const notHere = kind => kind === 'nvidia' ? 'NVIDIA keys work in Capri on your PC: NVIDIA doesn\'t let a phone\'s browser in.'
+    : kind === 'opencode' ? 'OpenCode Go works in Capri on your PC: a phone\'s browser can\'t use it.'
     : kind === 'code' ? 'Capri codes work in Capri on your PC for now.'
     : kind === 'nous' ? 'Nous Portal keys aren\'t supported yet.'
     : 'That isn\'t a Claude, ChatGPT, Gemini, OpenRouter or DeepSeek key.';
@@ -1070,6 +1073,7 @@
     // For remote/test/native.test.mjs.
     persona,
     kindOf,
+    notHere,
     pickModel
   };
 })();

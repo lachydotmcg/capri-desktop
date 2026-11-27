@@ -13,11 +13,68 @@ namespace CapriDesktop
         internal const int MaxCatalog = 4 * 1024 * 1024;
         internal const string ClaudeQuery = "{\"type\":\"control_request\",\"request_id\":\"capri-models\",\"request\":{\"subtype\":\"initialize\",\"hooks\":{},\"sdkMcpServers\":[]}}\n";
         internal const string CatalogError = "xAI sent an unreadable language model catalog. Try Refresh.";
+        internal const string OpenCodeCatalogError = "OpenCode Go sent an unreadable model list. Try Refresh.";
         internal const string XaiUrl = "https://api.x.ai/v1";
 
         internal static bool XaiKey(string key)
         {
             return key != null && Regex.IsMatch(key, @"\Axai-[A-Za-z0-9_-]+\z");
+        }
+
+        internal static bool OpenCodeKey(string key)
+        {
+            return key != null && Regex.IsMatch(key, @"\Aoc_sk_[A-Za-z0-9_-]{16,}\z");
+        }
+
+        internal static bool OpenCodeLegacyKey(string key)
+        {
+            return key != null && Regex.IsMatch(key, @"\Ask-[A-Za-z0-9]{64}\z");
+        }
+
+        internal static string RedactOpenCode(string text)
+        {
+            return text == null ? null : Regex.Replace(text, @"(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))oc_sk_[A-Za-z0-9_\u0131\u0130\u017F-]{8,}", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        internal static string OpenCodeCatalog(string json)
+        {
+            OpenCodePage page = Read<OpenCodePage>(json);
+            if (page == null || page.Models == null) throw new FormatException(OpenCodeCatalogError);
+            var found = new List<OpenCodeModelOut>();
+            foreach (OpenCodeModel model in page.Models)
+            {
+                if (model == null || !PlanId(model.Id)) continue;
+                if (model.Type != null && model.Type != "chat") continue;
+                if (model.Modalities != null && model.Modalities.Output != null && Array.IndexOf(model.Modalities.Output, "text") < 0) continue;
+                bool text = true, image = false;
+                if (model.Modalities == null)
+                {
+                    if (Regex.IsMatch(model.Id, @"embedding|decision", RegexOptions.IgnoreCase)) continue;
+                }
+                else if (model.Modalities.Input != null)
+                {
+                    text = false;
+                    foreach (string input in model.Modalities.Input)
+                    {
+                        if (input == "text") text = true;
+                        else if (input != null && input.StartsWith("image", StringComparison.Ordinal)) image = true;
+                    }
+                }
+                if (!text) continue;
+                bool tools = model.Capabilities == null || model.Capabilities.Tools == null || model.Capabilities.Tools.Supported;
+                found.Add(new OpenCodeModelOut
+                {
+                    Id = model.Id,
+                    Created = model.Created,
+                    Architecture = new Modalities { Input = image ? new[] { "text", "image" } : new[] { "text" }, Output = new[] { "text" } },
+                    Parameters = tools ? new[] { "tools" } : new string[0]
+                });
+            }
+            using (var stream = new MemoryStream())
+            {
+                new DataContractJsonSerializer(typeof(OpenCodePageOut)).WriteObject(stream, new OpenCodePageOut { Models = found.ToArray() });
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
         }
 
         internal static string XaiAddress(string path) { return XaiUrl + (path == "/models" ? "/language-models" : path); }
@@ -138,6 +195,33 @@ namespace CapriDesktop
 
         [DataContract] private sealed class CloudPage { [DataMember(Name = "data")] public XaiModel[] Models { get; set; } }
         [DataContract] private sealed class XaiPage { [DataMember(Name = "models")] public XaiModel[] Models { get; set; } }
+        [DataContract] private sealed class OpenCodePage { [DataMember(Name = "data")] public OpenCodeModel[] Models { get; set; } }
+        [DataContract] private sealed class OpenCodeModel
+        {
+            [DataMember(Name = "id")] public string Id { get; set; }
+            [DataMember(Name = "created")] public long Created { get; set; }
+            [DataMember(Name = "type")] public string Type { get; set; }
+            [DataMember(Name = "modalities")] public OpenCodeModalities Modalities { get; set; }
+            [DataMember(Name = "capabilities")] public OpenCodeCapabilities Capabilities { get; set; }
+        }
+        [DataContract] private sealed class OpenCodeModalities
+        {
+            [DataMember(Name = "input")] public string[] Input { get; set; }
+            [DataMember(Name = "output")] public string[] Output { get; set; }
+        }
+        [DataContract] private sealed class OpenCodeCapabilities
+        {
+            [DataMember(Name = "tools")] public OpenCodeTool Tools { get; set; }
+        }
+        [DataContract] private sealed class OpenCodeTool { [DataMember(Name = "supported")] public bool Supported { get; set; } }
+        [DataContract] private sealed class OpenCodePageOut { [DataMember(Name = "data")] public OpenCodeModelOut[] Models { get; set; } }
+        [DataContract] private sealed class OpenCodeModelOut
+        {
+            [DataMember(Name = "id")] public string Id { get; set; }
+            [DataMember(Name = "created")] public long Created { get; set; }
+            [DataMember(Name = "architecture")] public Modalities Architecture { get; set; }
+            [DataMember(Name = "supported_parameters")] public string[] Parameters { get; set; }
+        }
         [DataContract] private sealed class XaiModel
         {
             [DataMember(Name = "id")] public string Id { get; set; }

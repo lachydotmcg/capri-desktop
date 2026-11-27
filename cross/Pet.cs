@@ -581,7 +581,7 @@ namespace CapriDesktop
         internal const string NoOllama = "Ollama isn't running. Install it from ollama.com and open it.";
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         internal const string KeyChoice = "Use an API key...";
-        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek or xAI.";
+        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek, xAI or OpenCode Go.";
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
@@ -6904,7 +6904,7 @@ namespace CapriDesktop
         internal void AskBrainKey()
         {
             ComeBack();
-            Talk.AskKey(BrainKeyHeard, "Paste your NVIDIA, OpenAI, Claude or DeepSeek API key and press Enter. It stays on this computer. A free NVIDIA key works.", SaveBrainKey);
+            Talk.AskKey(BrainKeyHeard, "Paste your NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go API key and press Enter. It stays on this computer. A free NVIDIA key works.", SaveBrainKey);
         }
 
         // A key she checks by reading its models, then thinks with on its best chat model until they pick another under Brain.
@@ -6924,7 +6924,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { string refused = BetterModels.OpenCodeLegacyKey(key) ? Brain.OldGoKey : NotAKey; frameProblem = refused; if (phone != null) DropPhoneKey(refused); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, refused); return; }
             frameProblem = null;
             int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
             int request = ++brainRequests;
@@ -7710,7 +7710,7 @@ namespace CapriDesktop
 
         internal static bool KnownProvider(string provider)
         {
-            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex" || CustomProvider(provider);
+            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "opencode" || provider == "claudecode" || provider == "codex" || CustomProvider(provider);
         }
 
         internal const string CustomProviderPrefix = "custom:";

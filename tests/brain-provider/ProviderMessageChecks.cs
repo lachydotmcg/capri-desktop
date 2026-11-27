@@ -33,7 +33,8 @@ internal static class ProviderMessageChecks
         Check("brain google daily quota -> DailyGone", Brain.Meaning(429, "GenerateRequestsPerDayPerProjectPerModel-FreeTier", google: true), "Your Gemini key has used up today's requests. They reset tomorrow, or add another key under BRAIN in Capri Mainframe.");
         Check("brain unknown status -> null", Brain.Meaning(418, "teapot"), (string)null);
         // The standing sentences the Mainframe and errors.txt quote.
-        Check("NotAKey names the real services", Brain.NotAKey, "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.");
+        Check("NotAKey names the real services", Brain.NotAKey, "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.");
+        Check("OldGoKey points at Provider", Brain.OldGoKey, "A 64-character sk- key isn't guessed. For OpenCode Go, use Provider with https://opencode.ai/inference/go.");
         Check("NoFreeModels points at Refresh or MAX INTELLIGENCE", Brain.NoFreeModels, "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.");
         return failures;
     }

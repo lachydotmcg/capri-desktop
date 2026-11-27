@@ -24,7 +24,7 @@ A desktop companion. She sits on your windows and taskbar, chats with you, talks
 - Her free voice: free, runs on your PC.
 - MEDIUM INTELLIGENCE: free with NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. Free keys can be rate limited and slow.
 - ElevenLabs (her best voice): has a free plan with monthly credits. Paid plans give more credits and voice cloning.
-- OpenAI, Claude or DeepSeek keys: these need paid credits on their sites.
+- OpenAI, Claude or DeepSeek keys: these need paid credits on their sites. OpenCode Go is experimental. OpenCode designed Go for coding agents. Everyday Capri chat has not been verified with Go.
 
 ### How can I support Capri?
 Capri is free. To support the people who make her, tip them on Ko-fi. The links are also at the bottom of every page of the website.
@@ -816,13 +816,19 @@ If a model doesn't answer in time or NVIDIA's servers fail, she tries the next o
 Pick MAX INTELLIGENCE under BRAIN, paste the key in its box and press Connect. She can tell which company it's for:
 - Claude keys start with sk-ant-
 - NVIDIA keys start with nvapi-
-- DeepSeek and OpenAI keys start with sk-
+- DeepSeek and OpenAI keys start with sk- (DeepSeek's are 32 letters and numbers)
 
-These keys need paid credits on their sites. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen.
+These keys need paid credits on their sites. From 0.7.9 deepseek-flash can see your screen.
 
 - Move to MAX: paste an OpenAI, Claude or DeepSeek key under MEDIUM INTELLIGENCE and she offers Move to MAX. Press it to connect there; your current key keeps running until the new key connects successfully.
 
 A new Claude key starts on Haiku 5.5. You can choose another model from the menu under BRAIN.
+
+### OpenCode Go
+
+OpenCode Go is experimental. OpenCode designed Go for coding agents. Everyday Capri chat has not been verified with Go. [OpenCode Go client guidance](https://opencode.ai/docs/console/go/#where-can-i-use-it)
+
+If you already have a Go subscription and want to try the integration, paste a Console key starting with oc_sk_ under MAX INTELLIGENCE. For an older Go key, use BRAIN > Provider with https://opencode.ai/inference/go. Capri sends a stable session ID for each conversation and starts a separate one when you clear chat, change provider or key, or start an independent request.
 
 ### How do I remove a key?
 Clear the key box. The button turns into a red Forget. Press it.
@@ -2315,8 +2321,11 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "NVIDIA didn't answer in time.": try again or pick another model.
 - She changed NVIDIA models by herself: the model she was using didn't answer, so she used another one for that reply. Your pick stays.
 - "NVIDIA rejected the key for my brain. Press Forget under BRAIN in Capri Mainframe, then paste it again." (or OpenRouter, Anthropic or DeepSeek; the BRAIN note says "Key rejected. Press Forget, then paste it again."): her brain's key is wrong or was deleted. Copy it again from that company's site. Her voice keys (Fish Audio, ElevenLabs) are separate and name themselves in their own errors, so a new voice key won't fix this one.
-- "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
-- "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
+- "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
+- "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits, and OpenCode Go needs a Go subscription. Add credits or subscribe, or press Free key for a free NVIDIA key.
+- "This key isn't on an OpenCode Go plan. Subscribe at opencode.ai/console/go, or pick another brain key.": the OpenCode key works, but its workspace has no Go subscription. Subscribe on the Go page, or paste another provider's key under BRAIN. The BRAIN note says "No OpenCode Go plan. Subscribe at opencode.ai/console/go."
+- "A 64-character sk- key isn't guessed. For OpenCode Go, use Provider with https://opencode.ai/inference/go.": Capri only guesses newer oc_sk_ Go keys. For an older sk- key, open BRAIN > Provider, put https://opencode.ai/inference/go in Address and the key in Key, then press Connect. Another provider's 64-character sk- key also uses Provider with its own address. The BRAIN note says "Older Go key: use Provider, opencode.ai/inference/go."
+- "OpenCode Go didn't accept this conversation's session. Try again or choose another brain key.": Go rejected this session. Everyday Capri chat has not been verified with Go.
 - "No credits on your OpenAI key. ChatGPT Plus doesn't include API use, so add a payment method and credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key.": OpenAI bills its API apart from ChatGPT, so a Plus subscription doesn't pay for her brain. Add a payment method and buy credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key. The BRAIN note says "No API credits. Add them in Billing at platform.openai.com."
 - "My requests are too big for your OpenAI key's per-minute limit on <model>, so waiting won't help.": each request carries her tools, and a key with no payment method or credits is on OpenAI's free tier, where one request can be bigger than a model's whole per-minute limit. Pick a smaller model, or add a payment method and credits under Billing at platform.openai.com, which moves the key up a tier. ChatGPT Plus doesn't include API use. The Limits page at platform.openai.com shows the key's tier. The BRAIN note says "Too big for the key's per-minute limit. Try a smaller model."
 - "Your OpenAI key hit its daily limit on <model>.": the key's tier allows only so many requests a day on that model, and Watch my screen uses some too. It resets within a day, or add a payment method and credits under Billing at platform.openai.com to raise it. The BRAIN note says "OpenAI's daily limit is used. Try later or add credits."

@@ -94,6 +94,39 @@ internal static class Program
             "notice=" + (notice ?? "null") + " provider=" + (older.BrainProvider ?? "null") + " picks=" + Providers(older.ProviderModels));
     }
 
+    private static void OpenCode()
+    {
+        string key = "oc_sk_fixture_0123456789abcdef", legacy = "sk-" + new string('a', 64);
+        Check("an oc_sk_ key names OpenCode Go", Cloud.KindOf(key) == "opencode", "kind=" + (Cloud.KindOf(key) ?? "null"));
+        Check("an older 64-character sk- key is never guessed", Cloud.KindOf(legacy) == null && BetterModels.OpenCodeLegacyKey(legacy), "kind=" + (Cloud.KindOf(legacy) ?? "null") + " legacy=" + BetterModels.OpenCodeLegacyKey(legacy));
+        Check("OpenCode Go is a known provider", Pet.KnownProvider("opencode") && !Pet.KnownProvider("opencode-go"), "known=" + Pet.KnownProvider("opencode"));
+
+        string catalog = "{\"object\":\"list\",\"data\":[" +
+            "{\"id\":\"deepseek-v4.1-flash\",\"type\":\"chat\",\"modalities\":{\"input\":[\"text\",\"image/jpeg\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+            "{\"id\":\"glm-5.3\",\"type\":\"chat\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+            "{\"id\":\"jev-1.14\",\"type\":\"decision\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]}}]}";
+        List<string> models = Brain.ReadCloudModels("opencode", catalog);
+        Check("OpenCode Go lists chat models in service order with their eyes and tools",
+            models.Count == 2 && models[0] == "deepseek-v4.1-flash" && models[1] == "glm-5.3"
+            && Brain.DefaultCloudModel("opencode", models) == "deepseek-v4.1-flash"
+            && new Brain().Sighted(new Cloud(key, "deepseek-v4.1-flash"))
+            && !new Brain().Sighted(new Cloud(key, "glm-5.3")),
+            "models=" + string.Join(",", models.ToArray()));
+
+        List<string> degraded = Brain.ReadCloudModels("opencode", "{\"object\":\"list\",\"data\":[{\"id\":\"alpha\"},{\"id\":\"text-embedding-3-small\"}]}");
+        Check("an OpenCode Go catalogue without models.dev details still lists chat models", degraded.Count == 1 && degraded[0] == "alpha", "models=" + string.Join(",", degraded.ToArray()));
+        Check("only OpenCode Go interprets its entitlement and session errors",
+            Brain.Meaning(403, "{\"error\":\"EntitlementError\"}", openCode: true) == Brain.NoGoPlan
+            && Brain.Meaning(400, "{\"error\":\"MissingSessionID\"}", openCode: true) == Brain.MissingSession
+            && Brain.Meaning(403, "{\"error\":\"EntitlementError\"}", openai: true) == Brain.PlusRejected
+            && Brain.Meaning(400, "{\"error\":\"MissingSessionID\"}") == null,
+            "a Go error was missed or attributed to another provider");
+        var failures = new List<string>();
+        ProviderRegression.OpenCodeGo(failures);
+        Check("OpenCode Go requests route through the catalog and chat endpoints with scoped sessions",
+            failures.Count == 0, string.Join("; ", failures));
+    }
+
     private static void ProviderNames()
     {
         Settings fresh = new Settings { FreeModel = "nvidia/a" };
@@ -391,6 +424,7 @@ internal static class Program
         {
             SettingsRoundTrip(folder);
             RetentionChecks.Run(folder);
+            OpenCode();
             ProviderNames();
             ProviderMemory();
             DualWrite();
