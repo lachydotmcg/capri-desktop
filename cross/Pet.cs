@@ -1818,7 +1818,7 @@ namespace CapriDesktop
             if (board == null) return;
             try { board.SetTextAsync(ErrorDetails()); }
             catch (Exception) { return; }
-            Talk.Answer("(error details)", "Copied my error log. Paste it in the Discord so they can fix me, choom.");
+            Talk.Answer("(error details)", "Copied my error log. Paste it in the Discord so they can fix me.");
         }
 
         internal void SetDiscord(bool on)
@@ -2571,7 +2571,7 @@ namespace CapriDesktop
         {
             if (away || quitting || MacQuit.Quitting) return;
             if (StopListening()) { Talk.Dismiss(); return; }
-            if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now, choom."); return; }
+            if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now."); return; }
             Func<Action, CancellationToken, Task<string>> listen = Listen;
             StopHearingTest();
             Typed();
@@ -2607,7 +2607,7 @@ namespace CapriDesktop
                 else
                 {
                     if (problem != null) hearing.Failed(problem); else hearing.Missed();
-                    Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+                    Talk.Answer("(voice)", problem ?? "I didn't catch that. Try TALK again.");
                 }
                 NotifySettings();
             }
@@ -3840,7 +3840,7 @@ namespace CapriDesktop
 
         internal void SetLogin(bool on, bool say = true)
         {
-            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
+            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that. I need to be able to write " + LoginFile + ".");
             Sync();
         }
 

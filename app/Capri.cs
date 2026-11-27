@@ -5761,7 +5761,7 @@ namespace CapriDesktop
         {
             try { Clipboard.SetText(ErrorDetails()); }
             catch (System.Runtime.InteropServices.ExternalException) { return; }
-            Tell("copy error details", "Copied my error log. Paste it in the Discord so they can fix me, choom.");
+            Tell("copy error details", "Copied my error log. Paste it in the Discord so they can fix me.");
         }
 
         internal void ToggleWander()
@@ -10922,8 +10922,8 @@ namespace CapriDesktop
         }
 
         internal static bool FreeChatOn = true;
-        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key, choom. Make one with Restrict key turned off, then paste it under VOICE in Capri Mainframe. Type to me for now.";
-        internal const string NoVoiceCredits = "Out of ElevenLabs credits, so voice chat is off. Type to me for now, choom.";
+        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key. Make one with Restrict key turned off, then paste it under VOICE in Capri Mainframe. Type to me for now.";
+        internal const string NoVoiceCredits = "Out of ElevenLabs credits, so voice chat is off. Type to me for now.";
 
         private void CheckSlow(double now)
         {
@@ -14672,8 +14672,8 @@ namespace CapriDesktop
         }
 
         internal const string StyleLine = "How do I sound now, choom?";
-        internal const string StyleSilent = "My voice is off, choom. Pick a voice under VOICE to hear that.";
-        internal const string StyleMissing = "Get my free voice under VOICE to hear that, choom.";
+        internal const string StyleSilent = "My voice is off. Pick a voice under VOICE to hear that.";
+        internal const string StyleMissing = "Get my free voice under VOICE to hear that.";
 
         // Letting go of her pitch, speed, robot or glitch slider: she says a line in the voice she's using, so they hear it.
         // ElevenLabs makes the line once; after that its audio is restyled here, so dragging around spends no more credits.
@@ -14978,7 +14978,7 @@ namespace CapriDesktop
             {
                 heard = "(voice)";
                 box.Prompt = "> you: ";
-                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID, choom. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
+                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
                 mainframe.Restore();
                 return;
             }
@@ -21361,7 +21361,7 @@ namespace CapriDesktop
                 ClearIcons();
                 icons.Spots.Clear();
                 preferences.Motion = true;
-                if (IconPrank("rampage") != "Nothing on your desktop to throw, choom." || iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("An empty desktop started a prank.");
+                if (IconPrank("rampage") != "Nothing on your desktop to throw." || iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("An empty desktop started a prank.");
                 checks.Add("PASS scatter and vanish block rampage; pictures that can't be had end in the plain scatter, moves off uses hide, and an empty desktop only gets its line");
             }
             finally
@@ -24395,7 +24395,7 @@ namespace CapriDesktop
                 Hands.Kit missingDraw = Hands.KitWithout(new System.Collections.Generic.List<string[]> { new[] { "draw", "only on Windows for now" } });
                 recoverBrain.Kit = delegate { return missingDraw; };
                 string unsupported = recoverBrain.Ask("draw a star and open Spotify");
-                if (unsupported != "No app called X is installed on this PC. Drawing on your screen is only on Windows for now, choom." || recoverAsked.Count != 13) throw new Exception("A tool failure dropped the part that cannot work here: " + unsupported);
+                if (unsupported != "No app called X is installed on this PC. Drawing on your screen is only on Windows for now." || recoverAsked.Count != 13) throw new Exception("A tool failure dropped the part that cannot work here: " + unsupported);
                 checks.Add("PASS a failed play still runs the remaining picked tools and skips only the next brain round; a failed open_app can recover through open_website, keep its planner answer, reach the read_file answer, or keep the text about what cannot work here");
             }
             finally
@@ -26025,18 +26025,18 @@ namespace CapriDesktop
             Hands.Kit mac = Hands.KitWithout(macGaps);
             string[,] lacking =
             {
-                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now, choom." },
-                { "clip that", "Game clips are only on Windows for now, choom." },
+                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now." },
+                { "clip that", "Game clips are only on Windows for now." },
                 { "ride my cursor", "Riding your cursor is only on Windows so far." },
-                { "let's play chess", "My mini games are only on Windows for now, choom." },
+                { "let's play chess", "My mini games are only on Windows for now." },
                 { "can you open the workspace?", "Workspace is only on Windows for now." },
-                { "play tic tac toe with me", "My mini games are only on Windows for now, choom." },
-                { "what did he just say", "Listening to what's playing is only on Windows for now, choom." },
-                { "watch this video with me", "Watching videos together is only on Windows for now, choom." },
-                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now, choom." },
-                { "where are my save files", "Finding files is only on Windows for now, choom." },
+                { "play tic tac toe with me", "My mini games are only on Windows for now." },
+                { "what did he just say", "Listening to what's playing is only on Windows for now." },
+                { "watch this video with me", "Watching videos together is only on Windows for now." },
+                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now." },
+                { "where are my save files", "Finding files is only on Windows for now." },
                 { "clone yourself", Hands.NoClones },
-                { "activate gaming mode", "Gaming Mode is only on Windows for now, choom." },
+                { "activate gaming mode", "Gaming Mode is only on Windows for now." },
                 { "can you click the play button?", null },
                 { "open spotify", null },
                 { "what's on my screen?", null },
@@ -26046,7 +26046,7 @@ namespace CapriDesktop
             };
             for (int i = 0; i < lacking.GetLength(0); i++)
                 if (mac.Lacking(lacking[i, 0]) != lacking[i, 1]) throw new Exception("\"" + lacking[i, 0] + "\" on a Mac got " + (mac.Lacking(lacking[i, 0]) ?? "nothing") + " instead of " + (lacking[i, 1] ?? "nothing"));
-            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now, choom.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
+            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
                 || mac.Brief.Contains("\n- draw: ") || mac.Brief.Contains("\n- use_computer: ") || !mac.Brief.Contains("\n- open_app: ") || !mac.Brief.Contains(mac.NotHere) || mac.Tools.Contains("\"name\":\"draw\"") || mac.Tools.Contains("\"ride_cursor\"") || !mac.Tools.Contains("\"sit_on\"")
                 || kit.Lacking("can you draw on my screen?") != null || kit.Lacking("tell me when my download finishes") != null || blind.Lacking("tell me when my download finishes") != null || blind.Lacking("what's on my screen?") != null)
                 throw new Exception("Her line about what isn't here was wrong, or what works was turned down: " + mac.NotHere);
@@ -26115,7 +26115,7 @@ namespace CapriDesktop
                 string clicked = onMac.Ask("can you click the play button?");
                 string[] macSent;
                 lock (macAsked) macSent = macAsked.ToArray();
-                if (drew != "Drawing on your screen is only on Windows for now, choom." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
+                if (drew != "Drawing on your screen is only on Windows for now." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
                     throw new Exception("On a Mac a tool that isn't there was promised or forced on her hands: " + drew + " / " + clicked + " / " + macActed + " tools / " + macSent.Length + " calls");
             }
             finally
@@ -26141,7 +26141,7 @@ namespace CapriDesktop
             macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
             foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "workspace", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
             Hands.Kit mac = Hands.KitWithout(macGaps), everything = Hands.KitWithout(new System.Collections.Generic.List<string[]>());
-            const string drawLine = "Drawing on your screen is only on Windows for now, choom.";
+            const string drawLine = "Drawing on your screen is only on Windows for now.";
             Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
             Func<string, bool> existsWas = Hands.Exists;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
@@ -26157,7 +26157,7 @@ namespace CapriDesktop
                 {
                     { "draw a star and open Spotify", null, drawLine, "open Spotify" },
                     { "can you open Spotify, then draw a star please", null, drawLine, "open Spotify" },
-                    { "clip that and open Spotify", null, "Game clips are only on Windows for now, choom.", "open Spotify" },
+                    { "clip that and open Spotify", null, "Game clips are only on Windows for now.", "open Spotify" },
                     { "ride my cursor and play some music", null, "Riding your cursor is only on Windows so far.", "play some music" },
                     { "open Spotify, draw a star and play some music", null, drawLine, "open Spotify and play some music" },
                     { "open Spotify. Chaos mode", null, Hands.NoClones, "open Spotify" },
@@ -35530,7 +35530,7 @@ namespace CapriDesktop
                 if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
             if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
                 || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
-                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
+                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
                 || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Capri Mainframe > Settings."
                 || Hands.Claimed("Started your stopwatch!", ran("stopwatch")) != null || Hands.Claimed("Your stopwatch has been stopped.", ran("remind")) != "stopwatch" || Hands.NotYet("stopwatch", null) != "Your stopwatch hasn't changed yet. Say start or stop the stopwatch."
                 || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
@@ -61380,7 +61380,7 @@ namespace CapriDesktop
                             if (voice.VoiceId != null || preferences.VoiceId != null || voice.Model != null || mainframe.VoiceStatus != "Needs your Voice ID. |  | Default model | Forget") throw new Exception("Blank voice was not cleared: " + mainframe.VoiceStatus);
                             CloseTalk();
                             pill.Press(2);
-                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID, choom. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
+                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
                             CloseTalk();
                             preferences.VoiceKey = sealedKey;
                             ForgetVoice();

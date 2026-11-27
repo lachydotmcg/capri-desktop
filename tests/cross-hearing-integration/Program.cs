@@ -14,7 +14,7 @@ static class E7Probe
 {
     const BindingFlags All = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
     const string Ready = "Hearing: her own ears · default mic · ready", Starting = "Hearing: her own ears · default mic · starting", Working = "Hearing: her own ears · default mic · working";
-    const string NoWords = "No words came back", Quiet = "Mic is too quiet: raise its input volume", Silent = "No sound reached the mic test", NoEars = "Her ears aren't installed", NormalMiss = "I didn't catch that, choom. Try TALK again.";
+    const string NoWords = "No words came back", Quiet = "Mic is too quiet: raise its input volume", Silent = "No sound reached the mic test", NoEars = "Her ears aren't installed", NormalMiss = "I didn't catch that. Try TALK again.";
     const string RecorderStopped = "The microphone recorder stopped";
     static Assembly app;
     static string state, fake, pidDir;
