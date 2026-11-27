@@ -12,14 +12,20 @@ namespace CapriDesktop
 {
     internal sealed partial class Mainframe
     {
-        private const int ModRows = 3, ModRowTop = 370, ModRowHeight = 62, ModListHead = 312;
+        private const int ModRows = 3, ModRowTop = 334, ModRowHeight = 62, ModListHead = 276;
+        // A mod row's own height inside its 62, the page buttons' row, a one-line "No mods" note, COLORS' gap above it when
+        // nothing pages, the rows from COLORS' heading to its last buttons, and the room left under them.
+        private const int ModRowOwn = 56, ModPageRow = 30, ModNoteTall = 20, ModColoursGap = 14, ModColoursTall = 80, ModsRoom = 32;
+        private readonly List<KeyValuePair<Control, int>> modBelowPlugs = new List<KeyValuePair<Control, int>>(), modBelowRows = new List<KeyValuePair<Control, int>>();
+        private readonly List<Control> modScrolled = new List<Control>();
+        private int modsTall = ModRowTop + ModRowHeight * ModRows + ModPageRow + ModColoursTall + ModsRoom;
         private readonly List<KeyValuePair<Control, int>> modLeft = new List<KeyValuePair<Control, int>>();
         private readonly Label[] modNames = new Label[ModRows], modAbouts = new Label[ModRows];
         private readonly Key[] modSwitches = new Key[ModRows], modRemoves = new Key[ModRows], modPublishes = new Key[ModRows], modOptions = new Key[ModRows];
         private Key modsKey, modBack, modNext, modBrowse;
         private Head modListHead;
         private readonly Key[] colourKeys = new Key[ArtColors.Slots];
-        private Label modStatus, modEmpty, modNoMatch, modPage;
+        private Label modStatus, modCaption, modEmpty, modNoMatch, modPage;
         private readonly Timer modStatusTimer = new Timer();
         private Entry modSearch;
         private List<Mod> modShown = new List<Mod>();
@@ -32,7 +38,7 @@ namespace CapriDesktop
             ModAsk = AskToRun;
             int first = Controls.Count;
             Section("MODS >", 0, 58);
-            Caption("Code mods can reach your whole PC. Only trusted ones.", 28, 80, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
+            modCaption = Caption("Code mods can reach your whole PC. Only trusted ones.", 28, 80, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
             Key import = Make("Import mod", 28, 104, 100, 28, delegate { ImportMod(); });
             import.Accent = Cyan;
             import.Loud = true;
@@ -41,14 +47,18 @@ namespace CapriDesktop
             Explain(import, "Import mod", "MainframeMods.cs");
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
-            modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
-            modStatusTimer.Tick += delegate { modStatusTimer.Stop(); modStatus.Text = ""; };
+            // What a mod did takes the caption's line until modStatusTimer clears it, so no empty row waits under the buttons.
+            modStatus = ModLabel("", 28, 80, 328, 20, Font, Faint);
+            modStatus.Visible = false;
+            modStatus.TextChanged += delegate { bool quiet = modStatus.Text.Length == 0; modCaption.Visible = quiet; modStatus.Visible = !quiet; };
+            modStatusTimer.Tick += delegate { ModQuiet(); };
             FormClosed += delegate { modStatusTimer.Stop(); modStatusTimer.Dispose(); };
-            // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
+            // A long import error, like a compiler's, is cut to one line here, and hovering it shows the whole thing.
             ((Note)modStatus).Hovers = true;
             // Mod names can hold an &, like Dice & Decider, so it isn't read as a shortcut key.
             modStatus.UseMnemonic = false;
             BuildPlugs();
+            int belowPlugs = Controls.Count;
             modListHead = Section("INSTALLED >", 0, ModListHead);
             modSearch = Input(28, ModListHead + 24, 222, 26);
             modSearch.Cue = "Search by name or author";
@@ -81,7 +91,8 @@ namespace CapriDesktop
             Explain(modBack, "Mod pages", "MainframeMods.cs");
             modNext = Make("Next", 296, ModRowTop + ModRowHeight * ModRows, 60, 22, delegate { modFirst += ModRows; FillMods(); });
             Explain(modNext, "Mod pages", "MainframeMods.cs");
-            Section("COLORS >", 0, ModRowTop + ModRowHeight * ModRows + 30);
+            int belowRows = Controls.Count;
+            Section("COLORS >", 0, ModRowTop + ModRowHeight * ModRows + ModPageRow);
             int colourRow = ModRowTop + ModRowHeight * ModRows + 54;
             for (int i = 0; i < ArtColors.Slots; i++)
             {
@@ -95,13 +106,32 @@ namespace CapriDesktop
             Key animations = Make("Animations", 196, colourRow + 32, 160, 24, delegate { EditAnimations(); });
             animations.AccessibleName = "Edit her animations";
             Explain(animations, "Animations", "MainframeMods.cs");
+            modScrolled.AddRange(mainScrolled);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
                 modLeft.Add(new KeyValuePair<Control, int>(control, control.Left));
+                if (i >= belowPlugs) (i >= belowRows ? modBelowRows : modBelowPlugs).Add(new KeyValuePair<Control, int>(control, control.Top));
+                if (!modScrolled.Contains(control)) modScrolled.Add(control);
+                control.Enter += delegate { Reveal(control); };
                 control.Left += Far;
                 Reachable(control, false);
             }
+        }
+
+        // Her Mods page closes up where plug-in tiles or mod rows aren't, and the window ends under its last row (PR 464).
+        // A list that pages keeps all three rows, so Back and Next don't move between pages.
+        private void PlaceMods()
+        {
+            if (modListHead == null) return;
+            int plugsGone = plugShown == null || plugShown.Count == 0 ? PlugTall - ModNoteTall : 0;
+            bool pages = modShown.Count > ModRows;
+            int rows = Math.Max(0, Math.Min(ModRows, modShown.Count - modFirst));
+            int rowsEnd = rows > 0 ? ModRowTop + ModRowHeight * (rows - 1) + ModRowOwn : ModRowTop + ModNoteTall;
+            int rowsGone = pages ? 0 : ModRowTop + ModRowHeight * ModRows + ModPageRow - rowsEnd - ModColoursGap;
+            foreach (KeyValuePair<Control, int> entry in modBelowPlugs) entry.Key.Top = Scaled(entry.Value - plugsGone);
+            foreach (KeyValuePair<Control, int> entry in modBelowRows) entry.Key.Top = Scaled(entry.Value - plugsGone - rowsGone);
+            modsTall = ModRowTop + ModRowHeight * ModRows + ModPageRow + ModColoursTall + ModsRoom - plugsGone - rowsGone;
         }
 
         private Label ModLabel(string text, int x, int y, int width, int height, Font font, Color colour)
@@ -154,6 +184,7 @@ namespace CapriDesktop
             DismissHint();
             CloseSearchList();
             if (on && paged) ShowSettings(false);
+            ScrollPage(0);
             modded = on;
             more.Text = on ? "Back" : "Settings";
             more.Invalidate();
@@ -208,6 +239,7 @@ namespace CapriDesktop
                 colourKeys[i].Invalidate();
             }
             if (capri.ModList.Problems.Count > 0) ModSays("Skipped " + capri.ModList.Problems[0], true);
+            if (modded) Arrange(expanded);
         }
 
         private static List<Mod> ShownMods(List<Mod> mods, string search)
@@ -219,6 +251,12 @@ namespace CapriDesktop
                 foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
                 return true;
             });
+        }
+
+        private void ModQuiet()
+        {
+            modStatusTimer.Stop();
+            modStatus.Text = "";
         }
 
         private void ModSays(string text, bool problem)
@@ -484,6 +522,184 @@ namespace CapriDesktop
             }
         }
 
+        private const string LongModProblem = "Couldn't build Long Mod: main.cs(12,40): error CS1002: ; expected, main.cs(14,9): error CS0103: The name 'cpu' does not exist in the current context.";
+
+        private void CheckModsLayout(List<string> checks, string output)
+        {
+            int wasDpi = layoutDpi, wasText = layoutText;
+            bool wasFallback = layoutFallback;
+            try
+            {
+                foreach (int percent in new[] { 100, 200 })
+                {
+                    LayoutScale(percent * 96 / 100, 100);
+                    ModSays("", false);
+                    string problem = TextFits() ?? Overlap();
+                    if (problem != null) throw new Exception("The Mods page doesn't fit at " + percent + "%: " + problem);
+                    if (!modCaption.Visible || modStatus.Visible || plugBack.Top - modBrowse.Bottom > Scaled(12)) throw new Exception("The Mods page at " + percent + "% left a gap of " + (plugBack.Top - modBrowse.Bottom) + " px under its buttons, or hid its caption.");
+                    SaveModsPicture(output, "mods-" + percent);
+                    ModSays(LongModProblem, true);
+                    problem = TextFits() ?? Overlap();
+                    if (problem != null) throw new Exception("A long mod error doesn't fit at " + percent + "%: " + problem);
+                    if (modCaption.Visible || !modStatus.Visible || modStatus.Top != modCaption.Top || modStatus.Bottom > modBrowse.Top || modStatus.Height > Scaled(22) || modStatus.ForeColor != Rose
+                        || modStatus.Text != LongModProblem || modStatus.AccessibilityObject.Name != LongModProblem || !ModStatusHovers || !modStatusTimer.Enabled)
+                        throw new Exception("A long mod error at " + percent + "% didn't take the caption's one line in the problem colour with its whole text for hover and screen readers.");
+                    SaveModsPicture(output, "mods-error-" + percent);
+                    ModQuiet();
+                    if (!modCaption.Visible || modStatus.Text.Length != 0) throw new Exception("The caption didn't come back when the mod message timed out.");
+                }
+                checks.Add("PASS Mods page: a mod message takes the caption's one line (cut with ... and whole on hover and for screen readers) until it times out, PLUG-INS sits right under the buttons, and it fits at 100% and 200%");
+            }
+            finally
+            {
+                LayoutScale(wasDpi, wasText, wasFallback);
+                ModSays("", false);
+            }
+        }
+
+        private static string NameMod(string folder, string id, string name, string wake)
+        {
+            string file = Path.Combine(folder, id + Mods.Extension);
+            File.WriteAllText(file, "{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + name + "\",\"version\":\"1.0.0\",\"author\":\"Avery\",\"description\":\"Checks her Mods page.\",\"wake_names\":[\"" + wake + "\"]}");
+            return file;
+        }
+
+        private void ImportNameMods(string folder, params string[] names)
+        {
+            foreach (string name in names)
+                if (!ImportMod(NameMod(folder, "fit-" + name.ToLowerInvariant(), "Fit " + name, name))) throw new Exception("A name mod for the Mods page check was refused: " + modStatus.Text);
+        }
+
+        private void RemoveModsBut(List<Mod> kept)
+        {
+            foreach (Mod mod in capri.ModList.All.ToArray()) if (!kept.Exists(one => one.File.Id == mod.File.Id)) capri.ModList.Remove(mod);
+            FillMods();
+        }
+
+        // Her Mods window ends its room under the last row with 1 mod, a full page and a list that pages, at 100% and 200%, and on
+        // a short screen it scrolls to that row at the zoom the main page has. Leaving Mods gives the main page its height back.
+        internal void CheckModsFit(List<string> checks, string output)
+        {
+            List<Mod> kept = new List<Mod>(capri.ModList.All);
+            int mainRoom = -1;
+            ModsFitting(delegate
+            {
+                TestScreen = new Rectangle(0, 0, 2880, 1800);
+                LayoutScale(96, 100);
+                ShowMods(false);
+                mainRoom = RoomUnder(LastRow());
+                foreach (int screen in new[] { 100, 200, 0 })
+                {
+                    bool shortScreen = screen == 0;
+                    foreach (int rows in new[] { 1, 3, 4 })
+                    {
+                        TopUpNameMods(output, rows);
+                        string tag = rows + (rows == 1 ? " mod" : " mods") + " at " + (shortScreen ? "200% on a short screen" : screen + "%");
+                        if (!ModsFit(checks, tag, shortScreen ? 200 : screen, shortScreen)) continue;
+                        if (shortScreen && ScrollMost <= 0) throw new Exception("Mods with " + tag + " didn't scroll.");
+                        if (shortScreen)
+                        {
+                            ScrollPage(ScrollMost);
+                            int scrolled = pageScroll;
+                            FillMods();
+                            if (pageScroll != scrolled) throw new Exception("Mods with " + tag + " jumped from " + scrolled + " to " + pageScroll + " when its list refreshed.");
+                        }
+                        if (!shortScreen) { ModQuiet(); SaveModsPicture(output, "mods-fit-" + rows + "-" + screen); }
+                        ScrollPage(0);
+                    }
+                    RemoveModsBut(kept);
+                }
+            }, kept);
+            checks.Add("PASS Mods ends " + ModsRoom + " rows under its last row (the main page leaves " + mainRoom + ") with 1, 3 and 4 mods at 100% and 200%, scrolls to it on a short screen at the main page's zoom and keeps that scroll when its list refreshes, keeps its top edge, and leaving gives the main page its height back");
+        }
+
+        // The same at the size this check runs, with PLUG-INS showing over three mods; SmokeModsFit covers 100%, 200% and short screens.
+        private void CheckModsFitWithPlugs(List<string> checks, string output)
+        {
+            List<Mod> kept = new List<Mod>(capri.ModList.All);
+            ModsFitting(delegate
+            {
+                ImportNameMods(output, "Juno", "Vega", "Lyra");
+                if (ModsFit(checks, "plug-ins and 3 mods", 0, false)) { ModQuiet(); SaveModsPicture(output, "mods-fit-plugins-3"); }
+            }, kept);
+            checks.Add("PASS Mods with PLUG-INS and 3 mods ends " + ModsRoom + " rows under its last row, and leaving gives the main page its height back");
+        }
+
+        private void ModsFitting(Action check, List<Mod> kept)
+        {
+            int wasDpi = layoutDpi, wasText = layoutText;
+            bool wasFallback = layoutFallback;
+            Rectangle screenWas = TestScreen;
+            FormWindowState wasState = WindowState;
+            bool wasModded = modded;
+            Restore();
+            try { check(); }
+            finally
+            {
+                TestScreen = screenWas;
+                ScrollPage(0);
+                RemoveModsBut(kept);
+                if (layoutDpi != wasDpi || layoutText != wasText || layoutFallback != wasFallback) LayoutScale(wasDpi, wasText, wasFallback);
+                else Rezoom(Wanted());
+                ShowMods(wasModded);
+                WindowState = wasState;
+            }
+        }
+
+        private void TopUpNameMods(string folder, int count)
+        {
+            foreach (string name in new[] { "Juno", "Vega", "Lyra", "Orla" })
+            {
+                if (capri.ModList.All.FindAll(one => !one.Plugin).Count >= count) return;
+                if (!capri.ModList.All.Exists(one => one.File.Id == "fit-" + name.ToLowerInvariant())) ImportNameMods(folder, name);
+            }
+        }
+
+        // Puts her at this size (0 keeps hers) on a tall screen or a short one that makes Mods scroll, and checks its height. False
+        // when Windows won't make the window that tall here.
+        private bool ModsFit(List<string> checks, string tag, int percent, bool shortScreen)
+        {
+            TestScreen = shortScreen ? new Rectangle(0, 0, 1366, 728) : new Rectangle(0, 0, 2880, 1800);
+            if (percent > 0 && (layoutDpi != percent * 96 / 100 || layoutText != 100)) LayoutScale(percent * 96 / 100, 100);
+            else Rezoom(Wanted());
+            string problem = ModsFitProblem();
+            if (problem == "held") { checks.Add("LIMIT Mods with " + tag + ": Windows held the window shorter than its rows on this desktop"); return false; }
+            if (problem != null) throw new Exception("Mods with " + tag + " " + problem + ".");
+            return true;
+        }
+
+        // What's wrong with the Mods window's height as it shows now, "held" when Windows won't make it that tall, or null.
+        private string ModsFitProblem()
+        {
+            ShowMods(false);
+            int mainTall = ClientSize.Height, top = Top;
+            float zoomWas = zoom;
+            ShowMods(true);
+            int view = Math.Max(4 * ScrollRow, Math.Min(modsTall, (int)(Area().Height / Unit())));
+            if (Scaled(view) > SystemInformation.MaxWindowTrackSize.Height) return "held";
+            if (pageView != view || ClientSize.Height != Scaled(pageView)) return "showed " + pageView + " of its " + modsTall + " rows in " + ClientSize.Height + " px, on a screen with room for " + view;
+            if (Top != top || Math.Abs(zoom - zoomWas) > 0.0001f) return "moved its top edge or changed her zoom";
+            string crowded = TextFits() ?? Overlap();
+            if (crowded != null) return "overlapped " + crowded;
+            Control last = LastRow();
+            int room = RoomUnder(last);
+            if (Math.Abs(room - ModsRoom) > 2) return "left " + room + " rows under " + Named(last) + ", not " + ModsRoom;
+            ShowMods(false);
+            if (ClientSize.Height != mainTall || Math.Abs(zoom - zoomWas) > 0.0001f) return "didn't give the main page back its " + mainTall + " px (" + ClientSize.Height + ")";
+            ShowMods(true);
+            return null;
+        }
+
+        private void SaveModsPicture(string output, string name)
+        {
+            Refresh();
+            using (Bitmap page = new Bitmap(Width, Height))
+            {
+                DrawToBitmap(page, new Rectangle(Point.Empty, Size));
+                page.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
+            }
+        }
+
         internal void CheckMods(List<string> checks, string output)
         {
             FormWindowState wasState = WindowState;
@@ -514,6 +730,7 @@ namespace CapriDesktop
                 DrawToBitmap(page, new Rectangle(Point.Empty, Size));
                 page.Save(Path.Combine(output, "mods-page.png"), ImageFormat.Png);
             }
+            CheckModsLayout(checks, output);
             SwitchMod(0);
             if (Hands.HeardName("hey nova") || !Hands.HeardName("hey capri") || Hands.NoteFor(Hands.KitFor()).Contains("They can also call you")) throw new Exception("Turning a mod off left its names on.");
             mods.Load();

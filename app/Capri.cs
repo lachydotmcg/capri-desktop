@@ -47814,6 +47814,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
+            Section(checks, "SmokeModsFit", delegate { string fitOut = Path.Combine(output, "mods-fit-test"); Directory.CreateDirectory(fitOut); mainframe.CheckModsFit(checks, fitOut); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStartFailure", delegate { SmokeStartFailure(checks, output); });
             Section(checks, "SmokeInstallerErrors", delegate { SmokeInstallerErrors(checks, output); });
