@@ -12,7 +12,12 @@ namespace CapriDesktop
 
         private HoloWindow holoWindow;
         private HoloCallSource holoCallSource;
-        private string holoDiscordSession;
+        private volatile string holoDiscordSession;
+        private int holocallSequence;
+        private volatile int holocallStamp;
+        private HoloPose? holoExpression;
+        private double holoExpressionUntil;
+        private Speaker holoOpeningSound;
         private bool holoReturnToCompact, holoTyperWasVisible;
         private static volatile IntPtr holoHandle;
         private Timer holoCameraTimer;
@@ -66,6 +71,68 @@ namespace CapriDesktop
 
         private bool HoloCompactSelected { get { return holoWindow != null && (!holoWindow.FullSize || holoReturnToCompact); } }
         private bool HoloShowing { get { return holoWindow != null; } }
+        private int HolocallStamp { get { return holocallStamp; } }
+
+        private int HolocallStampForDiscord(string session)
+        {
+            return session != null && session == holoDiscordSession ? HolocallStamp : 0;
+        }
+
+        private string ApplyHolocallPose(int stamp, string name)
+        {
+            if (stamp == 0 || stamp != HolocallStamp) return "Open Holocall to use a portrait pose.";
+            if (InvokeRequired)
+            {
+                try { return (string)Invoke(new Func<int, string, string>(ApplyHolocallPose), stamp, name); }
+                catch (InvalidOperationException) { return "Holocall closed."; }
+            }
+            if (holoWindow == null || quitting) return "Holocall closed.";
+            HoloPose pose;
+            switch (name)
+            {
+                case "bored": pose = HoloPose.Bored; break;
+                case "hand": pose = HoloPose.Hand; break;
+                case "angry": pose = HoloPose.Angry; break;
+                case "sad": pose = HoloPose.Sad; break;
+                default: return "Choose bored, hand, angry or sad.";
+            }
+            holoExpression = pose;
+            holoExpressionUntil = clock.Elapsed.TotalSeconds + (preferences.Motion ? holoWindow.OpeningRemaining : 0) + 2.6;
+            return "Showing " + name + " in Holocall.";
+        }
+
+        private HoloPose? HolocallExpression
+        {
+            get { return HolocallStamp != 0 && clock.Elapsed.TotalSeconds < holoExpressionUntil ? holoExpression : null; }
+        }
+
+        private Speaker PlayHolocallOpeningSound()
+        {
+            int gain = Sfx.Level;
+            if (testing || gain <= 0) return null;
+            Speaker player = new Speaker(false) { Plain = true };
+            try
+            {
+                using (Stream raw = typeof(HoloWindow).Assembly.GetManifestResourceStream("Capri.Holo.opening.pcm"))
+                {
+                    if (raw == null || raw.Length < 2 || raw.Length % 2 != 0) throw new InvalidDataException("Holocall opener sound is missing or incomplete.");
+                    using (BinaryReader reader = new BinaryReader(raw))
+                    {
+                        short[] samples = new short[raw.Length / 2];
+                        for (int i = 0; i < samples.Length; i++) samples[i] = (short)(reader.ReadInt16() * Math.Min(gain, 100) / 100);
+                        player.Open(Sfx.Rate);
+                        player.Play(samples);
+                    }
+                }
+                return player;
+            }
+            catch (Exception error)
+            {
+                player.Dispose();
+                Brain.Log("holocall sound", -1, error.GetType().Name + ": " + error.Message);
+                return null;
+            }
+        }
 
         protected override void SetVisibleCore(bool value)
         {
@@ -125,7 +192,16 @@ namespace CapriDesktop
             next.CameraPressed += ToggleHoloCamera;
             next.MenuPressed += delegate { menu.Show(Cursor.Position); };
             next.FormClosed += delegate { if (holoWindow == next) LeaveHolo(); };
-            try { next.OpenOn(screen, preferences.OnTop); CheckHoloCall(); }
+            try
+            {
+                next.OpenOn(screen, preferences.OnTop);
+                CheckHoloCall();
+                if (previous == null && holoWindow == next)
+                {
+                    holocallStamp = ++holocallSequence;
+                    if (preferences.Motion) holoOpeningSound = PlayHolocallOpeningSound();
+                }
+            }
             catch (Exception error)
             {
                 LeaveHolo();
@@ -162,7 +238,7 @@ namespace CapriDesktop
 
         private HoloView ReadHoloView()
         {
-            HoloView view = new HoloView { Motion = preferences.Motion, CanCamera = CapriCamera.Bundled, CameraOn = holoCameraTurn != 0 };
+            HoloView view = new HoloView { Motion = preferences.Motion, CanCamera = CapriCamera.Bundled, CameraOn = holoCameraTurn != 0, Expression = HolocallExpression };
             bool showingReply = talkState == TalkState.Talking || talkState == TalkState.Online;
             if (holoCallSource == HoloCallSource.Windows && CallModeOn)
             {
@@ -213,6 +289,9 @@ namespace CapriDesktop
         {
             HoloWindow leaving = holoWindow;
             if (leaving == null) return;
+            holocallStamp = 0;
+            holoExpression = null;
+            if (holoOpeningSound != null) { holoOpeningSound.Dispose(); holoOpeningSound = null; }
             StopHoloCamera();
             holoWindow = null;
             BindHoloCall(HoloCallSource.None);
@@ -250,9 +329,9 @@ namespace CapriDesktop
             {
                 HoloInk.Family = HoloFamily;
                 holoCameraArt = new HoloArt(typeof(HoloWindow).Assembly);
-                holoCameraFrames = new[] { HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Idle)),
-                    HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Speaking)),
-                    HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Thinking)) };
+                holoCameraFrames = new byte[(int)HoloPose.SpeakingHand + 1][];
+                for (int i = 0; i < holoCameraFrames.Length; i++)
+                    holoCameraFrames[i] = HoloInk.CameraFrame(holoCameraArt.Pose((HoloPose)i));
                 holoCameraClock = System.Diagnostics.Stopwatch.StartNew();
                 holoCameraSent = -1;
                 if (!preferences.Motion) { holoCameraArt.Dispose(); holoCameraArt = null; }
@@ -311,7 +390,7 @@ namespace CapriDesktop
                 holoCameraSent = -1;
                 holoCameraTimer.Interval = 66;
             }
-            HoloView view = new HoloView { Speaking = TalkingNow, Thinking = talkState == TalkState.Thinking };
+            HoloView view = new HoloView { Speaking = TalkingNow, Thinking = talkState == TalkState.Thinking, Expression = HolocallExpression };
             if (holoCameraCall == HoloCallSource.Discord) discordCompanion.ReadHoloVoice(holoCameraDiscordSession, view);
             int pose = (int)HoloInk.PoseOf(view, now);
             if (pose == holoCameraSent && unchecked(Environment.TickCount - holoCameraSentAt) < 500) return;
@@ -371,6 +450,19 @@ namespace CapriDesktop
             {
                 if (art.IntroFrames < 60 || art.Pose(HoloPose.Idle).Width != 1920 || art.Pose(HoloPose.Speaking).Height != 1080)
                     throw new Exception("Her Holocall art didn't load: " + art.IntroFrames + " opening frames.");
+                using (Stream sound = typeof(HoloWindow).Assembly.GetManifestResourceStream("Capri.Holo.opening.pcm"))
+                    if (sound == null || sound.Length != art.IntroFrames * (Sfx.Rate * 2L) / HoloArt.Fps)
+                        throw new Exception("The Holocall sound and opening have different lengths.");
+                foreach (HoloPose pose in new[] { HoloPose.Bored, HoloPose.Hand, HoloPose.Angry, HoloPose.Sad, HoloPose.SpeakingHand })
+                    if (art.Pose(pose).Size != art.Pose(HoloPose.Idle).Size)
+                        throw new Exception("Holocall's " + pose + " portrait doesn't match her normal canvas.");
+                HoloView waving = new HoloView { Expression = HoloPose.Hand, Speaking = true };
+                bool visibleHand = false;
+                for (int y = 660; y < 1080 && !visibleHand; y += 12)
+                    for (int x = 1240; x < 1641 && !visibleHand; x += 12)
+                        visibleHand = art.Pose(HoloPose.Hand).GetPixel(x, y).ToArgb() != art.Pose(HoloPose.Idle).GetPixel(x, y).ToArgb();
+                if (!visibleHand || HoloInk.PoseOf(waving, 0) != HoloPose.SpeakingHand)
+                    throw new Exception("Her Holocall hand didn't overlay the portrait while she spoke.");
                 const float scale = 1.5f;
                 Size size = HoloInk.CompactSize(scale);
                 using (Bitmap face = HoloInk.Scaled(art.Pose(HoloPose.Speaking), HoloInk.FaceSize(scale), true))
@@ -412,6 +504,17 @@ namespace CapriDesktop
                 ShowHolo(false, HoloCallSource.None, false);
                 if (holoWindow == null || !holoWindow.Visible || holoWindow.FullSize || Visible || ActiveHoloCall() != HoloCallSource.None && holoCallSource == HoloCallSource.None)
                     throw new Exception("Holocall didn't take her place on screen.");
+                int stamp = HolocallStamp;
+                if (stamp == 0 || ApplyHolocallPose(stamp + 1, "angry").StartsWith("Showing", StringComparison.Ordinal))
+                    throw new Exception("A different Holocall session could replace her portrait.");
+                foreach (string name in new[] { "bored", "hand", "angry", "sad" })
+                {
+                    ApplyHolocallPose(stamp, name);
+                    if (ReadHoloView().Expression.ToString().ToLowerInvariant() != name)
+                        throw new Exception("The " + name + " tool pose did not reach her display.");
+                }
+                holoExpressionUntil = clock.Elapsed.TotalSeconds - 1;
+                if (ReadHoloView().Expression.HasValue) throw new Exception("The expression outlasted its hold.");
                 System.Reflection.MethodInfo press = typeof(HoloWindow).GetMethod("Press", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                 press.Invoke(holoWindow, new object[] { HoloAction.Type });
                 if (!typer.Visible || Screen.FromControl(typer).Bounds != Screen.FromControl(holoWindow).Bounds)
@@ -433,7 +536,7 @@ namespace CapriDesktop
                 if (holoWindow == null || holoWindow.FullSize) throw new Exception("Leaving full size opened from Holocall didn't go back to Holocall.");
             }
             finally { LeaveHolo(); }
-            if (holoWindow != null || shownBefore && !hidden && !docked && !Visible) throw new Exception("Leaving Holocall didn't bring her normal self back.");
+            if (holoWindow != null || HolocallStamp != 0 || shownBefore && !hidden && !docked && !Visible) throw new Exception("Leaving Holocall didn't restore her normal display with portrait tools off.");
             checks.Add("PASS Holocall and full size: Holocall takes her place in a lean framed window, full size covers her whole screen and goes back to Holocall, and leaving brings her normal self back");
         }
     }

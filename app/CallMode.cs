@@ -873,15 +873,17 @@ namespace CapriDesktop
             int version = callSession.Generation;
             string doing = running.Words ?? running.Task;
             Func<string, string> test = callAsideTest;
+            HolocallTurn pose = new HolocallTurn(HolocallStamp);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said = null;
-                try { said = test != null ? test(text) : brain.AskCall(text, callSession, version, delegate { return CallModeOn && callSession.Current(version); }, doing); }
+                try { said = test != null ? test(text) : brain.AskCall(text, callSession, version, delegate { return CallModeOn && callSession.Current(version); }, doing, pose); }
                 catch (Exception error) { if (!(error is WebException)) Brain.Log("call aside", -1, error.GetType().Name + ": " + error.Message); }
                 if (string.IsNullOrWhiteSpace(said)) return;
                 Post(delegate
                 {
                     if (!CallModeOn || !callSession.Current(version)) return;
+                    if (pose.Name != null) ApplyHolocallPose(pose.Stamp, pose.Name);
                     string seen = Brain.Visible(said);
                     callAnswers++;
                     CallSaid("CAPRI", seen);
@@ -1062,6 +1064,7 @@ namespace CapriDesktop
             UpdateAnimation();
             CheckEars(clock.Elapsed.TotalSeconds);
             bool quiet = preferences.Quiet;
+            HolocallTurn pose = new HolocallTurn(HolocallStamp);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said = null;
@@ -1072,7 +1075,7 @@ namespace CapriDesktop
                     if (waiting != null) said = FillCallErrand(words, version, ticket, waiting);
                     if (ticket != Volatile.Read(ref asking) || !callSession.Current(version)) return;
                     if (said == null && waiting == null && friends) brain.CallTools(words, calls);
-                    if (calls.Count == 0 && said == null) said = brain.AskCall(text, callSession, version, delegate { return ticket == Volatile.Read(ref asking); });
+                    if (calls.Count == 0 && said == null) said = brain.AskCall(text, callSession, version, delegate { return ticket == Volatile.Read(ref asking); }, pose: pose);
                     else if (said != null && !callSession.Keep(version, text, said, Brain.Recall, delegate { return ticket == Volatile.Read(ref asking); })) return;
                 }
                 catch (Exception error) { calls.Clear(); said = error is BrainException ? error.Message : "My brain couldn't answer that call turn."; state = TalkState.Dormant; }
@@ -1085,6 +1088,8 @@ namespace CapriDesktop
                         if (said == null) said = CallSession.Conversation;
                         callSession.Keep(version, text, said, Brain.Recall);
                     }
+                    if (state == TalkState.Talking && pose.Name != null && !string.IsNullOrWhiteSpace(said))
+                        ApplyHolocallPose(pose.Stamp, pose.Name);
                     Answer(ticket, string.IsNullOrWhiteSpace(said) ? Brain.Wordless : said, state, quiet);
                 });
             });
@@ -1481,6 +1486,27 @@ namespace CapriDesktop
                     if (request.Contains("\"tools\":") || request.Contains("private-direct-chat-marker") || request.Contains("private-direct-notes-marker") || request.Contains("\"images\":")) throw new Exception("A call request included tools or private direct context.");
                 listener.Stop(); listener = null;
                 checks.Add("PASS call mode transport: spoken commands and returned tool calls execute nothing, and calls cannot read or change direct history or saved notes");
+
+                requests.Clear();
+                address = FakeServer(new[] { LocalReply("[[holocall:bored]] Hey, it's been quiet."), LocalReply("[[holocall:angry]] I'm still here."),
+                    LocalReply("SAY: [[holocall:hand]] Hey from Discord."), LocalReply("LISTEN [[holocall:sad]]") }, requests, out listener);
+                direct.Remote = new Cloud(0, "fake-call-brain", address);
+                var localPose = new HolocallTurn(1);
+                var closedPose = new HolocallTurn(0);
+                var discordPose = new HolocallTurn(2, true);
+                var quietPose = new HolocallTurn(2, true);
+                if (direct.AskCall("It's a quiet night.", session, version, pose: localPose) != "Hey, it's been quiet." || localPose.Name != "bored"
+                    || direct.AskCall("Are you still here?", session, version, pose: closedPose) != "I'm still here." || closedPose.Name != null
+                    || direct.AskCall("Hi from Discord.", session, version, pose: discordPose) != "SAY: Hey from Discord." || discordPose.Name != "hand"
+                    || direct.AskCall("Can you keep listening?", session, version, pose: quietPose) != "LISTEN" || quietPose.Name != null)
+                    throw new Exception("A Holocall reply didn't keep its portrait cue separate from its words or used a closed portrait.");
+                if (requests.Count != 4 || requests[0].IndexOf("[[holocall:bored]]", StringComparison.Ordinal) < 0
+                    || requests[1].IndexOf("[[holocall:", StringComparison.Ordinal) >= 0
+                    || requests[2].IndexOf("after SAY:", StringComparison.Ordinal) < 0
+                    || requests.Exists(request => request.Contains("\"tools\":")))
+                    throw new Exception("A Holocall cue leaked into call history or changed the call's tool access.");
+                listener.Stop(); listener = null;
+                checks.Add("PASS Holocall expressions: current call replies can choose a silent pose without adding tools or retaining the cue");
 
                 requests.Clear();
                 string late = "not finished";

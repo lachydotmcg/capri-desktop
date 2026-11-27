@@ -682,20 +682,24 @@ namespace CapriDesktop
             Rectangle body;
             Rectangle screen = IntroStage(out body);
             double length = LongestIntro;
+            ArtIntro art = intro as ArtIntro;
+            Speaker introSound = null;
             try { length = Math.Max(0, Math.Min(LongestIntro, intro.Seconds)); }
             catch (Exception error) { Brain.Log("mod intro", -1, error.ToString()); length = 0; }
             Action finished = delegate
             {
                 introScreen = null;
+                if (introSound != null) { introSound.Dispose(); introSound = null; }
                 DoorIntro door = intro as DoorIntro;
                 if (door != null) door.Stop();
-                ArtIntro art = intro as ArtIntro;
                 if (art != null) art.Dispose();
                 if (done != null) done();
             };
             if (length <= 0) { finished(); return; }
-            introScreen = new IntroScreen(intro, screen, body, length, finished);
-            introScreen.Begin();
+            IntroScreen playing = new IntroScreen(intro, screen, body, length, finished);
+            introScreen = playing;
+            playing.Begin();
+            if (introScreen == playing && art != null && art.Id == Intros.Holocall) introSound = PlayHolocallOpeningSound();
         }
 
         private sealed class IntroScreen : Form
@@ -1138,11 +1142,11 @@ namespace CapriDesktop
                 if (IntroPick != first) throw new Exception("With nothing picked her startup animation is " + IntroPick + ", not " + first + ".");
                 preferences.IntroPick = "nonsense";
                 if (IntroPick != Intros.Peek) throw new Exception("An unknown pick didn't fall back to Peek.");
-                if (Intros.AtStartup(Intros.Peek, true) != Intros.Peek || Intros.AtStartup(Intros.Classic, true) != Intros.Door)
-                    throw new Exception("The once-after-update Door intro changed Peek's startup.");
+                if (Intros.AtStartup(Intros.Peek, true) != Intros.Peek || Intros.AtStartup(Intros.Holocall, true) != Intros.Holocall || Intros.AtStartup(Intros.Classic, true) != Intros.Door)
+                    throw new Exception("The once-after-update Door intro changed startup selection.");
                 preferences.IntroPick = Intros.Classic;
                 if (PickedIntro(false) != null) throw new Exception("Classic picked a full-screen intro.");
-                foreach (string id in new[] { "peek", "up-close", Intros.Door })
+                foreach (string id in new[] { "peek", "up-close", Intros.Door, Intros.Holocall })
                 {
                     preferences.IntroPick = id;
                     ICapriIntro picked = PickedIntro(false);
@@ -1185,10 +1189,10 @@ namespace CapriDesktop
                     }
                 }
                 const int cellW = 480, cellH = 270;
-                using (Bitmap sheet = new Bitmap(cellW * 2, cellH * 2))
+                using (Bitmap sheet = new Bitmap(cellW * 2, cellH * ((Intros.Built.Length + 1) / 2)))
                 using (Graphics paper = Graphics.FromImage(sheet))
                 {
-                    double[] moments = { 1.2, 0.7, 1.2, 11.6 };
+                    double[] moments = { 1.2, 0.7, 1.2, 11.6, 2.4 };
                     for (int i = 0; i < Intros.Built.Length; i++)
                     {
                         mainframe.TickIntroPicker(moments[i]);
@@ -1201,6 +1205,9 @@ namespace CapriDesktop
                 if (!File.Exists(Path.Combine(output, "intro-sheet.png"))) throw new Exception("Her startup animation picker couldn't be pictured.");
                 mainframe.PickIntroCard("up-close");
                 if (IntroPick != "up-close" || preferences.IntroPick != "up-close" || mainframe.IntroCardPicked != "up-close" || mainframe.IntroPickShown != "Up close") throw new Exception("Picking Up close in her picker didn't stick: " + IntroPick + ", " + mainframe.IntroPickShown + ".");
+                mainframe.PickIntroCard(Intros.Holocall);
+                if (IntroPick != Intros.Holocall || preferences.IntroPick != Intros.Holocall || mainframe.IntroCardPicked != Intros.Holocall || mainframe.IntroPickShown != "Holocall")
+                    throw new Exception("Picking Holocall in her picker didn't stick.");
                 preferences.NoIntro = true;
                 mainframe.Sync();
                 mainframe.OpenIntroPicker();

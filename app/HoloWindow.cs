@@ -61,6 +61,7 @@ namespace CapriDesktop
         protected override bool ShowWithoutActivation { get { return !FullSize; } }
 
         internal double OpeningElapsed { get { return openingOffset + time.Elapsed.TotalSeconds; } }
+        internal double OpeningRemaining { get { return Math.Max(0, art.IntroSeconds - OpeningElapsed); } }
 
         internal void ContinueOpening(double elapsed) { openingOffset = elapsed; }
 
@@ -120,7 +121,7 @@ namespace CapriDesktop
             double now = time.Elapsed.TotalSeconds, opening = OpeningElapsed;
             bool introOn = view.Motion && opening < art.IntroSeconds;
 
-            HoloPose next = view.Speaking ? HoloPose.Speaking : view.Thinking ? HoloPose.Thinking : HoloPose.Idle;
+            HoloPose next = view.Expression ?? (view.Speaking ? HoloPose.Speaking : view.Thinking ? HoloPose.Thinking : HoloPose.Idle);
             if (next != state && !introOn && view.Motion) { glitchLeft = 4; glitchSeed = Environment.TickCount; }
             state = next;
 

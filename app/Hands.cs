@@ -111,6 +111,60 @@ namespace CapriDesktop
         internal ToolArguments Copy() { return (ToolArguments)MemberwiseClone(); }
     }
 
+    // One optional expression belongs to one reply and to the portrait that was open when it began.
+    internal sealed class HolocallTurn
+    {
+        internal const string Tool = "holocall_pose";
+        internal const string Description = "Briefly change your own live Holocall portrait expression. Use bored for playful boredom, hand for a hand gesture, angry for fitting frustration, or sad for a sad moment. Use it sparingly when it suits the conversation. Never mention the tool or narrate the expression.";
+        private static readonly Regex Marker = new Regex(@"\[\[holocall:(?<name>[a-z]+)\]\]", RegexOptions.CultureInvariant);
+        internal readonly int Stamp;
+        internal readonly bool DiscordVoice;
+        internal string Name { get; private set; }
+
+        internal HolocallTurn(int stamp, bool discordVoice = false) { Stamp = stamp; DiscordVoice = discordVoice; }
+        internal bool Active { get { return Stamp != 0; } }
+
+        internal string Note
+        {
+            get
+            {
+                if (!Active) return "";
+                string where = DiscordVoice ? "immediately after SAY: and before your spoken words" : "at the very start of your reply before your words";
+                return "\nYour Holocall portrait is visible. You can briefly make a natural expression while you reply. If the moment fits, put exactly one of [[holocall:bored]], [[holocall:hand]], [[holocall:angry]], or [[holocall:sad]] " + where + ". This is a silent portrait cue. Use it sparingly and never mention it. Leave it out if no expression fits.";
+            }
+        }
+
+        internal bool Pick(string name)
+        {
+            if (!Active || (name != "bored" && name != "hand" && name != "angry" && name != "sad")) return false;
+            if (Name == null) Name = name;
+            return true;
+        }
+
+        internal static string Take(string text, HolocallTurn turn)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            int start = 0;
+            while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
+            if (turn != null && turn.DiscordVoice)
+            {
+                if (text.IndexOf("SAY:", start, StringComparison.OrdinalIgnoreCase) == start)
+                {
+                    start += 4;
+                    while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
+                }
+                else start = -1;
+            }
+            Match marker = Marker.Match(text);
+            if (!marker.Success) return text;
+            string body = Marker.Replace(text, "").Trim();
+            string words = turn != null && turn.DiscordVoice && start >= 0 && body.StartsWith("SAY:", StringComparison.OrdinalIgnoreCase) ? body.Substring(4).Trim() : body;
+            if (turn != null && marker.Index == start && words.Length > 0 && Marker.Matches(text).Count == 1)
+                turn.Pick(marker.Groups["name"].Value);
+            return body;
+        }
+    }
+
     internal sealed class InstalledApp
     {
         internal readonly string Name;
@@ -2405,6 +2459,14 @@ namespace CapriDesktop
         internal static string Schema(int i) { return Specs[i, 0] == "animate" ? AnimateSchema(Specs[i, 2], MoveNames()) : Specs[i, 2]; }
 
         internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Description(i)) + ",\"parameters\":" + Schema(i) + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
+
+        internal static string WithHolocallPose(string tools, bool claude)
+        {
+            var spec = new[] { HolocallTurn.Tool, HolocallTurn.Description,
+                "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"enum\":[\"bored\",\"hand\",\"angry\",\"sad\"]}},\"required\":[\"name\"],\"additionalProperties\":false}" };
+            string pose = Render(new List<string[]> { spec }, claude);
+            return tools == "[]" ? pose : tools.Substring(0, tools.Length - 1) + "," + pose.Substring(1);
+        }
 
         private static string Render(List<string[]> specs, bool claude)
         {

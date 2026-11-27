@@ -268,7 +268,7 @@ namespace CapriDesktop
                     foreach (IntroCard card in cards)
                     {
                         ArtIntro art = card.Preview as ArtIntro;
-                        if (art != null && !art.Filled) return false;
+                        if (art != null && !art.PreviewReady) return false;
                     }
                     return true;
                 }
@@ -354,6 +354,10 @@ namespace CapriDesktop
                                 }
                                 catch (ArgumentException error) { Brain.Log("intro preview", -1, error.ToString()); card.Free(); }
                                 catch (ExternalException error) { Brain.Log("intro preview", -1, error.ToString()); card.Free(); }
+                            }
+                            else if (card.Id == Intros.Holocall)
+                            {
+                                ((ArtIntro)card.Preview).Changes(0);
                             }
                         }
                     }

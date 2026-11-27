@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -14,12 +16,12 @@ namespace CapriDesktop
 {
     internal static class Intros
     {
-        internal const string Classic = "classic", Peek = "peek", Door = "door", FromMods = "mods";
-        private static readonly string[,] Art = { { Peek, "Peek" }, { "up-close", "Up close" } };
-        internal static readonly string[] Built = { Classic, Peek, "up-close", Door };
+        internal const string Classic = "classic", Peek = "peek", Door = "door", Holocall = "holocall", FromMods = "mods";
+        private static readonly string[,] Art = { { Peek, "Peek" }, { "up-close", "Up close" }, { Holocall, "Holocall" } };
+        internal static readonly string[] Built = { Classic, Peek, "up-close", Door, Holocall };
         internal static string Default { get { return ArtIntro.Frames(Peek) > 0 ? Peek : Classic; } }
 
-        internal static string AtStartup(string pick, bool doorDue) { return doorDue && pick != Peek ? Door : pick; }
+        internal static string AtStartup(string pick, bool doorDue) { return doorDue && pick != Peek && pick != Holocall ? Door : pick; }
 
         internal static bool IsArt(string id)
         {
@@ -42,6 +44,7 @@ namespace CapriDesktop
         {
             if (id == Classic) return "Her own glitch in";
             if (id == Door) return "YunoTheAlien \u00b7 " + DoorIntro.Length.ToString("0.0") + " s";
+            if (id == Holocall) return "Call opening \u00b7 " + (ArtIntro.Frames(id) / ArtIntro.Fps(id)).ToString("0.0") + " s";
             if (IsArt(id)) return (id == Peek ? "Qewiw" : "Hand-drawn") + " \u00b7 " + (ArtIntro.Frames(id) / ArtIntro.Fps(id)).ToString("0.0") + " s";
             return "";
         }
@@ -71,7 +74,7 @@ namespace CapriDesktop
             fps = Fps(id);
         }
 
-        internal static double Fps(string id) { return id == Intros.Peek ? 30 : 12; }
+        internal static double Fps(string id) { return id == Intros.Holocall ? HoloArt.Fps : id == Intros.Peek ? 30 : 12; }
 
         internal static ArtIntro Make(string id)
         {
@@ -86,8 +89,9 @@ namespace CapriDesktop
             {
                 int frames;
                 if (counted.TryGetValue(id, out frames)) return frames;
-                frames = 0;
-                while (Companion.HasArt(Resource(id, frames))) frames++;
+                frames = id == Intros.Holocall ? HoloOpening.Count : 0;
+                if (id != Intros.Holocall)
+                    while (Companion.HasArt(Resource(id, frames))) frames++;
                 counted[id] = frames;
                 return frames;
             }
@@ -98,7 +102,7 @@ namespace CapriDesktop
         internal string Id { get { return id; } }
         internal int Count { get { return count; } }
         internal int Shown { get { return shownAt; } }
-        internal bool Filled { get { lock (gate) return ready.Count == count; } }
+        internal bool PreviewReady { get { lock (gate) return keepAll ? ready.Count == count : shown != null || ready.Count > 0; } }
         public double Seconds { get { return count / fps; } }
 
         internal static Rectangle Fit(Rectangle screen)
@@ -124,8 +128,8 @@ namespace CapriDesktop
         {
             Place(screen);
             int frame = FrameAt(at);
-            Show(frame);
             Ahead(frame);
+            Show(frame);
             if (shown == null) return;
             Bitmap picture = shown.Picture;
             GraphicsState state = graphics.Save();
@@ -141,8 +145,7 @@ namespace CapriDesktop
             int frame = FrameAt(at);
             lock (gate)
             {
-                wanted = frame;
-                Queue();
+                Request(frame);
                 int best = Best(frame);
                 return best >= 0 && best != shownAt;
             }
@@ -196,11 +199,14 @@ namespace CapriDesktop
 
         private void Ahead(int frame)
         {
-            lock (gate)
-            {
-                wanted = frame;
-                Queue();
-            }
+            lock (gate) Request(frame);
+        }
+
+        private void Request(int frame)
+        {
+            if (!keepAll && frame < wanted) Drop();
+            wanted = frame;
+            Queue();
         }
 
         private void Queue()
@@ -279,6 +285,53 @@ namespace CapriDesktop
         }
     }
 
+    internal static class HoloOpening
+    {
+        private const string Resource = "Capri.Holo.intro-30.zip";
+        private static readonly Lazy<ZipArchive> Archive = new Lazy<ZipArchive>(Load);
+
+        private static ZipArchive Load()
+        {
+            Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(Resource);
+            if (resource == null) return null;
+            try { return new ZipArchive(resource, ZipArchiveMode.Read); }
+            catch (InvalidDataException error)
+            {
+                resource.Dispose();
+                Brain.Log("holocall startup art", -1, error.ToString());
+                return null;
+            }
+        }
+
+        internal static int Count
+        {
+            get
+            {
+                ZipArchive archive = Archive.Value;
+                if (archive == null) return 0;
+                lock (archive) return archive.Entries.Count;
+            }
+        }
+
+        internal static Stream OpenFrame(int frame)
+        {
+            ZipArchive archive = Archive.Value;
+            if (archive == null) return null;
+            lock (archive)
+            {
+                ZipArchiveEntry entry = archive.GetEntry(frame.ToString("D3", CultureInfo.InvariantCulture) + ".jpg");
+                if (entry == null) return null;
+                using (Stream jpeg = entry.Open())
+                {
+                    MemoryStream copy = new MemoryStream((int)entry.Length);
+                    jpeg.CopyTo(copy);
+                    copy.Position = 0;
+                    return copy;
+                }
+            }
+        }
+    }
+
     internal sealed class ArtFrame : IDisposable
     {
         private SoftwareBitmap pixels;
@@ -290,7 +343,7 @@ namespace CapriDesktop
         internal static unsafe ArtFrame Load(string id, int frame, Size size)
         {
             if (size.Width <= 0 || size.Height <= 0) return null;
-            using (Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(ArtIntro.Resource(id, frame)))
+            using (Stream resource = id == Intros.Holocall ? HoloOpening.OpenFrame(frame) : Assembly.GetExecutingAssembly().GetManifestResourceStream(ArtIntro.Resource(id, frame)))
             {
                 if (resource == null) return null;
                 ArtFrame made = new ArtFrame();
@@ -309,7 +362,7 @@ namespace CapriDesktop
                     uint capacity;
                     ((IMemoryBufferByteAccess)made.reference).GetBuffer(out data, out capacity);
                     if (data == null || plane.Width != size.Width || plane.Height != size.Height || plane.Stride < size.Width * 4 || plane.StartIndex + (long)plane.Stride * size.Height > capacity)
-                        throw new InvalidDataException(ArtIntro.Resource(id, frame) + " didn't decode to " + size.Width + " x " + size.Height + ".");
+                        throw new InvalidDataException(id + " frame " + frame + " didn't decode to " + size.Width + " x " + size.Height + ".");
                     made.Picture = new Bitmap(size.Width, size.Height, plane.Stride, PixelFormat.Format32bppPArgb, new IntPtr(data + plane.StartIndex));
                     return made;
                 }

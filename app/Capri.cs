@@ -16911,12 +16911,13 @@ namespace CapriDesktop
                     return;
                 }
             }
-            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
+            HolocallTurn pose = new HolocallTurn(HolocallStamp);
+            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo, pose); };
             if (think == null && brain.Model == null && News.Matching(input) != null) think = delegate { return News.Facts; };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo, pose); };
             }
             if (switches == 0 && prompt == "> you: ") EmoteOnMention(input, spoken || callInput);
             reply = null;
@@ -16960,6 +16961,8 @@ namespace CapriDesktop
                         if (problem == Brain.LiteLine && ticket == asking) liteOffer = clock.Elapsed.TotalSeconds;
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
+                        if (ticket == asking && state == TalkState.Talking && pose.Name != null)
+                            ApplyHolocallPose(pose.Stamp, pose.Name);
                         if (typed == null && CallHands(ticket) && !brain.PictureReply) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
                         Answer(ticket, said, state, quiet, problem == null);
                         if (said == Brain.Offline) FindBrain();

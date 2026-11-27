@@ -73,6 +73,9 @@ namespace CapriDesktop
         private readonly string home, saved;
         private readonly Func<string, CallSession, int, Func<bool>, string> ask;
         private readonly Func<string, byte[]> speak;
+        private readonly Func<string, CallSession, int, Func<bool>, HolocallTurn, string> askVoice;
+        private readonly Func<string, int> portraitStamp;
+        private readonly Action<HolocallTurn, Func<bool>> portraitReply;
         private readonly Func<short[], string> transcribe;
         private volatile Run active;
         private string status = "Offline. Connect a bot to get its server invite.";
@@ -80,13 +83,18 @@ namespace CapriDesktop
         internal event Action VoiceStateChanged;
 
         internal DiscordCompanion(string data, Func<string, CallSession, int, Func<bool>, string> ask,
-            Func<string, byte[]> speak, Func<short[], string> transcribe)
+            Func<string, byte[]> speak, Func<short[], string> transcribe,
+            Func<string, CallSession, int, Func<bool>, HolocallTurn, string> askVoice = null,
+            Func<string, int> portraitStamp = null, Action<HolocallTurn, Func<bool>> portraitReply = null)
         {
             home = Path.Combine(data, DataFolder);
             saved = Path.Combine(home, TokenFile);
             this.ask = ask;
             this.speak = speak;
             this.transcribe = transcribe;
+            this.askVoice = askVoice;
+            this.portraitStamp = portraitStamp;
+            this.portraitReply = portraitReply;
         }
 
         internal bool InVoice { get { return VoiceSession != null; } }
@@ -415,7 +423,7 @@ namespace CapriDesktop
             }
         }
 
-        private string VoiceReply(Run run, int version, string speaker, string words, bool nameOnly, bool owner, bool duringPlayback, Func<bool> current, out bool quiet)
+        private string VoiceReply(Run run, int version, string speaker, string words, bool nameOnly, bool owner, bool duringPlayback, Func<bool> current, HolocallTurn pose, out bool quiet)
         {
             quiet = false;
             bool named = NameCall.IsMatch(words);
@@ -431,7 +439,9 @@ namespace CapriDesktop
             string context = "Listening mode: " + (nameOnly ? "name only" : "open conversation") + ". "
                 + (owner ? "The speaker is the bot owner. " : "The speaker is a guest. ")
                 + (duringPlayback ? "You were already speaking when the speaker began." : "") + "\n";
-            string decision = Brain.Visible(ask(context + speaker + words, run.Voice, version, current)).Trim();
+            string input = context + speaker + words;
+            string reply = askVoice != null ? askVoice(input, run.Voice, version, current, pose) : ask(input, run.Voice, version, current);
+            string decision = Brain.Visible(reply).Trim();
             if (decision.StartsWith("SAY:", StringComparison.OrdinalIgnoreCase)) return decision.Substring(4).Trim();
             switch (decision.TrimEnd('.', '!').ToUpperInvariant())
             {
@@ -477,6 +487,7 @@ namespace CapriDesktop
                 return;
             }
             if (voice) Volatile.Write(ref run.VoiceReplying, 1);
+            HolocallTurn pose = voice && !greeting && portraitStamp != null ? new HolocallTurn(portraitStamp(room), true) : null;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string text = null, voiced = null;
@@ -512,7 +523,7 @@ namespace CapriDesktop
                         string label = "Speaker " + speaker + " (" + Voice.Quote(name) + "): ";
                         text = voice
                             ? VoiceReply(run, version, label, words, nameOnly, PluginJson.Flag(packet, "owner") == true,
-                                PluginJson.Flag(packet, "duringPlayback") == true, current, out quiet)
+                                PluginJson.Flag(packet, "duringPlayback") == true, current, pose, out quiet)
                             : Brain.Visible(ask(label + words, session, version, current));
                     }
                     if (text != null && text.Length > 1500) text = text.Substring(0, 1500);
@@ -531,7 +542,12 @@ namespace CapriDesktop
                 {
                     if (voice) Volatile.Write(ref run.VoiceReplying, 0);
                     Interlocked.Exchange(ref run.Replying, 0);
-                    if (current()) SendReply(run, id, text, voiced, quiet);
+                    if (current())
+                    {
+                        SendReply(run, id, text, voiced, quiet);
+                        if (pose != null && pose.Name != null && !string.IsNullOrWhiteSpace(text) && portraitReply != null)
+                            portraitReply(pose, current);
+                    }
                     else if (active == run && session.Current(version)) SendReply(run, id, null, null, false);
                 }
             });
@@ -576,7 +592,12 @@ namespace CapriDesktop
                     discordCompanion = new DiscordCompanion(Path.GetDirectoryName(settingsPath),
                         delegate(string words, CallSession session, int version, Func<bool> current)
                         { return brain.AskCall(words, session, version, current); }, DiscordVoice,
-                        delegate(short[] samples) { return Hearing.Text(samples, parakeet); });
+                        delegate(short[] samples) { return Hearing.Text(samples, parakeet); },
+                        delegate(string words, CallSession session, int version, Func<bool> current, HolocallTurn pose)
+                        { return brain.AskCall(words, session, version, current, pose: pose); },
+                        HolocallStampForDiscord,
+                        delegate(HolocallTurn pose, Func<bool> current)
+                        { Post(delegate { if (current()) ApplyHolocallPose(pose.Stamp, pose.Name); }); });
                     discordCompanion.VoiceStateChanged += delegate { Post(delegate { CheckHoloCall(); RefreshEarsModel(); }); };
                 }
                 return discordCompanion;

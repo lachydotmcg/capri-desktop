@@ -82,7 +82,7 @@ $resources += ('/resource:' + (Join-Path $root 'assets\fonts\CapriMainframe-Bold
 $resources += Get-ChildItem -LiteralPath (Join-Path $root 'assets\words') -Filter *.txt | ForEach-Object { '/resource:' + $_.FullName + ',Capri.Words.' + $_.Name }
 $resources += ('/resource:' + (Join-Path $root 'assets\cursor.png') + ',Capri.Cursor.png')
 $resources += Get-ChildItem -LiteralPath (Join-Path $root 'assets\her-computer') -Filter *.png | ForEach-Object { '/resource:' + $_.FullName + ',Capri.Her.' + $_.Name }
-foreach ($file in @('idle.png', 'speaking.png', 'thinking.png', 'intro-30.zip'))
+foreach ($file in @('idle.png', 'speaking.png', 'thinking.png', 'bored.png', 'hand.png', 'angry.png', 'sad.png', 'intro-30.zip', 'opening.pcm'))
 {
     $resources += ('/resource:' + (Join-Path $root ('assets\holocall\' + $file)) + ',Capri.Holo.' + $file)
 }

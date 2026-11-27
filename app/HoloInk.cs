@@ -18,14 +18,17 @@ namespace CapriDesktop
         internal bool CanCamera, CameraOn;
         internal string Caption, CallName;
         internal TimeSpan Elapsed;
+        internal HoloPose? Expression;
     }
 
-    internal enum HoloPose { Idle, Speaking, Thinking }
+    internal enum HoloPose { Idle, Speaking, Thinking, Bored, Hand, Angry, Sad, SpeakingHand }
 
     internal sealed class HoloArt : IDisposable
     {
         internal const int Fps = 30;
         private Bitmap idle, speaking, thinking, opening;
+        private readonly Func<string, Stream> open;
+        private readonly Dictionary<HoloPose, Bitmap> expressions = new Dictionary<HoloPose, Bitmap>();
         private ZipArchive intro;
         private int shown = -1;
 
@@ -33,6 +36,7 @@ namespace CapriDesktop
 
         internal HoloArt(Func<string, Stream> open, bool withOpening = true)
         {
+            this.open = open;
             try
             {
                 idle = LoadPose(open, "idle");
@@ -84,7 +88,27 @@ namespace CapriDesktop
 
         internal Bitmap Pose(HoloPose pose)
         {
-            return pose == HoloPose.Speaking ? speaking : pose == HoloPose.Thinking ? thinking : idle;
+            if (pose == HoloPose.Idle) return idle;
+            if (pose == HoloPose.Speaking) return speaking;
+            if (pose == HoloPose.Thinking) return thinking;
+            Bitmap frame;
+            if (expressions.TryGetValue(pose, out frame)) return frame;
+            if (pose == HoloPose.Hand || pose == HoloPose.SpeakingHand)
+            {
+                Bitmap face = pose == HoloPose.SpeakingHand ? speaking : idle;
+                using (Bitmap hand = LoadPose(open, "hand"))
+                {
+                    frame = new Bitmap(face.Width, face.Height, PixelFormat.Format32bppPArgb);
+                    using (Graphics canvas = Graphics.FromImage(frame))
+                    {
+                        canvas.DrawImageUnscaled(face, 0, 0);
+                        canvas.DrawImageUnscaled(hand, 0, 0);
+                    }
+                }
+            }
+            else frame = LoadPose(open, pose.ToString().ToLowerInvariant());
+            expressions.Add(pose, frame);
+            return frame;
         }
 
         internal Bitmap Pose(HoloView view) { return Pose(HoloInk.PoseOf(view, 0)); }
@@ -133,6 +157,8 @@ namespace CapriDesktop
             if (idle != null) { idle.Dispose(); idle = null; }
             if (speaking != null) { speaking.Dispose(); speaking = null; }
             if (thinking != null) { thinking.Dispose(); thinking = null; }
+            foreach (Bitmap expression in expressions.Values) expression.Dispose();
+            expressions.Clear();
         }
     }
 
@@ -170,6 +196,8 @@ namespace CapriDesktop
 
         internal static HoloPose PoseOf(HoloView view, double time)
         {
+            if (view.Expression.HasValue)
+                return view.Expression == HoloPose.Hand && view.Speaking && Flap(time) ? HoloPose.SpeakingHand : view.Expression.Value;
             if (view.Speaking) return Flap(time) ? HoloPose.Speaking : HoloPose.Idle;
             return view.Thinking ? HoloPose.Thinking : HoloPose.Idle;
         }
