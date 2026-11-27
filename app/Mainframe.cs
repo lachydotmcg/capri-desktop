@@ -2601,14 +2601,15 @@ namespace CapriDesktop
         // Her main page as Arrange lays it out, so its window, its scroll and her zoom all read the same rows.
         private int MainTall { get { return Tall + DiscordBotRow + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0) - Fold - (hearingActions.Length == 0 ? HearingFixRow : 0); } }
 
-        private int ScrollTall { get { return paged ? PageNow : MainTall; } }
+        private int ScrollTall { get { return paged ? PageNow : modded ? modsTall : MainTall; } }
 
-        // How much of her main page the screen has room for, before scaling. Mods shares its window but not its rows, so it
-        // never scrolls them.
+        // How much of her main page, or of Mods while it shows, the screen has room for, before scaling. Mods is as tall as its
+        // own rows and scrolls them like the main page when the screen is shorter.
         private int MainView()
         {
-            if (!FitsScreen || modded) return MainTall;
-            return Math.Max(4 * ScrollRow, Math.Min(MainTall, (int)(Area().Height / Unit())));
+            int tall = modded ? modsTall : MainTall;
+            if (!FitsScreen) return tall;
+            return Math.Max(4 * ScrollRow, Math.Min(tall, (int)(Area().Height / Unit())));
         }
 
         private void ShowFrameSize()
@@ -3183,6 +3184,7 @@ namespace CapriDesktop
             }
             int keep = paged ? 0 : ShownScroll;
             if (!paged && pageScroll != 0) { glide.Stop(); EndSlide(); MoveControls(0); }
+            PlaceMods();
             expanded = setupShown;
             int top = setupShown ? SetupHeight : 0, shift = top + KeyRow;
             int off = NoAiRowShown ? 24 : 0;

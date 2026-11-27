@@ -13,7 +13,7 @@ namespace CapriDesktop
     internal sealed partial class Mainframe
     {
         private static readonly string[] GrantOrder = { Plugins.Usual, Plugins.Always, Plugins.Ask, Plugins.Off };
-        private const int PlugTiles = 4, PlugHead = 180, PlugTop = 204;
+        private const int PlugTiles = 4, PlugHead = 144, PlugTop = 168, PlugTall = 94;
         private readonly PlugTile[] plugTiles = new PlugTile[PlugTiles];
         private Key plugBack, plugNext;
         private Label plugEmpty;
@@ -70,7 +70,7 @@ namespace CapriDesktop
                 int slot = i;
                 PlugTile tile = new PlugTile();
                 tile.Font = Type(9f, true);
-                tile.Bounds = new Rectangle(28 + i * 84, PlugTop, 76, 94);
+                tile.Bounds = new Rectangle(28 + i * 84, PlugTop, 76, PlugTall);
                 tile.Click += delegate { OpenPlugin(slot); };
                 Controls.Add(tile);
                 Explain(tile, "PLUG-INS >", "MainframePlugins.cs");
@@ -534,6 +534,7 @@ namespace CapriDesktop
                 string crowded = PlugsCrowded();
                 if (crowded != null) throw new Exception("The Mods page with PLUG-INS overlaps " + crowded);
                 checks.Add("PASS plug-ins: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100% or 150% in her font or the fallback");
+                CheckModsFitWithPlugs(checks, output);
 
                 InvokeOnClick(plugTiles[1], EventArgs.Empty);
                 PluginSheet notion = pluginSheet;

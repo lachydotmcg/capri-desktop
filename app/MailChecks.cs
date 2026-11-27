@@ -871,7 +871,7 @@ namespace CapriDesktop
                 Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice the second phishing mail");
                 news = watch.Take();
                 line = MailWatch.Line(news);
-                Need(news.Count == 1 && news[0].Moved == "[Gmail]/Spam" && news[0].Spam && news[0].Gmail && line.EndsWith(" That's phishing, choom, I reported it as spam and binned it.", StringComparison.Ordinal), "dealing with phishing on Gmail: " + line + " | " + news[0].Trouble);
+                Need(news.Count == 1 && news[0].Moved == "[Gmail]/Spam" && news[0].Spam && news[0].Gmail && line.EndsWith(" That's phishing, I reported it as spam and binned it.", StringComparison.Ordinal), "dealing with phishing on Gmail: " + line + " | " + news[0].Trouble);
                 Need(imap.Holds("[Gmail]/Spam", "<p2@") && !imap.Holds("INBOX", "<p2@") && imap.Holds("INBOX", "<p1@") && imap.Holds("INBOX", "<old1@") && imap.Holds("INBOX", "<new1@"), "her own move took the wrong mail");
                 Need(imap.Logged("UID MOVE") && !imap.Logged("UID COPY") && !imap.Logged("EXPUNGE") && !imap.Logged("CLOSE"), "she didn't use MOVE on Gmail, or expunged");
                 imap.Arrive(Letter("Northwind Billing <billing@northwind.com>", "Invoice", "See you soon.", false, new[] { "Reply-To: <northwind.payments@gmail.com>" }), DateTime.UtcNow);
@@ -913,7 +913,7 @@ namespace CapriDesktop
                 Need(Until(delegate { return polling.Waiting; }, 15), "polling didn't notice new mail");
                 List<MailNews> news = polling.Take();
                 string line = MailWatch.Line(news);
-                Need(news.Count == 1 && news[0].Moved == "Junk" && news[0].Spam && !news[0].Gmail && line.EndsWith(" That's phishing, choom, I moved it to your junk folder.", StringComparison.Ordinal), "dealing with phishing off Gmail: " + line + " | " + news[0].Trouble);
+                Need(news.Count == 1 && news[0].Moved == "Junk" && news[0].Spam && !news[0].Gmail && line.EndsWith(" That's phishing, I moved it to your junk folder.", StringComparison.Ordinal), "dealing with phishing off Gmail: " + line + " | " + news[0].Trouble);
                 Need(plain.Logged("NOOP") && !plain.Logged("IDLE") && plain.Logged("UID COPY") && plain.Logged("UID STORE") && plain.Logged("UID EXPUNGE") && !plain.Logged("EXPUNGE") && !plain.Logged("CLOSE"), "without MOVE she didn't copy, flag and expunge just that one");
                 Need(plain.Holds("Junk", "<p4@") && !plain.Holds("INBOX", "<p4@") && plain.Holds("INBOX", "<keep1@") && plain.Holds("INBOX", "<keep2@"), "expunging took other mail with it");
             }

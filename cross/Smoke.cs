@@ -454,13 +454,13 @@ namespace CapriDesktop
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
                 MenuItem danceToMusic = moveMenu == null ? null : menuRow(moveMenu.Items, "Dance to music");
-                if (danceToMusic == null || moveMenu.Items.IndexOf(danceToMusic) + 1 != moveMenu.Items.IndexOf(menuRow(moveMenu.Items, "Dance")) || helpMenu == null || menuHeaders(helpMenu) != "Help page | Join the Discord | Copy error details" || sizeMenu == null || menuHeaders(sizeMenu) != string.Join(" | ", Pet.MenuSizeNames) || menuHeaders(sizeMenu) != "Small | Medium | Large | Huge | Giant")
+                if (danceToMusic == null || moveMenu.Items.IndexOf(danceToMusic) + 1 != moveMenu.Items.IndexOf(menuRow(moveMenu.Items, "Dance")) || helpMenu == null || menuHeaders(helpMenu) != "Report a problem | Copy error details | Help page | Join the Discord | Check for updates" || sizeMenu == null || menuHeaders(sizeMenu) != string.Join(" | ", Pet.MenuSizeNames) || menuHeaders(sizeMenu) != "Small | Medium | Large | Huge | Giant")
                     throw new Exception("Her right-click menu lost a Windows row: Move " + (moveMenu == null ? "missing" : menuHeaders(moveMenu)) + " / Help " + (helpMenu == null ? "missing" : menuHeaders(helpMenu)) + " / Size " + (sizeMenu == null ? "missing" : menuHeaders(sizeMenu)));
                 danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 bool menuDanceOff = pet.Saved.NoDance;
                 danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 if (!menuDanceOff || pet.Saved.NoDance) throw new Exception("Move > Dance to music didn't switch dancing to music off and back on.");
-                checks.Add("PASS right-click menu: Move > Dance to music sits before Dance and switches it, Help has Join the Discord between Help page and Copy error details, and Size lists Windows' five sizes");
+                checks.Add("PASS right-click menu: Move > Dance to music sits before Dance and switches it, Help has Report a problem first, then Copy error details, Help page, Join the Discord and Check for updates, and Size lists Windows' five sizes");
                 bool checkInsNew = pet.CheckIns && pet.CheckInsShown && pet.PopPace == 1 && pet.PopsPicked == "Sometimes";
                 pet.SetPopPace(2);
                 bool popsOften = pet.Saved.PopPace == 2 && pet.PopsPicked == "Often";
@@ -775,7 +775,7 @@ namespace CapriDesktop
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
                     if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch gio launch " + Path.GetFullPath(Path.Combine(tempApps, "spotify.desktop"))) || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats") || !eachOpened) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / each " + eachOpened + " / " + log);
-                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.EndsWith(" on Windows for now, choom.", StringComparison.Ordinal)) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
+                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.EndsWith(" on Windows for now.", StringComparison.Ordinal)) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
                     if (macSong != "Petite Meller - In Love With Myself" || linuxSong != "Chase Atlantic - Consume") throw new Exception("Now playing was read wrong: " + macSong + " / " + linuxSong);
@@ -2225,7 +2225,9 @@ namespace CapriDesktop
                 MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background update failure");
                 if (pet.UpdateNews != null || pet.Talk.Reply != null || pet.MainframeUpdate != failure) throw new Exception("A background update failure made a new notice.");
                 MenuItem tray = null;
-                foreach (object value in pet.ContextMenu.Items) if (value is MenuItem item && item.Header as string == "Check for updates") tray = item;
+                foreach (object value in pet.ContextMenu.Items)
+                    if (value is MenuItem item && item.Header as string == "Help")
+                        foreach (object row in item.Items) if (row is MenuItem inner && inner.Header as string == "Check for updates") tray = inner;
                 if (tray == null) throw new Exception("The tray update check is missing.");
                 tray.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a tray update failure");
@@ -3137,7 +3139,7 @@ namespace CapriDesktop
             Action<string> runWas = Hands.Run;
             Func<string, string> fetchWas = Hands.Fetch;
             int opened = 0, searched = 0;
-            const string line = "My mini games are only on Windows for now, choom.";
+            const string line = "My mini games are only on Windows for now.";
             try
             {
                 Hands.Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
@@ -6853,7 +6855,7 @@ namespace CapriDesktop
                 pet.Saved.ListenCapri = false;
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit)
                     throw new Exception("A TALK with sound and no words didn't reach her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
@@ -6884,13 +6886,13 @@ namespace CapriDesktop
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.03); return Task.CompletedTask; };
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's second TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's second TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.NoWords || frame.HearingButtons != "Test mic | Type instead") throw new Exception("A second TALK with sound and no words didn't offer Test mic again: " + frame.HearingText + " / " + frame.HearingButtons);
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(16.0 / 32768); return Task.CompletedTask; };
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
-                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's quiet TALK");
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that. Try TALK again."; }, "her hearing line's quiet TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("A TALK that only heard sound under her 0.0005 threshold didn't say the mic is too quiet: " + frame.HearingText + " / " + frame.HearingButtons);
                 if (pet.Talk.Reply == frame.HearingText) throw new Exception("The hearing line's quiet result was said out loud.");

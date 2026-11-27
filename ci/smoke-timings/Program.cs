@@ -201,7 +201,7 @@ internal static class Program
         SmokeRun.Complete(checks);
         Check(SmokeRun.GroupSections("Voice").Length > 0, "Expected Voice group sections.");
         SmokeOptions combined = Settings(voiceFolder, new[] { "--group", "Mods,Remote", "--only", "SmokeMods,SmokeTips" });
-        Check(combined.Only.Length == 11, "--group and --only must merge without duplicates: got " + combined.Only.Length + ".");
+        Check(combined.Only.Length == 12, "--group and --only must merge without duplicates: got " + combined.Only.Length + ".");
         foreach (string[] bad in new[] { new[] { "--group", "Missing" }, new[] { "--group", "Voice," }, new[] { "--group", "Voice", "--steps" }, new[] { "--group", "Voice", "--no-steps", "--shard", "0/4" } })
         {
             bool refused = false;

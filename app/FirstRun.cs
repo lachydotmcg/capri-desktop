@@ -313,6 +313,14 @@ namespace CapriDesktop
                 return label;
             }
 
+            // A small line under a row, like where Windows keeps the mic switch.
+            private Note Hint(string text, int y)
+            {
+                Note hint = Caption(text, 28, y, Wide - 56, 20, Mono(15), Faint);
+                hint.AutoEllipsis = true;
+                return hint;
+            }
+
             private Key MakeKey(string text, int x, int y, int width, int height, Font font, Color accent, EventHandler click)
             {
                 Key key = new Key();
@@ -480,10 +488,10 @@ namespace CapriDesktop
                 keyBox.Cue = "Paste your key here";
                 Controls.Add(keyBox);
                 MakeKey("Paste", Wide - 28 - 102, y + 24, 102, 42, Body(18, true), Rose, delegate { Paste(); });
-                Caption(note, 28, y + 76, Wide - 56, 20, Mono(14), Faint);
+                Hint(note, y + 76);
                 // A free key screen doesn't talk about paid keys; MY PLAN OR KEY does.
                 if (pageLink) Linked("Open the page again", 28, y + 106, Body(18, true), Rose, delegate { capri.FirstRunPage(Provider); });
-                else Caption("A paid key goes under MAX INTELLIGENCE by itself.", 28, y + 96, Wide - 56, 20, Mono(14), Faint);
+                else Hint("A paid key goes under MAX INTELLIGENCE by itself.", y + 96);
                 heard = Caption("", 28, y + (pageLink ? 138 : 126), Wide - 56, 46, Body(18), Hot);
                 return y + (pageLink ? 184 : 172);
             }
@@ -562,7 +570,7 @@ namespace CapriDesktop
                 Caption("YOUR PLAN", 28, 112, 200, 20, Mono(15), Faint);
                 MakeKey("Claude plan", 28, 136, 262, 40, Body(18, true), Cyan, delegate { Plan("claudecode"); }).AccessibleName = "Claude plan, runs Claude Code on this PC";
                 MakeKey("ChatGPT plan", 310, 136, 262, 40, Body(18, true), Cyan, delegate { Plan("codex"); }).AccessibleName = "ChatGPT plan, runs Codex on this PC";
-                Caption("Runs Claude Code or Codex on this PC, signed in.", 28, 184, Wide - 56, 20, Mono(14), Faint);
+                Hint("Runs Claude Code or Codex on this PC, signed in.", 184);
                 Caption("OLLAMA", 28, 222, 200, 20, Mono(15), Faint);
                 MakeKey("Open Ollama, I'll find it", 28, 246, 262, 40, Body(18, true), Rose, delegate { Ollama(); });
                 return KeyRow(306, "OR A KEY", "OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.", false);
@@ -627,7 +635,7 @@ namespace CapriDesktop
                 Controls.Add(bars);
                 heard = Caption("", 380, 380, Wide - 28 - 380, 28, Body(19, true), Cyan);
                 heard.AutoEllipsis = true;
-                Caption("Nothing? Windows Settings > Privacy & security > Microphone.", 28, 420, Wide - 56, 20, Mono(14), Faint);
+                Hint("Nothing? Windows Settings > Privacy & security > Microphone.", 420);
                 return 440;
             }
 
@@ -946,22 +954,39 @@ namespace CapriDesktop
                 primary.Picked = true;
                 AcceptButton = primary;
                 ActiveControl = primary;
+                bool backShown = Screen == FirstRun.Key || Screen == FirstRun.Plan || Screen == FirstRun.Alone || Screen == FirstRun.Voice || Screen == FirstRun.Extras || Screen == FirstRun.Job;
+                string skipWords = Screen == FirstRun.Wait ? null : Screen == FirstRun.Pick ? "Skip for now" : "Skip";
+                Font small = RowFont(backShown, skipWords, Wide - 28 - 160 - 16);
                 int x = 28;
-                Font small = Body(18, true);
-                if (Screen == FirstRun.Key || Screen == FirstRun.Plan || Screen == FirstRun.Alone)
+                if (backShown)
                 {
                     Link back = Linked("Back", x, top + 8, small, Faint, delegate { Back(); });
                     x = (int)Math.Round(back.Right / Unit) + 22;
                 }
-                if (Screen != FirstRun.Wait)
+                if (skipWords != null)
                 {
-                    Link skip = Linked(Screen == FirstRun.Pick ? "Skip for now" : "Skip", x, top + 8, small, Faint, delegate { Skip(); });
+                    Link skip = Linked(skipWords, x, top + 8, small, Faint, delegate { Skip(); });
                     skip.AccessibleName = "Skip this step";
                     x = (int)Math.Round(skip.Right / Unit) + 22;
                 }
-                Link all = Linked("Skip all", x, top + 8, small, Faint, delegate { SkipAll(); });
+                Key all = MakeKey("Skip all", x, top, SkipAllWide(small), 40, small, Faint, delegate { SkipAll(); });
                 all.AccessibleName = "Skip all of setup";
                 return top + 40 + 22;
+            }
+
+            private int SkipAllWide(Font font) { return (int)Math.Ceiling(TextRenderer.MeasureText(Lingo.Of("Skip all"), font).Width / Unit) + 28; }
+
+            // Back, Skip and Skip all in her usual 18 px, or smaller in a language whose words would run into the step to take.
+            private Font RowFont(bool backShown, string skipWords, int room)
+            {
+                for (float px = 18; ; px -= 1)
+                {
+                    Font font = Body(px, true);
+                    int wide = 28 + SkipAllWide(font);
+                    foreach (string words in new[] { backShown ? "Back" : null, skipWords })
+                        if (words != null) wide += (int)Math.Ceiling(TextRenderer.MeasureText(Lingo.Of(words), font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width / Unit) + 4 + 22;
+                    if (wide <= room || px <= 13) return font;
+                }
             }
 
             internal void Next()
@@ -994,8 +1019,32 @@ namespace CapriDesktop
                 else Next();
             }
 
+            // Esc is Skip for now on each screen, and Hide this while her brain comes down. A key or plan still being checked is
+            // left to finish. Esc held down skips one screen, not all of them.
+            protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+            {
+                if (keyData == Keys.Escape && (msg.LParam.ToInt64() & 0x40000000) != 0) return true;
+                return base.ProcessCmdKey(ref msg, keyData);
+            }
+
+            protected override bool ProcessDialogKey(Keys keyData)
+            {
+                if (keyData != Keys.Escape) return base.ProcessDialogKey(keyData);
+                Escape();
+                return true;
+            }
+
+            internal void Escape()
+            {
+                if (Finished || Brain == FirstRun.Connecting) return;
+                if (Screen == FirstRun.Wait) Next(); else Skip();
+            }
+
             internal void Back()
             {
+                if (Screen == FirstRun.Voice) { Go(FirstRun.Me); return; }
+                if (Screen == FirstRun.Extras) { Go(FirstRun.Voice); return; }
+                if (Screen == FirstRun.Job) { Go(FirstRun.Extras); return; }
                 if (Screen == FirstRun.Alone) capri.SetNoAi(false);
                 Brain = Brain == FirstRun.Connecting ? FirstRun.NoBrain : Brain;
                 Go(FirstRun.Pick);

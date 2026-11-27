@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Media;
@@ -9,6 +11,7 @@ namespace CapriDesktop
 {
     // A note from Capri or her installer in her look, instead of Windows' grey box: its title in rose, or hot red when
     // something went wrong, the message under it and OK. Enter or Esc closes it, and Ctrl + C copies it like Windows' own.
+    // Keys passed with it sit left of OK, sized to their names, and do their thing without closing it; focus goes back to OK.
     internal sealed class Notice : Form, LookWindow
     {
         private const int Wide = 440;
@@ -17,15 +20,26 @@ namespace CapriDesktop
         private readonly Label title;
         private readonly Label body;
         private readonly Plate ok;
+        private readonly Plate[] extras;
+
+        // The checks see the notice here, shown or not as they like, instead of waiting on it.
+        internal static Action<Notice> Showing;
 
         // Shows a notice and waits for OK. If her own window can't show, Windows' box says it instead.
-        internal static void Tell(IWin32Window owner, string message, string caption, bool error)
+        internal static void Tell(IWin32Window owner, string message, string caption, bool error, params KeyValuePair<string, Action<Button>>[] keys)
+        {
+            Tell(owner, message, caption, error, message, keys);
+        }
+
+        // `plain` is what Windows' box says if hers can't show: it has only OK, so it mustn't point at her other keys.
+        internal static void Tell(IWin32Window owner, string message, string caption, bool error, string plain, params KeyValuePair<string, Action<Button>>[] keys)
         {
             try
             {
-                using (Notice notice = new Notice(message, caption, error))
+                using (Notice notice = new Notice(message, caption, error, keys))
                 {
                     if (owner == null) { notice.ShowInTaskbar = true; notice.StartPosition = FormStartPosition.CenterScreen; }
+                    if (Showing != null) { Showing(notice); return; }
                     if (error) SystemSounds.Hand.Play(); else SystemSounds.Asterisk.Play();
                     notice.ShowDialog(owner);
                 }
@@ -33,12 +47,12 @@ namespace CapriDesktop
             catch (Exception)
             {
                 MessageBoxIcon icon = error ? MessageBoxIcon.Error : MessageBoxIcon.Information;
-                if (owner == null) MessageBox.Show(message, caption, MessageBoxButtons.OK, icon);
-                else MessageBox.Show(owner, message, caption, MessageBoxButtons.OK, icon);
+                if (owner == null) MessageBox.Show(plain, caption, MessageBoxButtons.OK, icon);
+                else MessageBox.Show(owner, plain, caption, MessageBoxButtons.OK, icon);
             }
         }
 
-        internal Notice(string message, string caption, bool error)
+        internal Notice(string message, string caption, bool error, params KeyValuePair<string, Action<Button>>[] keys)
         {
             this.message = message;
             this.caption = caption;
@@ -56,8 +70,27 @@ namespace CapriDesktop
             float s = DeviceDpi / 96f;
             Font = Neon.Type(10.5f);
             using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico")) if (source != null) Icon = new Icon(source);
-            int wide = Px(Wide, s);
             int inset = Px(26, s);
+            int gap = Px(10, s);
+            Font keyFont = Neon.Type(10f, true);
+            extras = new Plate[keys == null ? 0 : keys.Length];
+            int row = Px(96, s);
+            for (int i = 0; i < extras.Length; i++)
+            {
+                Plate key = new Plate();
+                key.Text = keys[i].Key;
+                key.AccessibleName = keys[i].Key;
+                key.Accent = Neon.Rose;
+                key.Font = keyFont;
+                key.TabIndex = i;
+                Action<Button> pressed = keys[i].Value;
+                key.Click += delegate { if (pressed != null) pressed(key); ok.Focus(); };
+                int ink = TextRenderer.MeasureText(key.Text, keyFont, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix).Width;
+                key.Size = new Size(Math.Max(Px(96, s), ink + Px(28, s)), Px(30, s));
+                extras[i] = key;
+                row += key.Width + gap;
+            }
+            int wide = Math.Max(Px(Wide, s), row + 2 * inset);
             title = new Neon.Caption();
             title.Text = caption.ToUpperInvariant();
             title.Font = Neon.Display(15f);
@@ -76,11 +109,19 @@ namespace CapriDesktop
             ok = new Plate();
             ok.Text = "OK";
             ok.Accent = Neon.Cyan;
-            ok.Font = Neon.Type(10f, true);
+            ok.Font = keyFont;
             ok.Size = new Size(Px(96, s), Px(30, s));
             ok.Location = new Point(wide - inset - ok.Width, body.Bottom + Px(22, s));
             ok.DialogResult = DialogResult.OK;
+            ok.TabIndex = extras.Length;
             Controls.Add(ok);
+            int left = inset;
+            foreach (Plate key in extras)
+            {
+                key.Location = new Point(left, ok.Top);
+                left = key.Right + gap;
+                Controls.Add(key);
+            }
             AcceptButton = ok;
             CancelButton = ok;
             ClientSize = new Size(wide, ok.Bottom + Px(22, s));
@@ -91,7 +132,24 @@ namespace CapriDesktop
 
         internal string Said { get { return title.Text + "\n" + body.Text; } }
 
-        internal bool Fits { get { return body.PreferredSize.Height <= body.Height && body.Right <= ClientSize.Width && ok.Bottom <= ClientSize.Height && ok.Top >= body.Bottom; } }
+        internal Button[] Extras { get { return extras; } }
+
+        // Nothing clipped: the message is whole, and OK and every extra key sit under it, side by side, each name inside its key.
+        internal bool Fits
+        {
+            get
+            {
+                if (body.PreferredSize.Height > body.Height || body.Right > ClientSize.Width || ok.Bottom > ClientSize.Height || ok.Top < body.Bottom) return false;
+                int right = 0;
+                foreach (Plate key in extras)
+                {
+                    Size ink = TextRenderer.MeasureText(key.Text, key.Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                    if (!ClientRectangle.Contains(key.Bounds) || key.Top < body.Bottom || key.Left < right || ink.Width > key.Width - Px(12, DeviceDpi / 96f)) return false;
+                    right = key.Right;
+                }
+                return right < ok.Left;
+            }
+        }
 
         protected override void OnShown(EventArgs e)
         {
@@ -123,6 +181,64 @@ namespace CapriDesktop
             base.OnPaint(e);
             float s = DeviceDpi / 96f;
             Neon.Frame(e.Graphics, ClientSize, s, 16 * s, 6 * s, 52 * s, 26 * s);
+        }
+    }
+
+    // Copy error details and the Help page (Report a problem for a Store copy, as in her Help menu) for a notice about something
+    // that failed. What was thrown goes only in the copy, with keys, her user folder, user name and PC name taken out.
+    internal static class ProblemKeys
+    {
+        internal const string HelpPage = "https://capriai.app/help/";
+        internal const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        internal const string Next = "If it keeps happening, press Copy error details, then ";
+        internal static Action<string> Copy = delegate(string text) { try { Clipboard.SetText(text); } catch (System.Runtime.InteropServices.ExternalException) { } };
+        internal static Action<string> Open = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
+
+        internal static string Then(bool store) { return store ? "Report a problem and paste them into a new report." : "Help page to find where to send them."; }
+
+        internal static KeyValuePair<string, Action<Button>>[] For(string what, Exception error, bool store)
+        {
+            string details = Details(what, error);
+            return new[]
+            {
+                new KeyValuePair<string, Action<Button>>("Copy error details", delegate(Button key) { Copy(details); key.Text = "Copied"; }),
+                new KeyValuePair<string, Action<Button>>(store ? "Report a problem" : "Help page", delegate { Open(store ? IssuesPage : HelpPage); })
+            };
+        }
+
+        internal static string Details(string what, Exception error)
+        {
+            string head = "Capri " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + (Packaged.Is ? " (Store)" : "") + " | " + what;
+            string thrown;
+            try { thrown = Clean(error.ToString()); }
+            catch (Exception)
+            {
+                try { thrown = error.GetType().Name + ": " + Brain.Redacted(error.Message); }
+                catch (Exception) { thrown = error.GetType().FullName; }
+            }
+            string logged = null;
+            try { if (Brain.LogPath != null) logged = Clean(Logged()); }
+            catch (Exception) { logged = "Capri's error log couldn't be read."; }
+            return head + Environment.NewLine + thrown + (logged == null ? "" : Environment.NewLine + logged);
+        }
+
+        // The last 25 lines of errors.txt and every close it holds, keys taken out: what Copy error details pastes under its first line.
+        internal static string Logged()
+        {
+            string[] lines = new string[0];
+            try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
+            int from = Math.Max(0, lines.Length - 25);
+            List<string> details = new List<string>();
+            for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
+            return details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray()));
+        }
+
+        private static string Clean(string text)
+        {
+            string[] lines = Brain.Cleaned(text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            for (int i = 0; i < lines.Length; i++) lines[i] = CrashReports.Private(lines[i], home, Environment.UserName, Environment.MachineName);
+            return string.Join(Environment.NewLine, lines);
         }
     }
 

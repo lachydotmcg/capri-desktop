@@ -1852,12 +1852,12 @@ namespace CapriDesktop
         internal static Func<string, string> SendGif = delegate { return "Couldn't send a GIF just now."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
-        internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
-        internal const string NoHologram = "Hologram mode is Windows-only for now, choom.";
+        internal const string NoClones = "Clones and chaos mode are Windows-only for now.";
+        internal const string NoHologram = "Hologram mode is Windows-only for now.";
 #if CROSS
         internal const string NoCloneChaos = "Chaos mode is only on Windows for now.";
 #endif
-        internal const string NoIcons = "Messing with your desktop icons is Windows-only for now, choom.";
+        internal const string NoIcons = "Messing with your desktop icons is Windows-only for now.";
         // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
         private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?|(?:(?:activate|enable|start|begin|turn on|enter|go into|switch to)(?: the)? )?chaos mode(?: on)?|(?:unleash|cause) (?:the )?chaos)$", RegexOptions.IgnoreCase);
         private static readonly Regex CloneOff = new Regex(@"^(?:(?:stop|end|kill|remove|delete|clear|get rid of|destroy|banish|no more|enough(?: of)?|turn off|put away|send away)(?: (?:all|of|the|your))* (?:clones?|copies|duplicates?|cloning|duplicating|multiplying)|clones? off|chaos mode off|(?:stop|end|deactivate|disable|turn off|exit|leave)(?: the)? chaos(?: mode)?)$", RegexOptions.IgnoreCase);
@@ -2634,9 +2634,9 @@ namespace CapriDesktop
         internal const string MacScreen = "I can only look at the main display on this Mac.";
         private const string MacStream = "Live stream chat and timing aren't connected to Mac screen jobs yet.";
 #else
-        private const string MacHands = "Mac doesn't let apps use the mouse and keyboard yet", MacHandsLine = "I can't use your mouse and keyboard on a Mac yet, choom.";
+        private const string MacHands = "Mac doesn't let apps use the mouse and keyboard yet", MacHandsLine = "I can't use your mouse and keyboard on a Mac yet.";
 #endif
-        private const string LinuxHandsLine = "I can't use your mouse and keyboard yet. Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard.";
+        private const string LinuxHandsLine = "I can't use your mouse and keyboard yet. Open Mainframe > Settings > KEYS > Set up mouse and keyboard.";
         // A screen watch asked for in words her lookout doesn't take, on a brain that can't see. Asked for in its own words, her
         // lookout says which brain.
         internal const string BlindWatch = "This brain can't see pictures, so I can't watch your screen for that. Pick a brain with eyes under BRAIN in Capri Mainframe.";
@@ -2747,11 +2747,11 @@ namespace CapriDesktop
             { "app_window:pin_on_top", "", ArrangeLine },
             { "app_window:unpin", "", ArrangeLine },
 #if !CROSS
-            { "find_file", "finding files", "Finding files is only on Windows for now, choom." },
-            { "website_nickname", "website nicknames", "Website nicknames are only on Windows for now, choom." },
-            { "read_file", "reading files", "Reading files is only on Windows for now, choom." },
+            { "find_file", "finding files", "Finding files is only on Windows for now." },
+            { "website_nickname", "website nicknames", "Website nicknames are only on Windows for now." },
+            { "read_file", "reading files", "Reading files is only on Windows for now." },
 #endif
-            { "draw", "drawing on their screen", "Drawing on your screen is only on Windows for now, choom." },
+            { "draw", "drawing on their screen", "Drawing on your screen is only on Windows for now." },
             { "clone", "clones and chaos mode", NoClones },
 #if CROSS
             { "look_at_screen:screen", "choosing another display for a look", MacScreen },
@@ -2777,18 +2777,18 @@ namespace CapriDesktop
 #if !CROSS
             { "mini_player", "the mini player", "My mini player is only on Windows for now." },
 #endif
-            { "watch_along", "watching videos together", "Watching videos together is only on Windows for now, choom." },
-            { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now, choom." },
-            { "clip", "game clips", "Game clips are only on Windows for now, choom." },
-            { "mini_game", "mini games", "My mini games are only on Windows for now, choom." },
+            { "watch_along", "watching videos together", "Watching videos together is only on Windows for now." },
+            { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now." },
+            { "clip", "game clips", "Game clips are only on Windows for now." },
+            { "mini_game", "mini games", "My mini games are only on Windows for now." },
             { "workspace", "Workspace", "Workspace is only on Windows for now." },
-            { "game_notes", "saved game controls", "Saved game controls are only on Windows for now, choom." },
+            { "game_notes", "saved game controls", "Saved game controls are only on Windows for now." },
 #if CROSS
             { "watch_for", "watching their screen for something", "I can't watch your screen quietly on this desktop. Ask me to look when you need a check." },
 #else
-            { "watch_for", "watching their screen for something", "Watching your screen for something is only on Windows for now, choom." },
+            { "watch_for", "watching their screen for something", "Watching your screen for something is only on Windows for now." },
 #endif
-            { "listen", "listening to what's playing", "Listening to what's playing is only on Windows for now, choom." }
+            { "listen", "listening to what's playing", "Listening to what's playing is only on Windows for now." }
         };
 
         // How they ask for the tools that have no words of their own outside Windows, after "can you" and the like are taken
@@ -3101,7 +3101,7 @@ namespace CapriDesktop
 #if CROSS
             if (why == "Clipboard history needs macOS Tahoe 26 or later.") return why;
 #endif
-            if (key.StartsWith("shortcut:", StringComparison.Ordinal)) return "I can only " + Security.Asking("shortcut", new ToolArguments { Name = key.Substring(9) }) + " on Windows for now, choom.";
+            if (key.StartsWith("shortcut:", StringComparison.Ordinal)) return "I can only " + Security.Asking("shortcut", new ToolArguments { Name = key.Substring(9) }) + " on Windows for now.";
             if (key.StartsWith("capri_settings:", StringComparison.Ordinal)) return "That Capri setting is only on Windows for now.";
             return Gap(key, 2);
         }
@@ -3212,7 +3212,7 @@ namespace CapriDesktop
         private static bool Honest(string result)
         {
             if (result == null) return false;
-            if (result == MacHandsLine || result == LinuxHandsLine || result == BlindWatch || (result.StartsWith("I can only ", StringComparison.Ordinal) && result.EndsWith(" on Windows for now, choom.", StringComparison.Ordinal))) return true;
+            if (result == MacHandsLine || result == LinuxHandsLine || result == BlindWatch || (result.StartsWith("I can only ", StringComparison.Ordinal) && result.EndsWith(" on Windows for now.", StringComparison.Ordinal))) return true;
             for (int i = 0; i < Gaps.GetLength(0); i++) if (Gaps[i, 2] == result) return true;
             return false;
         }
@@ -3450,7 +3450,7 @@ namespace CapriDesktop
         private static readonly string[,] Claims =
         {
             { "remember", "remember", @"\bi(?:'ll| will) (?:remember|save|note) (?:that|this|it)\b(?! (?:day|moment|night|forever|one))|\b(?:saved|added|noted|wrote|written|jotted|stored|put|logged) (?:(?:that|this|it) )?(?:down )?(?:to|in|into) (?:my )?(?:notes|memory|memories|me\.md)\b|\b(?:memory|note) (?:saved|added|stored|updated)\b|\bnoted (?:that|this|it) down\b|\bi(?:'ve| have) (?:made a note of|remembered) (?:that|this|it)\b",
-                "I haven't saved that to my notes yet, choom. Say remember and what to keep." },
+                "I haven't saved that to my notes yet. Say remember and what to keep." },
             { "remind", "remind routine", @"\breminder(?:'s| is)? (?:set|saved|added|created|scheduled)\b|\bi(?:'ll| will) remind you\b|(?<!\b(?:you|u|can|could|should|to|please|pls|gonna|wanna|want|how|i'd|i would)\s)\b(?:set|added|created|scheduled|made) (?:a|an|the|your|that) (?:\w+ )?reminder\b",
                 "I haven't set that reminder yet. Say remind me, what and when." },
             { "stopwatch", "stopwatch", @"(?<!\b(?:not|never|haven't|hasn't|hadn't)\s)\b(?:started|stopped) (?:a|the|your|that) stopwatch\b|\b(?:your|the) stopwatch(?:'s| has been| is| was) (?:now )?(?:started|stopped)\b|^\W*(?:(?:your|the) )?stopwatch (?:started|stopped)\b",
@@ -3460,7 +3460,7 @@ namespace CapriDesktop
             { "watch_along", "watch_along", @"\b(?:i'm|i am|we're|we are) (?:now )?watching (?:it|this|that|the (?:video|stream|movie|show|episode)) (?:with you|together)\b|\bwatching along (?:with you)?\b",
                 "I'm not watching along yet. Say watch this with me." },
             { "clone", "clone", @"\b(?:i(?:'ve| have)? )?(?:cloned|duplicated|multiplied) myself\b|\b(?:here come|spawned|summoned|unleashed|made) (?:my |some |a few |\d+ )?(?:clones|copies of me)\b|\bchaos mode (?:is )?(?:on|activated|engaged|enabled)\b|\b(?:my )?clones (?:are )?(?:gone|cleared|deployed)\b",
-                "No clones yet, choom. Say clone yourself." },
+                "No clones yet. Say clone yourself." },
             { "animate", "animate mini_game", @"\*(?:dances?|dancing|busts? a move|breaks? into a dance)\b[^*\n]{0,30}\*|\bi(?:'m| am) (?:now )?dancing\b",
                 "I didn't move just now. Say dance and I will." },
             { "nap", "nap", @"\bi(?:'m| am) (?:going|heading|off) (?:to sleep|to bed|for a nap)\b|\bi(?:'m| am) (?:now )?(?:taking|having) a (?:quick |little )?nap\b|\btime for my nap\b|\*(?:yawns and )?(?:falls asleep|curls up and sleeps|snores)\*",
@@ -7203,7 +7203,7 @@ namespace CapriDesktop
 #endif
         }
 
-        internal const string ArrangeLine = "Moving, resizing and snapping windows is only on Windows so far, choom.";
+        internal const string ArrangeLine = "Moving, resizing and snapping windows is only on Windows so far.";
 
         // No window of it is open. An app still running with no window, like Discord in the tray, says so instead of "isn't open",
         // so closing it isn't taken as done and switching to it knows to open it again.
