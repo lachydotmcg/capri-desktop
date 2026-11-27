@@ -48,10 +48,13 @@ namespace CapriDesktop
                 else ShowHolo(false, holoWindow == null ? ActiveHoloCall() : holoCallSource, false);
             });
             ToolStripMenuItem full = new ToolStripMenuItem("Full size", null, delegate { ToggleHoloFullSize(); });
+            compact.ToolTipText = "Show her in a small hologram call window";
+            full.ToolTipText = "Show her hologram window full size";
             sizes.DropDownItems.Add(new ToolStripSeparator());
             sizes.DropDownItems.Add(compact);
             sizes.DropDownItems.Add(full);
             ToolStripMenuItem camera = new ToolStripMenuItem("Capri Camera", null, delegate { ToggleHoloCamera(); });
+            camera.ToolTipText = "Show her on the Capri Camera webcam in your calls";
             if (CapriCamera.Bundled) sizes.DropDownItems.Add(camera);
             sizes.DropDownOpening += delegate
             {

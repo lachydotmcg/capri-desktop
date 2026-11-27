@@ -408,6 +408,7 @@ namespace CapriDesktop
                 modMenu = new MenuItem { Header = "Mods" };
                 int at = ContextMenu.Items.Count;
                 for (int i = ContextMenu.Items.Count - 1; i >= 0; i--) if (ContextMenu.Items[i] is Separator) { at = i; break; }
+                for (int i = 0; i < ContextMenu.Items.Count; i++) if (ContextMenu.Items[i] is MenuItem row && row.Header as string == "Help") { at = i; break; }
                 ContextMenu.Items.Insert(at, modMenu);
             }
             modMenu.Items.Clear();

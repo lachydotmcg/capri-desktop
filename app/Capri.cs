@@ -3235,16 +3235,41 @@ namespace CapriDesktop
             title.Tag = Mainframe.MenuLook.Title;
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
-            menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
-            menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
-            menu.Items.Add(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }));
-            menu.Items.Add(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }));
-            ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
+            ToolStripMenuItem editJobItem = Tip(new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); }), "Change what she's doing in this job");
+            ToolStripMenuItem jobMicItem = Tip(new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); }), "Turn her mic off or on for this job");
+            menu.Items.Add(editJobItem);
+            menu.Items.Add(jobMicItem);
+            menu.Items.Add(Tip(new ToolStripMenuItem("Open Mainframe", null, delegate { mainframe.Restore(); }), "Her settings and controls"));
+            ToolStripMenuItem playItem = Tip(new ToolStripMenuItem("Play"), "Your music and mini games with her");
             menu.Items.Add(playItem);
-            visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
-            menu.Items.Add(visibilityItem);
-            ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
+            ToolStripMenuItem moves = Tip(new ToolStripMenuItem("Move"), "How and where she moves");
+            wanderItem = Tip(new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); }), "Let her walk around your screen");
+            wanderItem.Checked = preferences.Wander;
+            moves.DropDownItems.Add(wanderItem);
+            danceItem = Tip(new ToolStripMenuItem("Dance to music", null, delegate { ToggleDance(); }), "Dance when music plays");
+            danceItem.Checked = !preferences.NoDance;
+            moves.DropDownItems.Add(danceItem);
+            danceNowItem = Tip(new ToolStripMenuItem("Dance", null, delegate { Animate(danceAsked ? "stop_dancing" : "dance"); }), "Dance now, or stop");
+            moves.DropDownItems.Add(danceNowItem);
+            rideItem = Tip(new ToolStripMenuItem("Ride cursor", null, delegate { WakeRest(true); if (riding) StopRide(); else StartRide(); }), "Ride on your mouse pointer");
+            rideItem.Enabled = !preferences.Hologram;
+            moves.DropDownItems.Add(rideItem);
+            sitItem = Tip(new ToolStripMenuItem("Sit on windows", null, delegate { ToggleSitting(); }), "Let her sit on the tops of windows");
+            sitItem.Checked = !preferences.NoSitting;
+            moves.DropDownItems.Add(sitItem);
+            sitHereItem = Tip(new ToolStripMenuItem("Sit here", null, delegate { WakeRest(true); if (seat != null && seat.Free) StandUp(); else SitHere(); }), "Sit on the window under her, or stand up");
+            moves.DropDownItems.Add(sitHereItem);
+            hangHereItem = Tip(new ToolStripMenuItem("Hang here", null, delegate { WakeRest(true); if (hanging) LetGo(); else HangHere(); }), "Hang from the edge she's on, or let go");
+            moves.DropDownItems.Add(hangHereItem);
+            lieItem = Tip(new ToolStripMenuItem("Lie down", null, delegate { bool wasLying = lying; WakeRest(true); if (wasLying) SitUp(); else LieDown(); }), "Lie down where she sits, or sit up");
+            moves.DropDownItems.Add(lieItem);
+            sleepItem = Tip(new ToolStripMenuItem("Go to sleep", null, delegate { Nap(!napAsked && !Asleep); }), "Nap until you wake her");
+            moves.DropDownItems.Add(sleepItem);
+            moves.DropDownItems.Add(Tip(new ToolStripMenuItem("Bring to this screen", null, delegate { RestoreAtCursor(); }), "Bring her to your mouse"));
+            screenItem = Tip(new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); }), "Send her to your other screen");
+            moves.DropDownItems.Add(screenItem);
+            menu.Items.Add(moves);
+            ToolStripMenuItem sizes = Tip(new ToolStripMenuItem("Size"), "How big she is");
             AddSize(sizes, "Small", 170);
             AddSize(sizes, "Medium", 240);
             AddSize(sizes, "Large", 320);
@@ -3252,42 +3277,19 @@ namespace CapriDesktop
             AddSize(sizes, "Giant", 560);
             AddHoloModes(sizes);
             menu.Items.Add(sizes);
-            ToolStripMenuItem moves = new ToolStripMenuItem("Move");
-            wanderItem = new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); });
-            wanderItem.Checked = preferences.Wander;
-            moves.DropDownItems.Add(wanderItem);
-            danceItem = new ToolStripMenuItem("Dance to music", null, delegate { ToggleDance(); });
-            danceItem.Checked = !preferences.NoDance;
-            moves.DropDownItems.Add(danceItem);
-            danceNowItem = new ToolStripMenuItem("Dance", null, delegate { Animate(danceAsked ? "stop_dancing" : "dance"); });
-            moves.DropDownItems.Add(danceNowItem);
-            rideItem =new ToolStripMenuItem("Ride cursor", null, delegate { WakeRest(true); if (riding) StopRide(); else StartRide(); });
-            rideItem.Enabled = !preferences.Hologram;
-            moves.DropDownItems.Add(rideItem);
-            sitItem = new ToolStripMenuItem("Sit on windows", null, delegate { ToggleSitting(); });
-            sitItem.Checked = !preferences.NoSitting;
-            moves.DropDownItems.Add(sitItem);
-            sitHereItem = new ToolStripMenuItem("Sit here", null, delegate { WakeRest(true); if (seat != null && seat.Free) StandUp(); else SitHere(); });
-            moves.DropDownItems.Add(sitHereItem);
-            hangHereItem = new ToolStripMenuItem("Hang here", null, delegate { WakeRest(true); if (hanging) LetGo(); else HangHere(); });
-            moves.DropDownItems.Add(hangHereItem);
-            lieItem = new ToolStripMenuItem("Lie down", null, delegate { bool wasLying = lying; WakeRest(true); if (wasLying) SitUp(); else LieDown(); });
-            moves.DropDownItems.Add(lieItem);
-            sleepItem = new ToolStripMenuItem("Go to sleep", null, delegate { Nap(!napAsked && !Asleep); });
-            moves.DropDownItems.Add(sleepItem);
-            moves.DropDownItems.Add(new ToolStripMenuItem("Bring to this screen", null, delegate { RestoreAtCursor(); }));
-            screenItem = new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); });
-            moves.DropDownItems.Add(screenItem);
-            menu.Items.Add(moves);
-            hologramItem = new ToolStripMenuItem("Hologram", null, delegate { SetHologram(!preferences.Hologram); });
+            visibilityItem = Tip(new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); }), "Hide her until you bring her back");
+            menu.Items.Add(visibilityItem);
+            hologramItem = Tip(new ToolStripMenuItem("Hologram", null, delegate { SetHologram(!preferences.Hologram); }), "Clicks go through her until you turn it off from her tray icon");
             hologramItem.Checked = preferences.Hologram;
-            hologramItem.ToolTipText = "Clicks go through her until you turn it off from her tray icon";
             hologramItem.AccessibleName = "Hologram. " + hologramItem.ToolTipText;
             menu.Items.Add(hologramItem);
-            ToolStripMenuItem editJobItem = new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); });
-            ToolStripMenuItem jobMicItem = new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); });
-            menu.Items.Add(editJobItem);
-            menu.Items.Add(jobMicItem);
+            ToolStripMenuItem things = Tip(new ToolStripMenuItem("Her things"), "Her files, folder, computer and camera");
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }), "Edit her personality and her notes on you"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }), "Open the folder where she keeps her things"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }), "Her own little computer with a browser"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }), "See her in your room through your camera"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her rules (sys.md)", null, delegate { OpenSys(); }), "Rules she follows, like apps she never watches"));
+            menu.Items.Add(things);
             menu.Opening += delegate
             {
                 bool activeJob = MidJob(job);
@@ -3306,22 +3308,22 @@ namespace CapriDesktop
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
             clickDelay.Tick += delegate { OnClickDelay(); };
-            helpItem = new ToolStripMenuItem("Help");
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Commands", null, delegate { Commands.Write(); OpenFiles(2); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Help page", null, delegate { OpenHelp(); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Join the Discord", null, delegate { OpenPage(DiscordPage); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Copy error details", null, delegate { CopyErrors(); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Her system settings (sys.md)", null, delegate { OpenSys(); }));
-            // Store policies 11.12 and 11.16: AI replies and mods need a way to report them from inside the app, and mods need their rules there too.
-            if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }));
-            if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }));
-            helpItem.DropDownItems.Add(CrashMenuItem());
-            checkItem = new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); });
+            helpItem = Tip(new ToolStripMenuItem("Help"), "Help, problems and updates");
+            // Store policies 11.12 and 11.16 need AI replies and mods reportable from inside the app; every copy has it now, and the Store's has its mod rules too.
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }), "Tell us about a bug or a bad reply"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Copy error details", null, delegate { CopyErrors(); }), "Copy her error log to send to us"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Help page", null, delegate { OpenHelp(); }), "Open her help page"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Commands", null, delegate { Commands.Write(); OpenFiles(2); }), "Things you can ask her"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Join the Discord", null, delegate { OpenPage(DiscordPage); }), "Talk with other people who use Capri"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }), "What she keeps, and what leaves your PC"));
+            if (Packaged.Is) helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }), "What mods may and may not do"));
+            helpItem.DropDownItems.Add(Tip(CrashMenuItem(), "Send what broke when she crashes, or stop"));
+            checkItem = Tip(new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); }), "Look for a newer Capri");
             helpItem.DropDownItems.Add(checkItem);
-            updateItem = new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); });
+            updateItem = Tip(new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); }), "Restart her now with the new version");
             menu.Items.Add(helpItem);
-            foreach (ToolStripMenuItem parent in new[] { sizes, moves, helpItem })
+            menu.ShowItemToolTips = true;
+            foreach (ToolStripMenuItem parent in new[] { sizes, moves, things, helpItem })
             {
                 ToolStripDropDownMenu drop = (ToolStripDropDownMenu)parent.DropDown;
                 drop.Renderer = menu.Renderer;
@@ -3329,10 +3331,11 @@ namespace CapriDesktop
                 drop.BackColor = menu.BackColor;
                 drop.Font = menu.Font;
                 drop.ShowImageMargin = false;
-                drop.ShowCheckMargin = parent != helpItem;
+                drop.ShowCheckMargin = parent != helpItem && parent != things;
+                drop.ShowItemToolTips = true;
             }
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }));
+            menu.Items.Add(Tip(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }), "Close her until you start her again"));
             menu.Opened += delegate { Computer.MenuOpen = true; };
             menu.Closed += delegate { Computer.MenuOpen = false; };
             playerMenu = new ContextMenuStrip();
@@ -3387,6 +3390,8 @@ namespace CapriDesktop
             Shown += delegate { StartRemote(); };
             playItem.DropDown = mainframe.MiniChoices();
             playItem.DropDown.Font = menu.Font;
+            playItem.DropDown.ShowItemToolTips = true;
+            foreach (ToolStripItem game in playItem.DropDownItems) if (game.Text.Length > 0) game.ToolTipText = game.Text == "Music" ? "Play your music" : "Play " + game.Text.ToLowerInvariant() + " with her";
             PrepareHusk(data);
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -4175,8 +4180,8 @@ namespace CapriDesktop
                 updateFile = ready;
                 updateItem.Enabled = true;
                 updateItem.Text = "Restart to update to Capri " + ready.Version;
-                if (!menu.Items.Contains(updateItem)) menu.Items.Insert(menu.Items.Count - 2, updateItem);
-                mainframe.UpdateNote(updateItem.Text + ". Use her tray menu.", false);
+                if (!helpItem.DropDownItems.Contains(updateItem)) helpItem.DropDownItems.Insert(helpItem.DropDownItems.IndexOf(checkItem) + 1, updateItem);
+                mainframe.UpdateNote(updateItem.Text + ". Use Help in her tray menu.", false);
                 if (fresh || asked)
                 {
                     balloonPage = null;
@@ -4206,7 +4211,7 @@ namespace CapriDesktop
         {
             updateFile = null;
             updateItem.Enabled = false;
-            menu.Items.Remove(updateItem);
+            helpItem.DropDownItems.Remove(updateItem);
             balloonUpdate = false;
         }
 
@@ -4829,9 +4834,31 @@ namespace CapriDesktop
 
         private static Size CanvasSize(int size) { return new Size(size + PaddingSize * 2, size + PaddingSize * 2); }
 
+        private static T Tip<T>(T item, string tip) where T : ToolStripItem
+        {
+            item.ToolTipText = tip;
+            return item;
+        }
+
+        // A row of her right-click menu by its words, in a submenu or not, for the smoke.
+        internal ToolStripMenuItem MenuRow(string text) { return MenuRow(menu.Items, text); }
+
+        private static ToolStripMenuItem MenuRow(ToolStripItemCollection items, string text)
+        {
+            foreach (ToolStripItem item in items)
+            {
+                ToolStripMenuItem row = item as ToolStripMenuItem;
+                if (row == null) continue;
+                if (row.Text == text) return row;
+                ToolStripMenuItem inner = row.HasDropDownItems ? MenuRow(row.DropDownItems, text) : null;
+                if (inner != null) return inner;
+            }
+            return null;
+        }
+
         private void AddSize(ToolStripMenuItem parent, string label, int size)
         {
-            ToolStripMenuItem item = new ToolStripMenuItem(label, null, delegate { SetCharacterSize(size); });
+            ToolStripMenuItem item = Tip(new ToolStripMenuItem(label, null, delegate { SetCharacterSize(size); }), "Make her " + label.ToLowerInvariant());
             item.Tag = size;
             item.Checked = preferences.Size == size;
             parent.DropDownItems.Add(item);
@@ -41447,6 +41474,70 @@ namespace CapriDesktop
             }
         }
 
+        // Her right-click menu in the order they agreed (nathanZW, 26 Nov): her job's rows first, then Open Mainframe, Play, Move,
+        // Size, Hide Capri, Hologram, Her things, Mods, Help and Quit, every row saying what it does when the mouse rests on it.
+        // It's drawn with Her things and with Help open for her-menu-things.png and her-menu-help.png.
+        private void SmokeMenuTidy(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<ToolStripItemCollection, string> rows = delegate(ToolStripItemCollection items)
+            {
+                System.Collections.Generic.List<string> shown = new System.Collections.Generic.List<string>();
+                foreach (ToolStripItem item in items) if (item.Available) shown.Add(item.Text);
+                return string.Join(",", shown.ToArray());
+            };
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            string tops;
+            try { menu.Show(new Point(work.Left + 60, work.Top + 60)); tops = rows(menu.Items).Replace(",Mods,", ","); }
+            finally { menu.Close(); }
+            string wanted = "CAPRI  /  " + ShownVersion(Packaged.Is, true) + ",,Open Mainframe,Play,Move,Size,Hide Capri,Hologram,Her things,Help,,Quit Capri";
+            if (tops != wanted) throw new Exception("Her right-click menu is not in its agreed order: " + tops);
+            if (menu.Items[2].Text != "Edit current job instructions" || !menu.Items[3].Text.EndsWith("Capri's mic", StringComparison.Ordinal)) throw new Exception("Her job's rows aren't at the top of her menu.");
+            ToolStripMenuItem things = MenuRow("Her things"), help = MenuRow("Help");
+            if (rows(things.DropDownItems) != "File editor,Her folder,Her computer,Room camera,Her rules (sys.md)") throw new Exception("Her things is not in its agreed order: " + rows(things.DropDownItems));
+            string helps = rows(help.DropDownItems);
+            string helpWanted = "Report a problem,Copy error details,Help page,Commands,Join the Discord,Privacy and safety," + (Packaged.Is ? "Mod rules," : "") + crashItem.Text + ",Check for updates";
+            if (helps != helpWanted && helps != helpWanted + "," + updateItem.Text) throw new Exception("Help is not in its agreed order: " + helps);
+            if (MenuRow("Her system settings (sys.md)") != null || MenuRow("Open Capri Mainframe") != null) throw new Exception("Her menu kept an old name.");
+            System.Collections.Generic.List<string> untipped = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<ToolStripDropDown> drops = new System.Collections.Generic.List<ToolStripDropDown> { menu };
+            for (int at = 0; at < drops.Count; at++)
+            {
+                if (!drops[at].ShowItemToolTips) untipped.Add("the " + (drops[at] == menu ? "menu" : ((ToolStripMenuItem)drops[at].OwnerItem).Text) + " list shows no tips");
+                foreach (ToolStripItem item in drops[at].Items)
+                {
+                    ToolStripMenuItem row = item as ToolStripMenuItem;
+                    if (row == null || row.Tag == Mainframe.MenuLook.Title || row.OwnerItem != null && row.OwnerItem.Text == "Mods") continue;
+                    if (string.IsNullOrEmpty(row.ToolTipText) || row.ToolTipText.Length > 70 || row.ToolTipText.IndexOf("choom", StringComparison.OrdinalIgnoreCase) >= 0) untipped.Add(row.Text + " (" + row.ToolTipText + ")");
+                    if (row.HasDropDownItems && row.Text != "Mods") drops.Add(row.DropDown);
+                }
+            }
+            if (untipped.Count > 0) throw new Exception("Rows of her menu with no short tip: " + string.Join("; ", untipped.ToArray()));
+            checks.Add("PASS her right-click and tray menu: her job's rows, Open Mainframe, Play, Move, Size, Hide Capri, Hologram, Her things, Mods, Help with Report a problem first, and Quit Capri, every row with a short tip and the old names gone");
+
+            foreach (ToolStripMenuItem open in new[] { things, help })
+            {
+                try
+                {
+                    menu.Show(new Point(work.Left + 60, work.Top + 60));
+                    open.Select();
+                    open.ShowDropDown();
+                    Application.DoEvents();
+                    Rectangle area = Rectangle.Union(menu.Bounds, open.DropDown.Bounds);
+                    using (Bitmap sheet = new Bitmap(area.Width + 48, area.Height + 48))
+                    {
+                        using (Graphics drawing = Graphics.FromImage(sheet))
+                        {
+                            drawing.Clear(Color.FromArgb(44, 47, 56));
+                            foreach (ToolStripDropDown drop in new ToolStripDropDown[] { menu, open.DropDown }) Snapped(drawing, drop, drop.Left - area.Left + 24, drop.Top - area.Top + 24);
+                        }
+                        sheet.Save(Path.Combine(output, open == things ? "her-menu-things.png" : "her-menu-help.png"), ImageFormat.Png);
+                    }
+                }
+                finally { open.HideDropDown(); menu.Close(); }
+            }
+            checks.Add("PASS her menu is drawn with Her things and with Help open for her-menu-things.png and her-menu-help.png");
+        }
+
         // A menu longer than its screen stays on the screen with her arrows, opens with its tick in view, and scrolls on the wheel
         // wherever Windows sends it, to its last row and back, without the Mainframe page moving behind it (Ashy, 6 Nov).
         private void SmokeLongMenus(System.Collections.Generic.List<string> checks)
@@ -41570,7 +41661,7 @@ namespace CapriDesktop
                 if (item.Text == "Move") moves = item as ToolStripMenuItem;
                 if (item.Text == "Play") play = item as ToolStripMenuItem;
             }
-            if (moves == null || play == null || menu.Items[2].Text != "Open Capri Mainframe") throw new Exception("Her right-click menu isn't laid out as this check expects.");
+            if (moves == null || play == null || MenuRow("Open Mainframe") == null) throw new Exception("Her right-click menu isn't laid out as this check expects.");
             int type, title;
             using (Font built = Neon.Type(10f)) type = built.Height;
             using (Font built = Neon.Display(12f)) title = built.Height;
@@ -41584,7 +41675,7 @@ namespace CapriDesktop
                 {
                     menu.Show(at);
                     moves.ShowDropDown();
-                    int[] seen = { menu.Font.Height, menu.Items[0].Font.Height, menu.Items[2].Height, moves.DropDown.Font.Height, 0 };
+                    int[] seen = { menu.Font.Height, menu.Items[0].Font.Height, MenuRow("Open Mainframe").Height, moves.DropDown.Font.Height, 0 };
                     moves.HideDropDown();
                     menu.Close();
                     playerMenu.Show(at);
@@ -47747,6 +47838,7 @@ namespace CapriDesktop
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
+            Section(checks, "SmokeMenuTidy", delegate { SmokeMenuTidy(checks, output); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeMenuScreens", delegate { SmokeMenuScreens(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
@@ -54910,7 +55002,7 @@ namespace CapriDesktop
                                 finishUpdate();
                                 mainframe.WindowState = beforeUpdate;
                                 if (queries != 3 || updateRequests.Count != 5) throw new Exception("The Mainframe button did not check and reuse the download.");
-                                if (!helpItem.DropDownItems.Contains(checkItem) || checkItem.Text != "Check for updates" || !menu.Items.Contains(updateItem) || updateItem.Text != "Restart to update to Capri 9.0.0" || tray.BalloonTipText != updateItem.Text || tray.BalloonTipTitle != "Capri update ready" || !balloonUpdate || balloonPage != null || mainframe.UpdateStatus.IndexOf(updateItem.Text, StringComparison.Ordinal) < 0) throw new Exception("The update menu, balloon or Mainframe text is wrong.");
+                                if (!helpItem.DropDownItems.Contains(checkItem) || checkItem.Text != "Check for updates" || !helpItem.DropDownItems.Contains(updateItem) || updateItem.Text != "Restart to update to Capri 9.0.0" || tray.BalloonTipText != updateItem.Text || tray.BalloonTipTitle != "Capri update ready" || !balloonUpdate || balloonPage != null || mainframe.UpdateStatus.IndexOf(updateItem.Text, StringComparison.Ordinal) < 0) throw new Exception("The update menu, balloon or Mainframe text is wrong.");
                                 if (mainframe.Overlap() != null) throw new Exception("The update note overlaps Mainframe controls: " + mainframe.Overlap());
                                 checks.Add("PASS cached update reused across checks and sessions, manual menu and Mainframe checks, restart menu and balloon text");
                                 updateItem.PerformClick();
@@ -54959,7 +55051,7 @@ namespace CapriDesktop
                                 if (!tampered || launches != 3) throw new Exception("A cached installer was not rechecked before launch.");
                                 updateItem.PerformClick();
                                 finishUpdate();
-                                if (updateFile != null || menu.Items.Contains(updateItem) || balloonUpdate || exits != 2 || launches != 3) throw new Exception("A failed install verification left a restart offer active.");
+                                if (updateFile != null || helpItem.DropDownItems.Contains(updateItem) || balloonUpdate || exits != 2 || launches != 3) throw new Exception("A failed install verification left a restart offer active.");
                                 checks.Add("PASS partial files cannot run, signed Capri requires the same valid signer, signature-only updates, cached bytes rechecked before launch");
                                 updateServer.Stop();
                                 address = FakeServer(new[] { manifest, manifest, payload }, updateRequests, out updateServer);
@@ -54978,7 +55070,7 @@ namespace CapriDesktop
                                 CheckUpdates();
                                 finishUpdate();
                                 long failedAt = preferences.UpdateCheckedAt;
-                                if (updateFile != null || menu.Items.Contains(updateItem) || balloonUpdate || File.Exists(final) || File.Exists(partial) || launches != 3 || mainframe.UpdateStatus.IndexOf("checksum doesn't match", StringComparison.Ordinal) < 0 || UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour - 1) || !UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour) || !checkItem.Enabled) throw new Exception("Hash mismatch was not rejected until the next three-hour check.");
+                                if (updateFile != null || helpItem.DropDownItems.Contains(updateItem) || balloonUpdate || File.Exists(final) || File.Exists(partial) || launches != 3 || mainframe.UpdateStatus.IndexOf("checksum doesn't match", StringComparison.Ordinal) < 0 || UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour - 1) || !UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour) || !checkItem.Enabled) throw new Exception("Hash mismatch was not rejected until the next three-hour check.");
                                 checks.Add("PASS hash mismatch rejected in Mainframe, corrupt cache discarded, failed downloads wait three hours");
                                 updateServer.Stop();
                                 release.Assets = new[] { installer };
@@ -55021,7 +55113,7 @@ namespace CapriDesktop
                                 updateFile = null;
                                 balloonPage = null;
                                 balloonUpdate = false;
-                                menu.Items.Remove(updateItem);
+                                helpItem.DropDownItems.Remove(updateItem);
                                 mainframe.UpdateNote("", false);
                                 test.Start();
                             }
@@ -55051,7 +55143,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Her folder,Room camera,Her computer,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Mainframe,Play,Move,Size,Hide Capri,Hologram,Her things,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;
@@ -64371,8 +64463,8 @@ namespace CapriDesktop
                                     if (reply != keyLines[provider] || heard != "free key") throw new Exception("Free key did not explain provider " + provider + ": " + reply);
                                     CloseTalk();
                                 }
-                                ((ToolStripMenuItem)helpItem.DropDownItems[2]).PerformClick();
-                                ((ToolStripMenuItem)helpItem.DropDownItems[1]).PerformClick();
+                                MenuRow("Join the Discord").PerformClick();
+                                MenuRow("Help page").PerformClick();
                                 OpenHelp();
                                 if (string.Join(" ", browsed.ToArray()) != GuidePage + " " + FreeKeyPage + " " + GeminiKeyPage + " " + RouterKeyPage + " " + DiscordPage + " " + HelpPage + " " + HelpPage) throw new Exception("Key buttons, Join the Discord or Help opened the wrong pages: " + string.Join(" ", browsed.ToArray()));
                             }

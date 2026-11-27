@@ -2636,7 +2636,7 @@ namespace CapriDesktop
 #else
         private const string MacHands = "Mac doesn't let apps use the mouse and keyboard yet", MacHandsLine = "I can't use your mouse and keyboard on a Mac yet.";
 #endif
-        private const string LinuxHandsLine = "I can't use your mouse and keyboard yet. Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard.";
+        private const string LinuxHandsLine = "I can't use your mouse and keyboard yet. Open Mainframe > Settings > KEYS > Set up mouse and keyboard.";
         // A screen watch asked for in words her lookout doesn't take, on a brain that can't see. Asked for in its own words, her
         // lookout says which brain.
         internal const string BlindWatch = "This brain can't see pictures, so I can't watch your screen for that. Pick a brain with eyes under BRAIN in Capri Mainframe.";

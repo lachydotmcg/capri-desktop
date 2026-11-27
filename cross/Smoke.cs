@@ -454,13 +454,13 @@ namespace CapriDesktop
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
                 MenuItem danceToMusic = moveMenu == null ? null : menuRow(moveMenu.Items, "Dance to music");
-                if (danceToMusic == null || moveMenu.Items.IndexOf(danceToMusic) + 1 != moveMenu.Items.IndexOf(menuRow(moveMenu.Items, "Dance")) || helpMenu == null || menuHeaders(helpMenu) != "Help page | Join the Discord | Copy error details" || sizeMenu == null || menuHeaders(sizeMenu) != string.Join(" | ", Pet.MenuSizeNames) || menuHeaders(sizeMenu) != "Small | Medium | Large | Huge | Giant")
+                if (danceToMusic == null || moveMenu.Items.IndexOf(danceToMusic) + 1 != moveMenu.Items.IndexOf(menuRow(moveMenu.Items, "Dance")) || helpMenu == null || menuHeaders(helpMenu) != "Report a problem | Copy error details | Help page | Join the Discord | Check for updates" || sizeMenu == null || menuHeaders(sizeMenu) != string.Join(" | ", Pet.MenuSizeNames) || menuHeaders(sizeMenu) != "Small | Medium | Large | Huge | Giant")
                     throw new Exception("Her right-click menu lost a Windows row: Move " + (moveMenu == null ? "missing" : menuHeaders(moveMenu)) + " / Help " + (helpMenu == null ? "missing" : menuHeaders(helpMenu)) + " / Size " + (sizeMenu == null ? "missing" : menuHeaders(sizeMenu)));
                 danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 bool menuDanceOff = pet.Saved.NoDance;
                 danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 if (!menuDanceOff || pet.Saved.NoDance) throw new Exception("Move > Dance to music didn't switch dancing to music off and back on.");
-                checks.Add("PASS right-click menu: Move > Dance to music sits before Dance and switches it, Help has Join the Discord between Help page and Copy error details, and Size lists Windows' five sizes");
+                checks.Add("PASS right-click menu: Move > Dance to music sits before Dance and switches it, Help has Report a problem first, then Copy error details, Help page, Join the Discord and Check for updates, and Size lists Windows' five sizes");
                 bool checkInsNew = pet.CheckIns && pet.CheckInsShown && pet.PopPace == 1 && pet.PopsPicked == "Sometimes";
                 pet.SetPopPace(2);
                 bool popsOften = pet.Saved.PopPace == 2 && pet.PopsPicked == "Often";
@@ -2225,7 +2225,9 @@ namespace CapriDesktop
                 MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background update failure");
                 if (pet.UpdateNews != null || pet.Talk.Reply != null || pet.MainframeUpdate != failure) throw new Exception("A background update failure made a new notice.");
                 MenuItem tray = null;
-                foreach (object value in pet.ContextMenu.Items) if (value is MenuItem item && item.Header as string == "Check for updates") tray = item;
+                foreach (object value in pet.ContextMenu.Items)
+                    if (value is MenuItem item && item.Header as string == "Help")
+                        foreach (object row in item.Items) if (row is MenuItem inner && inner.Header as string == "Check for updates") tray = inner;
                 if (tray == null) throw new Exception("The tray update check is missing.");
                 tray.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a tray update failure");
