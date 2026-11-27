@@ -271,13 +271,19 @@ h1 em { font-weight: 600; }
 @media (pointer: coarse) {
   .guide-jump { row-gap: 0; }
   .heads-up button { min-block-size: var(--target-size); }
+  .github, .discord { flex: none; inline-size: var(--target-size); block-size: var(--target-size); }
 }
-/* Icon links, copy buttons and the talk pill keep their drawn size; an invisible ring around each takes the tap instead. */
-.github, .discord { position: relative; --hit-y: min(0px, (40px - var(--target-size)) / 2); --hit-x: min(0px, (26px - var(--target-size)) / 2); }
+@media (pointer: coarse) and (max-width: 600px) {
+  .links { gap: 4px; }
+}
+@media (pointer: coarse) and (max-width: 360px) {
+  .header .chip { width: 52px; height: var(--target-size); display: block; }
+}
+/* Copy buttons and the talk pill keep their drawn size; an invisible ring around each takes the tap instead. */
 .copy { --hit-y: min(0px, (26px - var(--target-size)) / 2); }
 .code .copy { position: relative; right: auto; bottom: auto; --hit-y: min(0px, (20px - var(--target-size)) / 2); }
 .talk-pill button { position: relative; --hit-y: min(0px, (28px - var(--target-size)) / 2); --hit-x: -1px; }
-.github::after, .discord::after, .copy::after, .talk-pill button::after { content: ""; position: absolute; inset: var(--hit-y, 0) var(--hit-x, 0); }
+.copy::after, .talk-pill button::after { content: ""; position: absolute; inset: var(--hit-y, 0) var(--hit-x, 0); }
 
 /* ---------- Rendering ---------- */
 /* Every step after the first is drawn only as it comes near the screen; help runs to dozens of screens on a phone. */
