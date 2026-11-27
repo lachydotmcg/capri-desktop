@@ -460,8 +460,9 @@ namespace CapriDesktop
             {
                 if (items.Count == 0) return;
                 modMenu = new ToolStripMenuItem("Mods");
-                int quit = menu.Items.Count - 2;
-                menu.Items.Insert(Math.Max(0, quit), modMenu);
+                modMenu.ToolTipText = "Options from the mods you added";
+                int help = menu.Items.IndexOf(helpItem);
+                menu.Items.Insert(help < 0 ? Math.Max(0, menu.Items.Count - 2) : help, modMenu);
                 ToolStripDropDownMenu drop = modMenu.DropDown as ToolStripDropDownMenu;
                 if (drop != null)
                 {
@@ -471,6 +472,7 @@ namespace CapriDesktop
                     drop.Font = menu.Font;
                     drop.ShowImageMargin = false;
                     drop.ShowCheckMargin = false;
+                    drop.ShowItemToolTips = true;
                 }
             }
             modMenu.DropDownItems.Clear();

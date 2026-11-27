@@ -115,7 +115,9 @@ namespace CapriDesktop
                     HerCursor.Off();
                     if (smoke) { Directory.CreateDirectory(args[1]); File.WriteAllText(Path.Combine(args[1], "failure.txt"), error.ToString()); return 1; }
                     Crashed(error);
-                    Notice.Tell(null, "Capri could not start.\n\n" + error.Message, "Capri", true);
+                    // Companion may be what failed to load, so her plain words still show if its notice can't.
+                    try { Companion.CouldNotStart(error); }
+                    catch (Exception) { Notice.Tell(null, StartProblem(Brain.LogPath, false, false), StartCaption, true); }
                     return 1;
                 }
             }
@@ -223,6 +225,18 @@ namespace CapriDesktop
             fresh.Remote = old.Remote == null ? null : new RemoteSettings { Host = old.Remote.Host, Sealed = old.Remote.Sealed };
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
+        }
+
+        internal const string StartCaption = "Capri couldn't start";
+
+        // What her start failure notice says: plainly that she didn't start, where her log is and what to do next. `keys` says
+        // whether it has Copy error details and Report a problem (the Help page outside the Store) to point at.
+        internal static string StartProblem(string log, bool store, bool keys)
+        {
+            return "Something went wrong while Capri was starting."
+                + (string.IsNullOrEmpty(log) ? "" : "\n\nThe details are saved in Capri's error log:\n" + log)
+                + "\n\nTry opening Capri again. If it still won't start, "
+                + (!keys ? "the help page at capriai.app/help says where to send that log." : "press Copy error details, then " + ProblemKeys.Then(store));
         }
 
         // A crash goes in errors.txt: what it was and where in her code, so Copy error details shows it.
@@ -1024,6 +1038,7 @@ namespace CapriDesktop
         [DataMember] public bool HideFullScreen;
         [DataMember] public bool PlayerFullScreen;
         [DataMember] public bool Hologram;
+        [DataMember(EmitDefaultValue = false)] public bool HologramTold;
         [DataMember] public bool ExploreAway;
         [DataMember] public bool AdvancedSettings;
         [DataMember] public int ExploreAfter;
@@ -2483,6 +2498,7 @@ namespace CapriDesktop
         private double nextGlitch;
         private int clicks;
         private bool riding;
+        private int hologramNotices;
         // During a job she sits on the task panel. Where she was before, to go back to once it's gone.
         private bool onPanel;
         private Point panelHome;
@@ -2901,9 +2917,9 @@ namespace CapriDesktop
         private const string RouterKeyPage = "https://openrouter.ai/keys";
         private const string GuidePage = "https://capriai.app/setup/#voice";
         private const string DiscordPage = "https://discord.gg/capridesktop";
-        private const string HelpPage = "https://capriai.app/help/";
+        private const string HelpPage = ProblemKeys.HelpPage;
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
-        private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        private const string IssuesPage = ProblemKeys.IssuesPage;
         private const string PrivacyPage = "https://capriai.app/privacy/";
         private const string ModRulesPage = "https://capriai.app/privacy/#mods";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
@@ -3222,16 +3238,41 @@ namespace CapriDesktop
             title.Tag = Mainframe.MenuLook.Title;
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
-            menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
-            menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
-            menu.Items.Add(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }));
-            menu.Items.Add(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }));
-            ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
+            ToolStripMenuItem editJobItem = Tip(new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); }), "Change what she's doing in this job");
+            ToolStripMenuItem jobMicItem = Tip(new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); }), "Turn her mic off or on for this job");
+            menu.Items.Add(editJobItem);
+            menu.Items.Add(jobMicItem);
+            menu.Items.Add(Tip(new ToolStripMenuItem("Open Mainframe", null, delegate { mainframe.Restore(); }), "Her settings and controls"));
+            ToolStripMenuItem playItem = Tip(new ToolStripMenuItem("Play"), "Your music and mini games with her");
             menu.Items.Add(playItem);
-            visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
-            menu.Items.Add(visibilityItem);
-            ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
+            ToolStripMenuItem moves = Tip(new ToolStripMenuItem("Move"), "How and where she moves");
+            wanderItem = Tip(new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); }), "Let her walk around your screen");
+            wanderItem.Checked = preferences.Wander;
+            moves.DropDownItems.Add(wanderItem);
+            danceItem = Tip(new ToolStripMenuItem("Dance to music", null, delegate { ToggleDance(); }), "Dance when music plays");
+            danceItem.Checked = !preferences.NoDance;
+            moves.DropDownItems.Add(danceItem);
+            danceNowItem = Tip(new ToolStripMenuItem("Dance", null, delegate { Animate(danceAsked ? "stop_dancing" : "dance"); }), "Dance now, or stop");
+            moves.DropDownItems.Add(danceNowItem);
+            rideItem = Tip(new ToolStripMenuItem("Ride cursor", null, delegate { WakeRest(true); if (riding) StopRide(); else StartRide(); }), "Ride on your mouse pointer");
+            rideItem.Enabled = !preferences.Hologram;
+            moves.DropDownItems.Add(rideItem);
+            sitItem = Tip(new ToolStripMenuItem("Sit on windows", null, delegate { ToggleSitting(); }), "Let her sit on the tops of windows");
+            sitItem.Checked = !preferences.NoSitting;
+            moves.DropDownItems.Add(sitItem);
+            sitHereItem = Tip(new ToolStripMenuItem("Sit here", null, delegate { WakeRest(true); if (seat != null && seat.Free) StandUp(); else SitHere(); }), "Sit on the window under her, or stand up");
+            moves.DropDownItems.Add(sitHereItem);
+            hangHereItem = Tip(new ToolStripMenuItem("Hang here", null, delegate { WakeRest(true); if (hanging) LetGo(); else HangHere(); }), "Hang from the edge she's on, or let go");
+            moves.DropDownItems.Add(hangHereItem);
+            lieItem = Tip(new ToolStripMenuItem("Lie down", null, delegate { bool wasLying = lying; WakeRest(true); if (wasLying) SitUp(); else LieDown(); }), "Lie down where she sits, or sit up");
+            moves.DropDownItems.Add(lieItem);
+            sleepItem = Tip(new ToolStripMenuItem("Go to sleep", null, delegate { Nap(!napAsked && !Asleep); }), "Nap until you wake her");
+            moves.DropDownItems.Add(sleepItem);
+            moves.DropDownItems.Add(Tip(new ToolStripMenuItem("Bring to this screen", null, delegate { RestoreAtCursor(); }), "Bring her to your mouse"));
+            screenItem = Tip(new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); }), "Send her to your other screen");
+            moves.DropDownItems.Add(screenItem);
+            menu.Items.Add(moves);
+            ToolStripMenuItem sizes = Tip(new ToolStripMenuItem("Size"), "How big she is");
             AddSize(sizes, "Small", 170);
             AddSize(sizes, "Medium", 240);
             AddSize(sizes, "Large", 320);
@@ -3239,42 +3280,19 @@ namespace CapriDesktop
             AddSize(sizes, "Giant", 560);
             AddHoloModes(sizes);
             menu.Items.Add(sizes);
-            ToolStripMenuItem moves = new ToolStripMenuItem("Move");
-            wanderItem = new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); });
-            wanderItem.Checked = preferences.Wander;
-            moves.DropDownItems.Add(wanderItem);
-            danceItem = new ToolStripMenuItem("Dance to music", null, delegate { ToggleDance(); });
-            danceItem.Checked = !preferences.NoDance;
-            moves.DropDownItems.Add(danceItem);
-            danceNowItem = new ToolStripMenuItem("Dance", null, delegate { Animate(danceAsked ? "stop_dancing" : "dance"); });
-            moves.DropDownItems.Add(danceNowItem);
-            rideItem =new ToolStripMenuItem("Ride cursor", null, delegate { WakeRest(true); if (riding) StopRide(); else StartRide(); });
-            rideItem.Enabled = !preferences.Hologram;
-            moves.DropDownItems.Add(rideItem);
-            sitItem = new ToolStripMenuItem("Sit on windows", null, delegate { ToggleSitting(); });
-            sitItem.Checked = !preferences.NoSitting;
-            moves.DropDownItems.Add(sitItem);
-            sitHereItem = new ToolStripMenuItem("Sit here", null, delegate { WakeRest(true); if (seat != null && seat.Free) StandUp(); else SitHere(); });
-            moves.DropDownItems.Add(sitHereItem);
-            hangHereItem = new ToolStripMenuItem("Hang here", null, delegate { WakeRest(true); if (hanging) LetGo(); else HangHere(); });
-            moves.DropDownItems.Add(hangHereItem);
-            lieItem = new ToolStripMenuItem("Lie down", null, delegate { bool wasLying = lying; WakeRest(true); if (wasLying) SitUp(); else LieDown(); });
-            moves.DropDownItems.Add(lieItem);
-            sleepItem = new ToolStripMenuItem("Go to sleep", null, delegate { Nap(!napAsked && !Asleep); });
-            moves.DropDownItems.Add(sleepItem);
-            moves.DropDownItems.Add(new ToolStripMenuItem("Bring to this screen", null, delegate { RestoreAtCursor(); }));
-            screenItem = new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); });
-            moves.DropDownItems.Add(screenItem);
-            menu.Items.Add(moves);
-            hologramItem = new ToolStripMenuItem("Hologram", null, delegate { SetHologram(!preferences.Hologram); });
+            visibilityItem = Tip(new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); }), "Hide her until you bring her back");
+            menu.Items.Add(visibilityItem);
+            hologramItem = Tip(new ToolStripMenuItem("Hologram", null, delegate { SetHologram(!preferences.Hologram); }), "Clicks go through her until you turn it off from her tray icon");
             hologramItem.Checked = preferences.Hologram;
-            hologramItem.ToolTipText = "Clicks go through her until you turn it off from her tray icon";
             hologramItem.AccessibleName = "Hologram. " + hologramItem.ToolTipText;
             menu.Items.Add(hologramItem);
-            ToolStripMenuItem editJobItem = new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); });
-            ToolStripMenuItem jobMicItem = new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); });
-            menu.Items.Add(editJobItem);
-            menu.Items.Add(jobMicItem);
+            ToolStripMenuItem things = Tip(new ToolStripMenuItem("Her things"), "Her files, folder, computer and camera");
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }), "Edit her personality and her notes on you"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }), "Open the folder where she keeps her things"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }), "Her own little computer with a browser"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }), "See her in your room through your camera"));
+            things.DropDownItems.Add(Tip(new ToolStripMenuItem("Her rules (sys.md)", null, delegate { OpenSys(); }), "Rules she follows, like apps she never watches"));
+            menu.Items.Add(things);
             menu.Opening += delegate
             {
                 bool activeJob = MidJob(job);
@@ -3293,22 +3311,22 @@ namespace CapriDesktop
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
             clickDelay.Tick += delegate { OnClickDelay(); };
-            helpItem = new ToolStripMenuItem("Help");
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Commands", null, delegate { Commands.Write(); OpenFiles(2); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Help page", null, delegate { OpenHelp(); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Join the Discord", null, delegate { OpenPage(DiscordPage); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Copy error details", null, delegate { CopyErrors(); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Her system settings (sys.md)", null, delegate { OpenSys(); }));
-            // Store policies 11.12 and 11.16: AI replies and mods need a way to report them from inside the app, and mods need their rules there too.
-            if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }));
-            if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }));
-            helpItem.DropDownItems.Add(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }));
-            helpItem.DropDownItems.Add(CrashMenuItem());
-            checkItem = new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); });
+            helpItem = Tip(new ToolStripMenuItem("Help"), "Help, problems and updates");
+            // Store policies 11.12 and 11.16 need AI replies and mods reportable from inside the app; every copy has it now, and the Store's has its mod rules too.
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }), "Tell us about a bug or a bad reply"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Copy error details", null, delegate { CopyErrors(); }), "Copy her error log to send to us"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Help page", null, delegate { OpenHelp(); }), "Open her help page"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Commands", null, delegate { Commands.Write(); OpenFiles(2); }), "Things you can ask her"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Join the Discord", null, delegate { OpenPage(DiscordPage); }), "Talk with other people who use Capri"));
+            helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }), "What she keeps, and what leaves your PC"));
+            if (Packaged.Is) helpItem.DropDownItems.Add(Tip(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }), "What mods may and may not do"));
+            helpItem.DropDownItems.Add(Tip(CrashMenuItem(), "Send what broke when she crashes, or stop"));
+            checkItem = Tip(new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); }), "Look for a newer Capri");
             helpItem.DropDownItems.Add(checkItem);
-            updateItem = new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); });
+            updateItem = Tip(new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); }), "Restart her now with the new version");
             menu.Items.Add(helpItem);
-            foreach (ToolStripMenuItem parent in new[] { sizes, moves, helpItem })
+            menu.ShowItemToolTips = true;
+            foreach (ToolStripMenuItem parent in new[] { sizes, moves, things, helpItem })
             {
                 ToolStripDropDownMenu drop = (ToolStripDropDownMenu)parent.DropDown;
                 drop.Renderer = menu.Renderer;
@@ -3316,10 +3334,11 @@ namespace CapriDesktop
                 drop.BackColor = menu.BackColor;
                 drop.Font = menu.Font;
                 drop.ShowImageMargin = false;
-                drop.ShowCheckMargin = parent != helpItem;
+                drop.ShowCheckMargin = parent != helpItem && parent != things;
+                drop.ShowItemToolTips = true;
             }
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }));
+            menu.Items.Add(Tip(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }), "Close her until you start her again"));
             menu.Opened += delegate { Computer.MenuOpen = true; };
             menu.Closed += delegate { Computer.MenuOpen = false; Post(GiveFocusBack); };
             playerMenu = new ContextMenuStrip();
@@ -3376,6 +3395,8 @@ namespace CapriDesktop
             Shown += delegate { StartRemote(); };
             playItem.DropDown = mainframe.MiniChoices();
             playItem.DropDown.Font = menu.Font;
+            playItem.DropDown.ShowItemToolTips = true;
+            foreach (ToolStripItem game in playItem.DropDownItems) if (game.Text.Length > 0) game.ToolTipText = game.Text == "Music" ? "Play your music" : "Play " + game.Text.ToLowerInvariant() + " with her";
             PrepareHusk(data);
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -3686,6 +3707,7 @@ namespace CapriDesktop
                 balloonMainframe = true;
                 tray.ShowBalloonTip(12000, "Capri started fresh", "She closed while starting twice in a row, so her settings were reset. Your keys stayed. The old settings are in settings.crashed.json.", ToolTipIcon.Warning);
             }
+            HologramAtStart();
             ShowCloseNotice();
             // After the close notice, which would cover it: their keys need adding again, so this one matters more.
             ShowUnreadableNotice();
@@ -4163,8 +4185,8 @@ namespace CapriDesktop
                 updateFile = ready;
                 updateItem.Enabled = true;
                 updateItem.Text = "Restart to update to Capri " + ready.Version;
-                if (!menu.Items.Contains(updateItem)) menu.Items.Insert(menu.Items.Count - 2, updateItem);
-                mainframe.UpdateNote(updateItem.Text + ". Use her tray menu.", false);
+                if (!helpItem.DropDownItems.Contains(updateItem)) helpItem.DropDownItems.Insert(helpItem.DropDownItems.IndexOf(checkItem) + 1, updateItem);
+                mainframe.UpdateNote(updateItem.Text + ". Use Help in her tray menu.", false);
                 if (fresh || asked)
                 {
                     balloonPage = null;
@@ -4194,7 +4216,7 @@ namespace CapriDesktop
         {
             updateFile = null;
             updateItem.Enabled = false;
-            menu.Items.Remove(updateItem);
+            helpItem.DropDownItems.Remove(updateItem);
             balloonUpdate = false;
         }
 
@@ -4817,9 +4839,31 @@ namespace CapriDesktop
 
         private static Size CanvasSize(int size) { return new Size(size + PaddingSize * 2, size + PaddingSize * 2); }
 
+        private static T Tip<T>(T item, string tip) where T : ToolStripItem
+        {
+            item.ToolTipText = tip;
+            return item;
+        }
+
+        // A row of her right-click menu by its words, in a submenu or not, for the smoke.
+        internal ToolStripMenuItem MenuRow(string text) { return MenuRow(menu.Items, text); }
+
+        private static ToolStripMenuItem MenuRow(ToolStripItemCollection items, string text)
+        {
+            foreach (ToolStripItem item in items)
+            {
+                ToolStripMenuItem row = item as ToolStripMenuItem;
+                if (row == null) continue;
+                if (row.Text == text) return row;
+                ToolStripMenuItem inner = row.HasDropDownItems ? MenuRow(row.DropDownItems, text) : null;
+                if (inner != null) return inner;
+            }
+            return null;
+        }
+
         private void AddSize(ToolStripMenuItem parent, string label, int size)
         {
-            ToolStripMenuItem item = new ToolStripMenuItem(label, null, delegate { SetCharacterSize(size); });
+            ToolStripMenuItem item = Tip(new ToolStripMenuItem(label, null, delegate { SetCharacterSize(size); }), "Make her " + label.ToLowerInvariant());
             item.Tag = size;
             item.Checked = preferences.Size == size;
             parent.DropDownItems.Add(item);
@@ -5548,19 +5592,211 @@ namespace CapriDesktop
         {
             Cloud remote = brain.Remote;
             string head = "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
-            string[] lines = new string[0];
-            try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
-            int from = Math.Max(0, lines.Length - 25);
-            System.Collections.Generic.List<string> details = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
-            return head + Environment.NewLine + (details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray())));
+            return head + Environment.NewLine + ProblemKeys.Logged();
+        }
+
+        // When she can't start there's no her to right-click, so the notice says where her log is and carries her Help menu's
+        // Copy error details and Report a problem (the Help page outside the Store, as in that menu). What was thrown only goes in
+        // the copy, and the words alone still say what to do if Windows' plain box shows them instead.
+        internal static void CouldNotStart(Exception error)
+        {
+            bool store = Packaged.Is;
+            Notice.Tell(null, Program.StartProblem(Brain.LogPath, store, true), Program.StartCaption, true, Program.StartProblem(Brain.LogPath, store, false), ProblemKeys.For("could not start", error, store));
+        }
+
+        // Her installer's install, update and removal failures, forced for real where that's safe (a bad update command, a file that
+        // isn't Capri given to remove) and through the same words for Windows' own errors, which can't be forced without
+        // touching the installed Capri. Nothing here installs, closes or removes anything.
+        private void SmokeInstallerErrors(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "installer-errors");
+            Directory.CreateDirectory(folder);
+            Action<string> keptCopy = ProblemKeys.Copy;
+            Action<string> keptOpen = ProblemKeys.Open;
+            Action<Notice> keptShowing = Notice.Showing;
+            string copied = null, opened = null, seen = null;
+            try
+            {
+                ProblemKeys.Copy = delegate(string text) { copied = text; };
+                ProblemKeys.Open = delegate(string page) { opened = page; };
+                // Runs `act`, which should show one failure notice, and checks it: its title, the words it must show, none of
+                // what was thrown, Copy error details carrying `copiedHas`, Help page, and a picture of it saved.
+                Func<string, string, string[], string[], Action, string> force = delegate(string picture, string title, string[] shown, string[] copiedHas, Action act)
+                {
+                    string problem = null;
+                    seen = copied = opened = null;
+                    Notice.Showing = delegate(Notice notice)
+                    {
+                        try
+                        {
+                            notice.Opacity = 0;
+                            notice.Show();
+                            Application.DoEvents();
+                            seen = notice.Said;
+                            if (!notice.Fits) { problem = "doesn't fit its words and keys"; return; }
+                            Button[] keys = notice.Extras;
+                            if (keys.Length != 2 || keys[0].Text != "Copy error details" || keys[1].Text != "Help page" || ((Button)notice.AcceptButton).Text != "OK") { problem = "doesn't have Copy error details, Help page and OK"; return; }
+                            using (Bitmap bitmap = new Bitmap(notice.Width, notice.Height))
+                            using (Bitmap sheet = new Bitmap(notice.Width + 48, notice.Height + 48))
+                            {
+                                notice.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                                using (Graphics graphics = Graphics.FromImage(sheet))
+                                {
+                                    graphics.Clear(Color.FromArgb(44, 47, 56));
+                                    if (notice.Region != null) using (Region shape = notice.Region.Clone()) { shape.Translate(24, 24); graphics.SetClip(shape, CombineMode.Replace); }
+                                    graphics.DrawImageUnscaled(bitmap, 24, 24);
+                                }
+                                sheet.Save(Path.Combine(folder, picture), ImageFormat.Png);
+                            }
+                            keys[0].Select();
+                            keys[0].PerformClick();
+                            if (keys[0].Text != "Copied" || !notice.Visible || notice.ActiveControl != notice.AcceptButton) { problem = "Copy error details didn't say Copied, closed it or kept focus off OK"; return; }
+                            keys[1].PerformClick();
+                            notice.Close();
+                        }
+                        catch (Exception error) { problem = error.Message; }
+                    };
+                    act();
+                    Notice.Showing = null;
+                    if (problem != null) return problem;
+                    if (seen == null) return "never showed";
+                    if (!seen.StartsWith(title + "\n", StringComparison.Ordinal) || seen.Contains("choom") || !seen.Contains("press Copy error details, then Help page")) return "lost its title or where to send the details: " + seen;
+                    if (seen.Contains("Exception") || seen.Contains(" at ")) return "shows what was thrown: " + seen;
+                    foreach (string part in shown) if (!seen.Contains(part)) return "doesn't say " + part + ": " + seen;
+                    if (copied == null) return "had Copy error details copy nothing";
+                    foreach (string part in copiedHas) if (!copied.Contains(part)) return "left " + part + " out of Copy error details: " + copied;
+                    if (opened != ProblemKeys.HelpPage) return "had Help page open " + opened;
+                    if (!File.Exists(Path.Combine(folder, picture))) return "wasn't drawn to " + picture;
+                    return null;
+                };
+
+                string result = force("update-invalid.png", "CAPRI COULDN'T UPDATE", new[] { "The update command is invalid." }, new[] { "| couldn't update", "CapriSetup.SetupProblem: The update command is invalid.", "CapriSetup.Program.Update" }, delegate { CapriSetup.Program.Update(new[] { "--update", "nope" }); });
+                if (result != null) throw new Exception("A bad update command's notice " + result);
+
+                string notCapri = Path.Combine(folder, "not-capri.exe");
+                File.WriteAllText(notCapri, "not a program");
+                CapriSetup.Removal plan = new CapriSetup.Removal { Copy = true, App = notCapri, Forget = false };
+                result = force("remove-not-capri.png", "CAPRI COULD NOT BE REMOVED", new[] { "That isn't a copy of Capri this can remove." }, new[] { "| could not be removed", "CapriSetup.SetupProblem: That isn't a copy of Capri this can remove.", "CapriSetup.Program.RemoveCopy" }, delegate { CapriSetup.Program.RemoveCopy(plan); });
+                if (result != null) throw new Exception("Removing a file that isn't Capri gave a notice that " + result);
+                if (!File.Exists(notCapri)) throw new Exception("Removing a file that isn't Capri deleted it.");
+
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string held = Path.Combine(home, "AppData", "Local", "Capri", "brain", "llama.dll");
+                string user = Environment.UserName.Trim(), machine = Environment.MachineName.Trim();
+                foreach (string[] shape in new[] { new[] { CapriSetup.Program.UpdateCaption, "updating", CapriSetup.Program.UpdateNext, "update-windows-error.png" }, new[] { CapriSetup.Program.RemoveCaption, "removing", CapriSetup.Program.RemoveNext, "remove-windows-error.png" }, new[] { CapriSetup.Program.InstallCaption, "installing", CapriSetup.Program.InstallNext, "install-windows-error.png" } })
+                {
+                    Exception thrown;
+                    try { throw new UnauthorizedAccessException("Access to the path '" + held + "' is denied on " + machine + "."); }
+                    catch (Exception error) { thrown = error; }
+                    result = force(shape[3], shape[0].ToUpperInvariant(), new[] { "Something went wrong while " + shape[1] + " Capri.", shape[2] }, new[] { "| " + shape[0].Substring(6), "System.UnauthorizedAccessException: Access to the path '%USERPROFILE%", "is denied on [pc]." }, delegate { CapriSetup.Program.Failed(thrown, shape[0], shape[1], shape[2]); });
+                    if (result != null) throw new Exception("A Windows error while " + shape[1] + " Capri gave a notice that " + result);
+                    if (seen.Contains("Access to the path") || seen.Contains(held)) throw new Exception("A Windows error while " + shape[1] + " Capri shows its raw words: " + seen);
+                    foreach (string name in new[] { user, machine })
+                        if (name.Length >= 3 && name != "user" && name != "pc" && Regex.IsMatch(copied, @"(?<![\p{L}\p{N}_\[])" + Regex.Escape(name) + @"(?![\p{L}\p{N}_\]])", RegexOptions.IgnoreCase))
+                            throw new Exception("Copy error details for a Windows error while " + shape[1] + " Capri kept their user or PC name.");
+                    if (copied.IndexOf(home, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Copy error details for a Windows error while " + shape[1] + " Capri kept their user folder.");
+                    string plain = CapriSetup.Program.Problem(thrown, shape[1], shape[2], false);
+                    if (plain.Contains("Copy error details") || plain.Contains("Access to the path") || !plain.Contains("capriai.app/help")) throw new Exception("Windows' plain box for a failed " + shape[1] + " points at keys it doesn't have or shows the raw error: " + plain);
+                }
+                checks.Add("PASS her installer's install, update and removal failures say plainly what failed and what to try, with Copy error details (the full error, with keys, their user folder, user name and PC name taken out) and Help page, never the raw error in their words; a bad update command and a file that isn't Capri were forced for real; saved update-invalid, remove-not-capri, update-windows-error, remove-windows-error and install-windows-error pictures");
+            }
+            finally
+            {
+                ProblemKeys.Copy = keptCopy;
+                ProblemKeys.Open = keptOpen;
+                Notice.Showing = keptShowing;
+            }
+        }
+
+        private void SmokeStartFailure(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "start-failure");
+            Directory.CreateDirectory(folder);
+            string raw = "Smoke start failure " + Guid.NewGuid().ToString("N").Substring(0, 8) + ": settings.json is locked";
+            Exception thrown;
+            try { throw new InvalidDataException(raw); }
+            catch (Exception error) { thrown = error; }
+            string keptLog = Brain.LogPath;
+            Action<string> keptCopy = ProblemKeys.Copy;
+            Action<string> keptBrowse = ProblemKeys.Open;
+            string copied = null, opened = null;
+            try
+            {
+                ProblemKeys.Copy = delegate(string text) { copied = text; };
+                ProblemKeys.Open = delegate(string page) { opened = page; };
+                string log = Path.Combine(folder, "errors.txt");
+                if (File.Exists(log)) File.Delete(log);
+                Brain.LogPath = log;
+                Program.Crashed(thrown);
+                if (!File.Exists(log) || !File.ReadAllText(log).Contains("InvalidDataException: " + raw)) throw new Exception("A start failure wasn't written to the error log.");
+                string storeLog = @"C:\Users\averyveryverylongname\AppData\Local\Packages\CapriAI.CapriDesktop_8wekyb3d8bbwe\LocalCache\Local\Capri\errors.txt";
+                foreach (string[] shape in new[] { new[] { log, "website", "start-failure.png" }, new[] { storeLog, "store", "start-failure-store.png" }, new[] { null, "website", null } })
+                {
+                    bool store = shape[1] == "store";
+                    Brain.LogPath = shape[0] == storeLog ? log : shape[0];
+                    copied = opened = null;
+                    using (Notice notice = new Notice(Program.StartProblem(shape[0], store, true), Program.StartCaption, true, ProblemKeys.For("could not start", thrown, store)))
+                    {
+                        notice.Opacity = 0;
+                        notice.Show();
+                        Application.DoEvents();
+                        string said = notice.Said;
+                        if (said.Contains(raw) || said.Contains("InvalidDataException") || said.Contains(" at ") || said.Contains("Exception"))
+                            throw new Exception("The start failure notice shows what was thrown: " + said);
+                        if (!said.StartsWith("CAPRI COULDN'T START\nSomething went wrong while Capri was starting.", StringComparison.Ordinal) || !said.Contains("Try opening Capri again.") || said.Contains("choom"))
+                            throw new Exception("The start failure notice lost its plain first line or next step: " + said);
+                        if (shape[0] != null ? !said.Contains("error log:\n" + shape[0]) : said.Contains("error log"))
+                            throw new Exception("The start failure notice " + (shape[0] != null ? "doesn't say where the error log is" : "names an error log that wasn't written") + ": " + said);
+                        if (!notice.Fits) throw new Exception("The start failure notice doesn't fit its words and keys" + (store ? " with a Store copy's long log path." : "."));
+                        Button[] keys = notice.Extras;
+                        string help = store ? "Report a problem" : "Help page";
+                        if (keys.Length != 2 || keys[0].Text != "Copy error details" || keys[1].Text != help || notice.AcceptButton != notice.CancelButton || ((Button)notice.AcceptButton).Text != "OK")
+                            throw new Exception("The start failure notice's keys aren't Copy error details, " + help + " and OK.");
+                        if (shape[2] != null)
+                        {
+                            using (Bitmap bitmap = new Bitmap(notice.Width, notice.Height))
+                            using (Bitmap sheet = new Bitmap(notice.Width + 48, notice.Height + 48))
+                            {
+                                notice.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                                using (Graphics graphics = Graphics.FromImage(sheet))
+                                {
+                                    graphics.Clear(Color.FromArgb(44, 47, 56));
+                                    if (notice.Region != null) using (Region shapeRegion = notice.Region.Clone()) { shapeRegion.Translate(24, 24); graphics.SetClip(shapeRegion, CombineMode.Replace); }
+                                    graphics.DrawImageUnscaled(bitmap, 24, 24);
+                                }
+                                sheet.Save(Path.Combine(folder, shape[2]), ImageFormat.Png);
+                            }
+                        }
+                        string plain = Program.StartProblem(shape[0], store, false);
+                        if (plain.Contains("Copy error details") || plain.Contains("Report a problem") || !plain.Contains("capriai.app/help") || (shape[0] != null && !plain.Contains(shape[0])))
+                            throw new Exception("Windows' plain box for a start failure points at keys it doesn't have or loses the log: " + plain);
+                        keys[0].Select();
+                        keys[0].PerformClick();
+                        if (notice.ActiveControl != notice.AcceptButton) throw new Exception("After Copy error details, Enter on the start failure notice wouldn't press OK.");
+                        if (copied == null || !copied.Contains(raw) || !copied.Contains("InvalidDataException") || !copied.Contains(" | could not start") || !copied.Contains(" at "))
+                            throw new Exception("Copy error details on the start failure notice lost what was thrown: " + copied);
+                        if (shape[0] != null && !copied.Contains("| crash | ")) throw new Exception("Copy error details on the start failure notice left out the error log.");
+                        if (keys[0].Text != "Copied" || !notice.Visible) throw new Exception("Copy error details on the start failure notice didn't say Copied, or closed the notice.");
+                        keys[1].PerformClick();
+                        if (opened != (store ? IssuesPage : HelpPage) || !notice.Visible) throw new Exception(help + " on the start failure notice opened " + opened + ".");
+                        notice.Close();
+                    }
+                }
+                checks.Add("PASS a start failure is logged and its notice says plainly that Capri couldn't start, where the error log is (a Store copy's long path wraps) and what to do, with Copy error details carrying what was thrown and Report a problem (Help page outside the Store), never the raw exception in its words");
+            }
+            finally
+            {
+                Brain.LogPath = keptLog;
+                ProblemKeys.Copy = keptCopy;
+                ProblemKeys.Open = keptBrowse;
+            }
         }
 
         private void CopyErrors()
         {
             try { Clipboard.SetText(ErrorDetails()); }
             catch (System.Runtime.InteropServices.ExternalException) { return; }
-            Tell("copy error details", "Copied my error log. Paste it in the Discord so they can fix me, choom.");
+            Tell("copy error details", "Copied my error log. Paste it in the Discord so they can fix me.");
         }
 
         internal void ToggleWander()
@@ -10742,8 +10978,8 @@ namespace CapriDesktop
         }
 
         internal static bool FreeChatOn = true;
-        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key, choom. Make one with Restrict key turned off, then paste it under VOICE in Capri Mainframe. Type to me for now.";
-        internal const string NoVoiceCredits = "Out of ElevenLabs credits, so voice chat is off. Type to me for now, choom.";
+        internal const string NeedsVoiceKey = "Voice chat needs an ElevenLabs key. Make one with Restrict key turned off, then paste it under VOICE in Capri Mainframe. Type to me for now.";
+        internal const string NoVoiceCredits = "Out of ElevenLabs credits, so voice chat is off. Type to me for now.";
 
         private void CheckSlow(double now)
         {
@@ -12405,6 +12641,7 @@ namespace CapriDesktop
 
         private void SetHologram(bool on)
         {
+            bool was = preferences.Hologram;
             preferences.Hologram = on;
             hologramItem.Checked = on;
             rideItem.Enabled = !on;
@@ -12418,10 +12655,50 @@ namespace CapriDesktop
                 StopRide();
                 if (clip == dangle) { Play(idle); Drop(); }
             }
+            bool firstTime = on && !was && !preferences.HologramTold;
+            if (firstTime) preferences.HologramTold = true;
             PassThrough();
             RenderFrame();
             SavePreferences();
             if (mainframe != null) mainframe.Sync();
+            TellHologram(firstTime);
+        }
+
+        private void HologramAtStart()
+        {
+            if (preferences.Hologram) TellHologram(false);
+        }
+
+        // Clicks go through a hologram, so right-clicking her can't undo it. Her tray tooltip always says where it can be, and one quiet
+        // balloon says so the first time it ever goes on (#422).
+        private void TellHologram(bool balloon)
+        {
+            if (tray == null) return;
+            if (preferences.Hologram) tray.Text = "Capri · Hologram on · Untick it in this menu";
+            else if (!riding) tray.Text = "Capri · Double-click to restore";
+            if (!preferences.Hologram || !balloon) return;
+            hologramNotices++;
+            if (testing) return;
+            balloonPage = null;
+            balloonUpdate = false;
+            balloonMainframe = true;
+            if (!QuietBalloon(tray, "Hologram on", "Clicks go through her. Turn it off from her tray icon.")) tray.ShowBalloonTip(5000, "Hologram on", "Clicks go through her. Turn it off from her tray icon.", ToolTipIcon.Info);
+        }
+
+        // NotifyIcon.ShowBalloonTip can't ask Windows for no sound, so this sends the same balloon with NIIF_NOSOUND to the icon's own window.
+        private static bool QuietBalloon(NotifyIcon icon, string title, string text)
+        {
+            try
+            {
+                const BindingFlags hidden = BindingFlags.NonPublic | BindingFlags.Instance;
+                FieldInfo windowField = typeof(NotifyIcon).GetField("window", hidden), idField = typeof(NotifyIcon).GetField("id", hidden);
+                NativeWindow window = windowField == null ? null : windowField.GetValue(icon) as NativeWindow;
+                if (window == null || window.Handle == IntPtr.Zero || idField == null) return false;
+                Native.TrayIconData data = new Native.TrayIconData { Window = window.Handle, Id = (int)idField.GetValue(icon), Flags = 0x10, Info = text, InfoTitle = title, InfoFlags = 0x01 | 0x10 };
+                data.Size = Marshal.SizeOf(typeof(Native.TrayIconData));
+                return Native.Shell_NotifyIcon(1, ref data);
+            }
+            catch (Exception) { return false; }
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
@@ -14492,8 +14769,8 @@ namespace CapriDesktop
         }
 
         internal const string StyleLine = "How do I sound now, choom?";
-        internal const string StyleSilent = "My voice is off, choom. Pick a voice under VOICE to hear that.";
-        internal const string StyleMissing = "Get my free voice under VOICE to hear that, choom.";
+        internal const string StyleSilent = "My voice is off. Pick a voice under VOICE to hear that.";
+        internal const string StyleMissing = "Get my free voice under VOICE to hear that.";
 
         // Letting go of her pitch, speed, robot or glitch slider: she says a line in the voice she's using, so they hear it.
         // ElevenLabs makes the line once; after that its audio is restyled here, so dragging around spends no more credits.
@@ -14798,7 +15075,7 @@ namespace CapriDesktop
             {
                 heard = "(voice)";
                 box.Prompt = "> you: ";
-                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID, choom. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
+                Answer(++asking, voice.Key == null ? NeedsVoiceKey : "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.", TalkState.Talking);
                 mainframe.Restore();
                 return;
             }
@@ -18308,7 +18585,10 @@ namespace CapriDesktop
                 SetHologram(false);
                 using (Bitmap normal = (Bitmap)frame.Clone())
                 {
+                    preferences.HologramTold = false;
+                    int noticesBefore = hologramNotices;
                     hologramItem.PerformClick();
+                    if (hologramNotices != noticesBefore + 1 || !LoadPreferences().HologramTold || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram's first time on from her menu showed " + (hologramNotices - noticesBefore) + " balloons and tray \"" + tray.Text + "\".");
                     if (!preferences.Hologram || !hologramItem.Checked || !LoadPreferences().Hologram || tray.ContextMenuStrip != menu || !menu.ShowCheckMargin || hologramItem.AccessibleName.IndexOf("tray icon", StringComparison.Ordinal) < 0) throw new Exception("Hologram's shared tray item did not toggle, tick or save.");
                     checks.Add("PASS Hologram menu item toggles, shows its check and recovery hint, and saves in preferences");
                     foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
@@ -18364,14 +18644,19 @@ namespace CapriDesktop
                 PassThrough();
                 checks.Add("PASS Hologram preserves cursor lending during jobs and leaves the task panel usable when the cursor returns");
                 Preferences restarted = LoadPreferences();
+                int noticesThen = hologramNotices;
                 SetHologram(false);
                 SetHologram(restarted.Hologram);
                 if (!preferences.Hologram || !hologramItem.Checked || rideItem.Enabled || (Native.GetWindowLong(Handle, -20) & 0x20) == 0) throw new Exception("Loading saved preferences did not restore hologram mode.");
                 checks.Add("PASS Hologram survives LoadPreferences and restores its check, disabled ride and click-through");
+                HologramAtStart();
+                if (hologramNotices != noticesThen || !restarted.HologramTold || tray.Text.IndexOf("Hologram on", StringComparison.Ordinal) < 0) throw new Exception("Hologram's balloon came back on a later toggle or at startup (" + (hologramNotices - noticesThen) + "), or her tray tooltip lost it: \"" + tray.Text + "\".");
+                checks.Add("PASS Hologram's balloon shows only the first time it ever goes on, not on later toggles or at startup, and her tray tooltip says so every time");
                 hologramItem.PerformClick();
                 foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
                     if ((Native.GetWindowLong(form.Handle, -20) & 0x20) != 0) throw new Exception("Turning hologram off did not give clicks back to " + form.GetType().Name);
                 if (preferences.Hologram || hologramItem.Checked || LoadPreferences().Hologram || !rideItem.Enabled) throw new Exception("Hologram off did not clear and save its state.");
+                if (tray.Text != "Capri · Double-click to restore") throw new Exception("Her tray tooltip still said hologram after it went off: " + tray.Text);
                 OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
                 MovePointer(new Point(pointerStart.X + 30, pointerStart.Y + 30));
                 if (!pressed || !dragging) throw new Exception("Dragging did not return after hologram off.");
@@ -21181,7 +21466,7 @@ namespace CapriDesktop
                 ClearIcons();
                 icons.Spots.Clear();
                 preferences.Motion = true;
-                if (IconPrank("rampage") != "Nothing on your desktop to throw, choom." || iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("An empty desktop started a prank.");
+                if (IconPrank("rampage") != "Nothing on your desktop to throw." || iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("An empty desktop started a prank.");
                 checks.Add("PASS scatter and vanish block rampage; pictures that can't be had end in the plain scatter, moves off uses hide, and an empty desktop only gets its line");
             }
             finally
@@ -24215,7 +24500,7 @@ namespace CapriDesktop
                 Hands.Kit missingDraw = Hands.KitWithout(new System.Collections.Generic.List<string[]> { new[] { "draw", "only on Windows for now" } });
                 recoverBrain.Kit = delegate { return missingDraw; };
                 string unsupported = recoverBrain.Ask("draw a star and open Spotify");
-                if (unsupported != "No app called X is installed on this PC. Drawing on your screen is only on Windows for now, choom." || recoverAsked.Count != 13) throw new Exception("A tool failure dropped the part that cannot work here: " + unsupported);
+                if (unsupported != "No app called X is installed on this PC. Drawing on your screen is only on Windows for now." || recoverAsked.Count != 13) throw new Exception("A tool failure dropped the part that cannot work here: " + unsupported);
                 checks.Add("PASS a failed play still runs the remaining picked tools and skips only the next brain round; a failed open_app can recover through open_website, keep its planner answer, reach the read_file answer, or keep the text about what cannot work here");
             }
             finally
@@ -25845,18 +26130,18 @@ namespace CapriDesktop
             Hands.Kit mac = Hands.KitWithout(macGaps);
             string[,] lacking =
             {
-                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now, choom." },
-                { "clip that", "Game clips are only on Windows for now, choom." },
+                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now." },
+                { "clip that", "Game clips are only on Windows for now." },
                 { "ride my cursor", "Riding your cursor is only on Windows so far." },
-                { "let's play chess", "My mini games are only on Windows for now, choom." },
+                { "let's play chess", "My mini games are only on Windows for now." },
                 { "can you open the workspace?", "Workspace is only on Windows for now." },
-                { "play tic tac toe with me", "My mini games are only on Windows for now, choom." },
-                { "what did he just say", "Listening to what's playing is only on Windows for now, choom." },
-                { "watch this video with me", "Watching videos together is only on Windows for now, choom." },
-                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now, choom." },
-                { "where are my save files", "Finding files is only on Windows for now, choom." },
+                { "play tic tac toe with me", "My mini games are only on Windows for now." },
+                { "what did he just say", "Listening to what's playing is only on Windows for now." },
+                { "watch this video with me", "Watching videos together is only on Windows for now." },
+                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now." },
+                { "where are my save files", "Finding files is only on Windows for now." },
                 { "clone yourself", Hands.NoClones },
-                { "activate gaming mode", "Gaming Mode is only on Windows for now, choom." },
+                { "activate gaming mode", "Gaming Mode is only on Windows for now." },
                 { "can you click the play button?", null },
                 { "open spotify", null },
                 { "what's on my screen?", null },
@@ -25866,7 +26151,7 @@ namespace CapriDesktop
             };
             for (int i = 0; i < lacking.GetLength(0); i++)
                 if (mac.Lacking(lacking[i, 0]) != lacking[i, 1]) throw new Exception("\"" + lacking[i, 0] + "\" on a Mac got " + (mac.Lacking(lacking[i, 0]) ?? "nothing") + " instead of " + (lacking[i, 1] ?? "nothing"));
-            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now, choom.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
+            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
                 || mac.Brief.Contains("\n- draw: ") || mac.Brief.Contains("\n- use_computer: ") || !mac.Brief.Contains("\n- open_app: ") || !mac.Brief.Contains(mac.NotHere) || mac.Tools.Contains("\"name\":\"draw\"") || mac.Tools.Contains("\"ride_cursor\"") || !mac.Tools.Contains("\"sit_on\"")
                 || kit.Lacking("can you draw on my screen?") != null || kit.Lacking("tell me when my download finishes") != null || blind.Lacking("tell me when my download finishes") != null || blind.Lacking("what's on my screen?") != null)
                 throw new Exception("Her line about what isn't here was wrong, or what works was turned down: " + mac.NotHere);
@@ -25935,7 +26220,7 @@ namespace CapriDesktop
                 string clicked = onMac.Ask("can you click the play button?");
                 string[] macSent;
                 lock (macAsked) macSent = macAsked.ToArray();
-                if (drew != "Drawing on your screen is only on Windows for now, choom." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
+                if (drew != "Drawing on your screen is only on Windows for now." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
                     throw new Exception("On a Mac a tool that isn't there was promised or forced on her hands: " + drew + " / " + clicked + " / " + macActed + " tools / " + macSent.Length + " calls");
             }
             finally
@@ -25961,7 +26246,7 @@ namespace CapriDesktop
             macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
             foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "workspace", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
             Hands.Kit mac = Hands.KitWithout(macGaps), everything = Hands.KitWithout(new System.Collections.Generic.List<string[]>());
-            const string drawLine = "Drawing on your screen is only on Windows for now, choom.";
+            const string drawLine = "Drawing on your screen is only on Windows for now.";
             Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
             Func<string, bool> existsWas = Hands.Exists;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
@@ -25977,7 +26262,7 @@ namespace CapriDesktop
                 {
                     { "draw a star and open Spotify", null, drawLine, "open Spotify" },
                     { "can you open Spotify, then draw a star please", null, drawLine, "open Spotify" },
-                    { "clip that and open Spotify", null, "Game clips are only on Windows for now, choom.", "open Spotify" },
+                    { "clip that and open Spotify", null, "Game clips are only on Windows for now.", "open Spotify" },
                     { "ride my cursor and play some music", null, "Riding your cursor is only on Windows so far.", "play some music" },
                     { "open Spotify, draw a star and play some music", null, drawLine, "open Spotify and play some music" },
                     { "open Spotify. Chaos mode", null, Hands.NoClones, "open Spotify" },
@@ -35350,7 +35635,7 @@ namespace CapriDesktop
                 if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
             if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
                 || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
-                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
+                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
                 || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Capri Mainframe > Settings."
                 || Hands.Claimed("Started your stopwatch!", ran("stopwatch")) != null || Hands.Claimed("Your stopwatch has been stopped.", ran("remind")) != "stopwatch" || Hands.NotYet("stopwatch", null) != "Your stopwatch hasn't changed yet. Say start or stop the stopwatch."
                 || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
@@ -41215,6 +41500,70 @@ namespace CapriDesktop
             }
         }
 
+        // Her right-click menu in the order they agreed (nathanZW, 26 Nov): her job's rows first, then Open Mainframe, Play, Move,
+        // Size, Hide Capri, Hologram, Her things, Mods, Help and Quit, every row saying what it does when the mouse rests on it.
+        // It's drawn with Her things and with Help open for her-menu-things.png and her-menu-help.png.
+        private void SmokeMenuTidy(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<ToolStripItemCollection, string> rows = delegate(ToolStripItemCollection items)
+            {
+                System.Collections.Generic.List<string> shown = new System.Collections.Generic.List<string>();
+                foreach (ToolStripItem item in items) if (item.Available) shown.Add(item.Text);
+                return string.Join(",", shown.ToArray());
+            };
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            string tops;
+            try { menu.Show(new Point(work.Left + 60, work.Top + 60)); tops = rows(menu.Items).Replace(",Mods,", ","); }
+            finally { menu.Close(); }
+            string wanted = "CAPRI  /  " + ShownVersion(Packaged.Is, true) + ",,Open Mainframe,Play,Move,Size,Hide Capri,Hologram,Her things,Help,,Quit Capri";
+            if (tops != wanted) throw new Exception("Her right-click menu is not in its agreed order: " + tops);
+            if (menu.Items[2].Text != "Edit current job instructions" || !menu.Items[3].Text.EndsWith("Capri's mic", StringComparison.Ordinal)) throw new Exception("Her job's rows aren't at the top of her menu.");
+            ToolStripMenuItem things = MenuRow("Her things"), help = MenuRow("Help");
+            if (rows(things.DropDownItems) != "File editor,Her folder,Her computer,Room camera,Her rules (sys.md)") throw new Exception("Her things is not in its agreed order: " + rows(things.DropDownItems));
+            string helps = rows(help.DropDownItems);
+            string helpWanted = "Report a problem,Copy error details,Help page,Commands,Join the Discord,Privacy and safety," + (Packaged.Is ? "Mod rules," : "") + crashItem.Text + ",Check for updates";
+            if (helps != helpWanted && helps != helpWanted + "," + updateItem.Text) throw new Exception("Help is not in its agreed order: " + helps);
+            if (MenuRow("Her system settings (sys.md)") != null || MenuRow("Open Capri Mainframe") != null) throw new Exception("Her menu kept an old name.");
+            System.Collections.Generic.List<string> untipped = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<ToolStripDropDown> drops = new System.Collections.Generic.List<ToolStripDropDown> { menu };
+            for (int at = 0; at < drops.Count; at++)
+            {
+                if (!drops[at].ShowItemToolTips) untipped.Add("the " + (drops[at] == menu ? "menu" : ((ToolStripMenuItem)drops[at].OwnerItem).Text) + " list shows no tips");
+                foreach (ToolStripItem item in drops[at].Items)
+                {
+                    ToolStripMenuItem row = item as ToolStripMenuItem;
+                    if (row == null || row.Tag == Mainframe.MenuLook.Title || row.OwnerItem != null && row.OwnerItem.Text == "Mods") continue;
+                    if (string.IsNullOrEmpty(row.ToolTipText) || row.ToolTipText.Length > 70 || row.ToolTipText.IndexOf("choom", StringComparison.OrdinalIgnoreCase) >= 0) untipped.Add(row.Text + " (" + row.ToolTipText + ")");
+                    if (row.HasDropDownItems && row.Text != "Mods") drops.Add(row.DropDown);
+                }
+            }
+            if (untipped.Count > 0) throw new Exception("Rows of her menu with no short tip: " + string.Join("; ", untipped.ToArray()));
+            checks.Add("PASS her right-click and tray menu: her job's rows, Open Mainframe, Play, Move, Size, Hide Capri, Hologram, Her things, Mods, Help with Report a problem first, and Quit Capri, every row with a short tip and the old names gone");
+
+            foreach (ToolStripMenuItem open in new[] { things, help })
+            {
+                try
+                {
+                    menu.Show(new Point(work.Left + 60, work.Top + 60));
+                    open.Select();
+                    open.ShowDropDown();
+                    Application.DoEvents();
+                    Rectangle area = Rectangle.Union(menu.Bounds, open.DropDown.Bounds);
+                    using (Bitmap sheet = new Bitmap(area.Width + 48, area.Height + 48))
+                    {
+                        using (Graphics drawing = Graphics.FromImage(sheet))
+                        {
+                            drawing.Clear(Color.FromArgb(44, 47, 56));
+                            foreach (ToolStripDropDown drop in new ToolStripDropDown[] { menu, open.DropDown }) Snapped(drawing, drop, drop.Left - area.Left + 24, drop.Top - area.Top + 24);
+                        }
+                        sheet.Save(Path.Combine(output, open == things ? "her-menu-things.png" : "her-menu-help.png"), ImageFormat.Png);
+                    }
+                }
+                finally { open.HideDropDown(); menu.Close(); }
+            }
+            checks.Add("PASS her menu is drawn with Her things and with Help open for her-menu-things.png and her-menu-help.png");
+        }
+
         // A menu longer than its screen stays on the screen with her arrows, opens with its tick in view, and scrolls on the wheel
         // wherever Windows sends it, to its last row and back, without the Mainframe page moving behind it (Ashy, 6 Nov).
         private void SmokeLongMenus(System.Collections.Generic.List<string> checks)
@@ -41338,7 +41687,7 @@ namespace CapriDesktop
                 if (item.Text == "Move") moves = item as ToolStripMenuItem;
                 if (item.Text == "Play") play = item as ToolStripMenuItem;
             }
-            if (moves == null || play == null || menu.Items[2].Text != "Open Capri Mainframe") throw new Exception("Her right-click menu isn't laid out as this check expects.");
+            if (moves == null || play == null || MenuRow("Open Mainframe") == null) throw new Exception("Her right-click menu isn't laid out as this check expects.");
             int type, title;
             using (Font built = Neon.Type(10f)) type = built.Height;
             using (Font built = Neon.Display(12f)) title = built.Height;
@@ -41352,7 +41701,7 @@ namespace CapriDesktop
                 {
                     menu.Show(at);
                     moves.ShowDropDown();
-                    int[] seen = { menu.Font.Height, menu.Items[0].Font.Height, menu.Items[2].Height, moves.DropDown.Font.Height, 0 };
+                    int[] seen = { menu.Font.Height, menu.Items[0].Font.Height, MenuRow("Open Mainframe").Height, moves.DropDown.Font.Height, 0 };
                     moves.HideDropDown();
                     menu.Close();
                     playerMenu.Show(at);
@@ -47631,7 +47980,10 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
+            Section(checks, "SmokeModsFit", delegate { string fitOut = Path.Combine(output, "mods-fit-test"); Directory.CreateDirectory(fitOut); mainframe.CheckModsFit(checks, fitOut); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
+            Section(checks, "SmokeStartFailure", delegate { SmokeStartFailure(checks, output); });
+            Section(checks, "SmokeInstallerErrors", delegate { SmokeInstallerErrors(checks, output); });
             Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
@@ -47653,6 +48005,7 @@ namespace CapriDesktop
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
+            Section(checks, "SmokeMenuTidy", delegate { SmokeMenuTidy(checks, output); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeMenuScreens", delegate { SmokeMenuScreens(checks); });
             Section(checks, "SmokeMenuDismiss", delegate { SmokeMenuDismiss(checks); });
@@ -54817,7 +55170,7 @@ namespace CapriDesktop
                                 finishUpdate();
                                 mainframe.WindowState = beforeUpdate;
                                 if (queries != 3 || updateRequests.Count != 5) throw new Exception("The Mainframe button did not check and reuse the download.");
-                                if (!helpItem.DropDownItems.Contains(checkItem) || checkItem.Text != "Check for updates" || !menu.Items.Contains(updateItem) || updateItem.Text != "Restart to update to Capri 9.0.0" || tray.BalloonTipText != updateItem.Text || tray.BalloonTipTitle != "Capri update ready" || !balloonUpdate || balloonPage != null || mainframe.UpdateStatus.IndexOf(updateItem.Text, StringComparison.Ordinal) < 0) throw new Exception("The update menu, balloon or Mainframe text is wrong.");
+                                if (!helpItem.DropDownItems.Contains(checkItem) || checkItem.Text != "Check for updates" || !helpItem.DropDownItems.Contains(updateItem) || updateItem.Text != "Restart to update to Capri 9.0.0" || tray.BalloonTipText != updateItem.Text || tray.BalloonTipTitle != "Capri update ready" || !balloonUpdate || balloonPage != null || mainframe.UpdateStatus.IndexOf(updateItem.Text, StringComparison.Ordinal) < 0) throw new Exception("The update menu, balloon or Mainframe text is wrong.");
                                 if (mainframe.Overlap() != null) throw new Exception("The update note overlaps Mainframe controls: " + mainframe.Overlap());
                                 checks.Add("PASS cached update reused across checks and sessions, manual menu and Mainframe checks, restart menu and balloon text");
                                 updateItem.PerformClick();
@@ -54866,7 +55219,7 @@ namespace CapriDesktop
                                 if (!tampered || launches != 3) throw new Exception("A cached installer was not rechecked before launch.");
                                 updateItem.PerformClick();
                                 finishUpdate();
-                                if (updateFile != null || menu.Items.Contains(updateItem) || balloonUpdate || exits != 2 || launches != 3) throw new Exception("A failed install verification left a restart offer active.");
+                                if (updateFile != null || helpItem.DropDownItems.Contains(updateItem) || balloonUpdate || exits != 2 || launches != 3) throw new Exception("A failed install verification left a restart offer active.");
                                 checks.Add("PASS partial files cannot run, signed Capri requires the same valid signer, signature-only updates, cached bytes rechecked before launch");
                                 updateServer.Stop();
                                 address = FakeServer(new[] { manifest, manifest, payload }, updateRequests, out updateServer);
@@ -54885,7 +55238,7 @@ namespace CapriDesktop
                                 CheckUpdates();
                                 finishUpdate();
                                 long failedAt = preferences.UpdateCheckedAt;
-                                if (updateFile != null || menu.Items.Contains(updateItem) || balloonUpdate || File.Exists(final) || File.Exists(partial) || launches != 3 || mainframe.UpdateStatus.IndexOf("checksum doesn't match", StringComparison.Ordinal) < 0 || UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour - 1) || !UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour) || !checkItem.Enabled) throw new Exception("Hash mismatch was not rejected until the next three-hour check.");
+                                if (updateFile != null || helpItem.DropDownItems.Contains(updateItem) || balloonUpdate || File.Exists(final) || File.Exists(partial) || launches != 3 || mainframe.UpdateStatus.IndexOf("checksum doesn't match", StringComparison.Ordinal) < 0 || UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour - 1) || !UpdateDue(failedAt, failedAt + 3 * TimeSpan.TicksPerHour) || !checkItem.Enabled) throw new Exception("Hash mismatch was not rejected until the next three-hour check.");
                                 checks.Add("PASS hash mismatch rejected in Mainframe, corrupt cache discarded, failed downloads wait three hours");
                                 updateServer.Stop();
                                 release.Assets = new[] { installer };
@@ -54928,7 +55281,7 @@ namespace CapriDesktop
                                 updateFile = null;
                                 balloonPage = null;
                                 balloonUpdate = false;
-                                menu.Items.Remove(updateItem);
+                                helpItem.DropDownItems.Remove(updateItem);
                                 mainframe.UpdateNote("", false);
                                 test.Start();
                             }
@@ -54958,7 +55311,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Her folder,Room camera,Her computer,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Mainframe,Play,Move,Size,Hide Capri,Hologram,Her things,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;
@@ -61339,7 +61692,7 @@ namespace CapriDesktop
                             if (voice.VoiceId != null || preferences.VoiceId != null || voice.Model != null || mainframe.VoiceStatus != "Needs your Voice ID. |  | Default model | Forget") throw new Exception("Blank voice was not cleared: " + mainframe.VoiceStatus);
                             CloseTalk();
                             pill.Press(2);
-                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID, choom. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
+                            if (pill.Chatting || chatting || reply != "Voice chat needs my Voice ID. Right-click me, open Capri Mainframe and pick a voice in the Voice ID box under VOICE. Type to me for now.") throw new Exception("Wave without a Voice ID did not point to the Mainframe.");
                             CloseTalk();
                             preferences.VoiceKey = sealedKey;
                             ForgetVoice();
@@ -64278,8 +64631,8 @@ namespace CapriDesktop
                                     if (reply != keyLines[provider] || heard != "free key") throw new Exception("Free key did not explain provider " + provider + ": " + reply);
                                     CloseTalk();
                                 }
-                                ((ToolStripMenuItem)helpItem.DropDownItems[2]).PerformClick();
-                                ((ToolStripMenuItem)helpItem.DropDownItems[1]).PerformClick();
+                                MenuRow("Join the Discord").PerformClick();
+                                MenuRow("Help page").PerformClick();
                                 OpenHelp();
                                 if (string.Join(" ", browsed.ToArray()) != GuidePage + " " + FreeKeyPage + " " + GeminiKeyPage + " " + RouterKeyPage + " " + DiscordPage + " " + HelpPage + " " + HelpPage) throw new Exception("Key buttons, Join the Discord or Help opened the wrong pages: " + string.Join(" ", browsed.ToArray()));
                             }
@@ -67210,6 +67563,20 @@ namespace CapriDesktop
             internal int Flags;
             internal IntPtr Dirty;
         }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] internal struct TrayIconData
+        {
+            internal int Size;
+            internal IntPtr Window;
+            internal int Id, Flags, CallbackMessage;
+            internal IntPtr Icon;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] internal string Tip;
+            internal int State, StateMask;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)] internal string Info;
+            internal int TimeoutOrVersion;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] internal string InfoTitle;
+            internal int InfoFlags;
+        }
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)] internal static extern bool Shell_NotifyIcon(int message, ref TrayIconData data);
         [StructLayout(LayoutKind.Sequential)] private struct InputInfo { internal int Size; internal uint Time; }
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();

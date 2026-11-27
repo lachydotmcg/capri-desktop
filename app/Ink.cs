@@ -530,6 +530,7 @@ namespace CapriDesktop
             Computer.InkWord = ink.IsWord;
             clearInkItem = new ToolStripMenuItem("Clear her drawing", null, delegate { ink.Clear(); clearInkItem.Visible = false; });
             clearInkItem.Visible = false;
+            clearInkItem.ToolTipText = "Wipe away what she drew on your screen";
             menu.Items.Insert(menu.Items.Count - 1, clearInkItem);
             ink.Failed = delegate(string reason) { clearInkItem.Visible = false; Say(reason); };
         }

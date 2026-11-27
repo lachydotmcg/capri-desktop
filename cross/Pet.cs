@@ -585,6 +585,7 @@ namespace CapriDesktop
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
+        private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
         // She checks GitHub's latest release now and then. Started from the Linux AppImage she downloads it and offers a
         // restart (LinuxAppImageUpdater), and so does her Capri.app on a Mac (MacAppUpdater); a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
@@ -1604,7 +1605,7 @@ namespace CapriDesktop
             updatePage = found.Page != null && found.Page.StartsWith("https://github.com/lachydotmcg/capri-desktop/releases/", StringComparison.Ordinal) ? found.Page : ReleasesPage;
             if (updateItem == null)
             {
-                updateItem = new MenuItem();
+                updateItem = Tipped(new MenuItem(), "Get the newer Capri");
                 updateItem.Click += Guarded(delegate { if (updateReady != null) RestartUpdate(); else Browse(updatePage); });
             }
             string choice = updateReady != null ? "Restart Capri to update to " + version : "Get Capri " + version;
@@ -1818,7 +1819,7 @@ namespace CapriDesktop
             if (board == null) return;
             try { board.SetTextAsync(ErrorDetails()); }
             catch (Exception) { return; }
-            Talk.Answer("(error details)", "Copied my error log. Paste it in the Discord so they can fix me, choom.");
+            Talk.Answer("(error details)", "Copied my error log. Paste it in the Discord so they can fix me.");
         }
 
         internal void SetDiscord(bool on)
@@ -2571,7 +2572,7 @@ namespace CapriDesktop
         {
             if (away || quitting || MacQuit.Quitting) return;
             if (StopListening()) { Talk.Dismiss(); return; }
-            if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now, choom."); return; }
+            if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now."); return; }
             Func<Action, CancellationToken, Task<string>> listen = Listen;
             StopHearingTest();
             Typed();
@@ -2607,7 +2608,7 @@ namespace CapriDesktop
                 else
                 {
                     if (problem != null) hearing.Failed(problem); else hearing.Missed();
-                    Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+                    Talk.Answer("(voice)", problem ?? "I didn't catch that. Try TALK again.");
                 }
                 NotifySettings();
             }
@@ -2769,6 +2770,8 @@ namespace CapriDesktop
 
         // Her menu's clicks, the tray's included, go through Program.Guard, so a bug in one is written down instead of ending her.
         private static EventHandler<Avalonia.Interactivity.RoutedEventArgs> Guarded(Action click) { return delegate { Program.Guard(click); }; }
+
+        private static MenuItem Tipped(MenuItem item, string tip) { ToolTip.SetTip(item, tip); return item; }
 
         private ContextMenu Menu()
         {
@@ -3063,25 +3066,31 @@ namespace CapriDesktop
             settings.Items.Add(resetPersonality);
             settings.Items.Add(memoriesItem);
             settings.Items.Add(memories);
-            MenuItem sizes = new MenuItem { Header = "Size" };
+            MenuItem sizes = Tipped(new MenuItem { Header = "Size" }, "How big she is");
             foreach (string name in MenuSizeNames)
             {
                 double size = Sizes[Array.IndexOf(SizeNames, name)];
-                MenuItem pick = new MenuItem { Header = name };
+                MenuItem pick = Tipped(new MenuItem { Header = name }, "Make her " + name.ToLowerInvariant());
                 pick.Click += Guarded(delegate { Resize(size); });
                 sizes.Items.Add(pick);
             }
-            MenuItem discord = new MenuItem { Header = "Join the Discord" };
+            MenuItem report = Tipped(new MenuItem { Header = "Report a problem" }, "Tell us about a bug or a bad reply");
+            report.Click += Guarded(delegate { Browse(IssuesPage); });
+            MenuItem discord = Tipped(new MenuItem { Header = "Join the Discord" }, "Talk with other people who use Capri");
             discord.Click += Guarded(delegate { Browse(DiscordPage); });
-            MenuItem help = new MenuItem { Header = "Help" };
-            MenuItem helpPage = new MenuItem { Header = "Help page" };
+            MenuItem help = Tipped(new MenuItem { Header = "Help" }, "Help, problems and updates");
+            MenuItem helpPage = Tipped(new MenuItem { Header = "Help page" }, "Open her help page");
             helpPage.Click += Guarded(delegate { Browse(HelpPage); });
-            MenuItem copyErrors = new MenuItem { Header = "Copy error details" };
+            MenuItem copyErrors = Tipped(new MenuItem { Header = "Copy error details" }, "Copy her error log to send to us");
             copyErrors.Click += Guarded(delegate { CopyErrors(); });
+            MenuItem update = Tipped(new MenuItem { Header = "Check for updates" }, "Look for a newer Capri");
+            update.Click += Guarded(delegate { CheckUpdate(true); });
+            help.Items.Add(report);
+            help.Items.Add(copyErrors);
             help.Items.Add(helpPage);
             help.Items.Add(discord);
-            help.Items.Add(copyErrors);
-            MenuItem quit = new MenuItem { Header = "Quit Capri" };
+            help.Items.Add(update);
+            MenuItem quit = Tipped(new MenuItem { Header = "Quit Capri" }, "Close her until you start her again");
             quit.Click += Guarded(delegate { Quit(); });
             move.Items.Clear();
             move.Items.Add(sitItem);
@@ -3094,23 +3103,30 @@ namespace CapriDesktop
             wander.Click += Guarded(delegate { SetWander(Saved.Wander == 0 ? 2 : 0); });
             move.Items.Add(wander);
             MenuItem title = new MenuItem { Header = "CAPRI / v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(), IsEnabled = false, Foreground = MainframeTheme.Rose };
-            MenuItem frame = new MenuItem { Header = "Open Capri Mainframe" };
+            MenuItem frame = Tipped(new MenuItem { Header = "Open Mainframe" }, "Her settings and controls");
             frame.Click += Guarded(delegate { OpenMainframe(); });
-            MenuItem nativeFilesMenu = new MenuItem { Header = "File editor" };
+            MenuItem nativeFilesMenu = Tipped(new MenuItem { Header = "File editor" }, "Edit her personality and her notes on you");
             nativeFilesMenu.Click += Guarded(delegate { OpenFiles(0); });
-            hideItem = new MenuItem { Header = "Hide Capri" };
+            MenuItem things = Tipped(new MenuItem { Header = "Her things" }, "Her files");
+            things.Items.Add(nativeFilesMenu);
+            hideItem = Tipped(new MenuItem { Header = "Hide Capri" }, "Hide her until you bring her back");
             hideItem.Click += Guarded(delegate { if (Away) ComeBack(); else HideAway(); });
-            MenuItem update = new MenuItem { Header = "Check for updates" };
-            update.Click += Guarded(delegate { CheckUpdate(true); });
+            Tipped(move, "How and where she moves");
+            Tipped(sitItem, "Sit on the window under her, or stand up");
+            Tipped(hangItem, "Hang from the edge she's on, or let go");
+            Tipped(napItem, "Nap until you wake her");
+            Tipped(screenItem, "Send her to your other screen");
+            Tipped(musicItem, "Dance when music plays");
+            Tipped(danceItem, "Dance now, or stop");
+            Tipped(wander, "Let her walk around your screen, or stay put");
             menu.Items.Add(title);
             menu.Items.Add(new Separator());
             menu.Items.Add(frame);
-            menu.Items.Add(nativeFilesMenu);
-            menu.Items.Add(hideItem);
-            menu.Items.Add(sizes);
             menu.Items.Add(move);
+            menu.Items.Add(sizes);
+            menu.Items.Add(hideItem);
+            menu.Items.Add(things);
             menu.Items.Add(help);
-            menu.Items.Add(update);
             menu.Items.Add(new Separator());
             menu.Items.Add(quit);
             menu.Opening += delegate { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
@@ -3840,7 +3856,7 @@ namespace CapriDesktop
 
         internal void SetLogin(bool on, bool say = true)
         {
-            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
+            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that. I need to be able to write " + LoginFile + ".");
             Sync();
         }
 
