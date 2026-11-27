@@ -155,6 +155,23 @@ jobs:
           ./ci/test-silent-install.ps1 -Setup out/windows/Capri-Setup.exe
           ./ci/test-silent-uninstall.ps1 -Setup out/windows/Capri-Setup.exe
 
+  # A real install with dependencies, so a package missing from the plan lock fails here.
+  plan-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Her plan bridge installs from its lock
+        run: |
+          set -e
+          python -m venv "$RUNNER_TEMP/plan"
+          "$RUNNER_TEMP/plan/bin/python" -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r tools/plan-requirements.lock
+          "$RUNNER_TEMP/plan/bin/python" -m pip check --disable-pip-version-check
+          "$RUNNER_TEMP/plan/bin/python" -c "import authlib.jose, authlib.oidc.core, httpx"
+
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
