@@ -31757,20 +31757,22 @@ namespace CapriDesktop
                 WrittenNote note = new WrittenNote(notePath, "", new object());
                 if (!SavesThroughHeld(notePath, delegate { return note.Save("After.") == null; }) || File.ReadAllText(notePath) != "After." || Directory.GetFiles(folder, "*.new").Length != 0)
                     throw new Exception("A note saved while its file was held for 250 ms was lost or left a temporary file.");
+                bool edited = false;
                 string conflicted;
-                using (FileStream held = new FileStream(notePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (FileStream held = new FileStream(notePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    System.Threading.Tasks.Task<string> saving = System.Threading.Tasks.Task.Run(delegate { return note.Save("Mine."); });
-                    try
+                    conflicted = note.Save("Mine.", delegate
                     {
-                        if (!SpinWait.SpinUntil(delegate { return Directory.GetFiles(folder, "held.md.*.new").Length != 0; }, 5000))
-                            throw new Exception("The note save did not create its replacement while the file was held.");
+                        // The first replacement has failed and closed its handles. Edit before the next attempt reads the note.
+                        if (edited) return;
+                        if (Directory.GetFiles(folder, "held.md.*.new").Length != 1)
+                            throw new Exception("The held note did not reach its first replacement attempt.");
+                        held.Dispose();
                         File.WriteAllText(notePath, "External edit.");
-                    }
-                    finally { held.Dispose(); }
-                    conflicted = saving.GetAwaiter().GetResult();
+                        edited = true;
+                    });
                 }
-                if (conflicted != "This note changed. Reload it before saving." || File.ReadAllText(notePath) != "External edit.")
+                if (!edited || conflicted != "This note changed. Reload it before saving." || File.ReadAllText(notePath) != "External edit." || Directory.GetFiles(folder, "*.new").Length != 0)
                     throw new Exception("A retry overwrote an external edit made while the note was held.");
                 checks.Add("PASS settings and note saves wait out their file held open for 250 ms by another reader and land once it's let go");
             }

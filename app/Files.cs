@@ -59,7 +59,7 @@ namespace CapriDesktop
         // Runs a save up to tries times, pausing between, because an antivirus scan or the search indexer can hold the file
         // for a moment. Only IOException and UnauthorizedAccessException are retried; it returns the last one, or null once
         // the save worked. Anything else is thrown as before.
-        internal static Exception Retried(int tries, int pauseMilliseconds, Action save)
+        internal static Exception Retried(int tries, int pauseMilliseconds, Action save, Action beforeRetry = null)
         {
             for (int attempt = 1; ; attempt++)
             {
@@ -68,6 +68,7 @@ namespace CapriDesktop
                 {
                     if (!(error is IOException) && !(error is UnauthorizedAccessException)) throw;
                     if (attempt >= tries) return error;
+                    if (beforeRetry != null) beforeRetry();
                     System.Threading.Thread.Sleep(pauseMilliseconds);
                 }
             }
